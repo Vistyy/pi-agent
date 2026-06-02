@@ -1,0 +1,37 @@
+# Ignore everything by default
+*
+
+# Track this file
+!.gitignore
+
+# Core config
+!AGENTS.md
+!SYSTEM.md
+!APPEND_SYSTEM.md
+!settings.json
+!models.json
+!keybindings.json
+
+# Track resource directories
+!extensions/
+!extensions/**
+!prompts/
+!prompts/**
+!skills/
+!skills/**
+!themes/
+!themes/**
+
+# But ignore dependency/build artifacts inside tracked dirs
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+*.log
+
+# Never track secrets/runtime
+auth.json
+sessions/
+npm/
+git/
+pi-debug.log
