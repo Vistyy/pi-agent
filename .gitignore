@@ -21,6 +21,8 @@
 !skills/**
 !themes/
 !themes/**
+!docs/
+!docs/**
 
 # But ignore dependency/build artifacts inside tracked dirs
 node_modules/
