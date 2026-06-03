@@ -10,7 +10,7 @@ const GIT_CACHE_MS = 1000;
 let gitCache: GitCache | undefined;
 
 export default function statusline(pi: ExtensionAPI) {
-  let thinkingLevel: ThinkingLevel = pi.getThinkingLevel();
+  let thinkingLevel: ThinkingLevel = "low";
 
   pi.on("session_start", (_event, ctx) => {
     thinkingLevel = pi.getThinkingLevel();
