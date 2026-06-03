@@ -33,10 +33,6 @@ const INTENSITY: Record<Exclude<Level, "off">, string> = {
 export default function noFluff(pi: ExtensionAPI) {
   let level: Level = "full";
 
-  function label() {
-    return level === "off" ? "" : `nofluff:${level}`;
-  }
-
   pi.on("session_start", async (_event, ctx) => {
     for (const entry of ctx.sessionManager.getEntries()) {
       if (entry.type === "custom" && entry.customType === "nofluff-level") {
@@ -44,7 +40,7 @@ export default function noFluff(pi: ExtensionAPI) {
         if (saved && LEVELS.includes(saved)) level = saved;
       }
     }
-    ctx.ui.setStatus("nofluff", label());
+    ctx.ui.setStatus("nofluff", undefined);
   });
 
   pi.registerCommand("nofluff", {
@@ -65,7 +61,7 @@ export default function noFluff(pi: ExtensionAPI) {
       }
 
       pi.appendEntry("nofluff-level", { level });
-      ctx.ui.setStatus("nofluff", label());
+      ctx.ui.setStatus("nofluff", undefined);
       ctx.ui.notify(level === "off" ? "No fluff off." : `No fluff ${level}.`, "info");
     },
   });

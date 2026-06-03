@@ -4,6 +4,6 @@
   "defaultModel": "gpt-5.5",
   "defaultThinkingLevel": "low",
   "doubleEscapeAction": "tree",
-  "theme": "dark-readable",
+  "theme": "syzom-dark",
   "packages": []
 }

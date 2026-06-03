@@ -32,10 +32,6 @@ const STRONG = `Strong visual bias:
 export default function visualAid(pi: ExtensionAPI) {
   let mode: Mode = "on";
 
-  function label() {
-    return mode === "off" ? "" : `visual:${mode}`;
-  }
-
   pi.on("session_start", async (_event, ctx) => {
     for (const entry of ctx.sessionManager.getEntries()) {
       if (entry.type === "custom" && entry.customType === "visual-aid-mode") {
@@ -43,7 +39,7 @@ export default function visualAid(pi: ExtensionAPI) {
         if (saved && MODES.includes(saved)) mode = saved;
       }
     }
-    ctx.ui.setStatus("visual-aid", label());
+    ctx.ui.setStatus("visual-aid", undefined);
   });
 
   pi.registerCommand("visual", {
@@ -63,7 +59,7 @@ export default function visualAid(pi: ExtensionAPI) {
       }
 
       pi.appendEntry("visual-aid-mode", { mode });
-      ctx.ui.setStatus("visual-aid", label());
+      ctx.ui.setStatus("visual-aid", undefined);
       ctx.ui.notify(mode === "off" ? "Visual aid off." : `Visual aid ${mode}.`, "info");
     },
   });
