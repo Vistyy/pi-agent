@@ -4,12 +4,16 @@ import { truncateToWidth } from "@earendil-works/pi-tui";
 import { execFileSync } from "node:child_process";
 
 type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | string;
+type GitCache = { cwd: string; createdAt: number; value: string | undefined };
+
+const GIT_CACHE_MS = 1000;
+let gitCache: GitCache | undefined;
 
 export default function statusline(pi: ExtensionAPI) {
-  let thinkingLevel: ThinkingLevel = "low";
+  let thinkingLevel: ThinkingLevel = pi.getThinkingLevel();
 
   pi.on("session_start", (_event, ctx) => {
-    thinkingLevel = currentThinkingLevel(ctx.sessionManager.getBranch()) ?? thinkingLevel;
+    thinkingLevel = pi.getThinkingLevel();
 
     ctx.ui.setFooter((tui, theme, footerData) => {
       const unsubscribe = footerData.onBranchChange(() => tui.requestRender());
@@ -80,25 +84,22 @@ function summarizeUsage(entries: Array<{ type: string; message?: unknown }>) {
   return { input, output, total: input + output, cost };
 }
 
-function currentThinkingLevel(entries: Array<{ type: string; thinkingLevel?: unknown; thinking?: unknown }>): ThinkingLevel | undefined {
-  for (let i = entries.length - 1; i >= 0; i--) {
-    const entry = entries[i];
-    if (entry?.type === "thinking_level_change" && typeof entry.thinkingLevel === "string") return entry.thinkingLevel;
-    if (entry?.type === "thinking" && typeof entry.thinking === "string") return entry.thinking;
-  }
-  return undefined;
-}
-
 function shortThinking(level: ThinkingLevel): string {
   switch (level) {
-    case "minimal": return "min";
-    case "medium": return "med";
-    case "xhigh": return "xhi";
-    default: return level;
+    case "minimal":
+      return "min";
+    case "medium":
+      return "med";
+    case "xhigh":
+      return "xhi";
+    default:
+      return level;
   }
 }
 
 function gitSummary(cwd: string): string | undefined {
+  if (gitCache && gitCache.cwd === cwd && Date.now() - gitCache.createdAt < GIT_CACHE_MS) return gitCache.value;
+
   try {
     const parts: string[] = [];
     const commits = commitDivergence(cwd);
@@ -119,8 +120,10 @@ function gitSummary(cwd: string): string | undefined {
 
     if (diff.files || diff.added || diff.removed) parts.push(`${diff.files}f +${diff.added} -${diff.removed}`);
     if (untracked) parts.push(`?${untracked}`);
-    return parts.length ? parts.join(" ") : undefined;
+    gitCache = { cwd, createdAt: Date.now(), value: parts.length ? parts.join(" ") : undefined };
+    return gitCache.value;
   } catch {
+    gitCache = { cwd, createdAt: Date.now(), value: undefined };
     return undefined;
   }
 }
