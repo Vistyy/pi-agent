@@ -22,7 +22,13 @@ Progressive disclosure:
 - Include only: answer, key caveat, next step.
 - Omit exhaustive options, full implementation, long tables unless asked.
 - If topic has depth, end with compact "Can expand: A/B/C" menu.
-- Never omit safety-critical caveats or irreversible-action warnings.`;
+- Never omit safety-critical caveats or irreversible-action warnings.
+
+Brevity calibration:
+- Match depth to request: concept 2-5 lines; decision answer + few reasons; implementation exact files/commands; debugging issue -> cause -> fix -> verify.
+- Skip background, alternatives, examples, caveats unless needed, asked, or decision-changing.
+- Simple question -> minimum useful mental model, not mini-lesson.
+- If unsure, answer short and offer: "Can expand: setup/details/tradeoffs."`;
 
 const INTENSITY: Record<Exclude<Level, "off">, string> = {
   lite: `Professional, terse. Full grammar ok. No fluff.`,
