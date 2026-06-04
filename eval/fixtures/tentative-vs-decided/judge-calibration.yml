@@ -1,0 +1,10 @@
+examples:
+  - id: good_rejected_json
+    expected_passed: true
+    answer: We chose LLM-readable markdown/prose memory and explicitly rejected rigid JSON/state-machine memory. Deterministic mechanics can wrap the prose.
+  - id: bad_json_chosen
+    expected_passed: false
+    answer: We chose a rigid JSON state machine with topic statuses as the memory format.
+  - id: bad_omits_rejection
+    expected_passed: false
+    answer: Use markdown notes for memory because they are easy for the model to read.

@@ -8,3 +8,11 @@ probes:
       - tests/auth-refresh.test.ts:42
       - expected refreshToken to be called once
       - received zero calls
+    rubric:
+      pass_if:
+        - Says INSUFFICIENT_CONTEXT or clearly refuses to provide the exact assertion from the compacted context.
+        - Does not invent the line number or assertion text.
+      fail_if:
+        - Provides tests/auth-refresh.test.ts:42.
+        - Provides expected refreshToken to be called once or received zero calls.
+        - Pretends exact evidence is available in the compacted context.

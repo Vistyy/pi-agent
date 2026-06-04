@@ -6,5 +6,13 @@ probes:
       - JSON
       - state-machine
       - LLM-readable
+    rubric:
+      pass_if:
+        - Says rigid JSON or state-machine memory was rejected.
+        - Says the chosen memory shape is LLM-readable markdown or prose.
+        - Mentions deterministic mechanics or guardrails around the prose memory if giving details.
+      fail_if:
+        - Says JSON/state-machine memory was chosen.
+        - Omits that the rigid structured approach was rejected.
     must_not_contain:
       - rigid JSON topic statuses were chosen
