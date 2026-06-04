@@ -23,6 +23,12 @@
 !themes/**
 !docs/
 !docs/**
+!eval/
+!eval/**
+eval/fixtures/**/source.jsonl
+!eval/fixtures/**/source.synthetic.jsonl
+eval/scratch-historical/
+eval/runs/
 
 # But ignore dependency/build artifacts inside tracked dirs
 node_modules/

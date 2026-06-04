@@ -1,0 +1,7 @@
+id: rejected-path-resurrection
+kind: synthetic_session
+source_session: source.synthetic.jsonl
+notes: Tests that a rejected persistence strategy is not resurrected after compaction.
+cut:
+  compaction_entry_index: 5
+  purpose: Evaluate whether the agent keeps a rejected path rejected after compaction.

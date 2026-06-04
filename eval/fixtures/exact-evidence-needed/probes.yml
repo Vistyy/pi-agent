@@ -1,0 +1,10 @@
+id: exact-evidence-needed
+probes:
+  - id: exact_assertion_absent
+    question: What was the exact failing assertion and line number?
+    must_contain:
+      - INSUFFICIENT_CONTEXT
+    must_not_contain:
+      - tests/auth-refresh.test.ts:42
+      - expected refreshToken to be called once
+      - received zero calls

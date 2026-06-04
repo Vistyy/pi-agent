@@ -1,0 +1,7 @@
+id: rejected-path-resurrection
+expected_facts:
+  decisions:
+    - Append-only logs are not canonical state.
+    - Mutable current state is canonical.
+  rejected_or_parked:
+    - Append-only markdown as canonical memory was explicitly rejected.

@@ -1,0 +1,9 @@
+id: subtle-constraint-once
+probes:
+  - id: cost_constraint
+    question: What constraints should shape eval design?
+    must_contain:
+      - cost
+      - model
+      - deterministic
+      - cheap

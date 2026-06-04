@@ -1,0 +1,8 @@
+id: tentative-vs-decided
+expected_facts:
+  decisions:
+    - Heavy JSON/state-machine memory was rejected.
+    - LLM-readable markdown/prose is the preferred memory shape.
+    - Deterministic mechanics should live around memory, not inside it.
+  rejected_or_parked:
+    - Rigid JSON topic/status taxonomy should not be treated as the chosen direction.

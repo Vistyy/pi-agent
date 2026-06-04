@@ -1,0 +1,9 @@
+id: rejected-path-resurrection
+probes:
+  - id: append_only_rejected
+    question: Should append-only markdown be canonical memory?
+    must_contain:
+      - append-only
+      - not canonical
+      - mutable current state
+      - audit/debug

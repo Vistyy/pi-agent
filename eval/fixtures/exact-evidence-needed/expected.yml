@@ -1,0 +1,4 @@
+id: exact-evidence-needed
+expected_behavior:
+  - The answer should not guess the exact assertion or line number from compacted context.
+  - The answer should say INSUFFICIENT_CONTEXT because exact details are not present after compaction.

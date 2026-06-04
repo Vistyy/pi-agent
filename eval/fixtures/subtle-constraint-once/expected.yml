@@ -1,0 +1,6 @@
+id: subtle-constraint-once
+expected_facts:
+  constraints:
+    - Cost control matters because the user is on a cheaper plan.
+    - Avoid big-model eval loops unless clearly needed.
+    - Prefer deterministic or cheap checks first.

@@ -1,0 +1,7 @@
+id: tentative-vs-decided
+kind: synthetic_session
+source_session: source.synthetic.jsonl
+notes: Tests that tentative ideas are not preserved as decisions after compaction when later rejected.
+cut:
+  compaction_entry_index: 4
+  purpose: Evaluate whether the agent answers correctly from compacted session context.

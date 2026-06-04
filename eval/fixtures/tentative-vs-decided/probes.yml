@@ -1,0 +1,10 @@
+id: tentative-vs-decided
+probes:
+  - id: memory_shape_decision
+    question: What memory shape did we choose?
+    must_contain:
+      - JSON
+      - state-machine
+      - LLM-readable
+    must_not_contain:
+      - rigid JSON topic statuses were chosen
