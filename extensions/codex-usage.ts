@@ -7,7 +7,7 @@ const TTL_MS = 5 * 60 * 1000;
 const TIMEOUT_MS = 15_000;
 
 type PiModel = NonNullable<ExtensionContext["model"]>;
-type Window = { usedPercent: number };
+type Window = { usedPercent: number; resetAt?: number };
 type Snapshot = { id: string; name?: string; primary?: Window; secondary?: Window };
 type Report = { capturedAt: number; snapshots: Snapshot[] };
 
@@ -23,6 +23,14 @@ type BackendRateLimit = {
 
 type BackendWindow = {
 	used_percent?: unknown;
+	reset_at?: unknown;
+	resets_at?: unknown;
+	reset_time?: unknown;
+	end_time?: unknown;
+	ends_at?: unknown;
+	resets_after_seconds?: unknown;
+	reset_after_seconds?: unknown;
+	seconds_until_reset?: unknown;
 };
 
 type BackendAdditionalLimit = {
@@ -120,11 +128,47 @@ function formatStatus(report: Report, model: PiModel | undefined): string {
 }
 
 function formatDetails(report: Report, model: PiModel | undefined): string {
-	return `${formatStatus(report, model)}\nSource: ${USAGE_URL}`;
+	const snapshot = selectSnapshot(report, model);
+	if (!snapshot) return `${formatStatus(report, model)}\nSource: ${USAGE_URL}`;
+	return [
+		formatStatus(report, model),
+		`5H reset: ${formatReset(snapshot.primary)}`,
+		`7D reset: ${formatReset(snapshot.secondary)}`,
+		`Source: ${USAGE_URL}`,
+	].join("\n");
 }
 
 function remaining(window: Window): string {
 	return String(Math.round(100 - clamp(window.usedPercent)));
+}
+
+function formatReset(window: Window | undefined): string {
+	if (!window?.resetAt) return "unknown";
+	const deltaMs = window.resetAt - Date.now();
+	return `${formatDuration(deltaMs)} (${formatDate(window.resetAt)})`;
+}
+
+function formatDuration(ms: number): string {
+	if (ms <= 0) return "now";
+	const totalMinutes = Math.ceil(ms / 60_000);
+	const days = Math.floor(totalMinutes / 1_440);
+	const hours = Math.floor((totalMinutes % 1_440) / 60);
+	const minutes = totalMinutes % 60;
+	const parts: string[] = [];
+	if (days) parts.push(`${days}d`);
+	if (hours) parts.push(`${hours}h`);
+	if (minutes || parts.length === 0) parts.push(`${minutes}m`);
+	return parts.join(" ");
+}
+
+function formatDate(ms: number): string {
+	return new Date(ms).toLocaleString(undefined, {
+		year: "numeric",
+		month: "short",
+		day: "2-digit",
+		hour: "2-digit",
+		minute: "2-digit",
+	});
 }
 
 function selectSnapshot(report: Report, model: PiModel | undefined): Snapshot | undefined {
@@ -212,8 +256,26 @@ function normalizeLimit(id: string, name: string | undefined, raw: unknown): Sna
 
 function normalizeWindow(raw: unknown): Window | undefined {
 	if (!isObject(raw)) return undefined;
-	const usedPercent = asNumber((raw as BackendWindow).used_percent);
-	return usedPercent === undefined ? undefined : { usedPercent };
+	const window = raw as BackendWindow;
+	const usedPercent = asNumber(window.used_percent);
+	if (usedPercent === undefined) return undefined;
+	return { usedPercent, resetAt: resolveResetAt(window) };
+}
+
+function resolveResetAt(window: BackendWindow): number | undefined {
+	const absolute =
+		asTimestampMs(window.reset_at) ??
+		asTimestampMs(window.resets_at) ??
+		asTimestampMs(window.reset_time) ??
+		asTimestampMs(window.end_time) ??
+		asTimestampMs(window.ends_at);
+	if (absolute !== undefined) return absolute;
+
+	const seconds =
+		asNumber(window.resets_after_seconds) ??
+		asNumber(window.reset_after_seconds) ??
+		asNumber(window.seconds_until_reset);
+	return seconds === undefined ? undefined : Date.now() + seconds * 1000;
 }
 
 function isCodexModel(model: Pick<PiModel, "provider"> | undefined): model is PiModel {
@@ -241,6 +303,19 @@ function asNumber(value: unknown): number | undefined {
 	if (typeof value === "string" && value.trim()) {
 		const parsed = Number(value);
 		return Number.isFinite(parsed) ? parsed : undefined;
+	}
+	return undefined;
+}
+
+function asTimestampMs(value: unknown): number | undefined {
+	if (typeof value === "number" && Number.isFinite(value)) {
+		return value < 10_000_000_000 ? value * 1000 : value;
+	}
+	if (typeof value === "string" && value.trim()) {
+		const numeric = Number(value);
+		if (Number.isFinite(numeric)) return numeric < 10_000_000_000 ? numeric * 1000 : numeric;
+		const parsed = Date.parse(value);
+		if (Number.isFinite(parsed)) return parsed;
 	}
 	return undefined;
 }
