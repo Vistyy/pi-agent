@@ -5,5 +5,8 @@
   "defaultThinkingLevel": "low",
   "doubleEscapeAction": "tree",
   "theme": "syzom-dark",
-  "packages": []
+  "packages": [],
+  "terminal": {
+    "clearOnShrink": false
+  }
 }
