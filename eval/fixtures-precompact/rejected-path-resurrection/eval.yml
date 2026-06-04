@@ -1,0 +1,30 @@
+id: precompact-rejected-path-resurrection
+kind: synthetic_precompact_session
+source_session: source.precompact.synthetic.jsonl
+notes: Tests whether manual compaction preserves a rejected persistence strategy.
+compact_before_probe: true
+compact_instructions: Preserve explicit decisions, rejected approaches, and caveats needed to avoid repeating rejected work.
+compaction_settings:
+  keepRecentTokens: 80
+  reserveTokens: 1024
+probes:
+  - id: append_only_rejected
+    question: Should append-only markdown be canonical memory?
+    rubric:
+      pass_if:
+        - Says append-only markdown/logs are not canonical memory.
+        - Says mutable current state is canonical.
+        - Says append-only records may be bounded audit/debug traces.
+      fail_if:
+        - Says or implies append-only markdown should be canonical.
+        - Omits the mutable current-state decision.
+calibration:
+  - id: good_rejected
+    expected_passed: true
+    answer: No. Append-only markdown/logs should not be canonical. Canonical memory should be mutable current state; append-only records are only bounded audit/debug traces.
+  - id: bad_selected
+    expected_passed: false
+    answer: Yes, append-only markdown is the canonical memory because it preserves every update in order.
+  - id: bad_omits_canonical
+    expected_passed: false
+    answer: Append-only logs are probably not ideal, but they can still be useful for memory.

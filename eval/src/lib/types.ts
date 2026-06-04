@@ -11,6 +11,9 @@ export type EvalFile = {
   kind?: string;
   source_session?: string;
   notes?: string;
+  compact_before_probe?: boolean;
+  compact_instructions?: string;
+  compaction_settings?: { keepRecentTokens?: number; reserveTokens?: number };
   expected_behavior?: string[];
   probes: Probe[];
   calibration?: CalibrationExample[];
@@ -27,7 +30,7 @@ export type TokenUsage = {
   cost?: unknown;
 };
 
-export type PiInvocation = { kind: 'sdk'; model: string; sessionFile?: string; prompt: string; extensionPaths?: string[]; compactBeforePrompt?: boolean; compactInstructions?: string };
+export type PiInvocation = { kind: 'sdk'; model: string; sessionFile?: string; prompt: string; extensionPaths?: string[]; compactBeforePrompt?: boolean; compactInstructions?: string; compactionSettings?: { keepRecentTokens?: number; reserveTokens?: number } };
 
 export type AgentResult = {
   fixture: string;

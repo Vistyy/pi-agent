@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { mapLimit } from './concurrency.js';
-import { fixtureDirs, fixtureId, readCalibration, readProbes, sourceSessionPath } from './fixtures.js';
+import { fixtureDirs, fixtureId, readCalibration, readEvalFile, readProbes, sourceSessionPath } from './fixtures.js';
 import { MINIMAL_JUDGE_SYSTEM_PROMPT, judgePrompt, runJudge } from './judge.js';
 import { DEFAULT_MODEL, runPiSdk } from './pi.js';
 import { writeSummary } from './summary.js';
@@ -28,12 +28,13 @@ function buildTasks(options: Pick<EvalOptions, 'fixturesRoot' | 'model' | 'exten
   const model = options.model ?? DEFAULT_MODEL;
   for (const dir of fixtureDirs(options.fixturesRoot)) {
     const fixture = fixtureId(dir);
+    const evalFile = readEvalFile(dir);
     const temp = fs.mkdtempSync(path.join(os.tmpdir(), `pi-eval-${fixture}-`));
     const sessionCopy = path.join(temp, 'session.jsonl');
     fs.copyFileSync(sourceSessionPath(dir), sessionCopy);
     for (const probe of readProbes(dir)) {
       const prompt = `Answer using existing session context only. Be very concise: 1-3 short sentences, or bullets only if needed. Include only details required by the probe. If context is insufficient, say exactly: INSUFFICIENT_CONTEXT.\n\nProbe: ${probe.question}`;
-      tasks.push({ fixture, probe, invocation: { kind: 'sdk', model, sessionFile: sessionCopy, prompt, extensionPaths: options.extensionPaths, compactBeforePrompt: options.compactBeforePrompt, compactInstructions: options.compactInstructions } });
+      tasks.push({ fixture, probe, invocation: { kind: 'sdk', model, sessionFile: sessionCopy, prompt, extensionPaths: options.extensionPaths, compactBeforePrompt: options.compactBeforePrompt ?? evalFile.compact_before_probe, compactInstructions: options.compactInstructions ?? evalFile.compact_instructions, compactionSettings: evalFile.compaction_settings } });
     }
   }
   return tasks;
@@ -113,7 +114,7 @@ export async function runEval(options: EvalOptions) {
   }
 
   const judged = await mapLimit(tasks, concurrency, async ({ fixture, probe, invocation }): Promise<JudgedResult> => {
-    const run = await runPiSdk(invocation.prompt, { model, sessionFile: invocation.sessionFile, extensionPaths: invocation.extensionPaths, compactBeforePrompt: invocation.compactBeforePrompt, compactInstructions: invocation.compactInstructions });
+    const run = await runPiSdk(invocation.prompt, { model, sessionFile: invocation.sessionFile, extensionPaths: invocation.extensionPaths, compactBeforePrompt: invocation.compactBeforePrompt, compactInstructions: invocation.compactInstructions, compactionSettings: invocation.compactionSettings });
     const answer: AgentResult = { fixture, probe: probe.id, invocation, compaction: run.compaction, executed: true, exitCode: run.status, durationMs: run.durationMs, answer: run.stdout.trim(), stderr: run.stderr, usage: run.usage };
     const { run: judgeRun, judge } = await runJudge(probe, answer.answer, judgeModel);
     return { ...answer, judge, judgeExitCode: judgeRun.status, judgeStderr: judgeRun.stderr, judgeDurationMs: judgeRun.durationMs, judgeUsage: judgeRun.usage };

@@ -1,0 +1,31 @@
+id: precompact-subtle-constraint-once
+kind: synthetic_precompact_session
+source_session: source.precompact.synthetic.jsonl
+notes: Tests whether manual compaction preserves a one-off cost constraint.
+compact_before_probe: true
+compact_instructions: Preserve user constraints and preferences, especially cost constraints that should shape later eval design.
+compaction_settings:
+  keepRecentTokens: 80
+  reserveTokens: 1024
+probes:
+  - id: cost_constraint
+    question: What constraints should shape eval design?
+    rubric:
+      pass_if:
+        - Says eval design should be cost-sensitive or cheap.
+        - Says avoid big-model/model-heavy eval loops unless needed.
+        - Says prefer deterministic/cheap checks first, before model-based judging; the word "baseline" is not required.
+      fail_if:
+        - Recommends model-heavy evals as the default.
+        - Omits the cost constraint or cheaper-plan constraint.
+        - Only says to evaluate cleanly/one-by-one without mentioning cost, cheap checks, or avoiding model-heavy eval loops.
+calibration:
+  - id: good_cost
+    expected_passed: true
+    answer: Eval design should be cost-sensitive. Prefer cheap deterministic baseline checks first and avoid model-heavy or big-model judge loops unless needed.
+  - id: bad_model_heavy
+    expected_passed: false
+    answer: Use a strong model judge for every run by default and run many repeated model trials to get confidence.
+  - id: bad_omits_cost
+    expected_passed: false
+    answer: Focus on evaluating extensions one by one with clean fixtures and clear rubrics.

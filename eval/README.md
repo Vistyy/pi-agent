@@ -7,8 +7,12 @@ Evaluates whether Pi can answer fixed probes from compacted session context.
 ```text
 fixtures/<id>/
   eval.yml                 # metadata, probe rubric, judge calibration
-  source.synthetic.jsonl   # committed replayable session
+  source.synthetic.jsonl   # committed replayable post-compaction-style session
   source.jsonl             # optional private local session, gitignored
+
+fixtures-precompact/<id>/
+  eval.yml                         # includes compact_before_probe/settings
+  source.precompact.synthetic.jsonl # committed replayable pre-compaction session
 
 runs/                      # generated results, gitignored
 scratch-historical/        # private calibration sessions, gitignored
@@ -88,4 +92,4 @@ Semantic judge is authoritative. No phrase-search pass/fail checks.
 
 ## Scope
 
-Current runner supports baseline answer quality and explicit extension replay with optional manual compaction before probes. Comparison/reporting between baseline and extension runs comes later.
+Current runner supports baseline answer quality, pre-compaction fixture replay, and explicit extension replay with optional manual compaction before probes. Comparison/reporting between baseline and extension runs comes later.

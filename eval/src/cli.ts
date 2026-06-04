@@ -19,7 +19,7 @@ const result = await runEval({
   dryRun: hasArg('--dry-run'),
   calibrate: hasArg('--calibrate'),
   extensionPaths,
-  compactBeforePrompt: hasArg('--compact-before-prompt'),
+  compactBeforePrompt: hasArg('--compact-before-prompt') ? true : undefined,
   compactInstructions: argValue('--compact-instructions'),
 });
 

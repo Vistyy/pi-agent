@@ -28,6 +28,7 @@ type RunPiSdkOptions = {
   extensionPaths?: string[];
   compactBeforePrompt?: boolean;
   compactInstructions?: string;
+  compactionSettings?: { keepRecentTokens?: number; reserveTokens?: number };
 };
 
 export async function runPiSdk(prompt: string, options: RunPiSdkOptions = {}): Promise<PiRunResult> {
@@ -43,7 +44,7 @@ export async function runPiSdk(prompt: string, options: RunPiSdkOptions = {}): P
     if (!model) throw new Error(`unknown model: ${provider}/${id}`);
 
     const cwd = options.cwd ?? process.cwd();
-    const settingsManager = SettingsManager.inMemory({ compaction: { enabled: false } });
+    const settingsManager = SettingsManager.inMemory({ compaction: { enabled: false, ...options.compactionSettings } });
     const agentDir = getAgentDir();
     const loader = new DefaultResourceLoader({
       cwd,
