@@ -18,9 +18,19 @@ function parseModelSpec(spec: string): [provider: string, id: string] {
   return [provider, id];
 }
 
-export type PiRunResult = { stdout: string; stderr: string; status: number; durationMs: number; usage?: TokenUsage };
+export type PiRunResult = { stdout: string; stderr: string; status: number; durationMs: number; usage?: TokenUsage; compaction?: unknown };
 
-export async function runPiSdk(prompt: string, options: { model?: string; sessionFile?: string; cwd?: string; systemPrompt?: string } = {}): Promise<PiRunResult> {
+type RunPiSdkOptions = {
+  model?: string;
+  sessionFile?: string;
+  cwd?: string;
+  systemPrompt?: string;
+  extensionPaths?: string[];
+  compactBeforePrompt?: boolean;
+  compactInstructions?: string;
+};
+
+export async function runPiSdk(prompt: string, options: RunPiSdkOptions = {}): Promise<PiRunResult> {
   const started = Date.now();
   let stdout = '';
   let stderr = '';
@@ -39,7 +49,9 @@ export async function runPiSdk(prompt: string, options: { model?: string; sessio
       cwd,
       agentDir,
       settingsManager,
-      extensionsOverride: (current) => ({ ...current, extensions: [], errors: [] }),
+      noExtensions: true,
+      additionalExtensionPaths: options.extensionPaths ?? [],
+      extensionsOverride: options.extensionPaths?.length ? undefined : (current) => ({ ...current, extensions: [], errors: [] }),
       skillsOverride: () => ({ skills: [], diagnostics: [] }),
       promptsOverride: () => ({ prompts: [], diagnostics: [] }),
       themesOverride: () => ({ themes: [], diagnostics: [] }),
@@ -75,10 +87,14 @@ export async function runPiSdk(prompt: string, options: { model?: string; sessio
         if (lastWithUsage?.usage) usage = lastWithUsage.usage;
       }
     });
+    let compaction: unknown;
+    if (options.compactBeforePrompt) {
+      compaction = await session.compact(options.compactInstructions);
+    }
     await session.prompt(prompt, { expandPromptTemplates: false });
     unsubscribe();
     session.dispose();
-    return { stdout, stderr, status: 0, durationMs: Date.now() - started, usage };
+    return { stdout, stderr, status: 0, durationMs: Date.now() - started, usage, compaction };
   } catch (e) {
     stderr = e instanceof Error ? (e.stack ?? e.message) : String(e);
     return { stdout, stderr, status: 1, durationMs: Date.now() - started };

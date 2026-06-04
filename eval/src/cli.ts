@@ -8,6 +8,7 @@ const outDir = argValue('--out') ?? `runs/${new Date().toISOString().replace(/[:
 const model = argValue('--model') ?? DEFAULT_MODEL;
 const judgeModel = argValue('--judge-model') ?? model;
 const concurrency = Number(argValue('--concurrency') ?? '1');
+const extensionPaths = process.argv.flatMap((arg, index, argv) => arg === '--extension' ? [argv[index + 1]].filter(Boolean) : []);
 
 const result = await runEval({
   fixturesRoot,
@@ -17,6 +18,9 @@ const result = await runEval({
   concurrency,
   dryRun: hasArg('--dry-run'),
   calibrate: hasArg('--calibrate'),
+  extensionPaths,
+  compactBeforePrompt: hasArg('--compact-before-prompt'),
+  compactInstructions: argValue('--compact-instructions'),
 });
 
 if ('planned' in result && result.planned) {

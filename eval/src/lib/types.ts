@@ -27,12 +27,13 @@ export type TokenUsage = {
   cost?: unknown;
 };
 
-export type PiInvocation = { kind: 'sdk'; model: string; sessionFile?: string; prompt: string };
+export type PiInvocation = { kind: 'sdk'; model: string; sessionFile?: string; prompt: string; extensionPaths?: string[]; compactBeforePrompt?: boolean; compactInstructions?: string };
 
 export type AgentResult = {
   fixture: string;
   probe: string;
   invocation: PiInvocation;
+  compaction?: unknown;
   executed: boolean;
   exitCode: number | null;
   durationMs: number;

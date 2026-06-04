@@ -53,6 +53,18 @@ Optional model override:
 npm run eval -- fixtures --model openai-codex/gpt-5.4-mini --judge-model openai-codex/gpt-5.4-mini
 ```
 
+Extension/compaction replay smoke:
+
+```bash
+npm run eval -- fixtures \
+  --out runs/extension-smoke-001 \
+  --extension /absolute/path/to/extension.ts \
+  --compact-before-prompt \
+  --compact-instructions "preserve decisions and constraints"
+```
+
+`--extension` may be repeated. Normal eval loads no discovered extensions. Extension eval loads only the explicit extension paths.
+
 ## Outputs
 
 ```text
@@ -76,4 +88,4 @@ Semantic judge is authoritative. No phrase-search pass/fail checks.
 
 ## Scope
 
-Current runner tests baseline answer quality from existing compacted session context. Extension replay/comparison comes later.
+Current runner supports baseline answer quality and explicit extension replay with optional manual compaction before probes. Comparison/reporting between baseline and extension runs comes later.

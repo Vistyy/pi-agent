@@ -18,18 +18,22 @@ export type EvalOptions = {
   concurrency?: number;
   dryRun?: boolean;
   calibrate?: boolean;
+  extensionPaths?: string[];
+  compactBeforePrompt?: boolean;
+  compactInstructions?: string;
 };
 
-function buildTasks(fixturesRoot: string, model: string): EvalTask[] {
+function buildTasks(options: Pick<EvalOptions, 'fixturesRoot' | 'model' | 'extensionPaths' | 'compactBeforePrompt' | 'compactInstructions'>): EvalTask[] {
   const tasks: EvalTask[] = [];
-  for (const dir of fixtureDirs(fixturesRoot)) {
+  const model = options.model ?? DEFAULT_MODEL;
+  for (const dir of fixtureDirs(options.fixturesRoot)) {
     const fixture = fixtureId(dir);
     const temp = fs.mkdtempSync(path.join(os.tmpdir(), `pi-eval-${fixture}-`));
     const sessionCopy = path.join(temp, 'session.jsonl');
     fs.copyFileSync(sourceSessionPath(dir), sessionCopy);
     for (const probe of readProbes(dir)) {
       const prompt = `Answer using existing session context only. Be very concise: 1-3 short sentences, or bullets only if needed. Include only details required by the probe. If context is insufficient, say exactly: INSUFFICIENT_CONTEXT.\n\nProbe: ${probe.question}`;
-      tasks.push({ fixture, probe, invocation: { kind: 'sdk', model, sessionFile: sessionCopy, prompt } });
+      tasks.push({ fixture, probe, invocation: { kind: 'sdk', model, sessionFile: sessionCopy, prompt, extensionPaths: options.extensionPaths, compactBeforePrompt: options.compactBeforePrompt, compactInstructions: options.compactInstructions } });
     }
   }
   return tasks;
@@ -101,7 +105,7 @@ export async function runEval(options: EvalOptions) {
     if (!calibration.passed) return { passed: false, calibration, summary: undefined };
   }
 
-  const tasks = buildTasks(options.fixturesRoot, model);
+  const tasks = buildTasks(options);
   if (options.dryRun) {
     const out = path.join(options.outDir, 'planned.json');
     fs.writeFileSync(out, JSON.stringify(tasks.map(({ fixture, probe, invocation }) => ({ fixture, probe: probe.id, invocation })), null, 2));
@@ -109,8 +113,8 @@ export async function runEval(options: EvalOptions) {
   }
 
   const judged = await mapLimit(tasks, concurrency, async ({ fixture, probe, invocation }): Promise<JudgedResult> => {
-    const run = await runPiSdk(invocation.prompt, { model, sessionFile: invocation.sessionFile });
-    const answer: AgentResult = { fixture, probe: probe.id, invocation, executed: true, exitCode: run.status, durationMs: run.durationMs, answer: run.stdout.trim(), stderr: run.stderr, usage: run.usage };
+    const run = await runPiSdk(invocation.prompt, { model, sessionFile: invocation.sessionFile, extensionPaths: invocation.extensionPaths, compactBeforePrompt: invocation.compactBeforePrompt, compactInstructions: invocation.compactInstructions });
+    const answer: AgentResult = { fixture, probe: probe.id, invocation, compaction: run.compaction, executed: true, exitCode: run.status, durationMs: run.durationMs, answer: run.stdout.trim(), stderr: run.stderr, usage: run.usage };
     const { run: judgeRun, judge } = await runJudge(probe, answer.answer, judgeModel);
     return { ...answer, judge, judgeExitCode: judgeRun.status, judgeStderr: judgeRun.stderr, judgeDurationMs: judgeRun.durationMs, judgeUsage: judgeRun.usage };
   });
