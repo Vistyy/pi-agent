@@ -1,7 +1,0 @@
-id: exact-evidence-needed
-kind: synthetic_session
-source_session: source.synthetic.jsonl
-notes: Tests that the agent does not invent exact evidence after compaction when summary says exact details are absent.
-cut:
-  compaction_entry_index: 5
-  purpose: Evaluate insufficient-context behavior for exact old evidence.

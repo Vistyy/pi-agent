@@ -17,7 +17,7 @@ Can it admit insufficient context when exact evidence is absent?
 ## Current harness
 
 ```text
-eval/scripts/run-agent-probes.mjs
+eval/src/cli.ts
 ```
 
 Behavior:
@@ -25,9 +25,10 @@ Behavior:
 ```text
 fixture session JSONL
   -> copy to /tmp
-  -> pi --print --session <copy>
+  -> Pi SDK opens copied session
   -> ask fixed probe
-  -> score answer with probes.yml checks
+  -> semantic judge grades answer from eval.yml rubric
+  -> summary records pass/fail, token totals, and outliers
 ```
 
 Default runtime:
@@ -41,15 +42,13 @@ tools/extensions/skills/context-files: disabled
 Dry run:
 
 ```bash
-node eval/scripts/run-agent-probes.mjs eval/fixtures --out /tmp/pi-eval-plan
+cd eval && npm run eval -- fixtures --dry-run --out /tmp/pi-eval-plan
 ```
 
-Execute:
+Execute full eval:
 
 ```bash
-node eval/scripts/run-agent-probes.mjs eval/fixtures \
-  --execute \
-  --out eval/runs/baseline-gpt-5-4-mini-full-001
+cd eval && npm run eval -- fixtures --out runs/baseline-gpt-5-4-mini-full-001 --calibrate --concurrency 2
 ```
 
 ## Fixture policy
@@ -57,7 +56,9 @@ node eval/scripts/run-agent-probes.mjs eval/fixtures \
 ```text
 tracked:
   eval/fixtures/**
-  eval/scripts/**
+  eval/src/**
+  eval/package.json
+  eval/package-lock.json
   eval/README.md
 
 ignored:
@@ -69,6 +70,7 @@ ignored:
 Synthetic replayable sessions use:
 
 ```text
+eval.yml
 source.synthetic.jsonl
 ```
 
@@ -91,7 +93,7 @@ exact-evidence-needed
 ```
 
 ## Current results
-Smoke runs with `openai-codex/gpt-5.4-mini` passed after tuning prompts/checks.
+Smoke runs with `openai-codex/gpt-5.4-mini` passed under the semantic judge after tuning prompts/rubrics. Runs now include token usage totals in `summary.json`.
 
 Important lesson:
 
@@ -104,10 +106,9 @@ answer prompt must ask for key details/caveats, not just terse answers
 ## Next steps
 
 ```text
-1. Run full 4-fixture baseline suite once.
-2. Commit eval scaffold and fixtures.
-3. Design extension replay/comparison harness.
-4. Only then inspect/test pi-blackhole or other extensions.
+1. Commit TS eval mini-project refactor.
+2. Design extension replay/comparison harness.
+3. Only then inspect/test pi-blackhole or other extensions.
 ```
 
 Extension replay needs more thought because it must evaluate actual agent behavior with extension-produced compaction/memory, not artifact text alone.

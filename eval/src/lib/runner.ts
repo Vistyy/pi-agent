@@ -1,0 +1,108 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { mapLimit } from './concurrency.js';
+import { fixtureDirs, fixtureId, readCalibration, readProbes, sourceSessionPath } from './fixtures.js';
+import { runJudge } from './judge.js';
+import { DEFAULT_MODEL, runPiSdk } from './pi.js';
+import { writeSummary } from './summary.js';
+import type { AgentResult, JudgedResult, PiInvocation, Probe } from './types.js';
+
+type EvalTask = { fixture: string; probe: Probe; invocation: PiInvocation };
+
+export type EvalOptions = {
+  fixturesRoot: string;
+  outDir: string;
+  model?: string;
+  judgeModel?: string;
+  concurrency?: number;
+  dryRun?: boolean;
+  calibrate?: boolean;
+};
+
+function buildTasks(fixturesRoot: string, model: string): EvalTask[] {
+  const tasks: EvalTask[] = [];
+  for (const dir of fixtureDirs(fixturesRoot)) {
+    const fixture = fixtureId(dir);
+    const temp = fs.mkdtempSync(path.join(os.tmpdir(), `pi-eval-${fixture}-`));
+    const sessionCopy = path.join(temp, 'session.jsonl');
+    fs.copyFileSync(sourceSessionPath(dir), sessionCopy);
+    for (const probe of readProbes(dir)) {
+      const prompt = `Answer using existing session context only. Be very concise: 1-3 short sentences, or bullets only if needed. Include only details required by the probe. If context is insufficient, say exactly: INSUFFICIENT_CONTEXT.\n\nProbe: ${probe.question}`;
+      tasks.push({ fixture, probe, invocation: { kind: 'sdk', model, sessionFile: sessionCopy, prompt } });
+    }
+  }
+  return tasks;
+}
+
+export async function calibrateJudge(options: Pick<EvalOptions, 'fixturesRoot' | 'outDir' | 'judgeModel'>) {
+  const started = Date.now();
+  const model = options.judgeModel ?? DEFAULT_MODEL;
+  fs.mkdirSync(options.outDir, { recursive: true });
+  const records = [];
+  for (const dir of fixtureDirs(options.fixturesRoot, true)) {
+    const probes = readProbes(dir);
+    if (probes.length !== 1) throw new Error(`calibration currently expects one probe per fixture: ${fixtureId(dir)}`);
+    const probe = probes[0]!;
+    for (const example of readCalibration(dir)) {
+      const { run, judge } = await runJudge(probe, example.answer, model);
+      records.push({
+        fixture: fixtureId(dir),
+        probe: probe.id,
+        example: example.id,
+        expected_passed: example.expected_passed,
+        judge,
+        passed: run.status === 0 && judge.passed === example.expected_passed,
+        judgeExitCode: run.status,
+        judgeStderr: run.stderr,
+        judgeUsage: run.usage,
+      });
+    }
+  }
+  const out = path.join(options.outDir, 'calibration.json');
+  fs.writeFileSync(out, JSON.stringify(records, null, 2));
+  const usage = records.reduce((acc, r) => {
+    const u = r.judgeUsage;
+    acc.input += u?.input ?? 0;
+    acc.output += u?.output ?? 0;
+    acc.cacheRead += u?.cacheRead ?? 0;
+    acc.cacheWrite += u?.cacheWrite ?? 0;
+    acc.totalTokens += u?.totalTokens ?? 0;
+    return acc;
+  }, { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0 });
+  return { out, passed: records.every((r) => r.passed), records, durationMs: Date.now() - started, usage };
+}
+
+export async function runEval(options: EvalOptions) {
+  const started = Date.now();
+  const model = options.model ?? DEFAULT_MODEL;
+  const judgeModel = options.judgeModel ?? model;
+  const concurrency = options.concurrency ?? 1;
+  fs.mkdirSync(options.outDir, { recursive: true });
+
+  let calibrationSummary: unknown;
+  if (options.calibrate) {
+    const calibration = await calibrateJudge({ fixturesRoot: options.fixturesRoot, outDir: options.outDir, judgeModel });
+    calibrationSummary = { passed: calibration.passed, total: calibration.records.length, durationMs: calibration.durationMs, usage: calibration.usage, failed: calibration.records.filter((r) => !r.passed).map((r) => ({ fixture: r.fixture, example: r.example, expected_passed: r.expected_passed, judge: r.judge })) };
+    if (!calibration.passed) return { passed: false, calibration, summary: undefined };
+  }
+
+  const tasks = buildTasks(options.fixturesRoot, model);
+  if (options.dryRun) {
+    const out = path.join(options.outDir, 'planned.json');
+    fs.writeFileSync(out, JSON.stringify(tasks.map(({ fixture, probe, invocation }) => ({ fixture, probe: probe.id, invocation })), null, 2));
+    return { passed: true, planned: out, summary: undefined };
+  }
+
+  const judged = await mapLimit(tasks, concurrency, async ({ fixture, probe, invocation }): Promise<JudgedResult> => {
+    const run = await runPiSdk(invocation.prompt, { model, sessionFile: invocation.sessionFile });
+    const answer: AgentResult = { fixture, probe: probe.id, invocation, executed: true, exitCode: run.status, durationMs: run.durationMs, answer: run.stdout.trim(), stderr: run.stderr, usage: run.usage };
+    const { run: judgeRun, judge } = await runJudge(probe, answer.answer, judgeModel);
+    return { ...answer, judge, judgeExitCode: judgeRun.status, judgeStderr: judgeRun.stderr, judgeDurationMs: judgeRun.durationMs, judgeUsage: judgeRun.usage };
+  });
+
+  fs.writeFileSync(path.join(options.outDir, 'results.json'), JSON.stringify(judged.map(({ judge, judgeExitCode, judgeStderr, judgeUsage, ...answer }) => answer), null, 2));
+  fs.writeFileSync(path.join(options.outDir, 'judged-results.json'), JSON.stringify(judged, null, 2));
+  const summary = writeSummary(judged, options.outDir, { wallClockMs: Date.now() - started, calibration: calibrationSummary });
+  return { passed: judged.every((r) => r.exitCode === 0 && r.judgeExitCode === 0 && r.judge.passed), summary };
+}

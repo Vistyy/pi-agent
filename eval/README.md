@@ -5,46 +5,68 @@ Evaluates whether Pi can answer fixed probes from compacted session context.
 ## Files
 
 ```text
-eval/fixtures/<id>/
+fixtures/<id>/
+  eval.yml                 # metadata, probe rubric, judge calibration
   source.synthetic.jsonl   # committed replayable session
   source.jsonl             # optional private local session, gitignored
-  probes.yml               # questions + answer checks
-  expected.yml             # human-readable expected facts
-  fixture.yml              # metadata
 
-eval/runs/                 # generated results, gitignored
-eval/scratch-historical/   # private calibration sessions, gitignored
+runs/                      # generated results, gitignored
+scratch-historical/        # private calibration sessions, gitignored
 ```
 
 ## Run
 
+Install once:
+
+```bash
+cd ~/.pi/agent/eval
+npm install
+```
+
 Dry run, no model calls:
 
 ```bash
-node eval/scripts/run-agent-probes.mjs eval/fixtures --out /tmp/pi-eval-plan
+npm run eval -- fixtures --dry-run --out /tmp/pi-eval-plan
 ```
 
-Execute probes using default model `openai-codex/gpt-5.4-mini`:
+Run eval:
 
 ```bash
-node eval/scripts/run-agent-probes.mjs eval/fixtures \
-  --execute \
-  --out eval/runs/baseline-gpt-5-4-mini-001
+npm run eval -- fixtures --out runs/baseline-001
 ```
 
-Override model if needed:
+Recommended before comparisons:
 
 ```bash
-node eval/scripts/run-agent-probes.mjs eval/fixtures --execute --model openai-codex/gpt-5.4-mini
+npm run eval -- fixtures --out runs/baseline-001 --calibrate --concurrency 2
 ```
 
-The runner copies each fixture session to `/tmp`, runs:
+Optional model override:
+
+```bash
+npm run eval -- fixtures --model openai-codex/gpt-5.4-mini --judge-model openai-codex/gpt-5.4-mini
+```
+
+## Outputs
 
 ```text
-pi --print --session <copy> --no-tools --no-extensions --thinking off
+calibration.json      # only with --calibrate
+results.json          # raw probe answers + answer token usage
+judged-results.json   # answers + judge verdicts + judge token usage
+summary.json          # pass/fail summary, token totals, outliers
 ```
 
-Then scores the final answer with `must_contain` / `must_not_contain` from `probes.yml`.
+`summary.json` is the first file to inspect.
+
+The runner uses the Pi SDK with:
+
+```text
+model: openai-codex/gpt-5.4-mini
+thinking: off
+tools/extensions/skills/prompts/themes/context-files: disabled
+```
+
+Semantic judge is authoritative. No phrase-search pass/fail checks.
 
 ## Scope
 

@@ -1,7 +1,0 @@
-id: subtle-constraint-once
-kind: synthetic_session
-source_session: source.synthetic.jsonl
-notes: Tests preservation of one-off but important cost constraint.
-cut:
-  compaction_entry_index: 5
-  purpose: Evaluate whether the agent preserves a one-off cost constraint after compaction.

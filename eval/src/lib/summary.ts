@@ -1,0 +1,58 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import type { JudgedResult, TokenUsage } from './types.js';
+
+function addUsage(a: Required<Pick<TokenUsage, 'input'|'output'|'cacheRead'|'cacheWrite'|'totalTokens'>>, u?: TokenUsage) {
+  a.input += u?.input ?? 0;
+  a.output += u?.output ?? 0;
+  a.cacheRead += u?.cacheRead ?? 0;
+  a.cacheWrite += u?.cacheWrite ?? 0;
+  a.totalTokens += u?.totalTokens ?? ((u?.input ?? 0) + (u?.output ?? 0) + (u?.cacheRead ?? 0) + (u?.cacheWrite ?? 0));
+}
+
+export function writeSummary(results: JudgedResult[], outDir: string, extra: { wallClockMs?: number; calibration?: unknown } = {}) {
+  const answerUsage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0 };
+  const judgeUsage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0 };
+  for (const r of results) {
+    addUsage(answerUsage, r.usage);
+    addUsage(judgeUsage, r.judgeUsage);
+  }
+  const cases = results.map((r) => ({
+    fixture: r.fixture,
+    probe: r.probe,
+    passed: r.judgeExitCode === 0 && r.judge.passed,
+    durationMs: { answer: r.durationMs, judge: (r as unknown as { judgeDurationMs?: number }).judgeDurationMs ?? 0 },
+    tokens: {
+      answer: r.usage?.totalTokens ?? 0,
+      judge: r.judgeUsage?.totalTokens ?? 0,
+      total: (r.usage?.totalTokens ?? 0) + (r.judgeUsage?.totalTokens ?? 0),
+    },
+    failure: r.judge.passed ? undefined : { reason: r.judge.reason, missing: r.judge.missing, incorrect: r.judge.incorrect },
+  }));
+  const summary = {
+    total: results.length,
+    passed: cases.filter((c) => c.passed).length,
+    failed: cases.filter((c) => !c.passed),
+    durationMs: {
+      wallClock: extra.wallClockMs,
+      answer: results.reduce((n, r) => n + r.durationMs, 0),
+      judge: results.reduce((n, r) => n + ((r as unknown as { judgeDurationMs?: number }).judgeDurationMs ?? 0), 0),
+    },
+    usage: {
+      answer: answerUsage,
+      judge: judgeUsage,
+      total: {
+        input: answerUsage.input + judgeUsage.input,
+        output: answerUsage.output + judgeUsage.output,
+        cacheRead: answerUsage.cacheRead + judgeUsage.cacheRead,
+        cacheWrite: answerUsage.cacheWrite + judgeUsage.cacheWrite,
+        totalTokens: answerUsage.totalTokens + judgeUsage.totalTokens,
+      },
+    },
+    calibration: extra.calibration,
+    cases,
+  };
+  const file = path.join(outDir, 'summary.json');
+  fs.writeFileSync(file, JSON.stringify(summary, null, 2));
+  return summary;
+}
