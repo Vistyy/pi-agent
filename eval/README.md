@@ -14,6 +14,14 @@ fixtures-precompact/<id>/
   eval.yml                         # includes compact_before_probe/settings
   source.precompact.synthetic.jsonl # committed replayable pre-compaction session
 
+fixtures-hard/<id>/
+  eval.yml                         # harder pre-compaction extension comparison cases
+  source.precompact.synthetic.jsonl
+
+fixtures-recall/<id>/
+  eval.yml                         # recall/tool-specific cases
+  source.precompact.synthetic.jsonl
+
 runs/                      # generated results, gitignored
 scratch-historical/        # private calibration sessions, gitignored
 ```
@@ -103,4 +111,4 @@ Semantic judge is authoritative. No phrase-search pass/fail checks.
 
 ## Scope
 
-Current runner supports baseline answer quality, pre-compaction fixture replay, and explicit extension replay with optional manual compaction before probes. Comparison/reporting between baseline and extension runs comes later.
+Current runner supports baseline answer quality, pre-compaction fixture replay, explicit extension replay, and recall/tool evals. Easy suites are harness smoke; `fixtures-hard` is for extension comparison. Comparison/reporting between baseline and extension runs comes later.
