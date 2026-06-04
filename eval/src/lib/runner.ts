@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { mapLimit } from './concurrency.js';
 import { fixtureDirs, fixtureId, readCalibration, readProbes, sourceSessionPath } from './fixtures.js';
-import { runJudge } from './judge.js';
+import { judgePrompt, runJudge } from './judge.js';
 import { DEFAULT_MODEL, runPiSdk } from './pi.js';
 import { writeSummary } from './summary.js';
 import type { AgentResult, JudgedResult, PiInvocation, Probe } from './types.js';
@@ -40,18 +40,41 @@ export async function calibrateJudge(options: Pick<EvalOptions, 'fixturesRoot' |
   const model = options.judgeModel ?? DEFAULT_MODEL;
   fs.mkdirSync(options.outDir, { recursive: true });
   const records = [];
+  const usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0 };
   for (const dir of fixtureDirs(options.fixturesRoot, true)) {
     const probes = readProbes(dir);
     if (probes.length !== 1) throw new Error(`calibration currently expects one probe per fixture: ${fixtureId(dir)}`);
     const probe = probes[0]!;
-    for (const example of readCalibration(dir)) {
-      const { run, judge } = await runJudge(probe, example.answer, model);
+    const examples = readCalibration(dir);
+    const prompt = `${judgePrompt(probe, 'EXAMPLE_ANSWER')}
+
+Instead of grading EXAMPLE_ANSWER, grade each answer in this JSON array independently:
+${JSON.stringify(examples.map((e) => ({ id: e.id, answer: e.answer })), null, 2)}
+
+Return only a JSON array. Each item must be:
+{"id": string, "passed": boolean, "reason": string, "missing": string[], "incorrect": string[]}`;
+    const run = await runPiSdk(prompt, { model });
+    usage.input += run.usage?.input ?? 0;
+    usage.output += run.usage?.output ?? 0;
+    usage.cacheRead += run.usage?.cacheRead ?? 0;
+    usage.cacheWrite += run.usage?.cacheWrite ?? 0;
+    usage.totalTokens += run.usage?.totalTokens ?? 0;
+    let judged: Array<{ id: string; passed: boolean; reason: string; missing: string[]; incorrect: string[] }> = [];
+    try {
+      const match = run.stdout.match(/\[[\s\S]*\]/);
+      if (!match) throw new Error(`judge returned no JSON array: ${run.stdout}`);
+      judged = JSON.parse(match[0]);
+    } catch (error) {
+      judged = examples.map((e) => ({ id: e.id, passed: false, reason: String(error), missing: [], incorrect: ['judge_parse_error'] }));
+    }
+    for (const example of examples) {
+      const judge = judged.find((j) => j.id === example.id) ?? { id: example.id, passed: false, reason: 'missing calibration result', missing: [], incorrect: ['missing_calibration_result'] };
       records.push({
         fixture: fixtureId(dir),
         probe: probe.id,
         example: example.id,
         expected_passed: example.expected_passed,
-        judge,
+        judge: { passed: judge.passed, reason: judge.reason, missing: judge.missing, incorrect: judge.incorrect },
         passed: run.status === 0 && judge.passed === example.expected_passed,
         judgeExitCode: run.status,
         judgeStderr: run.stderr,
@@ -61,15 +84,6 @@ export async function calibrateJudge(options: Pick<EvalOptions, 'fixturesRoot' |
   }
   const out = path.join(options.outDir, 'calibration.json');
   fs.writeFileSync(out, JSON.stringify(records, null, 2));
-  const usage = records.reduce((acc, r) => {
-    const u = r.judgeUsage;
-    acc.input += u?.input ?? 0;
-    acc.output += u?.output ?? 0;
-    acc.cacheRead += u?.cacheRead ?? 0;
-    acc.cacheWrite += u?.cacheWrite ?? 0;
-    acc.totalTokens += u?.totalTokens ?? 0;
-    return acc;
-  }, { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0 });
   return { out, passed: records.every((r) => r.passed), records, durationMs: Date.now() - started, usage };
 }
 

@@ -41,7 +41,7 @@ Routine run:
 npm run eval -- fixtures --out runs/baseline-001 --concurrency 2
 ```
 
-Use `--calibrate` after changing rubrics, judge prompt, or judge model; it is an eval for the judge and costs extra model calls:
+Use `--calibrate` after changing rubrics, judge prompt, or judge model; it is a batched eval for the judge and costs extra model calls:
 
 ```bash
 npm run eval -- fixtures --out runs/baseline-001 --calibrate --concurrency 2
