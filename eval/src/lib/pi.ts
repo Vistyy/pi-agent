@@ -29,6 +29,7 @@ type RunPiSdkOptions = {
   compactBeforePrompt?: boolean;
   compactInstructions?: string;
   compactionSettings?: { keepRecentTokens?: number; reserveTokens?: number };
+  allowedTools?: string[];
 };
 
 export async function runPiSdk(prompt: string, options: RunPiSdkOptions = {}): Promise<PiRunResult> {
@@ -71,7 +72,8 @@ export async function runPiSdk(prompt: string, options: RunPiSdkOptions = {}): P
       sessionManager: options.sessionFile ? SessionManager.open(options.sessionFile) : SessionManager.inMemory(cwd),
       settingsManager,
       resourceLoader: loader,
-      noTools: 'all',
+      noTools: options.allowedTools?.length ? undefined : 'all',
+      tools: options.allowedTools,
     });
 
     const unsubscribe = session.subscribe((event) => {
@@ -84,8 +86,16 @@ export async function runPiSdk(prompt: string, options: RunPiSdkOptions = {}): P
       }
       if (event.type === 'agent_end') {
         const messages = (event as unknown as { messages?: Array<{ usage?: TokenUsage }> }).messages ?? [];
-        const lastWithUsage = [...messages].reverse().find((m) => m.usage);
-        if (lastWithUsage?.usage) usage = lastWithUsage.usage;
+        const usages = messages.map((m) => m.usage).filter((u): u is TokenUsage => Boolean(u));
+        if (usages.length) {
+          usage = usages.reduce<TokenUsage>((acc, u) => ({
+            input: (acc.input ?? 0) + (u.input ?? 0),
+            output: (acc.output ?? 0) + (u.output ?? 0),
+            cacheRead: (acc.cacheRead ?? 0) + (u.cacheRead ?? 0),
+            cacheWrite: (acc.cacheWrite ?? 0) + (u.cacheWrite ?? 0),
+            totalTokens: (acc.totalTokens ?? 0) + (u.totalTokens ?? 0),
+          }), {});
+        }
       }
     });
     let compaction: unknown;

@@ -69,6 +69,17 @@ npm run eval -- fixtures \
 
 `--extension` may be repeated. Normal eval loads no discovered extensions. Extension eval loads only the explicit extension paths.
 
+Recall/tool eval:
+
+```bash
+npm run eval -- fixtures-recall \
+  --out runs/pi-vcc-recall-001 \
+  --extension /absolute/path/to/pi-vcc \
+  --allow-tool vcc_recall
+```
+
+`--allow-tool` may be repeated. Without it, eval runs with `noTools: all`.
+
 ## Outputs
 
 ```text
