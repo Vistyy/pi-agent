@@ -35,7 +35,13 @@ Run eval:
 npm run eval -- fixtures --out runs/baseline-001
 ```
 
-Recommended before comparisons:
+Routine run:
+
+```bash
+npm run eval -- fixtures --out runs/baseline-001 --concurrency 2
+```
+
+Use `--calibrate` after changing rubrics, judge prompt, or judge model; it is an eval for the judge and costs extra model calls:
 
 ```bash
 npm run eval -- fixtures --out runs/baseline-001 --calibrate --concurrency 2
@@ -53,7 +59,7 @@ npm run eval -- fixtures --model openai-codex/gpt-5.4-mini --judge-model openai-
 calibration.json      # only with --calibrate
 results.json          # raw probe answers + answer token usage
 judged-results.json   # answers + judge verdicts + judge token usage
-summary.json          # pass/fail summary, token totals, outliers
+summary.json          # pass/fail summary, token totals, per-case breakdown
 ```
 
 `summary.json` is the first file to inspect.
