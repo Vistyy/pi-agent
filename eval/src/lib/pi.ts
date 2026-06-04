@@ -20,7 +20,7 @@ function parseModelSpec(spec: string): [provider: string, id: string] {
 
 export type PiRunResult = { stdout: string; stderr: string; status: number; durationMs: number; usage?: TokenUsage };
 
-export async function runPiSdk(prompt: string, options: { model?: string; sessionFile?: string; cwd?: string } = {}): Promise<PiRunResult> {
+export async function runPiSdk(prompt: string, options: { model?: string; sessionFile?: string; cwd?: string; systemPrompt?: string } = {}): Promise<PiRunResult> {
   const started = Date.now();
   let stdout = '';
   let stderr = '';
@@ -44,6 +44,7 @@ export async function runPiSdk(prompt: string, options: { model?: string; sessio
       promptsOverride: () => ({ prompts: [], diagnostics: [] }),
       themesOverride: () => ({ themes: [], diagnostics: [] }),
       agentsFilesOverride: () => ({ agentsFiles: [], diagnostics: [] }),
+      systemPrompt: options.systemPrompt,
     });
     await loader.reload();
 

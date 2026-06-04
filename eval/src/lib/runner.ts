@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { mapLimit } from './concurrency.js';
 import { fixtureDirs, fixtureId, readCalibration, readProbes, sourceSessionPath } from './fixtures.js';
-import { judgePrompt, runJudge } from './judge.js';
+import { MINIMAL_JUDGE_SYSTEM_PROMPT, judgePrompt, runJudge } from './judge.js';
 import { DEFAULT_MODEL, runPiSdk } from './pi.js';
 import { writeSummary } from './summary.js';
 import type { AgentResult, JudgedResult, PiInvocation, Probe } from './types.js';
@@ -53,7 +53,7 @@ ${JSON.stringify(examples.map((e) => ({ id: e.id, answer: e.answer })), null, 2)
 
 Return only a JSON array. Each item must be:
 {"id": string, "passed": boolean, "reason": string, "missing": string[], "incorrect": string[]}`;
-    const run = await runPiSdk(prompt, { model });
+    const run = await runPiSdk(prompt, { model, systemPrompt: MINIMAL_JUDGE_SYSTEM_PROMPT });
     usage.input += run.usage?.input ?? 0;
     usage.output += run.usage?.output ?? 0;
     usage.cacheRead += run.usage?.cacheRead ?? 0;
