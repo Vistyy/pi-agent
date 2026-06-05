@@ -16,13 +16,13 @@ function writeJson(path: string, value: unknown) {
 	writeFileSync(path, JSON.stringify(value), "utf-8");
 }
 
-describe("V3 config", () => {
+describe("config", () => {
 	let root: string;
 	let cwd: string;
 	let agentDir: string;
 
 	beforeEach(() => {
-		root = `${tmpdir()}/om-v3-config-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+		root = `${tmpdir()}/om-memory-config-${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 		cwd = join(root, "project");
 		agentDir = join(root, "agent");
 		mkdirSync(cwd, { recursive: true });
@@ -34,7 +34,7 @@ describe("V3 config", () => {
 		rmSync(root, { recursive: true, force: true });
 	});
 
-	it("uses V3 defaults", () => {
+	it("uses defaults", () => {
 		expect(DEFAULTS).toEqual({
 			observeAfterTokens: 10000,
 			reflectAfterTokens: 20000,
@@ -48,7 +48,7 @@ describe("V3 config", () => {
 		expect(loadConfig(cwd, {})).toEqual(DEFAULTS);
 	});
 
-	it("merges global, project, and env V3 settings in order", () => {
+	it("merges global, project, and env settings in order", () => {
 		writeJson(join(agentDir, "settings.json"), {
 			"observational-memory": {
 				observeAfterTokens: 10,
@@ -82,7 +82,7 @@ describe("V3 config", () => {
 		});
 	});
 
-	it("ignores invalid V3 values", () => {
+	it("ignores invalid values", () => {
 		writeJson(join(cwd, ".pi", "settings.json"), {
 			"observational-memory": {
 				observeAfterTokens: -1,
@@ -130,24 +130,6 @@ describe("V3 config", () => {
 			observationsPoolMaxTokens: 40,
 			observationsPoolTargetTokens: 20,
 		});
-	});
-
-	it("ignores old V2 settings without warnings or aliases", () => {
-		writeJson(join(cwd, ".pi", "settings.json"), {
-			"observational-memory": {
-				observationThresholdTokens: 10,
-				compactionThresholdTokens: 20,
-				reflectionThresholdTokens: 30,
-				compactionModel: { provider: "anthropic", id: "old" },
-				thinkingLevel: "high",
-				observerMaxTurnsPerRun: 2,
-				reflectorMaxTurnsPerPass: 3,
-				prunerMaxTurnsPerPass: 4,
-				compactionMaxToolCalls: 5,
-			},
-		});
-
-		expect(loadConfig(cwd, {})).toEqual(DEFAULTS);
 	});
 
 	it("parses passive env override", () => {

@@ -55,13 +55,12 @@ export type ObservationsDroppedEntryData = {
 
 export type MemoryDetails = {
 	type: typeof OM_FOLDED;
-	version: 1;
 	fullFold: boolean;
 	observations: Observation[];
 	reflections: Reflection[];
 };
 
-export type V3MemoryCustomType =
+export type MemoryCustomType =
 	| typeof OM_OBSERVATIONS_RECORDED
 	| typeof OM_REFLECTIONS_RECORDED
 	| typeof OM_OBSERVATIONS_DROPPED;
@@ -142,7 +141,6 @@ export function isMemoryDetails(value: unknown): value is MemoryDetails {
 	if (!isPlainRecord(value)) return false;
 	return (
 		value.type === OM_FOLDED &&
-		value.version === 1 &&
 		typeof value.fullFold === "boolean" &&
 		Array.isArray(value.observations) &&
 		value.observations.every(isObservation) &&

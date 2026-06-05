@@ -8,8 +8,6 @@ import {
 	observation,
 	observationsDroppedEntry,
 	observationsRecordedEntry,
-	oldV2CompactionDetails,
-	oldV2ObservationEntry,
 	reflection,
 	reflectionsRecordedEntry,
 	textCustomMessage,
@@ -53,8 +51,8 @@ function setup(args: { entries: TestEntry[]; runtime?: Partial<Runtime> }) {
 	return { run, notify };
 }
 
-describe("V3 /om:status", () => {
-	it("renders concise no-memory status without V2 committed/pending language", async () => {
+describe("/om:status", () => {
+	it("renders concise no-memory status", async () => {
 		const output = await setup({ entries: [] }).run();
 
 		expect(output).toContain("── Memory ──");
@@ -62,28 +60,6 @@ describe("V3 /om:status", () => {
 		expect(output).toContain("Reflections:  0 recorded / 0 visible");
 		expect(output).toContain("Next observation:");
 		expect(output).toContain("Next compaction:");
-	});
-
-	it("reports V3 ledger counts, visible/full drift, and ignores old V2 memory", async () => {
-		const obsA = observation("aaaaaaaaaaaa", { tokenCount: 5 });
-		const obsB = observation("bbbbbbbbbbbb", { tokenCount: 7 });
-		const ref = reflection("eeeeeeeeeeee", ["bbbbbbbbbbbb"], { tokenCount: 3 });
-		const entries = [
-			textCustomMessage("raw-1", "aaaa"),
-			oldV2ObservationEntry("v2-obs"),
-			compactionEntry("cmp-v2", { firstKeptEntryId: "raw-1", details: oldV2CompactionDetails() }),
-			compactionEntry("cmp-visible", { firstKeptEntryId: "raw-1", details: memoryDetails({ observations: [obsA], reflections: [] }) }),
-			observationsRecordedEntry("om-obs", { observations: [obsA, obsB], coversUpToId: "raw-1" }),
-			reflectionsRecordedEntry("om-ref", { reflections: [ref], coversUpToId: "om-obs" }),
-			observationsDroppedEntry("om-drop", { observationIds: ["aaaaaaaaaaaa"], coversUpToId: "om-ref" }),
-		];
-
-		const output = await setup({ entries }).run();
-
-		expect(output).toContain("Observations: 2 recorded / 1 dropped / 1 active / 1 visible +1 -1");
-		expect(output).toContain("Reflections:  1 recorded / 0 visible +1");
-		expect(output).toContain("Visible observation pool: ~5 / 40 tokens (13%)");
-		expect(output).toContain("Active observation pool: ~7 / 20 target tokens (35%)");
 	});
 
 	it("shows separate progress clocks, visible pool, active observation pool, and reflection pool", async () => {

@@ -129,7 +129,7 @@ function projectionFromMemoryDetails(details: MemoryDetails): Projection {
 	};
 }
 
-function latestV3CompactionDetails(entries: Entry[]): MemoryDetails | undefined {
+function latestCompactionDetails(entries: Entry[]): MemoryDetails | undefined {
 	for (let i = entries.length - 1; i >= 0; i--) {
 		const entry = entries[i];
 		if (entry.type !== "compaction") continue;
@@ -149,7 +149,7 @@ export function fullProjection(entries: Entry[], upToEntryId?: string): Projecti
 
 export function visibleProjection(entries: Entry[], upToEntryId?: string): Projection {
 	if (!upToEntryId) {
-		const details = latestV3CompactionDetails(entries);
+		const details = latestCompactionDetails(entries);
 		return details ? projectionFromMemoryDetails(details) : { observations: [], reflections: [] };
 	}
 
@@ -193,7 +193,6 @@ export function buildCompactionProjection(
 
 	const details: MemoryDetails = {
 		type: OM_FOLDED,
-		version: 1,
 		fullFold,
 		observations: projection.observations,
 		reflections: projection.reflections,

@@ -11,7 +11,7 @@ import { estimateStringTokens } from "../src/tokens.js";
 import { fakeAgentLoop } from "./fixtures/agent-loop.js";
 import { observation, reflection } from "./fixtures/session.js";
 
-describe("V3 reflector agent", () => {
+describe("reflector agent", () => {
 	const obsA = observation("aaaaaaaaaaaa");
 	const obsB = observation("bbbbbbbbbbbb");
 	const baseArgs = {
@@ -86,7 +86,7 @@ describe("V3 reflector agent", () => {
 		expect(normalizeSupportingObservationIds([], ["aaaaaaaaaaaa"])).toBeUndefined();
 	});
 
-	it("records one-line V3 reflections with code-computed ids and token counts", async () => {
+	it("records one-line reflections with code-computed ids and token counts", async () => {
 		const content = "User prefers source-backed memory.";
 		const loop = fakeAgentLoop(async (_prompts, context) => {
 			await context.tools[0].execute("tool-1", {

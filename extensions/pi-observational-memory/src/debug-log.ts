@@ -4,7 +4,6 @@ import { dirname, join } from "node:path";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
 
 export const DEBUG_LOG_MAX_BYTES = 10 * 1024 * 1024;
-export const DEBUG_LOG_RELATIVE_PATH = join("observational-memory", "debug.ndjson");
 export const DEBUG_LOG_SESSION_DIR_RELATIVE_PATH = join("observational-memory", "debug");
 
 export interface DebugLogContext {
@@ -33,11 +32,9 @@ export function safeDebugLogSessionId(sessionId: string | undefined): string | u
 	return sanitized;
 }
 
-export function debugLogRelativePath(context: Pick<DebugLogContext, "sessionId">): string {
+export function debugLogRelativePath(context: Pick<DebugLogContext, "sessionId">): string | undefined {
 	const safeSessionId = safeDebugLogSessionId(context.sessionId);
-	return safeSessionId
-		? join(DEBUG_LOG_SESSION_DIR_RELATIVE_PATH, `${safeSessionId}.ndjson`)
-		: DEBUG_LOG_RELATIVE_PATH;
+	return safeSessionId ? join(DEBUG_LOG_SESSION_DIR_RELATIVE_PATH, `${safeSessionId}.ndjson`) : undefined;
 }
 
 export function debugLog(event: string, data: Record<string, unknown> = {}): void {
@@ -45,7 +42,9 @@ export function debugLog(event: string, data: Record<string, unknown> = {}): voi
 	if (context?.enabled !== true) return;
 
 	try {
-		const path = join(getAgentDir(), debugLogRelativePath(context));
+		const relativePath = debugLogRelativePath(context);
+		if (!relativePath) return;
+		const path = join(getAgentDir(), relativePath);
 		mkdirSync(dirname(path), { recursive: true });
 		rotateIfNeeded(path);
 		const payload = {

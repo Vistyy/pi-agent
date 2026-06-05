@@ -10,7 +10,7 @@ import {
 import { fakeAgentLoop } from "./fixtures/agent-loop.js";
 import { observation, reflection } from "./fixtures/session.js";
 
-describe("V3 dropper agent", () => {
+describe("dropper agent", () => {
 	const obsA = observation("aaaaaaaaaaaa", { relevance: "medium" });
 	const obsB = observation("bbbbbbbbbbbb", { relevance: "low" });
 	const critical = observation("cccccccccccc", { relevance: "critical" });

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { renderSummary } from "../src/session-ledger/index.js";
 import { observation, reflection } from "./fixtures/session.js";
 
-describe("session-ledger V3 summary rendering", () => {
+describe("session-ledger summary rendering", () => {
 	it("renders empty memory as an empty summary", () => {
 		expect(renderSummary([], [])).toBe("");
 	});
@@ -17,7 +17,7 @@ describe("session-ledger V3 summary rendering", () => {
 		expect(summary).toContain("use the recall tool");
 	});
 
-	it("renders V3 reflections with ids", () => {
+	it("renders reflections with ids", () => {
 		const ref = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"], { content: "User prefers source-backed memory." });
 
 		const summary = renderSummary([ref], []);
@@ -25,7 +25,7 @@ describe("session-ledger V3 summary rendering", () => {
 		expect(summary).toContain("## Reflections\n[eeeeeeeeeeee] User prefers source-backed memory.");
 	});
 
-	it("renders V3 observations with ids, timestamps, relevance, and content", () => {
+	it("renders observations with ids, timestamps, relevance, and content", () => {
 		const obs = observation("aaaaaaaaaaaa", {
 			content: "User confirmed recall should use exact source entry ids.",
 			timestamp: "2026-05-02 10:30",
@@ -49,7 +49,6 @@ describe("session-ledger V3 summary rendering", () => {
 		expect(summary).not.toContain("supportingObservationIds");
 		expect(summary).not.toContain("entry-user");
 		expect(summary).not.toContain("entry-tool");
-		expect(summary).not.toContain("legacy");
 		expect(summary).not.toContain("[object Object]");
 	});
 });

@@ -114,7 +114,7 @@ function setup(args: {
 	};
 }
 
-describe("V3 consolidation trigger", () => {
+describe("consolidation trigger", () => {
 	const obsA = observation("aaaaaaaaaaaa", { sourceEntryIds: ["raw-1"], tokenCount: 10 });
 	const obsB = observation("bbbbbbbbbbbb", { sourceEntryIds: ["raw-2"], tokenCount: 10 });
 	const refA = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);

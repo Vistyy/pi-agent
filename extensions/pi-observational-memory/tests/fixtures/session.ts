@@ -29,12 +29,10 @@ export type TestReflection = {
 	tokenCount: number;
 };
 
-export const V3_OBSERVATIONS_RECORDED = "om.observations.recorded";
-export const V3_REFLECTIONS_RECORDED = "om.reflections.recorded";
-export const V3_OBSERVATIONS_DROPPED = "om.observations.dropped";
-export const V3_FOLDED = "om.folded";
-export const V2_OBSERVATION = "om.observation";
-export const V2_DETAILS_TYPE = "observational-memory";
+export const OM_OBSERVATIONS_RECORDED = "om.observations.recorded";
+export const OM_REFLECTIONS_RECORDED = "om.reflections.recorded";
+export const OM_OBSERVATIONS_DROPPED = "om.observations.dropped";
+export const OM_FOLDED = "om.folded";
 
 const DEFAULT_TIMESTAMP = "2026-05-02T10:00:00.000Z";
 
@@ -116,8 +114,7 @@ export function memoryDetails(
 	} = {},
 ): unknown {
 	return {
-		type: V3_FOLDED,
-		version: 1,
+		type: OM_FOLDED,
 		fullFold: args.fullFold ?? false,
 		observations: args.observations ?? [],
 		reflections: args.reflections ?? [],
@@ -163,7 +160,7 @@ export function observationsRecordedEntry(
 		id,
 		parentId: null,
 		timestamp: DEFAULT_TIMESTAMP,
-		customType: V3_OBSERVATIONS_RECORDED,
+		customType: OM_OBSERVATIONS_RECORDED,
 		data: args,
 		...overrides,
 	};
@@ -179,7 +176,7 @@ export function reflectionsRecordedEntry(
 		id,
 		parentId: null,
 		timestamp: DEFAULT_TIMESTAMP,
-		customType: V3_REFLECTIONS_RECORDED,
+		customType: OM_REFLECTIONS_RECORDED,
 		data: args,
 		...overrides,
 	};
@@ -195,41 +192,9 @@ export function observationsDroppedEntry(
 		id,
 		parentId: null,
 		timestamp: DEFAULT_TIMESTAMP,
-		customType: V3_OBSERVATIONS_DROPPED,
+		customType: OM_OBSERVATIONS_DROPPED,
 		data: args,
 		...overrides,
-	};
-}
-
-export function oldV2ObservationEntry(
-	id: string,
-	args: { records?: unknown[]; coversFromId?: string; coversUpToId?: string; tokenCount?: number } = {},
-	overrides: Partial<TestEntry> = {},
-): TestEntry {
-	return {
-		type: "custom",
-		id,
-		parentId: null,
-		timestamp: DEFAULT_TIMESTAMP,
-		customType: V2_OBSERVATION,
-		data: {
-			records: args.records ?? [observation("v2-obs")],
-			coversFromId: args.coversFromId ?? "raw-1",
-			coversUpToId: args.coversUpToId ?? "raw-1",
-			tokenCount: args.tokenCount ?? 10,
-		},
-		...overrides,
-	};
-}
-
-export function oldV2CompactionDetails(
-	args: { observations?: unknown[]; reflections?: unknown[] } = {},
-): unknown {
-	return {
-		type: V2_DETAILS_TYPE,
-		version: 4,
-		observations: args.observations ?? [observation("v2-obs")],
-		reflections: args.reflections ?? [],
 	};
 }
 

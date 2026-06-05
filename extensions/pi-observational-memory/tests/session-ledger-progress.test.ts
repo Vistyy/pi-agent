@@ -13,21 +13,20 @@ import {
 	rawTokensSinceReflectionCoverage,
 } from "../src/session-ledger/index.js";
 import {
-	V3_OBSERVATIONS_DROPPED,
-	V3_OBSERVATIONS_RECORDED,
-	V3_REFLECTIONS_RECORDED,
+	OM_OBSERVATIONS_DROPPED,
+	OM_OBSERVATIONS_RECORDED,
+	OM_REFLECTIONS_RECORDED,
 	branchSummary,
 	compactionEntry,
 	observation,
 	observationsDroppedEntry,
 	observationsRecordedEntry,
-	oldV2ObservationEntry,
 	reflection,
 	reflectionsRecordedEntry,
 	textCustomMessage,
 } from "./fixtures/session.js";
 
-describe("session-ledger V3 progress helpers", () => {
+describe("session-ledger progress helpers", () => {
 	it("detects only raw/source entries as source entries", () => {
 		expect(isSourceEntry(textCustomMessage("raw-1", "abcd"))).toBe(true);
 		expect(isSourceEntry(branchSummary("sum-1", "abcd"))).toBe(true);
@@ -82,7 +81,7 @@ describe("session-ledger V3 progress helpers", () => {
 			textCustomMessage("raw-2", "bbbbbbbb"),
 		];
 
-		expect(latestCoverageIndex(entries, V3_OBSERVATIONS_DROPPED)).toBe(1);
+		expect(latestCoverageIndex(entries,OM_OBSERVATIONS_DROPPED)).toBe(1);
 		expect(rawTokensSinceDropCoverage(entries)).toBe(2);
 	});
 
@@ -95,8 +94,8 @@ describe("session-ledger V3 progress helpers", () => {
 			textCustomMessage("raw-3", "cccccccccccc"),
 		];
 
-		expect(latestCoverageIndex(entries, V3_OBSERVATIONS_RECORDED)).toBe(1);
-		expect(latestCoverageMarkerId(entries, V3_OBSERVATIONS_RECORDED)).toBe("raw-2");
+		expect(latestCoverageIndex(entries,OM_OBSERVATIONS_RECORDED)).toBe(1);
+		expect(latestCoverageMarkerId(entries,OM_OBSERVATIONS_RECORDED)).toBe("raw-2");
 		expect(rawTokensSinceObservationCoverage(entries)).toBe(3);
 	});
 
@@ -109,35 +108,12 @@ describe("session-ledger V3 progress helpers", () => {
 			reflectionsRecordedEntry("om-ref", { reflections: [reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"])], coversUpToId: "raw-2" }),
 		];
 
-		expect(latestCoverageMarkerId(entries, V3_OBSERVATIONS_RECORDED)).toBe("raw-3");
-		expect(latestCoverageMarkerId(entries, V3_REFLECTIONS_RECORDED)).toBe("raw-2");
+		expect(latestCoverageMarkerId(entries,OM_OBSERVATIONS_RECORDED)).toBe("raw-3");
+		expect(latestCoverageMarkerId(entries,OM_REFLECTIONS_RECORDED)).toBe("raw-2");
 		expect(earlierCoverageMarkerId(entries, "raw-3", "raw-2")).toBe("raw-2");
 		expect(earlierCoverageMarkerId(entries, "raw-1", undefined)).toBe("raw-1");
 		expect(earlierCoverageMarkerId(entries, "missing", "raw-2")).toBe("raw-2");
 		expect(earlierCoverageMarkerId(entries, "missing-a", "missing-b")).toBeUndefined();
 	});
 
-	it("ignores invalid coverage markers and old V2 markers without throwing", () => {
-		const entries = [
-			textCustomMessage("raw-1", "aaaa"),
-			oldV2ObservationEntry("v2-obs"),
-			observationsRecordedEntry("om-obs-invalid", { observations: [observation("aaaaaaaaaaaa")], coversUpToId: "missing" }),
-			textCustomMessage("raw-2", "bbbbbbbb"),
-		];
-
-		expect(() => rawTokensSinceObservationCoverage(entries)).not.toThrow();
-		expect(rawTokensSinceObservationCoverage(entries)).toBe(3);
-		expect(latestCoverageIndex(entries, V3_REFLECTIONS_RECORDED)).toBe(-1);
-	});
-
-	it("counts raw tokens since the latest Pi compaction without throwing on old memory details", () => {
-		const entries = [
-			textCustomMessage("raw-1", "aaaa"),
-			compactionEntry("cmp-1", { firstKeptEntryId: "raw-1" }),
-			oldV2ObservationEntry("v2-obs"),
-			textCustomMessage("raw-2", "bbbbbbbb"),
-		];
-
-		expect(rawTokensSinceLastCompaction(entries)).toBe(3); // raw-1 + raw-2 from live tail starting at firstKeptEntryId
-	});
 });

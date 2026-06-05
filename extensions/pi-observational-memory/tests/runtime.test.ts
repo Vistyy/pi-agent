@@ -9,7 +9,7 @@ function modelRegistry(args: { found?: unknown; auth?: unknown } = {}) {
 	};
 }
 
-describe("Runtime V3 behavior", () => {
+describe("Runtime behavior", () => {
 	it("uses configured model when present", async () => {
 		const runtime = new Runtime();
 		const configured = { provider: "anthropic", id: "configured" };

@@ -4,7 +4,7 @@ import { observationPoolMetrics } from "../src/agents/dropper/pool.js";
 import { foldLedger, type Entry } from "../src/session-ledger/index.js";
 import { observation, observationsDroppedEntry, observationsRecordedEntry, textCustomMessage } from "./fixtures/session.js";
 
-describe("V3 dropper active observation pool metrics", () => {
+describe("dropper active observation pool metrics", () => {
 	it("reports below-target pools as not ready", () => {
 		const observations = [observation("aaaaaaaaaaaa", { relevance: "low", tokenCount: 20 })];
 

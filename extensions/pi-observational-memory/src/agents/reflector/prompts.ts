@@ -72,9 +72,9 @@ Examples:
 - BAD: User switched from SWR.
 - GOOD: User chose React Query over SWR for server-state caching.
 - BAD: completed: edited src/hooks/reflect-drop-trigger.ts.
-- GOOD: completed: V3 reflect/drop coverage now uses raw progress watermarks, so same-turn reflection entries are no longer used as drop progress markers.
+- GOOD: completed: Reflect/drop coverage now uses raw progress watermarks, so same-turn reflection entries are no longer used as drop progress markers.
 - BAD: npm test passed.
-- GOOD: completed: V3 package namespace migration passed full tests and typecheck.
+- GOOD: completed: Package namespace migration passed full tests and typecheck.
 - BAD: Observation aaaaaaaaaaaa says the user likes short answers.
 - GOOD: User prefers short answers without generic summaries.
 - ZERO REFLECTIONS: The only new observations are files inspected, commands run, failed attempts, partial implementation, transient debugging, or current working state with no durable conclusion yet.

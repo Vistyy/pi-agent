@@ -9,7 +9,7 @@ import {
 } from "../src/agents/dropper/agent.js";
 import { observation, reflection } from "./fixtures/session.js";
 
-describe("V3 dropper reflection coverage helpers", () => {
+describe("dropper reflection coverage helpers", () => {
 	it("maps support counts to deterministic coverage tiers", () => {
 		expect(reflectionCoverageTierForCount(0)).toBe("none");
 		expect(reflectionCoverageTierForCount(1)).toBe("partial");

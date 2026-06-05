@@ -13,13 +13,12 @@ import {
 	observation,
 	observationsDroppedEntry,
 	observationsRecordedEntry,
-	oldV2CompactionDetails,
 	reflection,
 	reflectionsRecordedEntry,
 	textCustomMessage,
 } from "./fixtures/session.js";
 
-describe("session-ledger V3 projections", () => {
+describe("session-ledger projections", () => {
 	it("full projection folds observations, reflections, and drops through the target", () => {
 		const obs1 = observation("aaaaaaaaaaaa");
 		const obs2 = observation("bbbbbbbbbbbb");
@@ -37,7 +36,7 @@ describe("session-ledger V3 projections", () => {
 		expect(projection.reflections.map((ref) => ref.id)).toEqual(["eeeeeeeeeeee"]);
 	});
 
-	it("visible projection is empty when there is no V3 compaction", () => {
+	it("visible projection is empty when there is no compaction", () => {
 		const entries = [
 			textCustomMessage("raw-1", "aaaa"),
 			observationsRecordedEntry("om-aaaaaaaaaaaa", { observations: [observation("aaaaaaaaaaaa")], coversUpToId: "raw-1" }),
@@ -58,15 +57,6 @@ describe("session-ledger V3 projections", () => {
 		];
 
 		expect(visibleProjection(entries)).toEqual({ observations: [obs2], reflections: [ref1] });
-	});
-
-	it("ignores old V2 compaction details for visible projection", () => {
-		const entries = [
-			textCustomMessage("raw-1", "aaaa"),
-			compactionEntry("cmp-v2", { firstKeptEntryId: "raw-1", details: oldV2CompactionDetails() }),
-		];
-
-		expect(visibleProjection(entries)).toEqual({ observations: [], reflections: [] });
 	});
 
 	it("finds the latest full-fold boundary", () => {
@@ -98,7 +88,7 @@ describe("session-ledger V3 projections", () => {
 		expect(result.fullFold).toBe(false);
 		expect(result.observations.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa"]);
 		expect(result.reflections).toEqual([]);
-		expect(result.details).toMatchObject({ type: "om.folded", version: 1, fullFold: false });
+		expect(result.details).toMatchObject({ type: "om.folded", fullFold: false });
 	});
 
 	it("normal compaction projection includes current observations but keeps reflections and drops at latest full-fold boundary", () => {
@@ -122,7 +112,7 @@ describe("session-ledger V3 projections", () => {
 		expect(result.fullFold).toBe(false);
 		expect(result.observations.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa", "bbbbbbbbbbbb"]);
 		expect(result.reflections.map((ref) => ref.id)).toEqual(["eeeeeeeeeeee"]);
-		expect(result.details).toMatchObject({ type: "om.folded", version: 1, fullFold: false });
+		expect(result.details).toMatchObject({ type: "om.folded", fullFold: false });
 	});
 
 	it("full compaction projection applies reflections and drops through current boundary by coverage", () => {
@@ -146,7 +136,7 @@ describe("session-ledger V3 projections", () => {
 		expect(result.fullFold).toBe(true);
 		expect(result.observations.map((obs) => obs.id)).toEqual(["bbbbbbbbbbbb"]);
 		expect(result.reflections.map((ref) => ref.id)).toEqual(["eeeeeeeeeeee", "ffffffffffff"]);
-		expect(result.details).toMatchObject({ type: "om.folded", version: 1, fullFold: true });
+		expect(result.details).toMatchObject({ type: "om.folded", fullFold: true });
 	});
 
 	it("ignores dangling coversUpToId markers during projection", () => {

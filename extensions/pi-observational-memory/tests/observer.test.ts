@@ -25,7 +25,7 @@ describe("runObserver", () => {
 		allowedSourceEntryIds: ["entry-a"],
 	};
 
-	it("records V3 observations with source ids and code-computed tokenCount", async () => {
+	it("records observations with source ids and code-computed tokenCount", async () => {
 		const content = "User asked for a memory update.";
 		const loop = fakeAgentLoop(async (_prompts, context) => {
 			await context.tools[0].execute("tool-1", {

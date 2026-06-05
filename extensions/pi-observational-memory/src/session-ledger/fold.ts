@@ -41,9 +41,9 @@ function isCustomEntry(entry: Entry, customType: string): boolean {
 }
 
 /**
- * Fold valid V3 memory ledger entries from the branch root through the target entry.
+ * Fold valid memory ledger entries from the branch root through the target entry.
  *
- * Unknown custom entries, old V2 entries, invalid V3-shaped data, and compaction details are ignored.
+ * Unknown custom entries, invalid memory-shaped data and compaction details are ignored.
  * Observations and reflections use first-valid-record-wins semantics. Drops are tombstones and are
  * retained even when the dropped id is unknown at the time of folding.
  */

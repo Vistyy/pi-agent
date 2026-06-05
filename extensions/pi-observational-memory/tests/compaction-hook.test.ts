@@ -9,8 +9,6 @@ import {
 	observation,
 	observationsDroppedEntry,
 	observationsRecordedEntry,
-	oldV2CompactionDetails,
-	oldV2ObservationEntry,
 	reflection,
 	reflectionsRecordedEntry,
 	textCustomMessage,
@@ -63,8 +61,8 @@ function setup(args: { entries: TestEntry[]; observationsPoolMaxTokens?: number;
 	return { pi: { ...pi, appendEntry }, runtime, ctx, run };
 }
 
-describe("V3 compaction hook", () => {
-	it("returns valid empty om.folded details when there is no V3 memory", async () => {
+describe("compaction hook", () => {
+	it("returns valid empty om.folded details when there is no memory", async () => {
 		const entries = [textCustomMessage("raw-1", "aaaa")];
 		const { run, runtime, pi } = setup({ entries });
 
@@ -77,7 +75,6 @@ describe("V3 compaction hook", () => {
 				summary: "",
 				details: {
 					type: "om.folded",
-					version: 1,
 					fullFold: false,
 					observations: [],
 					reflections: [],
@@ -108,7 +105,7 @@ describe("V3 compaction hook", () => {
 		expect(result.compaction?.summary).not.toContain("## Reflections");
 	});
 
-	it("writes a normal V3 projection without applying new reflections or drops", async () => {
+	it("writes a normal projection without applying new reflections or drops", async () => {
 		const obs1 = observation("aaaaaaaaaaaa", { tokenCount: 5 });
 		const obs2 = observation("bbbbbbbbbbbb", { tokenCount: 5 });
 		const ref1 = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
@@ -127,14 +124,14 @@ describe("V3 compaction hook", () => {
 
 		const result = await run("raw-2");
 
-		expect(result.compaction?.details).toMatchObject({ type: "om.folded", version: 1, fullFold: false });
+		expect(result.compaction?.details).toMatchObject({ type: "om.folded", fullFold: false });
 		expect(result.compaction?.details.observations.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa", "bbbbbbbbbbbb"]);
 		expect(result.compaction?.details.reflections.map((ref) => ref.id)).toEqual(["eeeeeeeeeeee"]);
 		expect(result.compaction?.summary).toContain("## Reflections\n[eeeeeeeeeeee]");
 		expect(result.compaction?.summary).toContain("## Observations");
 	});
 
-	it("writes a full V3 projection when observation pool pressure reaches the threshold", async () => {
+	it("writes a full projection when observation pool pressure reaches the threshold", async () => {
 		const obs1 = observation("aaaaaaaaaaaa", { tokenCount: 80 });
 		const obs2 = observation("bbbbbbbbbbbb", { tokenCount: 30 });
 		const ref1 = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
@@ -156,23 +153,6 @@ describe("V3 compaction hook", () => {
 		expect(result.compaction?.details.fullFold).toBe(true);
 		expect(result.compaction?.details.observations.map((obs) => obs.id)).toEqual(["bbbbbbbbbbbb"]);
 		expect(result.compaction?.details.reflections.map((ref) => ref.id)).toEqual(["eeeeeeeeeeee", "ffffffffffff"]);
-	});
-
-	it("ignores old V2 memory entries and details", async () => {
-		const entries = [
-			textCustomMessage("raw-1", "aaaa"),
-			oldV2ObservationEntry("v2-obs"),
-			compactionEntry("cmp-v2", { firstKeptEntryId: "raw-1", details: oldV2CompactionDetails() }),
-		];
-		const { run } = setup({ entries });
-
-		const result = await run("cmp-v2");
-
-		expect(result.compaction?.details).toMatchObject({
-			type: "om.folded",
-			observations: [],
-			reflections: [],
-		});
 	});
 
 	it("does not wait for worker promises or call model resolution", async () => {

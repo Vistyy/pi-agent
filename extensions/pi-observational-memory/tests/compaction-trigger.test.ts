@@ -61,7 +61,7 @@ function fakeCtx(branches: TestEntry[][], overrides: Record<string, unknown> = {
 const dueBranch = [textCustomMessage("raw-1", "aaaaaaaaaaaa")]; // 3 tokens
 const belowBranch = [textCustomMessage("raw-1", "aaaa")]; // 1 token
 
-describe("V3 compaction trigger", () => {
+describe("compaction trigger", () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
 	});
@@ -171,7 +171,7 @@ describe("V3 compaction trigger", () => {
 		);
 	});
 
-	it("counts raw tokens since the latest Pi compaction using V3 progress helpers", async () => {
+	it("counts raw tokens since the latest Pi compaction using progress helpers", async () => {
 		const { handler } = captureHandler({ compactAfterTokens: 3 });
 		const branch = [
 			textCustomMessage("raw-1", "aaaaaaaaaaaa"),

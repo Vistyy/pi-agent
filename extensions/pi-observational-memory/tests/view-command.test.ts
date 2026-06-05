@@ -8,8 +8,6 @@ import {
 	observation,
 	observationsDroppedEntry,
 	observationsRecordedEntry,
-	oldV2CompactionDetails,
-	oldV2ObservationEntry,
 	reflection,
 	reflectionsRecordedEntry,
 	textCustomMessage,
@@ -35,7 +33,7 @@ function setup(entries: TestEntry[]) {
 	return { run, notify };
 }
 
-describe("V3 /om:view", () => {
+describe("/om:view", () => {
 	it("renders no-memory visible output as content-only sections", async () => {
 		const { output } = await setup([]).run();
 		const expected = [
@@ -65,30 +63,6 @@ describe("V3 /om:view", () => {
 		expect(output).toContain("── Observations ──");
 		expect(output).toContain("[aaaaaaaaaaaa]");
 		expect(output).not.toContain("bbbbbbbbbbbb");
-	});
-
-	it("full view folds recorded V3 memory and excludes dropped observations", async () => {
-		const obsA = observation("aaaaaaaaaaaa", { content: "Dropped observation content" });
-		const obsB = observation("bbbbbbbbbbbb", { content: "Kept observation content" });
-		const ref = reflection("eeeeeeeeeeee", ["bbbbbbbbbbbb"]);
-		const entries = [
-			textCustomMessage("raw-1", "aaaa"),
-			oldV2ObservationEntry("v2-obs"),
-			compactionEntry("cmp-v2", { firstKeptEntryId: "raw-1", details: oldV2CompactionDetails() }),
-			observationsRecordedEntry("om-obs", { observations: [obsA, obsB], coversUpToId: "raw-1" }),
-			reflectionsRecordedEntry("om-ref", { reflections: [ref], coversUpToId: "om-obs" }),
-			observationsDroppedEntry("om-drop", { observationIds: ["aaaaaaaaaaaa"], coversUpToId: "om-ref" }),
-		];
-
-		const { output } = await setup(entries).run("full");
-
-		expect(output).toContain("── Reflections ──");
-		expect(output).toContain("[eeeeeeeeeeee] Reflection eeeeeeeeeeee");
-		expect(output).toContain("── Observations ──");
-		expect(output).toContain("[bbbbbbbbbbbb]");
-		expect(output).toContain("Kept observation content");
-		expect(output).not.toContain("[aaaaaaaaaaaa]");
-		expect(output).not.toContain("Dropped observation content");
 	});
 
 	it("full view renders recorded empty states", async () => {

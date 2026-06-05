@@ -15,7 +15,6 @@ import {
 	observation,
 	observationsDroppedEntry,
 	observationsRecordedEntry,
-	oldV2ObservationEntry,
 	rawMessage,
 	reflection,
 	reflectionsRecordedEntry,
@@ -37,7 +36,7 @@ async function execute(id: string, entries: TestEntry[]) {
 	return { result, text, getBranch, getEntries };
 }
 
-describe("V3 recall tool", () => {
+describe("recall tool", () => {
 	it("keeps the public tool name and TUI call rendering", () => {
 		const pi = toolApi();
 		registerRecallTool(pi);
@@ -119,12 +118,4 @@ describe("V3 recall tool", () => {
 		expect(getBranch).not.toHaveBeenCalled();
 	});
 
-	it("reports not found and ignores old V2 memory", async () => {
-		const entries = [oldV2ObservationEntry("v2-obs")];
-
-		const { result, text } = await execute("aaaaaaaaaaaa", entries);
-
-		expect(result.details?.status).toBe("not_found");
-		expect(text).toContain("No observation or reflection with id aaaaaaaaaaaa was found");
-	});
 });
