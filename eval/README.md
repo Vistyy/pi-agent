@@ -34,6 +34,9 @@ suites/om-projection/<id>/
   eval.yml                         # projection_probe rubric for OM compaction projection
   source.synthetic.jsonl
 
+suites/om-reflector/<id>/
+  eval.yml                         # reflector_input + reflector_probe for generated reflections
+
 suites/om-e2e-observed/<id>/
   eval.yml                         # materialized real OM observations, replayed through compaction/probe
   source.om-observed.synthetic.jsonl
@@ -172,6 +175,16 @@ npm run om-projection -- suites/om-projection \
 ```
 
 This compacts synthetic sessions with known/empty OM ledger state and judges the resulting compaction summary/details directly.
+
+OM reflector subsystem eval:
+
+```bash
+npm run om-reflector -- suites/om-reflector \
+  --out runs/om-reflector-upstream-001 \
+  --extension /absolute/path/to/pi-observational-memory
+```
+
+This imports upstream `runReflector`, feeds known observations, and judges generated reflections directly. Current token summary only includes judge usage, not reflector model usage.
 
 ## Outputs
 

@@ -1,0 +1,28 @@
+id: om-reflector-durable-preference
+kind: om_reflector
+probes: []
+reflector_input:
+  observations:
+    - id: "111111111111"
+      content: User prefers short, direct technical answers with no fluff.
+      timestamp: "2026-01-01 00:01"
+      relevance: high
+      sourceEntryIds: [u1]
+      tokenCount: 12
+    - id: "222222222222"
+      content: User repeated that answers should be concise and avoid filler.
+      timestamp: "2026-01-01 00:03"
+      relevance: high
+      sourceEntryIds: [u2]
+      tokenCount: 12
+reflector_probe:
+  id: durable_preference_reflection
+  question: Did the reflector create a durable preference reflection with valid support ids?
+  rubric:
+    pass_if:
+      - Reflections state that the user prefers concise/no-fluff technical answers.
+      - Reflections cite supporting observation ids `111111111111` and/or `222222222222`.
+    fail_if:
+      - Records no reflections.
+      - Invents unsupported preferences.
+      - Omits supportingObservationIds.

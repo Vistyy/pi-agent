@@ -8,6 +8,7 @@
     "materialize-om": "tsx src/materialize-om.ts",
     "om-observer": "tsx src/om-observer.ts",
     "om-projection": "tsx src/om-projection.ts",
+    "om-reflector": "tsx src/om-reflector.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
