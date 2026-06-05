@@ -11,6 +11,7 @@
     "om-reflector": "tsx src/om-reflector.ts",
     "om-dropper": "tsx src/om-dropper.ts",
     "om-consolidation": "tsx src/om-consolidation.ts",
+    "om-consolidation-e2e": "tsx src/om-consolidation-e2e.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

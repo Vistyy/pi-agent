@@ -29,3 +29,14 @@ consolidation_probe:
       - Omits the exact file/line.
       - Uses any sourceEntryIds other than `u07` for the critical root-cause observation.
       - Treats `docs/cache.md` as the root cause.
+e2e_probe:
+  id: long_noise_buried_critical_e2e
+  question: What is the production regression root cause? Include the exact path/line and any important disambiguation.
+  rubric:
+    pass_if:
+      - Answer includes `src/cache/index.ts:247`.
+      - Answer includes stale value after tenant switch.
+      - Answer says not to confuse it with `docs/cache.md` typo, or equivalent.
+    fail_if:
+      - Omits the exact file/line.
+      - Treats `docs/cache.md` as the root cause.

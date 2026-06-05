@@ -29,3 +29,14 @@ consolidation_probe:
       - Uses line `118` or `181` as the current blocking failure.
       - Omits sourceEntryIds or cites wrong source for the line 188 fact.
       - Merges all three facts into an ambiguous reflection without preserving current/stale status.
+e2e_probe:
+  id: adversarial_similar_line_numbers_e2e
+  question: What is the current blocking auth/session failure? Distinguish it from old or non-blocking similar facts.
+  rubric:
+    pass_if:
+      - Answer says current blocking failure is `src/auth/session.ts:188`.
+      - Answer includes expected refresh token present but got undefined.
+      - Answer says `118` is old/fixed and `181` is only warning/distractor, or equivalent.
+    fail_if:
+      - Uses line `118` or `181` as the current blocking failure.
+      - Omits the line 188 expected/got detail.
