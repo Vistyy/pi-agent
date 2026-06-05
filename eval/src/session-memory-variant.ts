@@ -6,7 +6,7 @@ import path from 'node:path';
 import { argValue } from './lib/args.js';
 
 const variant = process.argv[2];
-if (!variant || variant.startsWith('--')) throw new Error('usage: npm run session-memory -- <clean|om|vcc|blackhole|blackhole-observed> --out runs/name [--suite suites/session-memory-limits]');
+if (!variant || variant.startsWith('--')) throw new Error('usage: npm run session-memory -- <clean|om|om-observed|vcc|blackhole|blackhole-observed> --out runs/name [--suite suites/session-memory-limits]');
 const suite = argValue('--suite') ?? 'suites/session-memory-limits';
 const out = argValue('--out') ?? `runs/session-memory-limits-${variant}-${new Date().toISOString().replace(/[:.]/g, '-')}`;
 const model = argValue('--model') ?? 'openai-codex/gpt-5.4-mini';
@@ -101,6 +101,10 @@ if (variant === 'clean') {
   run('npm', baseArgs());
 } else if (variant === 'om') {
   run('npm', baseArgs(['--cwd', cwd, '--extension', '/tmp/pi-observational-memory', '--prepare-memory-before-compact', '--memory-prepare-turns', prepareTurns, '--memory-prepare-wait-ms', waitMs, '--allow-tool', 'recall']));
+} else if (variant === 'om-observed') {
+  const materializedSuite = `${out}-materialized-suite`;
+  run('npm', ['run', 'materialize-om', '--', suite, '--out', materializedSuite, '--extension', '/tmp/pi-observational-memory', '--cwd', cwd, '--turns', prepareTurns, '--wait-ms', waitMs, '--post-filler-turns', '12']);
+  run('npm', ['run', 'eval', '--', materializedSuite, '--out', out, '--model', model, '--compact-before-prompt', '--compact-instructions', compactInstructions, '--concurrency', '1', '--cwd', cwd, '--extension', '/tmp/pi-observational-memory', '--allow-tool', 'recall'], { ...process.env, PI_OBSERVATIONAL_MEMORY_PASSIVE: '1' });
 } else if (variant === 'vcc') {
   run('npm', baseArgs(['--cwd', cwd, '--extension', '/tmp/pi-vcc', '--allow-tool', 'vcc_recall']), withVccEnv());
 } else if (variant === 'blackhole') {

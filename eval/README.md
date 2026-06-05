@@ -142,6 +142,7 @@ Session memory limits benchmark profiles:
 ```bash
 npm run session-memory -- clean --out runs/session-memory-clean-001
 npm run session-memory -- om --out runs/session-memory-om-001
+npm run session-memory -- om-observed --out runs/session-memory-om-observed-001
 npm run session-memory -- vcc --out runs/session-memory-vcc-001
 npm run session-memory -- blackhole --out runs/session-memory-blackhole-001
 npm run session-memory -- blackhole-observed --out runs/session-memory-blackhole-observed-001
@@ -151,6 +152,7 @@ Profiles encode approach-specific setup:
 
 - `clean`: Pi default compaction.
 - `om`: loads `/tmp/pi-observational-memory`, prepares OM before compaction, enables `recall`.
+- `om-observed`: materializes OM memory first, then replays compact+answer with passive OM and `recall`.
 - `vcc`: loads `/tmp/pi-vcc`, writes a temp `PI_VCC_CONFIG_PATH` with `overrideDefaultCompaction: true`, enables `vcc_recall`.
 - `blackhole`: loads `/tmp/pi-blackhole`, temporarily writes/restores blackhole config with `compactionEngine: "blackhole"`, `memory: true`, low observe threshold, forced prep, enables `recall`.
 - `blackhole-observed`: materializes blackhole memory first, then replays compact+answer with high observe threshold and `recall`. Use this for realistic cost split.
@@ -170,6 +172,17 @@ npm run eval -- suites/session-memory-limits \
 ```
 
 This is the main extension-agnostic benchmark for user-visible session memory after compaction. Run the same suite against clean Pi, OM, pi-vcc, and blackhole when comparing approaches.
+
+Historical redacted suite:
+
+```bash
+npm run session-memory -- clean --suite suites/historical-redacted --out runs/historical-redacted-clean-001
+npm run session-memory -- vcc --suite suites/historical-redacted --out runs/historical-redacted-vcc-001
+npm run session-memory -- om-observed --suite suites/historical-redacted --out runs/historical-redacted-om-observed-001 --memory-prepare-turns 12 --memory-prepare-wait-ms 15000
+npm run session-memory -- blackhole-observed --suite suites/historical-redacted --out runs/historical-redacted-blackhole-observed-001
+```
+
+`suites/historical-redacted` contains redacted/sliced real session fixtures only. Raw historical sessions and mined candidates remain private scratch under `scratch-historical/`.
 
 For `pi-observational-memory`, materialize real observations once, then replay cheaply:
 
