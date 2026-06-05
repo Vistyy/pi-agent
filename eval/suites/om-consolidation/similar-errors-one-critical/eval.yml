@@ -1,0 +1,30 @@
+id: om-consolidation-similar-errors-one-critical
+kind: om_consolidation
+probes: []
+consolidation_input:
+  sourceEntries:
+    - id: u1
+      role: user
+      timestamp: "2026-01-01 00:01"
+      text: "Earlier unrelated failure: parser.test.ts:41 expected comma but got semicolon. It is already fixed."
+    - id: u2
+      role: user
+      timestamp: "2026-01-01 00:05"
+      text: "Current blocking failure: parser.test.ts:410 expected cache hit but got cache miss. This is the one to remember."
+    - id: a1
+      role: assistant
+      timestamp: "2026-01-01 00:06"
+      text: "I will focus on parser.test.ts:410 expected cache hit but got cache miss."
+  targetTokens: 1000
+consolidation_probe:
+  id: similar_errors_one_critical
+  question: Did consolidation distinguish the current blocking error from the earlier fixed similar error?
+  rubric:
+    pass_if:
+      - Observations include `parser.test.ts:410`.
+      - Observations include `expected cache hit but got cache miss`.
+      - Observations indicate the `parser.test.ts:41` comma/semicolon failure is earlier, unrelated, or fixed.
+    fail_if:
+      - Only captures `parser.test.ts:41`.
+      - Confuses the expected/got values between the two errors.
+      - Omits that the 410/cache miss error is current/blocking.

@@ -1,0 +1,34 @@
+id: om-consolidation-negative-constraint-buried
+kind: om_consolidation
+probes: []
+consolidation_input:
+  sourceEntries:
+    - id: u1
+      role: user
+      timestamp: "2026-01-01 00:01"
+      text: "Filler: we discussed fixture names, run directories, calibration notes, model defaults, and README wording."
+    - id: u2
+      role: user
+      timestamp: "2026-01-01 00:02"
+      text: "Important negative constraint buried in the middle: never run benchmark comparisons with --force because cache and token totals become invalid."
+    - id: u3
+      role: user
+      timestamp: "2026-01-01 00:03"
+      text: "More filler: also maybe add projection, recall, reflector, dropper, and end-to-end cases later."
+    - id: a1
+      role: assistant
+      timestamp: "2026-01-01 00:04"
+      text: "Acknowledged the eval planning items."
+  targetTokens: 1000
+consolidation_probe:
+  id: negative_constraint_buried
+  question: Did observer/reflector preserve the buried negative benchmark constraint?
+  rubric:
+    pass_if:
+      - Observations include `--force`.
+      - Observations or reflections state it must not be used for benchmark comparisons.
+      - Captures the reason: cache/token totals or comparisons become invalid.
+    fail_if:
+      - Omits the negative constraint.
+      - Treats `--force` as recommended.
+      - Omits the cache/token invalidation reason.
