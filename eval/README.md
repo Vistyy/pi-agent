@@ -210,7 +210,7 @@ npm run om-consolidation -- suites/om-consolidation \
   --extension /absolute/path/to/pi-observational-memory
 ```
 
-This imports upstream observer, reflector, and dropper agents, runs them in sequence, captures their background model usage from agent-loop messages, and judges the resulting observations/reflections/dropped ids.
+This imports upstream observer, reflector, and dropper agents, runs them in sequence, captures stage-level background model usage from agent-loop messages, and judges the resulting observations/reflections/dropped ids. Summary usage includes `observer`, `reflector`, `dropper`, `om`, `judge`, and `total`.
 
 ## Outputs
 

@@ -24,6 +24,7 @@ const defaultThinkingLevel = argValue('--thinking') ?? 'off';
 
 function parseModelSpec(spec: string): [string, string] { const [p, ...r] = spec.split('/'); const id = r.join('/'); if (!p || !id) throw new Error(`model must be provider/id, got: ${spec}`); return [p, id]; }
 function addUsage(a: TokenUsage, u?: TokenUsage): TokenUsage { return { input:(a.input??0)+(u?.input??0), output:(a.output??0)+(u?.output??0), cacheRead:(a.cacheRead??0)+(u?.cacheRead??0), cacheWrite:(a.cacheWrite??0)+(u?.cacheWrite??0), totalTokens:(a.totalTokens??0)+(u?.totalTokens??0) }; }
+function diffUsage(after: TokenUsage, before: TokenUsage): TokenUsage { return { input:(after.input??0)-(before.input??0), output:(after.output??0)-(before.output??0), cacheRead:(after.cacheRead??0)-(before.cacheRead??0), cacheWrite:(after.cacheWrite??0)-(before.cacheWrite??0), totalTokens:(after.totalTokens??0)-(before.totalTokens??0) }; }
 function chunk(entries: SourceEntry[]): string { return entries.map(e => `[Source entry id: ${e.id}]\n${e.timestamp ? `[${e.timestamp}] ` : ''}${e.role}: ${e.text}`).join('\n\n'); }
 function render(observations?: Observation[], reflections?: Reflection[], dropped?: string[]): string { return `OBSERVATIONS:\n${observations?.map(o=>`- [${o.id}] ${o.content} sourceEntryIds=${o.sourceEntryIds.join(',')}`).join('\n') || '(none)'}\n\nREFLECTIONS:\n${reflections?.map(r=>`- [${r.id}] ${r.content} supportingObservationIds=${r.supportingObservationIds.join(',')}`).join('\n') || '(none)'}\n\nDROPPED_IDS:\n${dropped?.join(', ') || '(none)'}`; }
 
@@ -61,7 +62,7 @@ if (!auth.ok || !auth.apiKey) throw new Error(`no API key for ${provider}`);
 fs.mkdirSync(outDir, { recursive: true });
 const results = [];
 let passed = 0, total = 0;
-let usage = { om: {} as TokenUsage, judge: {} as TokenUsage, total: {} as TokenUsage };
+let usage = { observer: {} as TokenUsage, reflector: {} as TokenUsage, dropper: {} as TokenUsage, om: {} as TokenUsage, judge: {} as TokenUsage, total: {} as TokenUsage };
 
 for (const fixtureDir of fixtureDirs(fixturesRoot)) {
   const fixture = path.basename(fixtureDir);
@@ -69,19 +70,24 @@ for (const fixtureDir of fixtureDirs(fixturesRoot)) {
   if (!evalFile.consolidation_input) throw new Error(`${fixture}: missing consolidation_input`);
   if (!evalFile.consolidation_probe) throw new Error(`${fixture}: missing consolidation_probe`);
   const input = evalFile.consolidation_input;
-  const before = omUsage;
+  const beforeObserver = omUsage;
   const observations = await runObserver({ model, apiKey: auth.apiKey, headers: auth.headers, priorReflections: [], priorObservations: [], chunk: chunk(input.sourceEntries), allowedSourceEntryIds: input.sourceEntries.map(e=>e.id), agentLoop: meteredAgentLoop, maxTurns: input.maxTurns ?? defaultMaxTurns, thinkingLevel: input.thinkingLevel ?? defaultThinkingLevel });
+  const observerUsage = diffUsage(omUsage, beforeObserver);
   const allObservations = [...(input.priorObservations ?? []), ...(observations ?? [])];
+  const beforeReflector = omUsage;
   const reflections = await runReflector({ model, apiKey: auth.apiKey, headers: auth.headers, reflections: input.priorReflections ?? [], observations: allObservations, agentLoop: meteredAgentLoop, maxTurns: input.maxTurns ?? defaultMaxTurns, thinkingLevel: input.thinkingLevel ?? defaultThinkingLevel });
+  const reflectorUsage = diffUsage(omUsage, beforeReflector);
   const allReflections = [...(input.priorReflections ?? []), ...(reflections ?? [])];
+  const beforeDropper = omUsage;
   const dropped = input.targetTokens ? await runDropper({ model, apiKey: auth.apiKey, headers: auth.headers, reflections: allReflections, observations: allObservations, targetTokens: input.targetTokens, agentLoop: meteredAgentLoop, maxTurns: input.maxTurns ?? defaultMaxTurns, thinkingLevel: input.thinkingLevel ?? defaultThinkingLevel }) : undefined;
-  const caseOmUsage = { input:(omUsage.input??0)-(before.input??0), output:(omUsage.output??0)-(before.output??0), cacheRead:(omUsage.cacheRead??0)-(before.cacheRead??0), cacheWrite:(omUsage.cacheWrite??0)-(before.cacheWrite??0), totalTokens:(omUsage.totalTokens??0)-(before.totalTokens??0) };
+  const dropperUsage = diffUsage(omUsage, beforeDropper);
+  const caseOmUsage = addUsage(addUsage(observerUsage, reflectorUsage), dropperUsage);
   const answer = render(observations, reflections, dropped);
   const judged = await runJudge(evalFile.consolidation_probe, answer, judgeModel);
-  usage.om = addUsage(usage.om, caseOmUsage); usage.judge = addUsage(usage.judge, judged.run.usage); usage.total = addUsage(addUsage({}, usage.om), usage.judge);
+  usage.observer = addUsage(usage.observer, observerUsage); usage.reflector = addUsage(usage.reflector, reflectorUsage); usage.dropper = addUsage(usage.dropper, dropperUsage); usage.om = addUsage(usage.om, caseOmUsage); usage.judge = addUsage(usage.judge, judged.run.usage); usage.total = addUsage(addUsage({}, usage.om), usage.judge);
   total++; if (judged.judge.passed) passed++;
-  results.push({ fixture, observations: observations ?? [], reflections: reflections ?? [], droppedIds: dropped ?? [], answer, judge: judged.judge, usage: { om: caseOmUsage, judge: judged.run.usage } });
-  console.log(`${fixture}: ${judged.judge.passed ? 'PASS' : 'FAIL'} omTokens=${caseOmUsage.totalTokens ?? 0}`);
+  results.push({ fixture, observations: observations ?? [], reflections: reflections ?? [], droppedIds: dropped ?? [], answer, judge: judged.judge, usage: { observer: observerUsage, reflector: reflectorUsage, dropper: dropperUsage, om: caseOmUsage, judge: judged.run.usage } });
+  console.log(`${fixture}: ${judged.judge.passed ? 'PASS' : 'FAIL'} observer=${observerUsage.totalTokens ?? 0} reflector=${reflectorUsage.totalTokens ?? 0} dropper=${dropperUsage.totalTokens ?? 0}`);
 }
 const summary = { kind: 'om-consolidation', fixturesRoot, extensionPath, model: modelSpec, judgeModel, maxTurns: defaultMaxTurns, thinkingLevel: defaultThinkingLevel, passed, total, usage };
 fs.writeFileSync(path.join(outDir, 'results.json'), JSON.stringify(results, null, 2));
