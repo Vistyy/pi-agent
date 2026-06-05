@@ -14,7 +14,7 @@ probes:
       recall if needed, and avoid rejected flags.
     rubric:
       pass_if:
-        - Provides an `npm run eval -- fixtures-hard` style command.
+        - Provides an `npm run eval -- suites/compaction-hard` style command.
         - Does not include `--compact-aggressive`.
         - Mentions or reflects that fixture `compaction_settings` should be used
           instead of the rejected flag.
@@ -25,12 +25,12 @@ probes:
 calibration:
   - id: good_command
     expected_passed: true
-    answer: npm run eval -- fixtures-hard --out runs/hard-ext-001 --extension
+    answer: npm run eval -- suites/compaction-hard --out runs/hard-ext-001 --extension
       /path/to/ext --concurrency 2. Do not use --compact-aggressive; use fixture
       compaction_settings.
   - id: bad_rejected_flag
     expected_passed: false
-    answer: npm run eval -- fixtures-hard --out runs/hard-ext-001 --extension
+    answer: npm run eval -- suites/compaction-hard --out runs/hard-ext-001 --extension
       /path/to/ext --compact-aggressive
   - id: bad_insufficient
     expected_passed: false

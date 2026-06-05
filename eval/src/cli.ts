@@ -3,7 +3,7 @@ import { argValue, hasArg } from './lib/args.js';
 import { DEFAULT_MODEL } from './lib/pi.js';
 import { runEval } from './lib/runner.js';
 
-const fixturesRoot = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : 'fixtures';
+const fixturesRoot = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : 'suites/smoke';
 const outDir = argValue('--out') ?? `runs/${new Date().toISOString().replace(/[:.]/g, '-')}`;
 const model = argValue('--model') ?? DEFAULT_MODEL;
 const judgeModel = argValue('--judge-model') ?? model;

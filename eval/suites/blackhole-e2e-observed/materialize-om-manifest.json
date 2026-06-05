@@ -1,6 +1,6 @@
 {
-  "fixturesRoot": "fixtures-hard",
-  "outRoot": "fixtures-blackhole-observed",
+  "fixturesRoot": "suites/compaction-hard",
+  "outRoot": "suites/blackhole-e2e-observed",
   "extensionPath": "/tmp/pi-blackhole",
   "model": "openai-codex/gpt-5.4-mini",
   "cwd": "/tmp/pi-om-materialize-qZrpFl",
@@ -12,8 +12,8 @@
   "fixtures": [
     {
       "fixture": "ambiguous-similar-errors",
-      "source": "fixtures-hard/ambiguous-similar-errors/source.precompact.synthetic.jsonl",
-      "observed": "fixtures-blackhole-observed/ambiguous-similar-errors/source.om-observed.synthetic.jsonl",
+      "source": "suites/compaction-hard/ambiguous-similar-errors/source.precompact.synthetic.jsonl",
+      "observed": "suites/blackhole-e2e-observed/ambiguous-similar-errors/source.om-observed.synthetic.jsonl",
       "omEntriesBefore": 0,
       "omEntriesAfter": 1,
       "usage": {
@@ -26,8 +26,8 @@
     },
     {
       "fixture": "assistant-only-evidence",
-      "source": "fixtures-hard/assistant-only-evidence/source.precompact.synthetic.jsonl",
-      "observed": "fixtures-blackhole-observed/assistant-only-evidence/source.om-observed.synthetic.jsonl",
+      "source": "suites/compaction-hard/assistant-only-evidence/source.precompact.synthetic.jsonl",
+      "observed": "suites/blackhole-e2e-observed/assistant-only-evidence/source.om-observed.synthetic.jsonl",
       "omEntriesBefore": 0,
       "omEntriesAfter": 1,
       "usage": {
@@ -40,8 +40,8 @@
     },
     {
       "fixture": "buried-negative-constraint",
-      "source": "fixtures-hard/buried-negative-constraint/source.precompact.synthetic.jsonl",
-      "observed": "fixtures-blackhole-observed/buried-negative-constraint/source.om-observed.synthetic.jsonl",
+      "source": "suites/compaction-hard/buried-negative-constraint/source.precompact.synthetic.jsonl",
+      "observed": "suites/blackhole-e2e-observed/buried-negative-constraint/source.om-observed.synthetic.jsonl",
       "omEntriesBefore": 0,
       "omEntriesAfter": 1,
       "usage": {
@@ -54,8 +54,8 @@
     },
     {
       "fixture": "conflicting-current-decision",
-      "source": "fixtures-hard/conflicting-current-decision/source.precompact.synthetic.jsonl",
-      "observed": "fixtures-blackhole-observed/conflicting-current-decision/source.om-observed.synthetic.jsonl",
+      "source": "suites/compaction-hard/conflicting-current-decision/source.precompact.synthetic.jsonl",
+      "observed": "suites/blackhole-e2e-observed/conflicting-current-decision/source.om-observed.synthetic.jsonl",
       "omEntriesBefore": 0,
       "omEntriesAfter": 1,
       "usage": {
@@ -68,8 +68,8 @@
     },
     {
       "fixture": "exact-error-needle",
-      "source": "fixtures-hard/exact-error-needle/source.precompact.synthetic.jsonl",
-      "observed": "fixtures-blackhole-observed/exact-error-needle/source.om-observed.synthetic.jsonl",
+      "source": "suites/compaction-hard/exact-error-needle/source.precompact.synthetic.jsonl",
+      "observed": "suites/blackhole-e2e-observed/exact-error-needle/source.om-observed.synthetic.jsonl",
       "omEntriesBefore": 0,
       "omEntriesAfter": 1,
       "usage": {
@@ -82,8 +82,8 @@
     },
     {
       "fixture": "multi-hop-artifact-path",
-      "source": "fixtures-hard/multi-hop-artifact-path/source.precompact.synthetic.jsonl",
-      "observed": "fixtures-blackhole-observed/multi-hop-artifact-path/source.om-observed.synthetic.jsonl",
+      "source": "suites/compaction-hard/multi-hop-artifact-path/source.precompact.synthetic.jsonl",
+      "observed": "suites/blackhole-e2e-observed/multi-hop-artifact-path/source.om-observed.synthetic.jsonl",
       "omEntriesBefore": 0,
       "omEntriesAfter": 1,
       "usage": {
@@ -96,8 +96,8 @@
     },
     {
       "fixture": "priority-conflict-raw-logs",
-      "source": "fixtures-hard/priority-conflict-raw-logs/source.precompact.synthetic.jsonl",
-      "observed": "fixtures-blackhole-observed/priority-conflict-raw-logs/source.om-observed.synthetic.jsonl",
+      "source": "suites/compaction-hard/priority-conflict-raw-logs/source.precompact.synthetic.jsonl",
+      "observed": "suites/blackhole-e2e-observed/priority-conflict-raw-logs/source.om-observed.synthetic.jsonl",
       "omEntriesBefore": 0,
       "omEntriesAfter": 1,
       "usage": {
@@ -110,8 +110,8 @@
     },
     {
       "fixture": "rejected-command-resurrection",
-      "source": "fixtures-hard/rejected-command-resurrection/source.precompact.synthetic.jsonl",
-      "observed": "fixtures-blackhole-observed/rejected-command-resurrection/source.om-observed.synthetic.jsonl",
+      "source": "suites/compaction-hard/rejected-command-resurrection/source.precompact.synthetic.jsonl",
+      "observed": "suites/blackhole-e2e-observed/rejected-command-resurrection/source.om-observed.synthetic.jsonl",
       "omEntriesBefore": 0,
       "omEntriesAfter": 1,
       "usage": {
@@ -124,8 +124,8 @@
     },
     {
       "fixture": "tool-result-only-evidence",
-      "source": "fixtures-hard/tool-result-only-evidence/source.precompact.synthetic.jsonl",
-      "observed": "fixtures-blackhole-observed/tool-result-only-evidence/source.om-observed.synthetic.jsonl",
+      "source": "suites/compaction-hard/tool-result-only-evidence/source.precompact.synthetic.jsonl",
+      "observed": "suites/blackhole-e2e-observed/tool-result-only-evidence/source.om-observed.synthetic.jsonl",
       "omEntriesBefore": 0,
       "omEntriesAfter": 1,
       "usage": {

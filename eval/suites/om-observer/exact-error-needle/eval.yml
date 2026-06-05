@@ -1,0 +1,43 @@
+id: hard-exact-error-needle
+kind: synthetic_hard_precompact_session
+source_session: source.precompact.synthetic.jsonl
+notes: Exact old terminal error should be recoverable after compaction; summary may omit it.
+compact_before_probe: true
+compact_instructions: Preserve exact errors, file paths, line numbers, current decisions, and user constraints.
+compaction_settings:
+  keepRecentTokens: 80
+  reserveTokens: 1024
+probes:
+  - id: exact_typeerror
+    question: What was the exact npm test error, including file path and line/column? Use recall if needed.
+    rubric:
+      pass_if:
+        - Gives `TypeError: cannot read properties of undefined (reading 'sessionId')`.
+        - Gives `src/session/store.ts:183:17`.
+        - Does not say INSUFFICIENT_CONTEXT.
+      fail_if:
+        - Says INSUFFICIENT_CONTEXT.
+        - Invents a different error or location.
+        - Gives only a vague TypeError without exact file path and line/column.
+calibration:
+  - id: good_exact
+    expected_passed: true
+    answer: "TypeError: cannot read properties of undefined (reading 'sessionId') at src/session/store.ts:183:17"
+  - id: bad_vague
+    expected_passed: false
+    answer: There was a TypeError in the session store.
+  - id: bad_wrong_line
+    expected_passed: false
+    answer: "TypeError: cannot read properties of undefined (reading 'sessionId') at src/session/store.ts:181:7"
+
+observer_probe:
+  id: observer_exact_typeerror
+  question: Did the generated OM observations capture the exact npm test error and source evidence?
+  rubric:
+    pass_if:
+      - Observations include `TypeError: cannot read properties of undefined (reading 'sessionId')`.
+      - Observations include `src/session/store.ts:183:17`.
+      - At least one relevant observation has non-empty sourceEntryIds.
+    fail_if:
+      - Only records a vague TypeError without exact file path and line/column.
+      - Omits the exact error or exact location.

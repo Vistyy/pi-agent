@@ -5,22 +5,34 @@ Evaluates whether Pi can answer fixed probes from compacted session context.
 ## Files
 
 ```text
-fixtures/<id>/
-  eval.yml                 # metadata, probe rubric, judge calibration
-  source.synthetic.jsonl   # committed replayable post-compaction-style session
+suites/smoke/<id>/
+  eval.yml                 # harness smoke/regression cases
+  source.synthetic.jsonl   # committed replayable session
   source.jsonl             # optional private local session, gitignored
 
-fixtures-precompact/<id>/
-  eval.yml                         # includes compact_before_probe/settings
-  source.precompact.synthetic.jsonl # committed replayable pre-compaction session
-
-fixtures-hard/<id>/
-  eval.yml                         # harder pre-compaction extension comparison cases
+suites/compaction-sanity/<id>/
+  eval.yml                         # small pre-compaction sanity cases
   source.precompact.synthetic.jsonl
 
-fixtures-recall/<id>/
+suites/compaction-hard/<id>/
+  eval.yml                         # harder answer-after-compaction extension comparison cases
+  source.precompact.synthetic.jsonl
+
+suites/recall-smoke/<id>/
   eval.yml                         # recall/tool-specific cases
   source.precompact.synthetic.jsonl
+
+suites/om-observer/<id>/
+  eval.yml                         # observer_probe rubric for generated OM observations
+  source.precompact.synthetic.jsonl
+
+suites/om-e2e-observed/<id>/
+  eval.yml                         # materialized real OM observations, replayed through compaction/probe
+  source.om-observed.synthetic.jsonl
+
+suites/blackhole-e2e-observed/<id>/
+  eval.yml                         # materialized blackhole observations, replayed through compaction/probe
+  source.om-observed.synthetic.jsonl
 
 runs/                      # generated results, gitignored
 scratch-historical/        # private calibration sessions, gitignored
@@ -38,37 +50,37 @@ npm install
 Dry run, no model calls:
 
 ```bash
-npm run eval -- fixtures --dry-run --out /tmp/pi-eval-plan
+npm run eval -- suites/smoke --dry-run --out /tmp/pi-eval-plan
 ```
 
 Run eval:
 
 ```bash
-npm run eval -- fixtures --out runs/baseline-001
+npm run eval -- suites/smoke --out runs/baseline-001
 ```
 
 Routine run:
 
 ```bash
-npm run eval -- fixtures --out runs/baseline-001 --concurrency 2
+npm run eval -- suites/smoke --out runs/baseline-001 --concurrency 2
 ```
 
 Use `--calibrate` after changing rubrics, judge prompt, or judge model; it is a batched eval for the judge and costs extra model calls:
 
 ```bash
-npm run eval -- fixtures --out runs/baseline-001 --calibrate --concurrency 2
+npm run eval -- suites/smoke --out runs/baseline-001 --calibrate --concurrency 2
 ```
 
 Optional model override:
 
 ```bash
-npm run eval -- fixtures --model openai-codex/gpt-5.4-mini --judge-model openai-codex/gpt-5.4-mini
+npm run eval -- suites/smoke --model openai-codex/gpt-5.4-mini --judge-model openai-codex/gpt-5.4-mini
 ```
 
 Extension/compaction replay smoke:
 
 ```bash
-npm run eval -- fixtures \
+npm run eval -- suites/smoke \
   --out runs/extension-smoke-001 \
   --extension /absolute/path/to/extension.ts \
   --compact-before-prompt \
@@ -80,7 +92,7 @@ npm run eval -- fixtures \
 Recall/tool eval:
 
 ```bash
-npm run eval -- fixtures-recall \
+npm run eval -- suites/recall-smoke \
   --out runs/pi-vcc-recall-001 \
   --extension /absolute/path/to/pi-vcc \
   --allow-tool vcc_recall
@@ -91,7 +103,7 @@ npm run eval -- fixtures-recall \
 Memory extensions that need a preparatory turn before compaction can use:
 
 ```bash
-npm run eval -- fixtures-hard \
+npm run eval -- suites/compaction-hard \
   --out runs/memory-ext-001 \
   --extension /absolute/path/to/extension \
   --prepare-memory-before-compact \
@@ -103,21 +115,33 @@ Use `--cwd <dir>` when extension settings should come from a temporary project `
 For `pi-observational-memory`, materialize real observations once, then replay cheaply:
 
 ```bash
-npm run materialize-om -- fixtures-hard \
-  --out fixtures-om-observed \
+npm run materialize-om -- suites/compaction-hard \
+  --out suites/om-e2e-observed \
   --extension /absolute/path/to/pi-observational-memory \
   --turns 6 \
   --wait-ms 10000 \
   --post-filler-turns 12
 
-PI_OBSERVATIONAL_MEMORY_PASSIVE=1 npm run eval -- fixtures-om-observed \
+PI_OBSERVATIONAL_MEMORY_PASSIVE=1 npm run eval -- suites/om-e2e-observed \
   --out runs/hard-om-observed-001 \
   --extension /absolute/path/to/pi-observational-memory \
   --allow-tool recall \
   --concurrency 2
 ```
 
-The materializer copies each fixture, runs one OM preparation turn, fails if no `om.*` custom entries are written, and writes `source.om-observed.synthetic.jsonl` plus `materialize-om-manifest.json`.
+The materializer copies each fixture, runs OM preparation turns, fails if no `om.*` custom entries are written, and writes `source.om-observed.synthetic.jsonl` plus `materialize-om-manifest.json`.
+
+OM observer subsystem eval:
+
+```bash
+npm run om-observer -- suites/om-observer \
+  --out runs/om-observer-upstream-001 \
+  --extension /absolute/path/to/pi-observational-memory \
+  --turns 6 \
+  --wait-ms 10000
+```
+
+This runs OM observation preparation on raw synthetic sessions, extracts `om.observations.recorded`, and judges the generated observations directly.
 
 ## Outputs
 
@@ -142,4 +166,4 @@ Semantic judge is authoritative. No phrase-search pass/fail checks.
 
 ## Scope
 
-Current runner supports baseline answer quality, pre-compaction fixture replay, explicit extension replay, and recall/tool evals. Easy suites are harness smoke; `fixtures-hard` is for extension comparison. Comparison/reporting between baseline and extension runs comes later.
+Current runner supports baseline answer quality, pre-compaction fixture replay, explicit extension replay, recall/tool evals, and OM observer subsystem evals. Easy suites are harness smoke; `suites/compaction-hard` is for extension comparison.

@@ -7,7 +7,7 @@ import { argValue } from './lib/args.js';
 import { fixtureDirs, readEvalFile, sourceSessionPath } from './lib/fixtures.js';
 import { DEFAULT_MODEL, runPiSdk } from './lib/pi.js';
 
-const fixturesRoot = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : 'fixtures-hard';
+const fixturesRoot = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : 'suites/compaction-hard';
 const outRoot = argValue('--out');
 const extensionPath = argValue('--extension') ?? '/tmp/pi-observational-memory';
 const model = argValue('--model') ?? DEFAULT_MODEL;
