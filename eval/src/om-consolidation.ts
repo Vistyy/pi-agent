@@ -26,7 +26,14 @@ function parseModelSpec(spec: string): [string, string] { const [p, ...r] = spec
 function addUsage(a: TokenUsage, u?: TokenUsage): TokenUsage { return { input:(a.input??0)+(u?.input??0), output:(a.output??0)+(u?.output??0), cacheRead:(a.cacheRead??0)+(u?.cacheRead??0), cacheWrite:(a.cacheWrite??0)+(u?.cacheWrite??0), totalTokens:(a.totalTokens??0)+(u?.totalTokens??0) }; }
 function diffUsage(after: TokenUsage, before: TokenUsage): TokenUsage { return { input:(after.input??0)-(before.input??0), output:(after.output??0)-(before.output??0), cacheRead:(after.cacheRead??0)-(before.cacheRead??0), cacheWrite:(after.cacheWrite??0)-(before.cacheWrite??0), totalTokens:(after.totalTokens??0)-(before.totalTokens??0) }; }
 function chunk(entries: SourceEntry[]): string { return entries.map(e => `[Source entry id: ${e.id}]\n${e.timestamp ? `[${e.timestamp}] ` : ''}${e.role}: ${e.text}`).join('\n\n'); }
-function render(observations?: Observation[], reflections?: Reflection[], dropped?: string[]): string { return `OBSERVATIONS:\n${observations?.map(o=>`- [${o.id}] ${o.content} sourceEntryIds=${o.sourceEntryIds.join(',')}`).join('\n') || '(none)'}\n\nREFLECTIONS:\n${reflections?.map(r=>`- [${r.id}] ${r.content} supportingObservationIds=${r.supportingObservationIds.join(',')}`).join('\n') || '(none)'}\n\nDROPPED_IDS:\n${dropped?.join(', ') || '(none)'}`; }
+function render(observations?: Observation[], reflections?: Reflection[], dropped?: string[]): string {
+  const byId = new Map((observations ?? []).map((o) => [o.id, o]));
+  const droppedLines = dropped?.map((id) => {
+    const observation = byId.get(id);
+    return observation ? `- [${id}] ${observation.content}` : `- [${id}]`;
+  }).join('\n');
+  return `OBSERVATIONS:\n${observations?.map(o=>`- [${o.id}] ${o.content} sourceEntryIds=${o.sourceEntryIds.join(',')}`).join('\n') || '(none)'}\n\nREFLECTIONS:\n${reflections?.map(r=>`- [${r.id}] ${r.content} supportingObservationIds=${r.supportingObservationIds.join(',')}`).join('\n') || '(none)'}\n\nDROPPED_IDS:\n${droppedLines || '(none)'}`;
+}
 
 let omUsage: TokenUsage = {};
 const meteredAgentLoop = ((...args: unknown[]) => {
