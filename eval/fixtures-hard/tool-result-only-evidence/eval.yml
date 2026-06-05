@@ -1,0 +1,31 @@
+id: hard-tool-result-only-evidence
+kind: synthetic_hard_precompact_session
+source_session: source.precompact.synthetic.jsonl
+notes: Exact evidence appears only in a tool result; assistant does not restate it.
+compact_before_probe: true
+compact_instructions: Preserve exact tool-result evidence, paths, line numbers, and assertion messages.
+compaction_settings:
+  keepRecentTokens: 80
+  reserveTokens: 1024
+probes:
+  - id: tool_result_failure
+    question: What exact failure did the synthetic grep tool return? Use recall if needed.
+    rubric:
+      pass_if:
+        - Gives `tests/auth-refresh.test.ts:118:9`.
+        - Gives `AssertionError: expected token TTL 3600 but got 300`.
+        - Does not say INSUFFICIENT_CONTEXT.
+      fail_if:
+        - Says INSUFFICIENT_CONTEXT.
+        - Invents a different file, line, or assertion.
+        - Gives only a vague token TTL failure.
+calibration:
+  - id: good_tool_result
+    expected_passed: true
+    answer: 'tests/auth-refresh.test.ts:118:9 - AssertionError: expected token TTL 3600 but got 300'
+  - id: bad_vague
+    expected_passed: false
+    answer: There was a token TTL assertion failure.
+  - id: bad_wrong_file
+    expected_passed: false
+    answer: 'tests/auth.test.ts:118:9 - AssertionError: expected token TTL 3600 but got 300'

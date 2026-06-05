@@ -1,0 +1,31 @@
+id: hard-ambiguous-similar-errors
+kind: synthetic_hard_precompact_session
+source_session: source.precompact.synthetic.jsonl
+notes: Two similar labeled errors; answer must select the retry-path one, not nearby primary-path evidence.
+compact_before_probe: true
+compact_instructions: Preserve exact errors, labels, file paths, line numbers, and distinguish similar failures.
+compaction_settings:
+  keepRecentTokens: 80
+  reserveTokens: 1024
+probes:
+  - id: retry_path_failure
+    question: What was the exact retry-path cache.test.ts failure? Use recall if needed.
+    rubric:
+      pass_if:
+        - Gives retry-path, not primary-path.
+        - Gives `cache.test.ts line 274`.
+        - Gives `expected "cache refresh" but got "cache stale"`.
+      fail_if:
+        - Gives the primary-path line 247 failure.
+        - Gives `expected "cache hit" but got "cache miss"` as the requested answer.
+        - Says INSUFFICIENT_CONTEXT.
+calibration:
+  - id: good_retry
+    expected_passed: true
+    answer: 'Retry-path failure: cache.test.ts line 274 assertion was `expected "cache refresh" but got "cache stale"`.'
+  - id: bad_primary
+    expected_passed: false
+    answer: 'cache.test.ts line 247 assertion was `expected "cache hit" but got "cache miss"`.'
+  - id: bad_insufficient
+    expected_passed: false
+    answer: INSUFFICIENT_CONTEXT
