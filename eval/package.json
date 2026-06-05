@@ -10,6 +10,7 @@
     "om-projection": "tsx src/om-projection.ts",
     "om-reflector": "tsx src/om-reflector.ts",
     "om-dropper": "tsx src/om-dropper.ts",
+    "om-consolidation": "tsx src/om-consolidation.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

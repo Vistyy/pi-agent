@@ -40,6 +40,9 @@ suites/om-reflector/<id>/
 suites/om-dropper/<id>/
   eval.yml                         # dropper_input + dropper_probe for dropped observation ids
 
+suites/om-consolidation/<id>/
+  eval.yml                         # observer -> reflector -> dropper integrated subsystem cases
+
 suites/om-e2e-observed/<id>/
   eval.yml                         # materialized real OM observations, replayed through compaction/probe
   source.om-observed.synthetic.jsonl
@@ -198,6 +201,16 @@ npm run om-dropper -- suites/om-dropper \
 ```
 
 This imports upstream `runDropper`, feeds known observations/reflections/token target, and judges selected dropped ids directly. Current token summary only includes judge usage, not dropper model usage.
+
+OM integrated consolidation eval:
+
+```bash
+npm run om-consolidation -- suites/om-consolidation \
+  --out runs/om-consolidation-upstream-001 \
+  --extension /absolute/path/to/pi-observational-memory
+```
+
+This imports upstream observer, reflector, and dropper agents, runs them in sequence, captures their background model usage from agent-loop messages, and judges the resulting observations/reflections/dropped ids.
 
 ## Outputs
 

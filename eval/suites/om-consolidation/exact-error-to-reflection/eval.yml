@@ -1,0 +1,26 @@
+id: om-consolidation-exact-error-to-reflection
+kind: om_consolidation
+probes: []
+consolidation_input:
+  sourceEntries:
+    - id: u1
+      role: user
+      timestamp: "2026-01-01 00:01"
+      text: "CI failure: TypeError cannot read properties of undefined reading sessionId at src/session/store.ts:183:17. Keep this exact location."
+    - id: a1
+      role: assistant
+      timestamp: "2026-01-01 00:02"
+      text: "Noted the exact TypeError and source location."
+  targetTokens: 1000
+consolidation_probe:
+  id: exact_error_pipeline
+  question: Did observer/reflector/dropper preserve exact load-bearing error evidence?
+  rubric:
+    pass_if:
+      - Observations include `sessionId` and `src/session/store.ts:183:17`.
+      - Any reflection about the error preserves `sessionId` and `src/session/store.ts:183:17`, or no reflection is made for the event-level error.
+      - Dropped ids are empty.
+    fail_if:
+      - Observation omits the exact file/line or property.
+      - Reflection generalizes to only a vague TypeError/test failure.
+      - Drops the exact error observation.
