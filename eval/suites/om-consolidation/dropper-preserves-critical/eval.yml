@@ -26,8 +26,8 @@ consolidation_probe:
   question: Did integrated consolidation keep critical constraints while allowing lower-value drops?
   rubric:
     pass_if:
-      - Observations include the `--force` benchmark constraint.
-      - Dropped ids do not include the observation containing `--force`.
+      - The OBSERVATIONS section includes the `--force` benchmark constraint.
+      - The DROPPED_IDS section does not include any line containing `--force`.
     fail_if:
-      - Fails to observe the `--force` constraint.
-      - Drops the `--force` constraint observation.
+      - The OBSERVATIONS section fails to include the `--force` constraint.
+      - The DROPPED_IDS section includes a line containing `--force`.
