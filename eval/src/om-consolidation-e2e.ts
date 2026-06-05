@@ -28,6 +28,17 @@ function addUsage(a: TokenUsage, u?: TokenUsage): TokenUsage { return { input:(a
 function diffUsage(after: TokenUsage, before: TokenUsage): TokenUsage { return { input:(after.input??0)-(before.input??0), output:(after.output??0)-(before.output??0), cacheRead:(after.cacheRead??0)-(before.cacheRead??0), cacheWrite:(after.cacheWrite??0)-(before.cacheWrite??0), totalTokens:(after.totalTokens??0)-(before.totalTokens??0) }; }
 function chunk(entries: SourceEntry[]): string { return entries.map(e => `[Source entry id: ${e.id}]\n${e.timestamp ? `[${e.timestamp}] ` : ''}${e.role}: ${e.text}`).join('\n\n'); }
 function msg(id: string, parentId: string, role: string, text: string) { return { type: 'message', id, parentId, timestamp: '2026-01-01T00:00:00.000Z', message: { role, content: [{ type: 'text', text }] } }; }
+function renderMemory(compaction: unknown, observations: Observation[], reflections: Reflection[], dropped: string[]): string {
+  return `COMPACTION:\n${JSON.stringify(compaction, null, 2)}\n\nOBSERVATIONS:\n${observations.map(o=>`- [${o.id}] ${o.content} sourceEntryIds=${o.sourceEntryIds.join(',')}`).join('\n') || '(none)'}\n\nREFLECTIONS:\n${reflections.map(r=>`- [${r.id}] ${r.content} supportingObservationIds=${r.supportingObservationIds.join(',')}`).join('\n') || '(none)'}\n\nDROPPED_IDS:\n${dropped.join(', ') || '(none)'}`;
+}
+
+function classify(memoryPassed: boolean, answerPassed: boolean): string {
+  if (memoryPassed && answerPassed) return 'pass';
+  if (memoryPassed && !answerPassed) return 'answer_use_failure';
+  if (!memoryPassed && answerPassed) return 'answer_recovered_despite_memory_failure';
+  return 'memory_failure';
+}
+
 function writeSession(file: string, fixture: string, input: Input, observations: Observation[], reflections: Reflection[], dropped: string[]) {
   const entries: any[] = [{ type: 'session', id: `om-e2e-${fixture}`, version: 3, timestamp: '2026-01-01T00:00:00.000Z', cwd: '/tmp/pi-om-e2e' }];
   let parent = `om-e2e-${fixture}`;
@@ -67,7 +78,7 @@ let usage = { observer: {} as TokenUsage, reflector: {} as TokenUsage, dropper: 
 
 for (const fixtureDir of fixtureDirs(fixturesRoot)) {
   const fixture = path.basename(fixtureDir);
-  const evalFile = readEvalFile(fixtureDir) as ReturnType<typeof readEvalFile> & { consolidation_input?: Input; e2e_probe?: Probe };
+  const evalFile = readEvalFile(fixtureDir) as ReturnType<typeof readEvalFile> & { consolidation_input?: Input; e2e_probe?: Probe; e2e_memory_probe?: Probe };
   if (!evalFile.consolidation_input || !evalFile.e2e_probe) continue;
   const input = evalFile.consolidation_input;
   const beforeObserver = omUsage;
@@ -84,13 +95,17 @@ for (const fixtureDir of fixtureDirs(fixturesRoot)) {
   const sessionFile = path.join(fs.mkdtempSync(path.join(os.tmpdir(), `pi-om-e2e-${fixture}-`)), 'session.jsonl');
   writeSession(sessionFile, fixture, input, allObservations, allReflections, dropped ?? []);
   const answerRun = await runPiSdk(evalFile.e2e_probe.question, { model: modelSpec, sessionFile, extensionPaths: [extensionPath], compactBeforePrompt: true, compactInstructions: 'Preserve observational memory for answer probe.', compactionSettings: { keepRecentTokens: 80, reserveTokens: 1024 } });
+  const memoryProbe = evalFile.e2e_memory_probe ?? evalFile.e2e_probe;
+  const memoryJudged = await runJudge(memoryProbe, renderMemory(answerRun.compaction, allObservations, allReflections, dropped ?? []), judgeModel);
   const judged = await runJudge(evalFile.e2e_probe, answerRun.stdout, judgeModel);
+  const classification = classify(memoryJudged.judge.passed, judged.judge.passed);
   const caseOmUsage = addUsage(addUsage(observerUsage, reflectorUsage), dropperUsage);
-  for (const [k, v] of Object.entries({ observer: observerUsage, reflector: reflectorUsage, dropper: dropperUsage, om: caseOmUsage, answer: answerRun.usage, judge: judged.run.usage }) as [keyof typeof usage, TokenUsage][]) usage[k] = addUsage(usage[k], v);
+  const judgeUsage = addUsage(memoryJudged.run.usage ?? {}, judged.run.usage ?? {});
+  for (const [k, v] of Object.entries({ observer: observerUsage, reflector: reflectorUsage, dropper: dropperUsage, om: caseOmUsage, answer: answerRun.usage ?? {}, judge: judgeUsage }) as [keyof typeof usage, TokenUsage][]) usage[k] = addUsage(usage[k], v);
   usage.total = addUsage(addUsage(addUsage({}, usage.om), usage.answer), usage.judge);
   total++; if (judged.judge.passed) passed++;
-  results.push({ fixture, sessionFile, observations: allObservations, reflections: allReflections, droppedIds: dropped ?? [], answer: answerRun.stdout, compaction: answerRun.compaction, judge: judged.judge, usage: { observer: observerUsage, reflector: reflectorUsage, dropper: dropperUsage, om: caseOmUsage, answer: answerRun.usage, judge: judged.run.usage } });
-  console.log(`${fixture}: ${judged.judge.passed ? 'PASS' : 'FAIL'} om=${caseOmUsage.totalTokens ?? 0} answer=${answerRun.usage?.totalTokens ?? 0}`);
+  results.push({ fixture, sessionFile, observations: allObservations, reflections: allReflections, droppedIds: dropped ?? [], answer: answerRun.stdout, compaction: answerRun.compaction, memoryJudge: memoryJudged.judge, judge: judged.judge, classification, usage: { observer: observerUsage, reflector: reflectorUsage, dropper: dropperUsage, om: caseOmUsage, answer: answerRun.usage, judge: judgeUsage } });
+  console.log(`${fixture}: ${judged.judge.passed ? 'PASS' : 'FAIL'} memory=${memoryJudged.judge.passed ? 'PASS' : 'FAIL'} class=${classification} om=${caseOmUsage.totalTokens ?? 0} answer=${answerRun.usage?.totalTokens ?? 0}`);
 }
 const summary = { kind: 'om-consolidation-e2e', fixturesRoot, extensionPath, model: modelSpec, judgeModel, maxTurns: defaultMaxTurns, thinkingLevel: defaultThinkingLevel, passed, total, usage };
 fs.writeFileSync(path.join(outDir, 'results.json'), JSON.stringify(results, null, 2));
