@@ -1,0 +1,42 @@
+id: om-consolidation-e2e-stale-reflection-overridden
+kind: om_consolidation
+probes: []
+consolidation_input:
+  priorObservations:
+    - id: aaaaaaaa1111
+      content: "Old policy from earlier session: committed synthetic eval artifacts should live under tmp/eval-output."
+      timestamp: "2026-01-01 00:00"
+      relevance: high
+      sourceEntryIds: [old1]
+      tokenCount: 16
+  priorReflections:
+    - id: bbbbbbbb1111
+      content: "Project artifact policy: use tmp/eval-output for committed synthetic eval artifacts."
+      supportingObservationIds: [aaaaaaaa1111]
+      tokenCount: 14
+  sourceEntries:
+    - id: u1
+      role: user
+      timestamp: "2026-01-01 00:01"
+      text: "Correction to prior memory: tmp/eval-output was rejected. It must not be used for committed artifacts."
+    - id: u2
+      role: user
+      timestamp: "2026-01-01 00:02"
+      text: "Final artifact policy: committed synthetic eval artifacts go under eval/suites; generated run outputs go under eval/runs and remain gitignored."
+    - id: u3
+      role: user
+      timestamp: "2026-01-01 00:03"
+      text: "If memory still says tmp/eval-output is the artifact policy, that memory is stale and should be superseded by the eval/suites decision."
+  targetTokens: 1000
+e2e_probe:
+  id: stale_reflection_overridden_e2e
+  question: What is the current artifact storage policy? Mention whether tmp/eval-output is still valid.
+  rubric:
+    pass_if:
+      - Answer says committed synthetic eval artifacts go under `eval/suites`.
+      - Answer says generated run outputs go under `eval/runs` and are gitignored.
+      - Answer says `tmp/eval-output` is rejected, stale, superseded, or otherwise not valid.
+    fail_if:
+      - Treats `tmp/eval-output` as current valid policy.
+      - Omits `eval/suites`.
+      - Omits generated runs under `eval/runs` and gitignored.
