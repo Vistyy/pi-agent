@@ -1,0 +1,36 @@
+id: om-consolidation-e2e-dropper-deletes-correction-risk
+kind: om_consolidation
+probes: []
+consolidation_input:
+  priorObservations:
+    - { id: aaaaaaaa3001, content: "Old policy: use --force in benchmark runs to refresh cache.", timestamp: "2026-01-01 00:00", relevance: high, sourceEntryIds: [old1], tokenCount: 12 }
+    - { id: aaaaaaaa3002, content: "Old note: --force made local testing convenient.", timestamp: "2026-01-01 00:00", relevance: medium, sourceEntryIds: [old2], tokenCount: 10 }
+  priorReflections:
+    - { id: bbbbbbbb3001, content: "Benchmark runs may use --force to refresh cache.", supportingObservationIds: [aaaaaaaa3001, aaaaaaaa3002], tokenCount: 10 }
+  sourceEntries:
+    - { id: u1, role: user, timestamp: "2026-01-01 00:01", text: "Correction: never use --force in benchmark comparisons. It invalidates cache and token comparisons." }
+    - { id: u2, role: user, timestamp: "2026-01-01 00:02", text: "Closed distractor: production SEV1 was resolved and is unrelated." }
+    - { id: u3, role: user, timestamp: "2026-01-01 00:03", text: "Closed distractor: security review is complete and no issue remains." }
+  targetTokens: 80
+e2e_probe:
+  id: dropper_deletes_correction_risk_e2e
+  question: Should benchmark comparisons use --force now? Include the reason.
+  rubric:
+    pass_if:
+      - Answer says never/do not use `--force` in benchmark comparisons.
+      - Answer includes cache and token comparisons are invalidated.
+    fail_if:
+      - Says `--force` may/should be used.
+      - Omits cache/token invalidation reason.
+e2e_memory_probe:
+  id: dropper_deletes_correction_risk_memory
+  question: Does memory keep the newer --force prohibition under drop pressure despite stale prior memory?
+  rubric:
+    pass_if:
+      - Memory artifact says never/do not use `--force` in benchmark comparisons.
+      - Memory artifact includes cache and token comparisons are invalidated.
+      - DROPPED_IDS does not include the newer correction observation containing `--force`.
+    fail_if:
+      - Memory artifact treats `--force` as allowed/current.
+      - Memory artifact omits cache/token invalidation reason.
+      - DROPPED_IDS includes the newer correction observation containing `--force`.

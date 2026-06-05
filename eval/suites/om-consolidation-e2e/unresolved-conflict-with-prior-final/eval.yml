@@ -1,0 +1,42 @@
+id: om-consolidation-e2e-unresolved-conflict-with-prior-final
+kind: om_consolidation
+probes: []
+consolidation_input:
+  priorObservations:
+    - { id: aaaaaaaa5001, content: "Prior final decision: publish package artifacts from dist/npm.", timestamp: "2026-01-01 00:00", relevance: high, sourceEntryIds: [old1], tokenCount: 10 }
+  priorReflections:
+    - { id: bbbbbbbb5001, content: "Package artifacts should be published from dist/npm.", supportingObservationIds: [aaaaaaaa5001], tokenCount: 9 }
+  sourceEntries:
+    - id: u1
+      role: user
+      timestamp: "2026-01-01 00:01"
+      text: "Reopening the package publish path decision: dist/npm may be wrong because CI now points at build/package."
+    - id: u2
+      role: user
+      timestamp: "2026-01-01 00:02"
+      text: "No final decision yet. The current state is unresolved between dist/npm and build/package; do not treat prior dist/npm memory as final."
+  targetTokens: 1000
+e2e_probe:
+  id: unresolved_conflict_with_prior_final_e2e
+  question: What is the current package publish path decision?
+  rubric:
+    pass_if:
+      - Answer says the decision is unresolved/not finalized.
+      - Answer mentions both `dist/npm` and `build/package` as candidates.
+      - Answer says prior `dist/npm` final decision should not be treated as current final policy, or equivalent.
+    fail_if:
+      - Says `dist/npm` is current final policy.
+      - Says `build/package` is current final policy.
+      - Omits that the decision was reopened/unresolved.
+e2e_memory_probe:
+  id: unresolved_conflict_with_prior_final_memory
+  question: Does memory preserve that prior dist/npm final policy has been reopened and is now unresolved?
+  rubric:
+    pass_if:
+      - Memory artifact says the current decision is unresolved/not finalized.
+      - Memory artifact mentions both `dist/npm` and `build/package`.
+      - Memory artifact says prior `dist/npm` final decision is not current final policy, reopened, or superseded by unresolved state.
+    fail_if:
+      - Memory artifact treats `dist/npm` as current final policy without caveat.
+      - Memory artifact treats `build/package` as current final policy.
+      - Memory artifact omits unresolved/reopened state.
