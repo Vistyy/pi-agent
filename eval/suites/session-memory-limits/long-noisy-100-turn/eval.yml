@@ -8,17 +8,19 @@ compaction_settings:
   reserveTokens: 1024
 probes:
   - id: long-noisy-100-turn_probe
-    question: "What is the current production cache failure and final mitigation? Include important non-fixes."
+    question: "What is the current cache failure, exact file/line, repro id, and final mitigation? Also name rejected/non-fixes."
     rubric:
       pass_if:
-        - Answer includes `packages/api/src/cache.ts:312`.
-        - Answer says tenant A data is returned for tenant B after workspace switch.
-        - Answer says final mitigation is invalidate cache on workspace switch.
-        - Answer says not to fix `docs/cache.md`, or that it is unrelated.
-        - Answer does not choose TTL increase or retry logic as the fix.
-
+        - Answer includes `packages/web/src/session-cache.ts:88`.
+        - Answer includes repro id `SC-8841`.
+        - Answer says beta/workspace beta data is returned to alpha/workspace alpha after account switch.
+        - Answer says mitigation is clearing session-cache entries on account switch and adding a workspace-id guard before reuse.
+        - Answer says TTL increase is rejected or not the fix.
+        - Answer says `docs/cache.md` is not the bug/non-fix.
+        - Answer does not treat `packages/api/src/cache.ts:312` as current.
       fail_if:
-        - Uses `src/cache.ts` or `docs/cache.md` as the current production bug location.
-        - Omits the tenant A/tenant B workspace-switch detail.
-        - Recommends TTL increase or retry logic as the final mitigation.
-
+        - Uses `packages/api/src/cache.ts:312` as current bug.
+        - Omits `SC-8841`.
+        - Omits account switch or beta-to-alpha workspace data leak.
+        - Recommends TTL increase.
+        - Treats docs/cache.md as bug.

@@ -1,0 +1,23 @@
+id: session-memory-limits-tool-result-only-after-noise
+kind: session_memory_limit
+source_session: source.precompact.synthetic.jsonl
+compact_before_probe: true
+compact_instructions: Preserve exact current decisions, corrections, constraints, rejected stale options, and reasons. Prefer newer explicit corrections over older notes/reflections.
+compaction_settings:
+  keepRecentTokens: 80
+  reserveTokens: 1024
+probes:
+  - id: tool-result-only-after-noise_probe
+    question: "What exact failing test, file/line root cause, observed values, and required rounding rule were in the earlier tool result?"
+    rubric:
+      pass_if:
+        - Answer includes `tests/billing/test_proration.py::test_coupon_proration_rounding`.
+        - Answer includes expected `1099` and got `1100`.
+        - Answer includes `billing/proration.py:47`.
+        - Answer says `ROUND_HALF_UP` was used/root cause.
+        - Answer says current required rule is `ROUND_HALF_EVEN`.
+      fail_if:
+        - Omits the exact test name.
+        - Omits expected/got values.
+        - Omits `billing/proration.py:47`.
+        - Says or implies `ROUND_HALF_UP` is current required rule.
