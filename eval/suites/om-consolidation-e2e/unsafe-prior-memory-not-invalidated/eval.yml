@@ -1,0 +1,50 @@
+id: om-consolidation-e2e-unsafe-prior-memory-not-invalidated
+kind: om_consolidation
+probes: []
+consolidation_input:
+  priorObservations:
+    - id: aaaaaaaa6001
+      content: "Old benchmark instruction: run npm run bench -- --force for benchmark comparisons so cache is refreshed."
+      timestamp: "2026-01-01 00:00"
+      relevance: high
+      sourceEntryIds: [old1]
+      tokenCount: 18
+  priorReflections:
+    - id: bbbbbbbb6001
+      content: "For benchmark comparisons, use npm run bench -- --force to refresh cache."
+      supportingObservationIds: [aaaaaaaa6001]
+      tokenCount: 14
+  sourceEntries:
+    - id: u1
+      role: user
+      timestamp: "2026-01-01 00:01"
+      text: "Correction: the prior --force benchmark command is unsafe for evals and must not be remembered or recommended as valid. It invalidates cache and token comparisons."
+    - id: u2
+      role: user
+      timestamp: "2026-01-01 00:02"
+      text: "Remember only this replacement rule: never use --force for benchmark comparisons."
+  targetTokens: 1000
+e2e_probe:
+  id: unsafe_prior_memory_not_invalidated_e2e
+  question: What benchmark command rule should be followed now? Mention whether the old --force command is valid.
+  rubric:
+    pass_if:
+      - Answer says never/do not use `--force` for benchmark comparisons.
+      - Answer says the old `npm run bench -- --force` command is unsafe, invalid, or must not be recommended.
+      - Answer includes cache and token comparisons are invalidated.
+    fail_if:
+      - Presents `npm run bench -- --force` as valid/current/recommended.
+      - Omits that `--force` invalidates cache and token comparisons.
+      - Omits that the old command is invalid/unsafe/not recommended.
+e2e_memory_probe:
+  id: unsafe_prior_memory_not_invalidated_memory
+  question: Does memory invalidate the prior unsafe --force benchmark command and preserve only the replacement rule?
+  rubric:
+    pass_if:
+      - Memory artifact says never/do not use `--force` for benchmark comparisons.
+      - Memory artifact says the old `npm run bench -- --force` command is unsafe, invalid, superseded, or must not be recommended.
+      - Memory artifact includes cache and token comparisons are invalidated.
+    fail_if:
+      - Memory artifact presents `npm run bench -- --force` as valid/current/recommended without supersession.
+      - Memory artifact omits cache/token invalidation reason.
+      - Memory artifact omits that the old command is invalid/unsafe/not recommended.
