@@ -1,0 +1,42 @@
+id: hard-multi-hop-artifact-path
+kind: synthetic_hard_precompact_session
+source_session: source.om-observed.synthetic.jsonl
+notes: "Answer requires combining separated facts: build id, path pattern, and
+  failing platform."
+compact_before_probe: true
+compact_instructions: Preserve build IDs, path patterns, platform names, and
+  relationships between them.
+compaction_settings:
+  keepRecentTokens: 80
+  reserveTokens: 1024
+probes:
+  - id: artifact_path
+    question: What exact artifact report path should be inspected for the
+      release-debug failing platform? Use recall if needed.
+    rubric:
+      pass_if:
+        - Gives `artifacts/b7f91c/linux-arm64/report.json`.
+        - Correctly combines build id `b7f91c`, platform `linux-arm64`, and the
+          path pattern.
+      fail_if:
+        - Omits or changes the build id.
+        - Omits or changes the platform.
+        - Gives only the path pattern without filling values.
+        - Says INSUFFICIENT_CONTEXT.
+calibration:
+  - id: good_path
+    expected_passed: true
+    answer: "`artifacts/b7f91c/linux-arm64/report.json`"
+  - id: bad_pattern_only
+    expected_passed: false
+    answer: "`artifacts/<build-id>/<platform>/report.json`"
+  - id: bad_wrong_platform
+    expected_passed: false
+    answer: "`artifacts/b7f91c/linux-x64/report.json`"
+materialized_by:
+  tool: materialize-om
+  extension: /tmp/pi-observational-memory
+  model: openai-codex/gpt-5.4-mini
+  wait_ms: 10000
+  turns: 6
+  post_filler_turns: 12

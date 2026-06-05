@@ -47,6 +47,7 @@ type RunPiSdkOptions = {
   allowedTools?: string[];
   prepareMemoryBeforeCompact?: boolean;
   memoryPrepareWaitMs?: number;
+  waitAfterPromptMs?: number;
 };
 
 export async function runPiSdk(prompt: string, options: RunPiSdkOptions = {}): Promise<PiRunResult> {
@@ -141,6 +142,9 @@ export async function runPiSdk(prompt: string, options: RunPiSdkOptions = {}): P
       }
     }
     await session.prompt(prompt, { expandPromptTemplates: false });
+    if (options.waitAfterPromptMs) {
+      await new Promise((resolve) => setTimeout(resolve, options.waitAfterPromptMs));
+    }
     unsubscribe();
     session.dispose();
     const usage = sumUsages([answerUsage, compactionUsage].filter((u): u is TokenUsage => Boolean(u)));

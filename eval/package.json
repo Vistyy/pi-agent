@@ -5,6 +5,7 @@
   "description": "Pi memory/compaction eval harness.",
   "scripts": {
     "eval": "tsx src/cli.ts",
+    "materialize-om": "tsx src/materialize-om.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

@@ -1,0 +1,140 @@
+{
+  "fixturesRoot": "fixtures-hard",
+  "outRoot": "fixtures-om-observed",
+  "extensionPath": "/tmp/pi-observational-memory",
+  "model": "openai-codex/gpt-5.4-mini",
+  "cwd": "/tmp/pi-om-materialize-jhoir3",
+  "observedFile": "source.om-observed.synthetic.jsonl",
+  "waitMs": 10000,
+  "turns": 6,
+  "postFillerTurns": 12,
+  "generatedAt": "2026-06-05T14:05:34.554Z",
+  "fixtures": [
+    {
+      "fixture": "ambiguous-similar-errors",
+      "source": "fixtures-hard/ambiguous-similar-errors/source.precompact.synthetic.jsonl",
+      "observed": "fixtures-om-observed/ambiguous-similar-errors/source.om-observed.synthetic.jsonl",
+      "omEntriesBefore": 0,
+      "omEntriesAfter": 1,
+      "usage": {
+        "input": 8382,
+        "output": 10,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 8392
+      }
+    },
+    {
+      "fixture": "assistant-only-evidence",
+      "source": "fixtures-hard/assistant-only-evidence/source.precompact.synthetic.jsonl",
+      "observed": "fixtures-om-observed/assistant-only-evidence/source.om-observed.synthetic.jsonl",
+      "omEntriesBefore": 0,
+      "omEntriesAfter": 1,
+      "usage": {
+        "input": 7094,
+        "output": 10,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 7104
+      }
+    },
+    {
+      "fixture": "buried-negative-constraint",
+      "source": "fixtures-hard/buried-negative-constraint/source.precompact.synthetic.jsonl",
+      "observed": "fixtures-om-observed/buried-negative-constraint/source.om-observed.synthetic.jsonl",
+      "omEntriesBefore": 0,
+      "omEntriesAfter": 2,
+      "usage": {
+        "input": 8640,
+        "output": 10,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 8650
+      }
+    },
+    {
+      "fixture": "conflicting-current-decision",
+      "source": "fixtures-hard/conflicting-current-decision/source.precompact.synthetic.jsonl",
+      "observed": "fixtures-om-observed/conflicting-current-decision/source.om-observed.synthetic.jsonl",
+      "omEntriesBefore": 0,
+      "omEntriesAfter": 1,
+      "usage": {
+        "input": 6244,
+        "output": 10,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 6254
+      }
+    },
+    {
+      "fixture": "exact-error-needle",
+      "source": "fixtures-hard/exact-error-needle/source.precompact.synthetic.jsonl",
+      "observed": "fixtures-om-observed/exact-error-needle/source.om-observed.synthetic.jsonl",
+      "omEntriesBefore": 0,
+      "omEntriesAfter": 1,
+      "usage": {
+        "input": 9018,
+        "output": 10,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 9028
+      }
+    },
+    {
+      "fixture": "multi-hop-artifact-path",
+      "source": "fixtures-hard/multi-hop-artifact-path/source.precompact.synthetic.jsonl",
+      "observed": "fixtures-om-observed/multi-hop-artifact-path/source.om-observed.synthetic.jsonl",
+      "omEntriesBefore": 0,
+      "omEntriesAfter": 1,
+      "usage": {
+        "input": 7900,
+        "output": 10,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 7910
+      }
+    },
+    {
+      "fixture": "priority-conflict-raw-logs",
+      "source": "fixtures-hard/priority-conflict-raw-logs/source.precompact.synthetic.jsonl",
+      "observed": "fixtures-om-observed/priority-conflict-raw-logs/source.om-observed.synthetic.jsonl",
+      "omEntriesBefore": 0,
+      "omEntriesAfter": 1,
+      "usage": {
+        "input": 6664,
+        "output": 10,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 6674
+      }
+    },
+    {
+      "fixture": "rejected-command-resurrection",
+      "source": "fixtures-hard/rejected-command-resurrection/source.precompact.synthetic.jsonl",
+      "observed": "fixtures-om-observed/rejected-command-resurrection/source.om-observed.synthetic.jsonl",
+      "omEntriesBefore": 0,
+      "omEntriesAfter": 1,
+      "usage": {
+        "input": 8180,
+        "output": 10,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 8190
+      }
+    },
+    {
+      "fixture": "tool-result-only-evidence",
+      "source": "fixtures-hard/tool-result-only-evidence/source.precompact.synthetic.jsonl",
+      "observed": "fixtures-om-observed/tool-result-only-evidence/source.om-observed.synthetic.jsonl",
+      "omEntriesBefore": 0,
+      "omEntriesAfter": 1,
+      "usage": {
+        "input": 0,
+        "output": 0,
+        "cacheRead": 0,
+        "cacheWrite": 0,
+        "totalTokens": 0
+      }
+    }
+  ]
+}

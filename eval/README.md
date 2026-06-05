@@ -100,6 +100,25 @@ npm run eval -- fixtures-hard \
 
 Use `--cwd <dir>` when extension settings should come from a temporary project `.pi/settings.json`.
 
+For `pi-observational-memory`, materialize real observations once, then replay cheaply:
+
+```bash
+npm run materialize-om -- fixtures-hard \
+  --out fixtures-om-observed \
+  --extension /absolute/path/to/pi-observational-memory \
+  --turns 6 \
+  --wait-ms 10000 \
+  --post-filler-turns 12
+
+PI_OBSERVATIONAL_MEMORY_PASSIVE=1 npm run eval -- fixtures-om-observed \
+  --out runs/hard-om-observed-001 \
+  --extension /absolute/path/to/pi-observational-memory \
+  --allow-tool recall \
+  --concurrency 2
+```
+
+The materializer copies each fixture, runs one OM preparation turn, fails if no `om.*` custom entries are written, and writes `source.om-observed.synthetic.jsonl` plus `materialize-om-manifest.json`.
+
 ## Outputs
 
 ```text
