@@ -22,6 +22,10 @@ suites/recall-smoke/<id>/
   eval.yml                         # generic recall/tool-specific cases
   source.precompact.synthetic.jsonl
 
+suites/session-memory-limits/<id>/
+  eval.yml                         # extension-agnostic hard session memory after compaction cases
+  source.precompact.synthetic.jsonl
+
 suites/om-recall/<id>/
   eval.yml                         # OM id-based recall subsystem cases
   source.synthetic.jsonl
@@ -120,17 +124,34 @@ npm run eval -- suites/recall-smoke \
 
 `--allow-tool` may be repeated. Without it, eval runs with `noTools: all`.
 
-Memory extensions that need a preparatory turn before compaction can use:
+Memory extensions that need preparatory turns before compaction can use:
 
 ```bash
 npm run eval -- suites/compaction-hard \
   --out runs/memory-ext-001 \
   --extension /absolute/path/to/extension \
   --prepare-memory-before-compact \
+  --memory-prepare-turns 6 \
   --memory-prepare-wait-ms 10000
 ```
 
 Use `--cwd <dir>` when extension settings should come from a temporary project `.pi/settings.json`.
+
+Session memory limits benchmark:
+
+```bash
+npm run eval -- suites/session-memory-limits \
+  --out runs/session-memory-limits-om-001 \
+  --cwd /tmp/pi-om-session-memory-cwd \
+  --extension /absolute/path/to/pi-observational-memory \
+  --prepare-memory-before-compact \
+  --memory-prepare-turns 6 \
+  --memory-prepare-wait-ms 10000 \
+  --compact-before-prompt \
+  --compact-instructions "Preserve exact current decisions, corrections, constraints, rejected stale options, and reasons. Prefer newer explicit corrections over older notes/reflections."
+```
+
+This is the main extension-agnostic benchmark for user-visible session memory after compaction. Run the same suite against clean Pi, OM, pi-vcc, and blackhole when comparing approaches.
 
 For `pi-observational-memory`, materialize real observations once, then replay cheaply:
 

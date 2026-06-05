@@ -27,6 +27,7 @@ const result = await runEval({
   cwd,
   prepareMemoryBeforeCompact: hasArg('--prepare-memory-before-compact'),
   memoryPrepareWaitMs: Number(argValue('--memory-prepare-wait-ms') ?? '5000'),
+  memoryPrepareTurns: Number(argValue('--memory-prepare-turns') ?? '1'),
 });
 
 if ('planned' in result && result.planned) {

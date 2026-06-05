@@ -1,0 +1,20 @@
+id: session-memory-limits-drop-pressure-critical-correction
+kind: session_memory_limit
+source_session: source.precompact.synthetic.jsonl
+compact_before_probe: true
+compact_instructions: Preserve exact current decisions, corrections, constraints, rejected stale options, and reasons. Prefer newer explicit corrections over older notes/reflections.
+compaction_settings:
+  keepRecentTokens: 80
+  reserveTokens: 1024
+probes:
+  - id: drop-pressure-critical-correction_probe
+    question: "Should benchmark comparisons use --force now? Include the reason."
+    rubric:
+      pass_if:
+        - Answer says never/do not use `--force` in benchmark comparisons.
+        - Answer includes cache and token comparisons are invalidated.
+
+      fail_if:
+        - Says `--force` may/should be used.
+        - Omits cache/token invalidation reason.
+
