@@ -6,7 +6,7 @@ import path from 'node:path';
 import { argValue } from './lib/args.js';
 
 const variant = process.argv[2];
-if (!variant || variant.startsWith('--')) throw new Error('usage: npm run session-memory -- <clean|om|vcc|blackhole> --out runs/name [--suite suites/session-memory-limits]');
+if (!variant || variant.startsWith('--')) throw new Error('usage: npm run session-memory -- <clean|om|vcc|blackhole|blackhole-observed> --out runs/name [--suite suites/session-memory-limits]');
 const suite = argValue('--suite') ?? 'suites/session-memory-limits';
 const out = argValue('--out') ?? `runs/session-memory-limits-${variant}-${new Date().toISOString().replace(/[:.]/g, '-')}`;
 const model = argValue('--model') ?? 'openai-codex/gpt-5.4-mini';
@@ -62,7 +62,7 @@ function withVccEnv(): NodeJS.ProcessEnv {
   return { ...process.env, PI_VCC_CONFIG_PATH: cfg };
 }
 
-function withBlackholeConfig<T>(fn: () => T): T {
+function withBlackholeConfig<T>(fn: () => T, observeAfterTokens = 1): T {
   const agentDir = path.join(os.homedir(), '.pi', 'agent');
   const dir = path.join(agentDir, 'pi-blackhole');
   const cfg = path.join(dir, 'pi-blackhole-config.json');
@@ -76,7 +76,7 @@ function withBlackholeConfig<T>(fn: () => T): T {
     compactionEngine: 'blackhole',
     tailBehavior: 'minimal',
     memory: true,
-    observeAfterTokens: 1,
+    observeAfterTokens,
     reflectAfterTokens: 1000000,
     compactAfterTokens: 1000000,
     observationsPoolMaxTokens: 20000,
@@ -105,6 +105,12 @@ if (variant === 'clean') {
   run('npm', baseArgs(['--cwd', cwd, '--extension', '/tmp/pi-vcc', '--allow-tool', 'vcc_recall']), withVccEnv());
 } else if (variant === 'blackhole') {
   withBlackholeConfig(() => run('npm', baseArgs(['--cwd', cwd, '--extension', '/tmp/pi-blackhole', '--prepare-memory-before-compact', '--memory-prepare-turns', prepareTurns, '--memory-prepare-wait-ms', waitMs, '--allow-tool', 'recall'])));
+} else if (variant === 'blackhole-observed') {
+  const materializedSuite = `${out}-materialized-suite`;
+  withBlackholeConfig(() => {
+    run('npm', ['run', 'materialize-om', '--', suite, '--out', materializedSuite, '--extension', '/tmp/pi-blackhole', '--cwd', cwd, '--turns', prepareTurns, '--wait-ms', waitMs, '--post-filler-turns', '12']);
+  }, 1);
+  withBlackholeConfig(() => run('npm', ['run', 'eval', '--', materializedSuite, '--out', out, '--model', model, '--compact-before-prompt', '--compact-instructions', compactInstructions, '--concurrency', '1', '--cwd', cwd, '--extension', '/tmp/pi-blackhole', '--allow-tool', 'recall']), 1000000);
 } else {
   throw new Error(`unknown variant: ${variant}`);
 }

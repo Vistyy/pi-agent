@@ -144,6 +144,7 @@ npm run session-memory -- clean --out runs/session-memory-clean-001
 npm run session-memory -- om --out runs/session-memory-om-001
 npm run session-memory -- vcc --out runs/session-memory-vcc-001
 npm run session-memory -- blackhole --out runs/session-memory-blackhole-001
+npm run session-memory -- blackhole-observed --out runs/session-memory-blackhole-observed-001
 ```
 
 Profiles encode approach-specific setup:
@@ -151,7 +152,8 @@ Profiles encode approach-specific setup:
 - `clean`: Pi default compaction.
 - `om`: loads `/tmp/pi-observational-memory`, prepares OM before compaction, enables `recall`.
 - `vcc`: loads `/tmp/pi-vcc`, writes a temp `PI_VCC_CONFIG_PATH` with `overrideDefaultCompaction: true`, enables `vcc_recall`.
-- `blackhole`: loads `/tmp/pi-blackhole`, temporarily writes/restores blackhole config with `compactionEngine: "blackhole"`, `memory: true`, low observe threshold, enables `recall`.
+- `blackhole`: loads `/tmp/pi-blackhole`, temporarily writes/restores blackhole config with `compactionEngine: "blackhole"`, `memory: true`, low observe threshold, forced prep, enables `recall`.
+- `blackhole-observed`: materializes blackhole memory first, then replays compact+answer with high observe threshold and `recall`. Use this for realistic cost split.
 
 Manual equivalent for OM:
 
