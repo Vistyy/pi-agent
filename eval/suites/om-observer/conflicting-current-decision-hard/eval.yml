@@ -1,0 +1,17 @@
+id: om-observer-conflicting-current-decision-hard
+kind: om_observer
+source_session: source.precompact.synthetic.jsonl
+probes: []
+observer_probe:
+  id: conflicting_current_decision_observer
+  question: Did observer capture the final decision and explicit rejection of the draft artifact path?
+  rubric:
+    pass_if:
+      - Observations state `tmp/eval-output` must not be used.
+      - Observations state committed synthetic eval artifacts belong under `eval/suites`.
+      - Observations state generated runs stay under `eval/runs` and are gitignored.
+      - The final decision observation cites sourceEntryIds including `u2`.
+    fail_if:
+      - Treats `tmp/eval-output` as current.
+      - Omits the explicit rejection of `tmp/eval-output`.
+      - Emits malformed/incomplete observation text.
