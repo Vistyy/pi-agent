@@ -88,6 +88,18 @@ npm run eval -- fixtures-recall \
 
 `--allow-tool` may be repeated. Without it, eval runs with `noTools: all`.
 
+Memory extensions that need a preparatory turn before compaction can use:
+
+```bash
+npm run eval -- fixtures-hard \
+  --out runs/memory-ext-001 \
+  --extension /absolute/path/to/extension \
+  --prepare-memory-before-compact \
+  --memory-prepare-wait-ms 10000
+```
+
+Use `--cwd <dir>` when extension settings should come from a temporary project `.pi/settings.json`.
+
 ## Outputs
 
 ```text

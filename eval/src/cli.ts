@@ -10,6 +10,7 @@ const judgeModel = argValue('--judge-model') ?? model;
 const concurrency = Number(argValue('--concurrency') ?? '1');
 const extensionPaths = process.argv.flatMap((arg, index, argv) => arg === '--extension' ? [argv[index + 1]].filter(Boolean) : []);
 const allowedTools = process.argv.flatMap((arg, index, argv) => arg === '--allow-tool' ? [argv[index + 1]].filter(Boolean) : []);
+const cwd = argValue('--cwd');
 
 const result = await runEval({
   fixturesRoot,
@@ -23,6 +24,9 @@ const result = await runEval({
   compactBeforePrompt: hasArg('--compact-before-prompt') ? true : undefined,
   compactInstructions: argValue('--compact-instructions'),
   allowedTools,
+  cwd,
+  prepareMemoryBeforeCompact: hasArg('--prepare-memory-before-compact'),
+  memoryPrepareWaitMs: Number(argValue('--memory-prepare-wait-ms') ?? '5000'),
 });
 
 if ('planned' in result && result.planned) {

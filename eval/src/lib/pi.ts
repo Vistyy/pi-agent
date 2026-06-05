@@ -45,6 +45,8 @@ type RunPiSdkOptions = {
   compactInstructions?: string;
   compactionSettings?: { keepRecentTokens?: number; reserveTokens?: number };
   allowedTools?: string[];
+  prepareMemoryBeforeCompact?: boolean;
+  memoryPrepareWaitMs?: number;
 };
 
 export async function runPiSdk(prompt: string, options: RunPiSdkOptions = {}): Promise<PiRunResult> {
@@ -114,17 +116,22 @@ export async function runPiSdk(prompt: string, options: RunPiSdkOptions = {}): P
       }
       if (event.type === 'turn_end') {
         const message = (event as unknown as { message?: { usage?: TokenUsage } }).message;
-        if (message?.usage) answerUsage = message.usage;
+        if (message?.usage) answerUsage = addUsage(answerUsage ?? {}, message.usage);
       }
       if (event.type === 'agent_end') {
         const messages = (event as unknown as { messages?: Array<{ usage?: TokenUsage }> }).messages ?? [];
         const usages = messages.map((m) => m.usage).filter((u): u is TokenUsage => Boolean(u));
         if (usages.length) {
-          answerUsage = sumUsages(usages);
+          answerUsage = addUsage(answerUsage ?? {}, sumUsages(usages));
         }
       }
     });
     let compaction: unknown;
+    if (options.prepareMemoryBeforeCompact && options.compactBeforePrompt) {
+      await session.prompt('Prepare/update observational memory for this session. Reply READY only.', { expandPromptTemplates: false });
+      stdout = '';
+      await new Promise((resolve) => setTimeout(resolve, options.memoryPrepareWaitMs ?? 5000));
+    }
     if (options.compactBeforePrompt) {
       capturingCompactionUsage = true;
       try {
