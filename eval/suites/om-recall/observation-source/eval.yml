@@ -1,0 +1,16 @@
+id: om-recall-observation-source
+kind: om_recall
+source_session: source.synthetic.jsonl
+compact_before_probe: false
+probes:
+  - id: recall_observation_source
+    question: Use recall for memory id aaaaaaaaaaaa. What exact failure did the source evidence contain?
+    rubric:
+      pass_if:
+        - Uses or reports source evidence for memory id `aaaaaaaaaaaa`.
+        - Gives `test/cache.test.ts:88`.
+        - Gives `expected cache warm but got cache cold`.
+      fail_if:
+        - Says INSUFFICIENT_CONTEXT.
+        - Gives only the compressed observation without source evidence.
+        - Invents a different file, line, or expected/got values.

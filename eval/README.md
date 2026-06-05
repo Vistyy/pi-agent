@@ -19,8 +19,12 @@ suites/compaction-hard/<id>/
   source.precompact.synthetic.jsonl
 
 suites/recall-smoke/<id>/
-  eval.yml                         # recall/tool-specific cases
+  eval.yml                         # generic recall/tool-specific cases
   source.precompact.synthetic.jsonl
+
+suites/om-recall/<id>/
+  eval.yml                         # OM id-based recall subsystem cases
+  source.synthetic.jsonl
 
 suites/om-observer/<id>/
   eval.yml                         # observer_probe rubric for generated OM observations
@@ -134,6 +138,18 @@ PI_OBSERVATIONAL_MEMORY_PASSIVE=1 npm run eval -- suites/om-e2e-observed \
 ```
 
 The materializer copies each fixture, runs OM preparation turns, fails if no `om.*` custom entries are written, and writes `source.om-observed.synthetic.jsonl` plus `materialize-om-manifest.json`.
+
+OM recall subsystem eval:
+
+```bash
+npm run eval -- suites/om-recall \
+  --out runs/om-recall-upstream-001 \
+  --extension /absolute/path/to/pi-observational-memory \
+  --allow-tool recall \
+  --concurrency 2
+```
+
+This tests ID-based recall for observations, reflections through supporting observations, and dropped observations.
 
 OM observer subsystem eval:
 

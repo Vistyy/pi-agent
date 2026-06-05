@@ -1,0 +1,16 @@
+id: om-recall-dropped-observation
+kind: om_recall
+source_session: source.synthetic.jsonl
+compact_before_probe: false
+probes:
+  - id: recall_dropped_observation
+    question: Use recall for memory id dddddddddddd. What rejected eval command flag and replacement did the source evidence specify?
+    rubric:
+      pass_if:
+        - Recalls dropped observation id `dddddddddddd` or otherwise uses its source evidence.
+        - States `--turbo-cache` was rejected or should not be used.
+        - States `--concurrency 2` should be used instead.
+      fail_if:
+        - Says INSUFFICIENT_CONTEXT.
+        - Treats the dropped observation as unavailable.
+        - Omits either the rejected flag or the replacement.

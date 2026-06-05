@@ -1,0 +1,16 @@
+id: om-recall-reflection-supporting-observation
+kind: om_recall
+source_session: source.synthetic.jsonl
+compact_before_probe: false
+probes:
+  - id: recall_reflection_sources
+    question: Use recall for memory id cccccccccccc. What canonical API schema decision does the source evidence support?
+    rubric:
+      pass_if:
+        - Recalls reflection id `cccccccccccc` or its supporting observation.
+        - Gives `schema/api.graphql` as canonical.
+        - States `docs/api.md` is not canonical or was superseded.
+      fail_if:
+        - Says INSUFFICIENT_CONTEXT.
+        - Only says there was an API schema decision without naming both paths.
+        - Reverses which path is canonical.
