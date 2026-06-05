@@ -3,22 +3,25 @@ kind: om_consolidation
 probes: []
 consolidation_input:
   priorObservations:
-    - id: aaaaaaaa1111
-      content: "Old policy from earlier session: committed synthetic eval artifacts should live under tmp/eval-output."
-      timestamp: "2026-01-01 00:00"
-      relevance: high
-      sourceEntryIds: [old1]
-      tokenCount: 16
+    - { id: aaaaaaaa1111, content: "Old policy from earlier session: committed synthetic eval artifacts should live under tmp/eval-output.", timestamp: "2026-01-01 00:00", relevance: high, sourceEntryIds: [old1], tokenCount: 16 }
+    - { id: aaaaaaaa1112, content: "Old note: tmp/eval-output was easy to clean and was used in a draft plan.", timestamp: "2026-01-01 00:00", relevance: medium, sourceEntryIds: [old2], tokenCount: 17 }
+    - { id: aaaaaaaa1113, content: "Old note: tmp/eval-output appeared in examples for committed synthetic fixtures.", timestamp: "2026-01-01 00:00", relevance: medium, sourceEntryIds: [old3], tokenCount: 15 }
+    - { id: aaaaaaaa1114, content: "Old note: generated run outputs were also discussed near tmp/eval-output.", timestamp: "2026-01-01 00:00", relevance: medium, sourceEntryIds: [old4], tokenCount: 14 }
+    - { id: aaaaaaaa1115, content: "Old note: tmp/eval-output was described as the project artifact location before suite reorg.", timestamp: "2026-01-01 00:00", relevance: medium, sourceEntryIds: [old5], tokenCount: 16 }
   priorReflections:
     - id: bbbbbbbb1111
       content: "Project artifact policy: use tmp/eval-output for committed synthetic eval artifacts."
-      supportingObservationIds: [aaaaaaaa1111]
+      supportingObservationIds: [aaaaaaaa1111, aaaaaaaa1112, aaaaaaaa1113]
+      tokenCount: 14
+    - id: bbbbbbbb1112
+      content: "Generated eval outputs and committed eval fixtures are associated with tmp/eval-output."
+      supportingObservationIds: [aaaaaaaa1114, aaaaaaaa1115]
       tokenCount: 14
   sourceEntries:
     - id: u1
       role: user
       timestamp: "2026-01-01 00:01"
-      text: "Correction to prior memory: tmp/eval-output was rejected. It must not be used for committed artifacts."
+      text: "Correction to prior memory: tmp/eval-output was rejected. It must not be used for committed artifacts or generated run outputs."
     - id: u2
       role: user
       timestamp: "2026-01-01 00:02"
@@ -26,7 +29,7 @@ consolidation_input:
     - id: u3
       role: user
       timestamp: "2026-01-01 00:03"
-      text: "If memory still says tmp/eval-output is the artifact policy, that memory is stale and should be superseded by the eval/suites decision."
+      text: "If memory still says tmp/eval-output is the artifact policy, that memory is stale and should be superseded by the eval/suites plus eval/runs decision."
   targetTokens: 1000
 e2e_probe:
   id: stale_reflection_overridden_e2e
@@ -42,13 +45,13 @@ e2e_probe:
       - Omits generated runs under `eval/runs` and gitignored.
 e2e_memory_probe:
   id: stale_reflection_overridden_memory
-  question: Does the memory artifact preserve that the old tmp/eval-output policy is superseded by eval/suites and eval/runs?
+  question: Does the memory artifact preserve that old tmp/eval-output reflections are superseded by eval/suites and eval/runs?
   rubric:
     pass_if:
       - Memory artifact includes committed synthetic eval artifacts under `eval/suites`.
       - Memory artifact includes generated run outputs under `eval/runs` and gitignored.
       - Memory artifact says `tmp/eval-output` is rejected, stale, superseded, or not valid.
     fail_if:
-      - Memory artifact treats `tmp/eval-output` as current valid policy.
+      - Memory artifact renders old `tmp/eval-output` reflections as current valid policy without a nearby supersession/correction.
       - Memory artifact omits `eval/suites`.
       - Memory artifact omits `eval/runs` and gitignored.

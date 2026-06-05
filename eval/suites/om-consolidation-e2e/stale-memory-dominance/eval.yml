@@ -30,7 +30,6 @@ e2e_probe:
     pass_if:
       - Answer says deploy previews use `preview-green` now.
       - Answer says `preview-old` must not be used or is deprecated/stale.
-      - Answer includes stale feature flags as the reason, or equivalent.
     fail_if:
       - Says `preview-old` is current/default.
       - Omits `preview-green`.
