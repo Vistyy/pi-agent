@@ -32,12 +32,12 @@ calibration:
 
 observer_probe:
   id: observer_tool_result_error
-  question: Did the generated OM observations capture the exact failure that appeared only in the tool result?
+  question: Do the generated OM observations contain the exact failure text and cite the tool result source id?
   rubric:
     pass_if:
       - Observations include `tests/auth-refresh.test.ts:118:9`.
       - Observations include `AssertionError: expected token TTL 3600 but got 300`.
-      - The observation containing the exact failure has `sourceEntryIds: t1`.
+      - The same observation line or its following sourceEntryIds line cites exactly `sourceEntryIds: t1`.
     fail_if:
       - Omits the file/line location.
       - Omits the expected/got assertion details.

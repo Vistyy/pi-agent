@@ -6,7 +6,7 @@ export const MINIMAL_JUDGE_SYSTEM_PROMPT = 'Strict evaluator. Return only valid 
 export function judgePrompt(probe: Probe, answer: string): string {
   const passIf = probe.rubric?.pass_if ?? [];
   const failIf = probe.rubric?.fail_if ?? [];
-  return `Use only the rubric. Be strict but semantic; do not require exact wording.\n\nRules:\n- Passing requires explicitly satisfying every Pass if item.\n- Do not infer omitted requirements from related wording.\n- Failing any Fail if item means failed.\n- If an answer is merely directionally related but omits a required decision/caveat, mark failed and list it in missing.\n\nQuestion:\n${probe.question}\n\nAnswer:\n${answer}\n\nPass if:\n${passIf.map((x) => `- ${x}`).join('\n')}\n\nFail if:\n${failIf.map((x) => `- ${x}`).join('\n')}\n\nReturn only JSON:\n{"passed": boolean, "reason": string, "missing": string[], "incorrect": string[]}`;
+  return `Use only the rubric. Be strict but semantic; do not require exact wording.\n\nRules:\n- Passing requires explicitly satisfying every Pass if item.\n- Do not infer omitted requirements from related wording.\n- Failing any Fail if item means failed.\n- If an answer is merely directionally related but omits a required decision/caveat, mark failed and list it in missing.\n- If passed is false, missing or incorrect must contain at least one concrete unmet rubric item.\n\nQuestion:\n${probe.question}\n\nAnswer:\n${answer}\n\nPass if:\n${passIf.map((x) => `- ${x}`).join('\n')}\n\nFail if:\n${failIf.map((x) => `- ${x}`).join('\n')}\n\nReturn only JSON:\n{"passed": boolean, "reason": string, "missing": string[], "incorrect": string[]}`;
 }
 
 export function parseJudgeJson(text: string): JudgeResult {
