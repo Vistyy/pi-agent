@@ -137,7 +137,23 @@ npm run eval -- suites/compaction-hard \
 
 Use `--cwd <dir>` when extension settings should come from a temporary project `.pi/settings.json`.
 
-Session memory limits benchmark:
+Session memory limits benchmark profiles:
+
+```bash
+npm run session-memory -- clean --out runs/session-memory-clean-001
+npm run session-memory -- om --out runs/session-memory-om-001
+npm run session-memory -- vcc --out runs/session-memory-vcc-001
+npm run session-memory -- blackhole --out runs/session-memory-blackhole-001
+```
+
+Profiles encode approach-specific setup:
+
+- `clean`: Pi default compaction.
+- `om`: loads `/tmp/pi-observational-memory`, prepares OM before compaction, enables `recall`.
+- `vcc`: loads `/tmp/pi-vcc`, writes a temp `PI_VCC_CONFIG_PATH` with `overrideDefaultCompaction: true`, enables `vcc_recall`.
+- `blackhole`: loads `/tmp/pi-blackhole`, temporarily writes/restores blackhole config with `compactionEngine: "blackhole"`, `memory: true`, low observe threshold, enables `recall`.
+
+Manual equivalent for OM:
 
 ```bash
 npm run eval -- suites/session-memory-limits \
