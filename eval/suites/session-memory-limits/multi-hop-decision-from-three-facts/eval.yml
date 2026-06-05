@@ -1,0 +1,23 @@
+id: session-memory-limits-multi-hop-decision-from-three-facts
+kind: session_memory_limit
+source_session: source.precompact.synthetic.jsonl
+compact_before_probe: true
+compact_instructions: Preserve exact current decisions, corrections, constraints, rejected stale options, and reasons. Prefer newer explicit corrections over older notes/reflections.
+compaction_settings:
+  keepRecentTokens: 80
+  reserveTokens: 1024
+probes:
+  - id: multi-hop-decision-from-three-facts_probe
+    question: "Which payment adapter should checkout retries use now, and why? Mention the rejected lower-fee option."
+    rubric:
+      pass_if:
+        - Answer says checkout retries should use the Stripe adapter.
+        - Answer explains retryable writes require idempotency tokens.
+        - Answer says Stripe implements idempotency tokens.
+        - Answer says PayPal does not yet implement idempotency tokens.
+        - Answer says lower fees do not override retry safety / PayPal lower-fee option is rejected for checkout retries.
+      fail_if:
+        - Chooses PayPal for checkout retries.
+        - Omits idempotency tokens.
+        - Omits that checkout retry path performs retryable writes or equivalent.
+        - Omits rejected lower-fee PayPal option.

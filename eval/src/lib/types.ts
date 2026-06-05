@@ -54,8 +54,11 @@ export type JudgeResult = {
   incorrect: string[];
 };
 
+export type FailureClassification = 'pass' | 'memory_missing' | 'answer_use_failure' | 'wrong_stale_memory' | 'rubric_or_answer_omission' | 'judge_or_runtime_error';
+
 export type JudgedResult = AgentResult & {
   judge: JudgeResult;
+  classification?: FailureClassification;
   judgeExitCode: number | null;
   judgeStderr: string;
   judgeDurationMs?: number;

@@ -30,7 +30,8 @@ export function writeSummary(results: JudgedResult[], outDir: string, extra: { w
       judge: r.judgeUsage?.totalTokens ?? 0,
       total: (r.usage?.totalTokens ?? 0) + (r.judgeUsage?.totalTokens ?? 0),
     },
-    failure: r.judge.passed ? undefined : { reason: r.judge.reason, missing: r.judge.missing, incorrect: r.judge.incorrect },
+    classification: r.classification ?? (r.judge.passed ? 'pass' : undefined),
+    failure: r.judge.passed ? undefined : { classification: r.classification, reason: r.judge.reason, missing: r.judge.missing, incorrect: r.judge.incorrect },
   }));
   const summary = {
     total: results.length,
@@ -54,6 +55,11 @@ export function writeSummary(results: JudgedResult[], outDir: string, extra: { w
       },
     },
     calibration: extra.calibration,
+    classifications: cases.reduce<Record<string, number>>((acc, c) => {
+      const key = c.classification ?? 'unknown';
+      acc[key] = (acc[key] ?? 0) + 1;
+      return acc;
+    }, {}),
     cases,
   };
   const file = path.join(outDir, 'summary.json');

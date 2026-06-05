@@ -6,9 +6,19 @@ import { fixtureDirs, fixtureId, readCalibration, readEvalFile, readProbes, sour
 import { MINIMAL_JUDGE_SYSTEM_PROMPT, judgePrompt, runJudge } from './judge.js';
 import { DEFAULT_MODEL, runPiSdk } from './pi.js';
 import { writeSummary } from './summary.js';
-import type { AgentResult, JudgedResult, PiInvocation, Probe } from './types.js';
+import type { AgentResult, FailureClassification, JudgedResult, PiInvocation, Probe } from './types.js';
 
 type EvalTask = { fixture: string; probe: Probe; invocation: PiInvocation };
+
+function classifyResult(answer: AgentResult, judgeExitCode: number, judgePassed: boolean): FailureClassification {
+  if (answer.exitCode !== 0 || judgeExitCode !== 0) return 'judge_or_runtime_error';
+  if (judgePassed) return 'pass';
+  const text = answer.answer.trim();
+  const compactionText = answer.compaction ? JSON.stringify(answer.compaction) : '';
+  if (text === 'INSUFFICIENT_CONTEXT') return compactionText.length > 80 ? 'answer_use_failure' : 'memory_missing';
+  if (/stale|old|prior|wrong|rejected|not current|superseded/i.test(text)) return 'wrong_stale_memory';
+  return 'rubric_or_answer_omission';
+}
 
 export type EvalOptions = {
   fixturesRoot: string;
@@ -122,7 +132,7 @@ export async function runEval(options: EvalOptions) {
     const run = await runPiSdk(invocation.prompt, { model, sessionFile: invocation.sessionFile, cwd: options.cwd, extensionPaths: invocation.extensionPaths, compactBeforePrompt: invocation.compactBeforePrompt, compactInstructions: invocation.compactInstructions, compactionSettings: invocation.compactionSettings, allowedTools: invocation.allowedTools, prepareMemoryBeforeCompact: invocation.prepareMemoryBeforeCompact, memoryPrepareWaitMs: invocation.memoryPrepareWaitMs, memoryPrepareTurns: invocation.memoryPrepareTurns });
     const answer: AgentResult = { fixture, probe: probe.id, invocation, compaction: run.compaction, executed: true, exitCode: run.status, durationMs: run.durationMs, answer: run.stdout.trim(), stderr: run.stderr, usage: run.usage, answerUsage: run.answerUsage, compactionUsage: run.compactionUsage };
     const { run: judgeRun, judge } = await runJudge(probe, answer.answer, judgeModel);
-    return { ...answer, judge, judgeExitCode: judgeRun.status, judgeStderr: judgeRun.stderr, judgeDurationMs: judgeRun.durationMs, judgeUsage: judgeRun.usage };
+    return { ...answer, judge, classification: classifyResult(answer, judgeRun.status, judge.passed), judgeExitCode: judgeRun.status, judgeStderr: judgeRun.stderr, judgeDurationMs: judgeRun.durationMs, judgeUsage: judgeRun.usage };
   });
 
   fs.writeFileSync(path.join(options.outDir, 'results.json'), JSON.stringify(judged.map(({ judge, judgeExitCode, judgeStderr, judgeUsage, ...answer }) => answer), null, 2));
