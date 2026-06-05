@@ -1,0 +1,34 @@
+id: om-consolidation-e2e-unresolved-conflict-no-false-final
+kind: om_consolidation
+probes: []
+consolidation_input:
+  sourceEntries:
+    - id: u1
+      role: user
+      timestamp: "2026-01-01 00:01"
+      text: "I think package artifacts should be published from dist/npm for the next release."
+    - id: u2
+      role: user
+      timestamp: "2026-01-01 00:02"
+      text: "Actually, there is also a strong argument to publish from build/package because the CI script currently points there."
+    - id: u3
+      role: user
+      timestamp: "2026-01-01 00:03"
+      text: "Do not treat either path as finalized yet. We have not decided between dist/npm and build/package."
+    - id: u4
+      role: user
+      timestamp: "2026-01-01 00:04"
+      text: "Reminder: if asked later, say the artifact publish path is unresolved, not dist/npm and not build/package."
+  targetTokens: 1000
+e2e_probe:
+  id: unresolved_conflict_no_false_final_e2e
+  question: What is the current package artifact publish path decision?
+  rubric:
+    pass_if:
+      - Answer says the decision is unresolved/not finalized.
+      - Answer mentions both candidate paths `dist/npm` and `build/package`.
+      - Answer does not present either path as final/current policy.
+    fail_if:
+      - Says `dist/npm` is the final/current publish path.
+      - Says `build/package` is the final/current publish path.
+      - Omits that no decision has been made.

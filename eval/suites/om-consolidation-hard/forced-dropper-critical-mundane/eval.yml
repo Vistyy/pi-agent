@@ -1,0 +1,23 @@
+id: om-consolidation-hard-forced-dropper-critical-mundane
+kind: om_consolidation
+probes: []
+consolidation_input:
+  sourceEntries:
+    - { id: u1, role: user, timestamp: "2026-01-01 00:01", text: "Critical but mundane benchmark rule: never run eval benchmark commands with --force because it invalidates cache and token comparisons." }
+    - { id: u2, role: user, timestamp: "2026-01-01 00:02", text: "High-drama distractor: production incident SEV1 was resolved; it is closed and unrelated to evals." }
+    - { id: u3, role: user, timestamp: "2026-01-01 00:03", text: "High-drama distractor: customer billing outage postmortem is done; no current action." }
+    - { id: u4, role: user, timestamp: "2026-01-01 00:04", text: "High-drama distractor: security review found no exploitable issue; closed." }
+    - { id: u5, role: user, timestamp: "2026-01-01 00:05", text: "Reminder: the only current actionable memory here is the mundane --force benchmark prohibition." }
+  targetTokens: 80
+consolidation_probe:
+  id: forced_dropper_critical_mundane
+  question: Under severe drop pressure, did OM preserve the mundane current benchmark rule and drop only closed distractors if needed?
+  rubric:
+    pass_if:
+      - OBSERVATIONS or REFLECTIONS include `--force`.
+      - OBSERVATIONS or REFLECTIONS include cache and token comparisons become invalid.
+      - DROPPED_IDS does not include any line containing `--force`.
+    fail_if:
+      - Drops the `--force` benchmark rule.
+      - Preserves only high-drama closed distractors while losing the current benchmark rule.
+      - Omits the cache/token invalidation reason.
