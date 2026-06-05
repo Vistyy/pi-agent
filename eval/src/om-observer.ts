@@ -68,7 +68,7 @@ function observationsFromSession(file: string): Observation[] {
 
 function renderObservations(observations: Observation[]): string {
   if (observations.length === 0) return 'NO_OBSERVATIONS_RECORDED';
-  return observations.map((obs) => `- [${obs.id}] [${obs.relevance ?? 'unknown'}] ${obs.content}\n  sourceEntryIds: ${(obs.sourceEntryIds ?? []).join(', ') || '(none)'}`).join('\n');
+  return observations.map((obs) => `- [${obs.id}] [${obs.relevance ?? 'unknown'}] ${obs.content} sourceEntryIds: ${(obs.sourceEntryIds ?? []).join(', ') || '(none)'}`).join('\n');
 }
 
 fs.mkdirSync(outDir, { recursive: true });
