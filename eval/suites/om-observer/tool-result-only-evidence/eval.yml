@@ -37,7 +37,7 @@ observer_probe:
     pass_if:
       - Observations include `tests/auth-refresh.test.ts:118:9`.
       - Observations include `AssertionError: expected token TTL 3600 but got 300`.
-      - At least one relevant observation cites sourceEntryIds for the tool-result evidence.
+      - The observation containing the exact failure has `sourceEntryIds: t1`.
     fail_if:
       - Omits the file/line location.
       - Omits the expected/got assertion details.
