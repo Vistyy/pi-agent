@@ -26,6 +26,10 @@ suites/om-observer/<id>/
   eval.yml                         # observer_probe rubric for generated OM observations
   source.precompact.synthetic.jsonl
 
+suites/om-projection/<id>/
+  eval.yml                         # projection_probe rubric for OM compaction projection
+  source.synthetic.jsonl
+
 suites/om-e2e-observed/<id>/
   eval.yml                         # materialized real OM observations, replayed through compaction/probe
   source.om-observed.synthetic.jsonl
@@ -142,6 +146,16 @@ npm run om-observer -- suites/om-observer \
 ```
 
 This runs OM observation preparation on raw synthetic sessions, extracts `om.observations.recorded`, and judges the generated observations directly.
+
+OM projection subsystem eval:
+
+```bash
+npm run om-projection -- suites/om-projection \
+  --out runs/om-projection-upstream-001 \
+  --extension /absolute/path/to/pi-observational-memory
+```
+
+This compacts synthetic sessions with known/empty OM ledger state and judges the resulting compaction summary/details directly.
 
 ## Outputs
 

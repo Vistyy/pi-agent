@@ -1,0 +1,20 @@
+id: om-projection-observed-before-boundary
+kind: om_projection
+source_session: source.synthetic.jsonl
+compact_before_probe: true
+compact_instructions: Preserve observational memory.
+compaction_settings:
+  keepRecentTokens: 80
+  reserveTokens: 1024
+probes: []
+projection_probe:
+  id: observed_before_boundary
+  question: Did compaction include the OM observation whose coverage is before the compaction boundary?
+  rubric:
+    pass_if:
+      - Summary or raw compaction JSON includes observation id `111111111111`.
+      - Includes `api/cache.ts`.
+      - Raw compaction details indicate an `om.folded` projection with at least one observation.
+    fail_if:
+      - Summary is empty.
+      - Omits the observation id or the canonical cache implementation path.

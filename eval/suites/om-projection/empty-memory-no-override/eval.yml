@@ -1,0 +1,19 @@
+id: om-projection-empty-memory-no-override
+kind: om_projection
+source_session: source.synthetic.jsonl
+compact_before_probe: true
+compact_instructions: Preserve important context.
+compaction_settings:
+  keepRecentTokens: 80
+  reserveTokens: 1024
+probes: []
+projection_probe:
+  id: empty_memory_no_override
+  question: Did compaction avoid replacing useful context with an empty OM summary when no OM memory exists?
+  rubric:
+    pass_if:
+      - Compaction summary is not empty.
+      - Summary preserves at least some ordinary session context or otherwise indicates Pi/default compaction ran.
+    fail_if:
+      - Summary is empty or shown as `(empty)`.
+      - Raw compaction details show `om.folded` with empty observations and empty reflections as the only compaction output.

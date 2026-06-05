@@ -1,0 +1,19 @@
+id: om-projection-observed-near-tail-boundary
+kind: om_projection
+source_session: source.synthetic.jsonl
+compact_before_probe: true
+compact_instructions: Preserve observational memory.
+compaction_settings:
+  keepRecentTokens: 80
+  reserveTokens: 1024
+probes: []
+projection_probe:
+  id: observed_near_tail_boundary
+  question: Did compaction handle a late OM observation whose source coverage is old but marker is near the session tail?
+  rubric:
+    pass_if:
+      - Summary or raw compaction JSON includes observation id `222222222222`.
+      - Includes `logs/final-report.json`.
+    fail_if:
+      - Summary is empty.
+      - Omits the late observation even though its `coversUpToId` points to old source context.
