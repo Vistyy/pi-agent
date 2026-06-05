@@ -18,7 +18,22 @@ function parseModelSpec(spec: string): [provider: string, id: string] {
   return [provider, id];
 }
 
-export type PiRunResult = { stdout: string; stderr: string; status: number; durationMs: number; usage?: TokenUsage; compaction?: unknown };
+function addUsage(a: TokenUsage, u?: TokenUsage): TokenUsage {
+  if (!u) return a;
+  return {
+    input: (a.input ?? 0) + (u.input ?? 0),
+    output: (a.output ?? 0) + (u.output ?? 0),
+    cacheRead: (a.cacheRead ?? 0) + (u.cacheRead ?? 0),
+    cacheWrite: (a.cacheWrite ?? 0) + (u.cacheWrite ?? 0),
+    totalTokens: (a.totalTokens ?? 0) + (u.totalTokens ?? ((u.input ?? 0) + (u.output ?? 0) + (u.cacheRead ?? 0) + (u.cacheWrite ?? 0))),
+  };
+}
+
+function sumUsages(usages: TokenUsage[]): TokenUsage | undefined {
+  return usages.length ? usages.reduce<TokenUsage>((acc, u) => addUsage(acc, u), {}) : undefined;
+}
+
+export type PiRunResult = { stdout: string; stderr: string; status: number; durationMs: number; usage?: TokenUsage; answerUsage?: TokenUsage; compactionUsage?: TokenUsage; compaction?: unknown };
 
 type RunPiSdkOptions = {
   model?: string;
@@ -36,7 +51,9 @@ export async function runPiSdk(prompt: string, options: RunPiSdkOptions = {}): P
   const started = Date.now();
   let stdout = '';
   let stderr = '';
-  let usage: TokenUsage | undefined;
+  let answerUsage: TokenUsage | undefined;
+  let compactionUsage: TokenUsage | undefined;
+  let capturingCompactionUsage = false;
   try {
     const authStorage = AuthStorage.create();
     const modelRegistry = ModelRegistry.create(authStorage);
@@ -76,36 +93,51 @@ export async function runPiSdk(prompt: string, options: RunPiSdkOptions = {}): P
       tools: options.allowedTools,
     });
 
+    const agentWithStream = (session as unknown as { agent?: { streamFn?: (...args: unknown[]) => Promise<{ result: () => Promise<{ usage?: TokenUsage }> }> } }).agent;
+    if (agentWithStream?.streamFn) {
+      const originalStreamFn = agentWithStream.streamFn.bind(agentWithStream);
+      agentWithStream.streamFn = async (...args: unknown[]) => {
+        const stream = await originalStreamFn(...args);
+        const originalResult = stream.result.bind(stream);
+        stream.result = async () => {
+          const result = await originalResult();
+          if (capturingCompactionUsage) compactionUsage = addUsage(compactionUsage ?? {}, result.usage);
+          return result;
+        };
+        return stream;
+      };
+    }
+
     const unsubscribe = session.subscribe((event) => {
       if (event.type === 'message_update' && event.assistantMessageEvent.type === 'text_delta') {
         stdout += event.assistantMessageEvent.delta;
       }
       if (event.type === 'turn_end') {
         const message = (event as unknown as { message?: { usage?: TokenUsage } }).message;
-        if (message?.usage) usage = message.usage;
+        if (message?.usage) answerUsage = message.usage;
       }
       if (event.type === 'agent_end') {
         const messages = (event as unknown as { messages?: Array<{ usage?: TokenUsage }> }).messages ?? [];
         const usages = messages.map((m) => m.usage).filter((u): u is TokenUsage => Boolean(u));
         if (usages.length) {
-          usage = usages.reduce<TokenUsage>((acc, u) => ({
-            input: (acc.input ?? 0) + (u.input ?? 0),
-            output: (acc.output ?? 0) + (u.output ?? 0),
-            cacheRead: (acc.cacheRead ?? 0) + (u.cacheRead ?? 0),
-            cacheWrite: (acc.cacheWrite ?? 0) + (u.cacheWrite ?? 0),
-            totalTokens: (acc.totalTokens ?? 0) + (u.totalTokens ?? 0),
-          }), {});
+          answerUsage = sumUsages(usages);
         }
       }
     });
     let compaction: unknown;
     if (options.compactBeforePrompt) {
-      compaction = await session.compact(options.compactInstructions);
+      capturingCompactionUsage = true;
+      try {
+        compaction = await session.compact(options.compactInstructions);
+      } finally {
+        capturingCompactionUsage = false;
+      }
     }
     await session.prompt(prompt, { expandPromptTemplates: false });
     unsubscribe();
     session.dispose();
-    return { stdout, stderr, status: 0, durationMs: Date.now() - started, usage, compaction };
+    const usage = sumUsages([answerUsage, compactionUsage].filter((u): u is TokenUsage => Boolean(u)));
+    return { stdout, stderr, status: 0, durationMs: Date.now() - started, usage, answerUsage, compactionUsage, compaction };
   } catch (e) {
     stderr = e instanceof Error ? (e.stack ?? e.message) : String(e);
     return { stdout, stderr, status: 1, durationMs: Date.now() - started };

@@ -43,6 +43,8 @@ export type AgentResult = {
   answer: string;
   stderr: string;
   usage?: TokenUsage;
+  answerUsage?: TokenUsage;
+  compactionUsage?: TokenUsage;
 };
 
 export type JudgeResult = {

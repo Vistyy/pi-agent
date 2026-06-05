@@ -97,7 +97,7 @@ judged-results.json   # answers + judge verdicts + judge token usage
 summary.json          # pass/fail summary, token totals, per-case breakdown
 ```
 
-`summary.json` is the first file to inspect.
+`summary.json` is the first file to inspect. It separates answer, compaction, and judge usage. Default Pi compaction usage is included in total token counts when pre-prompt compaction runs. Extension-provided compaction usage is only included if it flows through the Pi model stream.
 
 The runner uses the Pi SDK with:
 

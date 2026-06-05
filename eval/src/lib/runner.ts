@@ -116,7 +116,7 @@ export async function runEval(options: EvalOptions) {
 
   const judged = await mapLimit(tasks, concurrency, async ({ fixture, probe, invocation }): Promise<JudgedResult> => {
     const run = await runPiSdk(invocation.prompt, { model, sessionFile: invocation.sessionFile, extensionPaths: invocation.extensionPaths, compactBeforePrompt: invocation.compactBeforePrompt, compactInstructions: invocation.compactInstructions, compactionSettings: invocation.compactionSettings, allowedTools: invocation.allowedTools });
-    const answer: AgentResult = { fixture, probe: probe.id, invocation, compaction: run.compaction, executed: true, exitCode: run.status, durationMs: run.durationMs, answer: run.stdout.trim(), stderr: run.stderr, usage: run.usage };
+    const answer: AgentResult = { fixture, probe: probe.id, invocation, compaction: run.compaction, executed: true, exitCode: run.status, durationMs: run.durationMs, answer: run.stdout.trim(), stderr: run.stderr, usage: run.usage, answerUsage: run.answerUsage, compactionUsage: run.compactionUsage };
     const { run: judgeRun, judge } = await runJudge(probe, answer.answer, judgeModel);
     return { ...answer, judge, judgeExitCode: judgeRun.status, judgeStderr: judgeRun.stderr, judgeDurationMs: judgeRun.durationMs, judgeUsage: judgeRun.usage };
   });
