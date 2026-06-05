@@ -15,7 +15,7 @@ type Reflection = { id: string; content: string; supportingObservationIds: strin
 type SourceEntry = { id: string; role: string; text: string; timestamp?: string };
 type Input = { sourceEntries: SourceEntry[]; priorObservations?: Observation[]; priorReflections?: Reflection[]; targetTokens?: number; maxTurns?: number; thinkingLevel?: string };
 
-const fixturesRoot = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : 'suites/om-consolidation';
+const fixturesRoot = process.argv[2] && !process.argv[2].startsWith('--') ? process.argv[2] : 'suites/om-consolidation-e2e';
 const outDir = argValue('--out') ?? `runs/om-consolidation-e2e-${new Date().toISOString().replace(/[:.]/g, '-')}`;
 const extensionPath = argValue('--extension') ?? '/tmp/pi-observational-memory';
 const modelSpec = argValue('--model') ?? DEFAULT_MODEL;

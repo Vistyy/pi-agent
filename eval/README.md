@@ -40,8 +40,11 @@ suites/om-reflector/<id>/
 suites/om-dropper/<id>/
   eval.yml                         # dropper_input + dropper_probe for dropped observation ids
 
-suites/om-consolidation/<id>/
-  eval.yml                         # observer -> reflector -> dropper integrated subsystem cases
+suites/om-consolidation-hard/<id>/
+  eval.yml                         # hard observer -> reflector -> dropper integrated subsystem cases
+
+suites/om-consolidation-e2e/<id>/
+  eval.yml                         # consolidation -> OM compaction -> final answer cases
 
 suites/om-e2e-observed/<id>/
   eval.yml                         # materialized real OM observations, replayed through compaction/probe
@@ -202,15 +205,25 @@ npm run om-dropper -- suites/om-dropper \
 
 This imports upstream `runDropper`, feeds known observations/reflections/token target, and judges selected dropped ids directly. Current token summary only includes judge usage, not dropper model usage.
 
-OM integrated consolidation eval:
+OM integrated consolidation hard eval:
 
 ```bash
-npm run om-consolidation -- suites/om-consolidation \
+npm run om-consolidation -- suites/om-consolidation-hard \
   --out runs/om-consolidation-upstream-001 \
   --extension /absolute/path/to/pi-observational-memory
 ```
 
 This imports upstream observer, reflector, and dropper agents, runs them in sequence, captures stage-level background model usage from agent-loop messages, and judges the resulting observations/reflections/dropped ids. Summary usage includes `observer`, `reflector`, `dropper`, `om`, `judge`, and `total`.
+
+OM consolidation e2e answer eval:
+
+```bash
+npm run om-consolidation-e2e -- suites/om-consolidation-e2e \
+  --out runs/om-consolidation-e2e-upstream-001 \
+  --extension /absolute/path/to/pi-observational-memory
+```
+
+This runs upstream consolidation, writes OM custom entries into a temporary session, triggers OM compaction, asks Pi the probe, and judges the final answer. Summary usage includes `om`, `answer`, `judge`, and `total`.
 
 ## Outputs
 
