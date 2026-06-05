@@ -9,6 +9,7 @@
     "om-observer": "tsx src/om-observer.ts",
     "om-projection": "tsx src/om-projection.ts",
     "om-reflector": "tsx src/om-reflector.ts",
+    "om-dropper": "tsx src/om-dropper.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

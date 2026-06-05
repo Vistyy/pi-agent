@@ -37,6 +37,9 @@ suites/om-projection/<id>/
 suites/om-reflector/<id>/
   eval.yml                         # reflector_input + reflector_probe for generated reflections
 
+suites/om-dropper/<id>/
+  eval.yml                         # dropper_input + dropper_probe for dropped observation ids
+
 suites/om-e2e-observed/<id>/
   eval.yml                         # materialized real OM observations, replayed through compaction/probe
   source.om-observed.synthetic.jsonl
@@ -185,6 +188,16 @@ npm run om-reflector -- suites/om-reflector \
 ```
 
 This imports upstream `runReflector`, feeds known observations, and judges generated reflections directly. Current token summary only includes judge usage, not reflector model usage.
+
+OM dropper subsystem eval:
+
+```bash
+npm run om-dropper -- suites/om-dropper \
+  --out runs/om-dropper-upstream-001 \
+  --extension /absolute/path/to/pi-observational-memory
+```
+
+This imports upstream `runDropper`, feeds known observations/reflections/token target, and judges selected dropped ids directly. Current token summary only includes judge usage, not dropper model usage.
 
 ## Outputs
 

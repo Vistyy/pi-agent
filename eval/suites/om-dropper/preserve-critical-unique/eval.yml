@@ -1,0 +1,34 @@
+id: om-dropper-preserve-critical-unique
+kind: om_dropper
+probes: []
+dropper_input:
+  targetTokens: 150
+  observations:
+    - id: "444444444444"
+      content: Critical exact failure TypeError reading sessionId at src/session/store.ts:183:17.
+      timestamp: "2026-01-01 00:01"
+      relevance: critical
+      sourceEntryIds: [u1]
+      tokenCount: 120
+    - id: "555555555555"
+      content: "High-value constraint: never run npm eval with --force during token comparisons."
+      timestamp: "2026-01-01 00:02"
+      relevance: high
+      sourceEntryIds: [u2]
+      tokenCount: 120
+    - id: "666666666666"
+      content: Medium project note about planning to add subsystem evals later.
+      timestamp: "2026-01-01 00:03"
+      relevance: medium
+      sourceEntryIds: [u3]
+      tokenCount: 120
+dropper_probe:
+  id: preserve_critical_unique
+  question: Did the dropper preserve unique high/critical load-bearing evidence when no reflections cover it?
+  rubric:
+    pass_if:
+      - Does not drop `444444444444`.
+      - Preferably drops `666666666666` if any id is dropped.
+    fail_if:
+      - Drops critical exact error observation `444444444444`.
+      - Drops high-value `555555555555` while lower-value `666666666666` is available.

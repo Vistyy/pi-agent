@@ -1,0 +1,26 @@
+id: om-dropper-not-over-target
+kind: om_dropper
+probes: []
+dropper_input:
+  targetTokens: 1000
+  observations:
+    - id: "111111111111"
+      content: Low-volume observation should remain because pool is not over target.
+      timestamp: "2026-01-01 00:01"
+      relevance: low
+      sourceEntryIds: [u1]
+      tokenCount: 20
+    - id: "222222222222"
+      content: Another small observation should remain because no pruning is needed.
+      timestamp: "2026-01-01 00:02"
+      relevance: medium
+      sourceEntryIds: [u2]
+      tokenCount: 20
+dropper_probe:
+  id: not_over_target_no_drops
+  question: Did the dropper avoid dropping observations when the pool is not over target?
+  rubric:
+    pass_if:
+      - Output says `NO_DROPS`.
+    fail_if:
+      - Any observation id is dropped.
