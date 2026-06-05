@@ -29,7 +29,13 @@ function diffUsage(after: TokenUsage, before: TokenUsage): TokenUsage { return {
 function chunk(entries: SourceEntry[]): string { return entries.map(e => `[Source entry id: ${e.id}]\n${e.timestamp ? `[${e.timestamp}] ` : ''}${e.role}: ${e.text}`).join('\n\n'); }
 function msg(id: string, parentId: string, role: string, text: string) { return { type: 'message', id, parentId, timestamp: '2026-01-01T00:00:00.000Z', message: { role, content: [{ type: 'text', text }] } }; }
 function renderMemory(compaction: unknown, observations: Observation[], reflections: Reflection[], dropped: string[]): string {
-  return `COMPACTION:\n${JSON.stringify(compaction, null, 2)}\n\nOBSERVATIONS:\n${observations.map(o=>`- [${o.id}] ${o.content} sourceEntryIds=${o.sourceEntryIds.join(',')}`).join('\n') || '(none)'}\n\nREFLECTIONS:\n${reflections.map(r=>`- [${r.id}] ${r.content} supportingObservationIds=${r.supportingObservationIds.join(',')}`).join('\n') || '(none)'}\n\nDROPPED_IDS:\n${dropped.join(', ') || '(none)'}`;
+  const droppedSet = new Set(dropped);
+  const droppedLines = dropped.map((id) => {
+    const observation = observations.find((o) => o.id === id);
+    return observation ? `- [${id}] ${observation.content} sourceEntryIds=${observation.sourceEntryIds.join(',')}` : `- [${id}]`;
+  }).join('\n');
+  const activeObservations = observations.filter((o) => !droppedSet.has(o.id));
+  return `COMPACTION:\n${JSON.stringify(compaction, null, 2)}\n\nACTIVE_OBSERVATIONS:\n${activeObservations.map(o=>`- [${o.id}] ${o.content} sourceEntryIds=${o.sourceEntryIds.join(',')}`).join('\n') || '(none)'}\n\nALL_OBSERVATIONS:\n${observations.map(o=>`- [${o.id}] ${o.content} sourceEntryIds=${o.sourceEntryIds.join(',')}`).join('\n') || '(none)'}\n\nREFLECTIONS:\n${reflections.map(r=>`- [${r.id}] ${r.content} supportingObservationIds=${r.supportingObservationIds.join(',')}`).join('\n') || '(none)'}\n\nDROPPED_IDS:\n${droppedLines || '(none)'}`;
 }
 
 function classify(memoryPassed: boolean, answerPassed: boolean): string {

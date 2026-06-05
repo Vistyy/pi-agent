@@ -29,8 +29,8 @@ e2e_memory_probe:
     pass_if:
       - Memory artifact says never/do not use `--force` in benchmark comparisons.
       - Memory artifact includes cache and token comparisons are invalidated.
-      - DROPPED_IDS does not include the newer correction observation containing `--force`.
+      - ACTIVE_OBSERVATIONS include the newer correction observation with `sourceEntryIds=u1`.
     fail_if:
       - Memory artifact treats `--force` as allowed/current.
       - Memory artifact omits cache/token invalidation reason.
-      - DROPPED_IDS includes the newer correction observation containing `--force`.
+      - DROPPED_IDS includes the newer correction observation with `sourceEntryIds=u1`.
