@@ -40,3 +40,15 @@ e2e_probe:
       - Treats `tmp/eval-output` as current valid policy.
       - Omits `eval/suites`.
       - Omits generated runs under `eval/runs` and gitignored.
+e2e_memory_probe:
+  id: stale_reflection_overridden_memory
+  question: Does the memory artifact preserve that the old tmp/eval-output policy is superseded by eval/suites and eval/runs?
+  rubric:
+    pass_if:
+      - Memory artifact includes committed synthetic eval artifacts under `eval/suites`.
+      - Memory artifact includes generated run outputs under `eval/runs` and gitignored.
+      - Memory artifact says `tmp/eval-output` is rejected, stale, superseded, or not valid.
+    fail_if:
+      - Memory artifact treats `tmp/eval-output` as current valid policy.
+      - Memory artifact omits `eval/suites`.
+      - Memory artifact omits `eval/runs` and gitignored.

@@ -35,3 +35,15 @@ e2e_probe:
       - Says `preview-old` is current/default.
       - Omits `preview-green`.
       - Omits that `preview-old` is invalid/deprecated/stale.
+e2e_memory_probe:
+  id: stale_memory_dominance_memory
+  question: Does the memory artifact preserve the preview-green correction and stale-feature-flag reason?
+  rubric:
+    pass_if:
+      - Memory artifact says deploy previews use `preview-green` now.
+      - Memory artifact says `preview-old` must not be used or is deprecated/stale.
+      - Memory artifact includes stale feature flags as the reason.
+    fail_if:
+      - Memory artifact says `preview-old` is current/default.
+      - Memory artifact omits `preview-green`.
+      - Memory artifact omits stale feature flags.

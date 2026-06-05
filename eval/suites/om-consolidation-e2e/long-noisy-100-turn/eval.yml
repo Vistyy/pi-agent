@@ -418,3 +418,16 @@ e2e_probe:
       - Uses `src/cache.ts` or `docs/cache.md` as the current production bug location.
       - Omits the tenant A/tenant B workspace-switch detail.
       - Recommends TTL increase or retry logic as the final mitigation.
+e2e_memory_probe:
+  id: long_noisy_100_turn_memory
+  question: Does the memory artifact preserve the production cache failure, final mitigation, and non-fix caveat?
+  rubric:
+    pass_if:
+      - Memory artifact includes `packages/api/src/cache.ts:312`.
+      - Memory artifact includes tenant A data returned for tenant B after workspace switch.
+      - Memory artifact includes invalidate cache on workspace switch as final mitigation.
+      - Memory artifact includes `docs/cache.md` as unrelated or not the fix.
+    fail_if:
+      - Memory artifact treats `src/cache.ts` or `docs/cache.md` as the production bug location.
+      - Memory artifact omits the workspace-switch tenant detail.
+      - Memory artifact selects TTL increase or retry logic as final mitigation.
