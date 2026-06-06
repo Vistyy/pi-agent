@@ -15,8 +15,7 @@
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "eval:fixture": "node evals/run.mjs"
+    "test": "vitest run"
   },
   "peerDependencies": {
     "@earendil-works/pi-agent-core": "*",

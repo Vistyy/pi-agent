@@ -8,5 +8,8 @@
   "packages": [],
   "terminal": {
     "clearOnShrink": false
+  },
+  "observational-memory": {
+    "strategy": "off"
   }
 }
