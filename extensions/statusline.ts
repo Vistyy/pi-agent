@@ -1,6 +1,6 @@
 import type { AssistantMessage } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { truncateToWidth } from "@earendil-works/pi-tui";
+import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { execFileSync } from "node:child_process";
 
 type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | string;
@@ -29,18 +29,48 @@ export default function statusline(pi: ExtensionAPI) {
           const statuses = footerData.getExtensionStatuses();
           const codex = statuses.get("codex-usage");
 
-          const chunks = [
-            segment(theme.fg("accent", "π"), theme.fg("text", `${ctx.model?.id ?? "no model"}:${shortThinking(thinkingLevel)}`)),
-            contextUsage?.percent != null ? segment(theme.fg("dim", "ctx"), theme.fg(contextUsage.percent >= 80 ? "warning" : "muted", `${Math.round(contextUsage.percent)}%`)) : undefined,
-            segment(theme.fg("dim", "cwd"), theme.fg("muted", formatCwd(ctx.cwd))),
-            branch ? segment(theme.fg("dim", "git"), theme.fg("success", `${branch}${git ? ` ${git}` : ""}`)) : undefined,
-            segment(theme.fg("dim", "tok"), theme.fg("muted", `${fmt(usage.total)} (${fmt(usage.input)}↑/${fmt(usage.output)}↓)`)),
-            usage.cost > 0 ? segment(theme.fg("dim", "$"), theme.fg("warning", usage.cost.toFixed(3))) : undefined,
-            codex ? theme.fg("accent", stripAnsi(codex)) : undefined,
-          ].filter(Boolean) as string[];
-
           const divider = theme.fg("borderMuted", "  │  ");
-          return [truncateToWidth(chunks.join(divider), width, "")];
+
+          const model = segment(theme.fg("accent", "π"), theme.fg("text", `${ctx.model?.id ?? "no model"}:${shortThinking(thinkingLevel)}`));
+          const ctxPct = contextUsage?.percent != null ? segment(theme.fg("dim", "ctx"), theme.fg(contextUsage.percent >= 80 ? "warning" : "muted", `${Math.round(contextUsage.percent)}%`)) : undefined;
+          const cwdSeg = segment(theme.fg("dim", "cwd"), theme.fg("muted", formatCwd(ctx.cwd)));
+          const gitFull = branch ? segment(theme.fg("dim", "git"), theme.fg("success", `${branch}${git ? ` ${git}` : ""}`)) : undefined;
+          const gitCompact = branch ? segment(theme.fg("dim", "git"), theme.fg("success", branch)) : undefined;
+          const tokFull = segment(theme.fg("dim", "tok"), theme.fg("muted", `${fmt(usage.total)} (${fmt(usage.input)}↑/${fmt(usage.output)}↓)`));
+          const tokCompact = segment(theme.fg("dim", "tok"), theme.fg("muted", fmt(usage.total)));
+          const costSeg = usage.cost > 0 ? segment(theme.fg("dim", "$"), theme.fg("warning", usage.cost.toFixed(3))) : undefined;
+          const codexSeg = codex ? theme.fg("accent", stripAnsi(codex)) : undefined;
+
+          // Tier 0: full git + full tok
+          // Tier 1: compact git + full tok
+          // Tier 2: compact git + compact tok
+          const tiers: Array<{ chunks: string[] }> = [
+            { chunks: [model, ctxPct, cwdSeg, gitFull, tokFull, costSeg, codexSeg].filter(Boolean) as string[] },
+            { chunks: [model, ctxPct, cwdSeg, gitCompact, tokFull, costSeg, codexSeg].filter(Boolean) as string[] },
+            { chunks: [model, ctxPct, cwdSeg, gitCompact, tokCompact, costSeg, codexSeg].filter(Boolean) as string[] },
+          ];
+
+          // Try each tier; render single line if it fits
+          for (const tier of tiers) {
+            const line = tier.chunks.join(divider);
+            if (visibleWidth(line) <= width) return [line];
+          }
+
+          // Fallback: wrap the most compact tier across lines
+          const chunks = tiers[2].chunks;
+          const lines: string[] = [];
+          let line = "";
+          for (const chunk of chunks) {
+            const candidate = line ? line + divider + chunk : chunk;
+            if (visibleWidth(candidate) <= width) {
+              line = candidate;
+            } else {
+              if (line) lines.push(line);
+              line = visibleWidth(chunk) > width ? truncateToWidth(chunk, width, "") : chunk;
+            }
+          }
+          if (line) lines.push(visibleWidth(line) > width ? truncateToWidth(line, width, "") : line);
+          return lines;
         },
       };
     });
