@@ -76,13 +76,7 @@ Useful options:
 --cwd /tmp/custom-pi-cwd
 ```
 
-OM variants run one pre-compaction trigger prompt by default:
-
-```text
-Continue. Reply READY only.
-```
-
-That lets normal `observeAfterTokens` thresholds fire on preloaded history without six artificial prep turns.
+OM variants rely on the compaction boundary to run due memory consolidation inline for preloaded fixtures.
 
 Forced materialization mode, for debugging only:
 
@@ -120,7 +114,7 @@ Use pass rate plus `usage.total.totalTokens` for cost/performance.
 - `om-additive` sets `observational-memory.strategy = "additive"` in a temp cwd.
 - `om-replacement` sets `observational-memory.strategy = "replacement"` in a temp cwd.
 - Normal runs use accelerated eval threshold `observeAfterTokens = 1000` so preloaded fixtures trigger OM.
-- OM variants add one pre-compaction trigger prompt so observer hooks can run before compaction.
+- OM variants do not add synthetic prep turns by default.
 - `--forced-memory-prep` adds synthetic prep turns and is not representative of normal usage cost.
 - `original` is for a local checkout of `https://github.com/elpapi42/pi-observational-memory`.
 - pi-vcc and pi-blackhole profiles were removed from active evals.

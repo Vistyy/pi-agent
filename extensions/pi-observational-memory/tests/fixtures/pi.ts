@@ -1,4 +1,4 @@
-import type { AgentEndEvent, AgentStartEvent, ExtensionAPI, ExtensionCommandContext, ExtensionHandler, RegisteredCommand, SessionBeforeCompactEvent, TurnEndEvent } from "@earendil-works/pi-coding-agent";
+import type { AgentEndEvent, AgentStartEvent, ExtensionAPI, ExtensionCommandContext, ExtensionHandler, MessageEndEvent, RegisteredCommand, SessionBeforeCompactEvent, TurnEndEvent } from "@earendil-works/pi-coding-agent";
 import { vi } from "vitest";
 
 export type RegisteredCommandOptions = Omit<RegisteredCommand, "name" | "sourceInfo">;
@@ -24,6 +24,7 @@ export type BeforeCompactHandler = ExtensionHandler<SessionBeforeCompactEvent>;
 export type AgentEndHandler = ExtensionHandler<AgentEndEvent>;
 export type AgentStartHandler = ExtensionHandler<AgentStartEvent>;
 export type TurnEndHandler = ExtensionHandler<TurnEndEvent>;
+export type MessageEndHandler = ExtensionHandler<MessageEndEvent>;
 
 export function beforeCompactApi(onRegister: (handler: BeforeCompactHandler) => void, appendEntry = vi.fn()): ExtensionAPI {
 	return {
@@ -35,10 +36,10 @@ export function beforeCompactApi(onRegister: (handler: BeforeCompactHandler) => 
 	} as unknown as ExtensionAPI;
 }
 
-export function consolidationApi(handlers: { agent_start?: AgentStartHandler; turn_end?: TurnEndHandler }, appendEntry = vi.fn()): ExtensionAPI {
+export function consolidationApi(handlers: { agent_start?: AgentStartHandler; message_end?: MessageEndHandler; turn_end?: TurnEndHandler }, appendEntry = vi.fn()): ExtensionAPI {
 	return {
-		on: vi.fn((eventName: string, handler: AgentStartHandler | TurnEndHandler) => {
-			if (eventName !== "agent_start" && eventName !== "turn_end") throw new Error(`unexpected event ${eventName}`);
+		on: vi.fn((eventName: string, handler: AgentStartHandler | MessageEndHandler | TurnEndHandler) => {
+			if (eventName !== "agent_start" && eventName !== "message_end" && eventName !== "turn_end") throw new Error(`unexpected event ${eventName}`);
 			handlers[eventName] = handler as never;
 		}),
 		appendEntry,

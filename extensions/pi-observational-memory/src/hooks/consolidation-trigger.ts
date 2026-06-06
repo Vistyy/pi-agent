@@ -102,6 +102,7 @@ export function registerConsolidationTrigger(pi: ExtensionAPI, runtime: Runtime)
 		maybeLaunchConsolidation(pi, runtime, ctx);
 	};
 	pi.on("agent_start", launch);
+	pi.on("message_end", launch);
 	pi.on("turn_end", launch);
 }
 
