@@ -1,0 +1,18 @@
+id: multi-exact-path-drift
+kind: session-memory
+source_stages:
+  - source.stage1.jsonl
+  - source.stage2.jsonl
+  - source.stage3.jsonl
+compact_before_probe: true
+compact_instructions: Preserve exact current decisions, corrections, constraints, rejected stale options, and reasons. Prefer newer explicit corrections over older notes/reflections.
+probes:
+  - id: final
+    question: "What is the production legacy migration path, and which similar path is rejected?"
+    rubric:
+      pass_if:
+        - "Names packages/api/src/migrations/2025-11-18-add-user-shadow-index.ts as production legacy migration."
+        - "Says packages/api/src/migrations/2026-01-03-add-user-shadow-index-draft.ts is rejected/experimental."
+      fail_if:
+        - "Uses only the 2026 draft path as answer."
+        - "Omits the exact 2025 path."

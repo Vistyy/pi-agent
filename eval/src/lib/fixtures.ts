@@ -29,7 +29,13 @@ export function sourceSessionPath(fixtureDir: string): string {
   const privatePath = path.join(fixtureDir, 'source.jsonl');
   if (fs.existsSync(privatePath)) return privatePath;
   const evalFile = readEvalFile(fixtureDir);
+  if (evalFile.source_stages?.length) return path.join(fixtureDir, evalFile.source_stages[0]!);
   return path.join(fixtureDir, evalFile.source_session ?? 'source.synthetic.jsonl');
+}
+
+export function sourceStagePaths(fixtureDir: string): string[] {
+  const evalFile = readEvalFile(fixtureDir);
+  return (evalFile.source_stages ?? []).map((stage) => path.join(fixtureDir, stage));
 }
 
 export function fixtureId(fixtureDir: string): string {

@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import {
   AuthStorage,
   createAgentSession,
@@ -38,6 +39,7 @@ export type PiRunResult = { stdout: string; stderr: string; status: number; dura
 type RunPiSdkOptions = {
   model?: string;
   sessionFile?: string;
+  stageFiles?: string[];
   cwd?: string;
   systemPrompt?: string;
   extensionPaths?: string[];
@@ -51,6 +53,18 @@ type RunPiSdkOptions = {
   memoryPrepareTurns?: number;
   waitAfterPromptMs?: number;
 };
+
+function appendStageFile(session: unknown, stageFile: string): void {
+  const manager = (session as { sessionManager?: { appendMessage?: (message: unknown) => void; buildSessionContext?: () => { messages: unknown[] } } }).sessionManager;
+  if (!manager?.appendMessage) throw new Error('session manager does not support appendMessage');
+  for (const line of fs.readFileSync(stageFile, 'utf8').split(/\n+/)) {
+    if (!line.trim()) continue;
+    const entry = JSON.parse(line) as { type?: string; message?: unknown };
+    if (entry.type === 'message') manager.appendMessage(entry.message);
+  }
+  const agent = (session as { agent?: { state?: { messages?: unknown[] } } }).agent;
+  if (agent?.state && manager.buildSessionContext) agent.state.messages = manager.buildSessionContext().messages;
+}
 
 export async function runPiSdk(prompt: string, options: RunPiSdkOptions = {}): Promise<PiRunResult> {
   const started = Date.now();
@@ -148,6 +162,10 @@ export async function runPiSdk(prompt: string, options: RunPiSdkOptions = {}): P
       capturePhase = 'compaction';
       try {
         compaction = await session.compact(options.compactInstructions);
+        for (const stageFile of options.stageFiles ?? []) {
+          appendStageFile(session, stageFile);
+          compaction = await session.compact(options.compactInstructions);
+        }
       } finally {
         capturePhase = 'answer';
       }
