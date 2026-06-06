@@ -80,11 +80,11 @@ export function registerStatusCommand(pi: ExtensionAPI, runtime: Runtime): void 
 				`Reflection pool:         ~${visibleReflectionTokens.toLocaleString()} tokens`,
 			];
 
-			if (runtime.consolidationInFlight || runtime.compactHookInFlight) {
+			if (runtime.memoryUpdateInFlight || runtime.compactHookInFlight) {
 				lines.push("", "── In flight ──");
-				if (runtime.consolidationInFlight) {
-					const phase = runtime.consolidationPhase ? ` (${runtime.consolidationPhase})` : "";
-					lines.push(`Consolidation: running${phase}`);
+				if (runtime.memoryUpdateInFlight) {
+					const phase = runtime.memoryUpdatePhase ? ` (${runtime.memoryUpdatePhase})` : "";
+					lines.push(`Memory update: running${phase}`);
 				}
 				if (runtime.compactHookInFlight) lines.push("Compaction hook: running");
 			}

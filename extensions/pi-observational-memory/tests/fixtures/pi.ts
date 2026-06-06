@@ -36,7 +36,7 @@ export function beforeCompactApi(onRegister: (handler: BeforeCompactHandler) => 
 	} as unknown as ExtensionAPI;
 }
 
-export function consolidationApi(handlers: { agent_start?: AgentStartHandler; message_end?: MessageEndHandler; turn_end?: TurnEndHandler }, appendEntry = vi.fn()): ExtensionAPI {
+export function memoryUpdateApi(handlers: { agent_start?: AgentStartHandler; message_end?: MessageEndHandler; turn_end?: TurnEndHandler }, appendEntry = vi.fn()): ExtensionAPI {
 	return {
 		on: vi.fn((eventName: string, handler: AgentStartHandler | MessageEndHandler | TurnEndHandler) => {
 			if (eventName !== "agent_start" && eventName !== "message_end" && eventName !== "turn_end") throw new Error(`unexpected event ${eventName}`);

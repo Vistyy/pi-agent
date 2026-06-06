@@ -11,7 +11,7 @@ vi.mock("../src/agents/observer/agent.js", () => ({ runObserver: mockAgents.runO
 vi.mock("../src/agents/reflector/agent.js", () => ({ runReflector: mockAgents.runReflector }));
 vi.mock("../src/agents/dropper/agent.js", () => ({ runDropper: mockAgents.runDropper }));
 
-import { ensureConsolidatedBeforeCompaction, registerConsolidationTrigger } from "../src/hooks/consolidation-trigger.js";
+import { ensureMemoryUpdatedBeforeCompaction, registerMemoryUpdateHook } from "../src/hooks/memory-update.js";
 import type { Runtime } from "../src/runtime.js";
 import {
 	OM_OBSERVATIONS_DROPPED,
@@ -27,7 +27,7 @@ import {
 	textCustomMessage,
 	type TestEntry,
 } from "./fixtures/session.js";
-import { consolidationApi, type AgentStartHandler, type TurnEndHandler } from "./fixtures/pi.js";
+import { memoryUpdateApi, type AgentStartHandler, type TurnEndHandler } from "./fixtures/pi.js";
 
 beforeEach(() => {
 	mockAgents.runObserver.mockReset();
@@ -46,7 +46,7 @@ function setup(args: {
 	observationsPoolTargetTokens?: number;
 	maxInitialObserveTokens?: number;
 	strategy?: "additive" | "replacement" | "off";
-	consolidationInFlight?: boolean;
+	memoryUpdateInFlight?: boolean;
 	appendEntryReturnsId?: boolean;
 }) {
 	let entries = [...args.entries];
@@ -56,7 +56,7 @@ function setup(args: {
 		entries = [...entries, { type: "custom", id, parentId: entries.at(-1)?.id ?? null, timestamp: "2026-05-02T10:00:00.000Z", customType, data }];
 		return args.appendEntryReturnsId === false ? undefined : id;
 	});
-	const pi = consolidationApi(handlers, appendEntry);
+	const pi = memoryUpdateApi(handlers, appendEntry);
 	let launchedWork: (() => Promise<void>) | undefined;
 	const runtime = {
 		config: {
@@ -70,20 +70,20 @@ function setup(args: {
 			agentMaxTurns: 9,
 			model: { provider: "anthropic", id: "memory", thinking: "minimal" },
 		},
-		consolidationInFlight: args.consolidationInFlight ?? false,
-		consolidationPhase: undefined as "observer" | "reflector" | "dropper" | undefined,
+		memoryUpdateInFlight: args.memoryUpdateInFlight ?? false,
+		memoryUpdatePhase: undefined as "observer" | "reflector" | "dropper" | undefined,
 		resolveFailureNotified: false,
 		lastObserverError: undefined as string | undefined,
 		lastReflectorError: undefined as string | undefined,
 		lastDropperError: undefined as string | undefined,
 		ensureConfig: vi.fn(),
 		resolveModel: vi.fn(async () => ({ ok: true, model: { reasoning: true }, apiKey: "key", headers: { h: "v" } })),
-		launchConsolidationTask: vi.fn((_ctx, work) => {
-			runtime.consolidationInFlight = true;
+		launchMemoryUpdateTask: vi.fn((_ctx, work) => {
+			runtime.memoryUpdateInFlight = true;
 			launchedWork = work;
 			return Promise.resolve();
 		}),
-		recordConsolidationStageError: vi.fn((ctx, phase: "observer" | "reflector" | "dropper", error: unknown) => {
+		recordMemoryUpdateStageError: vi.fn((ctx, phase: "observer" | "reflector" | "dropper", error: unknown) => {
 			const message = error instanceof Error ? error.message : String(error);
 			if (phase === "observer") runtime.lastObserverError = message;
 			if (phase === "reflector") runtime.lastReflectorError = message;
@@ -92,9 +92,9 @@ function setup(args: {
 			return message;
 		}),
 	};
-	registerConsolidationTrigger(pi, runtime as Runtime);
-	if (!handlers.agent_start) throw new Error("agent_start consolidation handler not registered");
-	if (!handlers.turn_end) throw new Error("turn_end consolidation handler not registered");
+	registerMemoryUpdateHook(pi, runtime as Runtime);
+	if (!handlers.agent_start) throw new Error("agent_start memory update handler not registered");
+	if (!handlers.turn_end) throw new Error("turn_end memory update handler not registered");
 	const ctx = {
 		cwd: "/tmp/project",
 		hasUI: true,
@@ -116,7 +116,7 @@ function setup(args: {
 	};
 }
 
-describe("consolidation trigger", () => {
+describe("memory update hook", () => {
 	const obsA = observation("aaaaaaaaaaaa", { sourceEntryIds: ["raw-1"], tokenCount: 10 });
 
 	it("force-observes unobserved source entries before the compaction kept tail", async () => {
@@ -125,7 +125,7 @@ describe("consolidation trigger", () => {
 		const entries = [textCustomMessage("raw-1", "aaaa"), textCustomMessage("raw-2", "bbbb")];
 		const { pi, runtime, ctx, getAppends } = setup({ entries, observeEveryMessages: 999, reflectAfterTokens: 999 });
 
-		await ensureConsolidatedBeforeCompaction(pi as never, runtime as Runtime, ctx as never, { firstKeptEntryId: "raw-2" });
+		await ensureMemoryUpdatedBeforeCompaction(pi as never, runtime as Runtime, ctx as never, { firstKeptEntryId: "raw-2" });
 
 		expect(mockAgents.runObserver).toHaveBeenCalledOnce();
 		expect(mockAgents.runObserver.mock.calls[0][0].chunk).toContain("[Source entry id: raw-1]");
@@ -149,7 +149,7 @@ describe("consolidation trigger", () => {
 		fireAgentStart();
 		fireTurnEnd();
 
-		expect(runtime.launchConsolidationTask).not.toHaveBeenCalled();
+		expect(runtime.launchMemoryUpdateTask).not.toHaveBeenCalled();
 	});
 
 	it("does not launch from either entrypoint when strategy is off", () => {
@@ -159,17 +159,17 @@ describe("consolidation trigger", () => {
 		disabled.fireAgentStart();
 		disabled.fireTurnEnd();
 
-		expect(disabled.runtime.launchConsolidationTask).not.toHaveBeenCalled();
+		expect(disabled.runtime.launchMemoryUpdateTask).not.toHaveBeenCalled();
 	});
 
-	it("does not launch from either entrypoint while consolidation is already in flight", () => {
+	it("does not launch from either entrypoint while memory update is already in flight", () => {
 		const entries = [textCustomMessage("raw-1", "aaaaaaaa")];
-		const locked = setup({ entries, consolidationInFlight: true });
+		const locked = setup({ entries, memoryUpdateInFlight: true });
 
 		locked.fireAgentStart();
 		locked.fireTurnEnd();
 
-		expect(locked.runtime.launchConsolidationTask).not.toHaveBeenCalled();
+		expect(locked.runtime.launchMemoryUpdateTask).not.toHaveBeenCalled();
 	});
 
 	it("uses the shared lock when agent_start fires before turn_end", () => {
@@ -179,7 +179,7 @@ describe("consolidation trigger", () => {
 		fireAgentStart();
 		fireTurnEnd();
 
-		expect(runtime.launchConsolidationTask).toHaveBeenCalledTimes(1);
+		expect(runtime.launchMemoryUpdateTask).toHaveBeenCalledTimes(1);
 	});
 
 	it("runs observer first and appends source-addressed observations", async () => {
@@ -191,7 +191,7 @@ describe("consolidation trigger", () => {
 		fire();
 		await runLaunchedWork();
 
-		expect(runtime.launchConsolidationTask).toHaveBeenCalled();
+		expect(runtime.launchMemoryUpdateTask).toHaveBeenCalled();
 		expect(mockAgents.runObserver).toHaveBeenCalledWith(expect.objectContaining({
 			allowedSourceEntryIds: ["raw-1"],
 			maxTurns: 9,
@@ -260,7 +260,7 @@ describe("consolidation trigger", () => {
 		expect(ctx.ui.notify).toHaveBeenCalledWith("Observational memory: observer skipped — no model", "warning");
 	});
 
-	it("re-reads branch so observer append can unblock reflector in the same consolidation run", async () => {
+	it("re-reads branch so observer append can unblock reflector in the same memory update run", async () => {
 		mockAgents.runObserver.mockResolvedValueOnce([obsA]);
 		const newRef = reflection("ffffffffffff", ["aaaaaaaaaaaa"]);
 		mockAgents.runReflector.mockResolvedValueOnce([newRef]);
@@ -297,7 +297,7 @@ describe("consolidation trigger", () => {
 		expect(pi.appendEntry).toHaveBeenCalledWith(OM_REFLECTIONS_RECORDED, { reflections: [newRef], coversUpToId: "raw-1" });
 	});
 
-	it("runs dropper after same-run non-empty reflector output and appends non-empty drops", async () => {
+	it("runs dropper after reflection output and appends non-empty drops", async () => {
 		const newRef = reflection("ffffffffffff", ["aaaaaaaaaaaa"]);
 		mockAgents.runReflector.mockResolvedValueOnce([newRef]);
 		mockAgents.runDropper.mockResolvedValueOnce(["aaaaaaaaaaaa"]);
@@ -319,7 +319,7 @@ describe("consolidation trigger", () => {
 		]);
 	});
 
-	it("waits for successful reflection even when active observation pool is over target", async () => {
+	it("waits for reflection coverage even when active observation pool is over target", async () => {
 		const entries = [
 			textCustomMessage("raw-1", "aaaaaaaa"),
 			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
@@ -330,12 +330,12 @@ describe("consolidation trigger", () => {
 		fire();
 		await runLaunchedWork();
 
-		expect(runtime.launchConsolidationTask).toHaveBeenCalledTimes(1);
+		expect(runtime.launchMemoryUpdateTask).toHaveBeenCalledTimes(1);
 		expect(mockAgents.runReflector).toHaveBeenCalled();
 		expect(mockAgents.runDropper).not.toHaveBeenCalled();
 	});
 
-	it("runs reflector before dropper and covers drops through same-run reflection coverage", async () => {
+	it("runs reflector before dropper and covers drops through reflection coverage", async () => {
 		const newRef = reflection("ffffffffffff", ["bbbbbbbbbbbb"]);
 		mockAgents.runReflector.mockResolvedValueOnce([newRef]);
 		mockAgents.runDropper.mockResolvedValueOnce(["bbbbbbbbbbbb"]);
@@ -354,6 +354,27 @@ describe("consolidation trigger", () => {
 		expect(getAppends()).toEqual([
 			{ customType: OM_REFLECTIONS_RECORDED, data: { reflections: [newRef], coversUpToId: "raw-2" } },
 			{ customType: OM_OBSERVATIONS_DROPPED, data: { observationIds: ["bbbbbbbbbbbb"], coversUpToId: "raw-2" } },
+		]);
+	});
+
+	it("runs dropper from existing reflections without same-run reflection output", async () => {
+		const ref = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
+		mockAgents.runDropper.mockResolvedValueOnce(["aaaaaaaaaaaa"]);
+		const entries = [
+			textCustomMessage("raw-1", "aaaaaaaa"),
+			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
+			reflectionsRecordedEntry("om-ref", { reflections: [ref], coversUpToId: "raw-1" }),
+			textCustomMessage("raw-2", "bbbbbbbb"),
+		];
+		const { fire, runLaunchedWork, getAppends } = setup({ entries, observeEveryMessages: 999, reflectAfterTokens: 1, observationsPoolTargetTokens: 5 });
+
+		fire();
+		await runLaunchedWork();
+
+		expect(mockAgents.runReflector).toHaveBeenCalled();
+		expect(mockAgents.runDropper).toHaveBeenCalledWith(expect.objectContaining({ reflections: [ref], observations: [obsA] }));
+		expect(getAppends()).toEqual([
+			{ customType: OM_OBSERVATIONS_DROPPED, data: { observationIds: ["aaaaaaaaaaaa"], coversUpToId: "raw-1" } },
 		]);
 	});
 

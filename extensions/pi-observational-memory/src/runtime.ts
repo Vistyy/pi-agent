@@ -6,7 +6,7 @@ export type ResolveResult =
 
 type NotifyLevel = "warning" | "info" | "error";
 type Notify = (message: string, type?: NotifyLevel) => void;
-export type ConsolidationPhase = "observer" | "reflector" | "dropper";
+export type MemoryUpdatePhase = "observer" | "reflector" | "dropper";
 
 export interface ResolveCtx {
 	model: unknown;
@@ -23,9 +23,9 @@ export interface LaunchCtx {
 export class Runtime {
 	config: Config = { ...DEFAULTS };
 	configLoaded = false;
-	consolidationInFlight = false;
-	consolidationPromise: Promise<void> | null = null;
-	consolidationPhase: ConsolidationPhase | undefined;
+	memoryUpdateInFlight = false;
+	memoryUpdatePromise: Promise<void> | null = null;
+	memoryUpdatePhase: MemoryUpdatePhase | undefined;
 	compactHookInFlight = false;
 	resolveFailureNotified = false;
 	lastObserverError: string | undefined;
@@ -60,22 +60,22 @@ export class Runtime {
 		return { ok: true, model, apiKey: auth.apiKey as string, headers: auth.headers as Record<string, string> | undefined };
 	}
 
-	launchConsolidationTask(ctx: LaunchCtx, work: () => Promise<void>): Promise<void> {
-		this.consolidationInFlight = true;
-		this.consolidationPhase = undefined;
+	launchMemoryUpdateTask(ctx: LaunchCtx, work: () => Promise<void>): Promise<void> {
+		this.memoryUpdateInFlight = true;
+		this.memoryUpdatePhase = undefined;
 		this.lastObserverError = undefined;
 		this.lastReflectorError = undefined;
 		this.lastDropperError = undefined;
-		const promise = this.launchTrackedTask(ctx, "consolidation", work, () => {
-			this.consolidationInFlight = false;
-			this.consolidationPhase = undefined;
-			if (this.consolidationPromise === promise) this.consolidationPromise = null;
+		const promise = this.launchTrackedTask(ctx, "memory update", work, () => {
+			this.memoryUpdateInFlight = false;
+			this.memoryUpdatePhase = undefined;
+			if (this.memoryUpdatePromise === promise) this.memoryUpdatePromise = null;
 		});
-		this.consolidationPromise = promise;
+		this.memoryUpdatePromise = promise;
 		return promise;
 	}
 
-	recordConsolidationStageError(ctx: LaunchCtx, phase: ConsolidationPhase, error: unknown): string {
+	recordMemoryUpdateStageError(ctx: LaunchCtx, phase: MemoryUpdatePhase, error: unknown): string {
 		const message = error instanceof Error ? error.message : String(error);
 		if (phase === "observer") this.lastObserverError = message;
 		if (phase === "reflector") this.lastReflectorError = message;

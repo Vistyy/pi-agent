@@ -52,35 +52,35 @@ describe("Runtime behavior", () => {
 		});
 	});
 
-	it("tracks consolidation task state", async () => {
+	it("tracks memory update task state", async () => {
 		const runtime = new Runtime();
 		let release: (() => void) | undefined;
 		const work = new Promise<void>((resolve) => {
 			release = resolve;
 		});
 
-		const promise = runtime.launchConsolidationTask({ hasUI: false }, async () => {
-			runtime.consolidationPhase = "observer";
+		const promise = runtime.launchMemoryUpdateTask({ hasUI: false }, async () => {
+			runtime.memoryUpdatePhase = "observer";
 			await work;
 		});
 
-		expect(runtime.consolidationInFlight).toBe(true);
-		expect(runtime.consolidationPromise).toBe(promise);
-		expect(runtime.consolidationPhase).toBe("observer");
+		expect(runtime.memoryUpdateInFlight).toBe(true);
+		expect(runtime.memoryUpdatePromise).toBe(promise);
+		expect(runtime.memoryUpdatePhase).toBe("observer");
 		release?.();
 		await promise;
-		expect(runtime.consolidationInFlight).toBe(false);
-		expect(runtime.consolidationPromise).toBeNull();
-		expect(runtime.consolidationPhase).toBeUndefined();
+		expect(runtime.memoryUpdateInFlight).toBe(false);
+		expect(runtime.memoryUpdatePromise).toBeNull();
+		expect(runtime.memoryUpdatePhase).toBeUndefined();
 	});
 
-	it("records stage-specific consolidation errors", () => {
+	it("records stage-specific memory update errors", () => {
 		const runtime = new Runtime();
 		const notify = vi.fn();
 
-		expect(runtime.recordConsolidationStageError({ hasUI: true, ui: { notify } }, "observer", new Error("observe failed"))).toBe("observe failed");
-		expect(runtime.recordConsolidationStageError({ hasUI: true, ui: { notify } }, "reflector", new Error("reflect failed"))).toBe("reflect failed");
-		expect(runtime.recordConsolidationStageError({ hasUI: true, ui: { notify } }, "dropper", "drop failed")).toBe("drop failed");
+		expect(runtime.recordMemoryUpdateStageError({ hasUI: true, ui: { notify } }, "observer", new Error("observe failed"))).toBe("observe failed");
+		expect(runtime.recordMemoryUpdateStageError({ hasUI: true, ui: { notify } }, "reflector", new Error("reflect failed"))).toBe("reflect failed");
+		expect(runtime.recordMemoryUpdateStageError({ hasUI: true, ui: { notify } }, "dropper", "drop failed")).toBe("drop failed");
 
 		expect(runtime.lastObserverError).toBe("observe failed");
 		expect(runtime.lastReflectorError).toBe("reflect failed");

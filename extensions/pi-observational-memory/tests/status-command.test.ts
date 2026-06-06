@@ -30,8 +30,8 @@ function setup(args: { entries: TestEntry[]; runtime?: Partial<Runtime> }) {
 			observationsPoolMaxTokens: 40,
 			observationsPoolTargetTokens: 20,
 		},
-		consolidationInFlight: false,
-		consolidationPhase: undefined,
+		memoryUpdateInFlight: false,
+		memoryUpdatePhase: undefined,
 		compactHookInFlight: false,
 		lastObserverError: undefined,
 		lastReflectorError: undefined,
@@ -93,13 +93,13 @@ describe("/om:status", () => {
 		expect(output).toContain("Active observation pool: ~25 / 20 target tokens (125%)");
 	});
 
-	it("shows disabled config, consolidation in flight, compaction hook in flight, and stage-specific last errors", async () => {
+	it("shows disabled config, memory update in flight, compaction hook in flight, and stage-specific last errors", async () => {
 		const output = await setup({
 			entries: [],
 			runtime: {
 				config: { strategy: "off", observeEveryMessages: 10, reflectAfterTokens: 20, observationsPoolMaxTokens: 40, observationsPoolTargetTokens: 20 },
-				consolidationInFlight: true,
-				consolidationPhase: "reflector",
+				memoryUpdateInFlight: true,
+				memoryUpdatePhase: "reflector",
 				compactHookInFlight: true,
 				lastObserverError: "observer failed",
 				lastReflectorError: "reflect failed",
@@ -108,17 +108,17 @@ describe("/om:status", () => {
 		}).run();
 
 		expect(output).toContain("Strategy: off");
-		expect(output).toContain("Consolidation: running (reflector)");
+		expect(output).toContain("Memory update: running (reflector)");
 		expect(output).toContain("Compaction hook: running");
 		expect(output).toContain("Observer: observer failed");
 		expect(output).toContain("Reflector: reflect failed");
 		expect(output).toContain("Dropper: drop failed");
 	});
 
-	it("shows consolidation in flight without phase when phase is unavailable", async () => {
-		const output = await setup({ entries: [], runtime: { consolidationInFlight: true } }).run();
+	it("shows memory update in flight without phase when phase is unavailable", async () => {
+		const output = await setup({ entries: [], runtime: { memoryUpdateInFlight: true } }).run();
 
-		expect(output).toContain("Consolidation: running");
-		expect(output).not.toContain("Consolidation: running (");
+		expect(output).toContain("Memory update: running");
+		expect(output).not.toContain("Memory update: running (");
 	});
 });
