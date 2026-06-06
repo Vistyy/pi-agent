@@ -35,14 +35,23 @@ export const OBSERVATION_TIMESTAMP_PATTERN = "^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{
 const RecordObservationsSchema = Type.Object({
 	observations: Type.Array(
 		Type.Object({
+			event: Type.Object({
+				title: Type.String({ minLength: 1, description: "Short event title." }),
+				details: Type.Array(Type.String({ minLength: 1 }), {
+					minItems: 1,
+					description: "Exact compact details: paths, commands, errors, numbers, run results, decisions, rejected options, current state.",
+				}),
+				status: Type.Optional(Type.String({ minLength: 1 })),
+				supersedes: Type.Optional(Type.Array(Type.String({ minLength: 1 }))),
+			}),
 			timestamp: Type.String({
 				pattern: OBSERVATION_TIMESTAMP_PATTERN,
 				description: "Observation time in local 'YYYY-MM-DD HH:MM' format.",
 			}),
-			content: Type.String({
+			content: Type.Optional(Type.String({
 				minLength: 1,
-				description: "Single-line plain prose. No markdown, no tags, no embedded timestamp.",
-			}),
+				description: "Optional fallback single-line prose. If omitted, it is derived from event title and details.",
+			})),
 			relevance: RelevanceSchema,
 			sourceEntryIds: Type.Array(
 				Type.String({ minLength: 1 }),
@@ -106,19 +115,27 @@ export async function runObserver(args: RunObserverArgs): Promise<Observation[] 
 					rejected++;
 					continue;
 				}
-				const content = truncateRecordContent(obs.content);
+				const rawContent = obs.content ?? `${obs.event.title}: ${obs.event.details.join("; ")}`;
+				const content = truncateRecordContent(rawContent);
 				const id = hashId(content);
 				if (accumulated.has(id)) {
 					duplicates++;
 					continue;
 				}
+				const event = {
+					title: truncateRecordContent(obs.event.title),
+					details: obs.event.details.map((detail) => truncateRecordContent(detail)),
+					...(obs.event.status ? { status: truncateRecordContent(obs.event.status) } : {}),
+					...(obs.event.supersedes?.length ? { supersedes: obs.event.supersedes } : {}),
+				};
 				accumulated.set(id, {
 					id,
 					content,
 					timestamp: obs.timestamp,
 					relevance: obs.relevance as Relevance,
 					sourceEntryIds,
-					tokenCount: estimateStringTokens(content),
+					tokenCount: estimateStringTokens([content, event.title, ...event.details, event.status ?? ""].join("\n")),
+					event,
 				});
 				added++;
 			}

@@ -26,12 +26,15 @@ What to emit:
 - Group repeated similar tool calls into a single observation rather than one per call.
 - Skip routine, low-information events. It is fine to emit zero observations if the chunk carries no new information — in that case, simply do not call the tool and end with a plain-text confirmation.
 
-Observation content rules:
+Observation event rules:
 
 Format.
-- Single line of plain prose. No markdown, no bullets, no code fences, no XML/HTML tags, no emojis.
-- Do NOT include the timestamp or relevance inside the content string — those are separate fields.
-- No structured fields embedded in the text (no "key: value" lines, no JSON).
+- Put the main memory in event.title and event.details[]. The content field is optional fallback text.
+- event.title: short plain title. No timestamp or relevance.
+- event.details[]: compact exact facts. Preserve paths, commands, errors, numbers, run results, decisions, rejected options, and current state.
+- event.status: optional current state such as completed, unresolved, rejected, superseded, confirmed working.
+- event.supersedes: optional prior observation ids only when a current event clearly replaces earlier memory.
+- No markdown, code fences, XML/HTML tags, emojis, or invented structured fields inside detail strings.
 
 Preserve user assertions exactly.
 When the user TELLS you something about themselves, their project, or their environment, capture it as an assertion. When the user ASKS something, capture it as a question. Assertions are authoritative — a later question on the same topic does not invalidate them.

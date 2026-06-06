@@ -10,7 +10,12 @@ Treat these as past records. When entries conflict, the most recent observation 
 When exact source context is needed for precision or traceability, use the recall tool with the relevant observation or reflection id. This is especially useful when a reflection materially affects a decision or is too compressed to continue confidently. Do not use recall as broad search or inject raw source unless it is needed.`;
 
 export function observationToSummaryLine(observation: Observation): string {
-	return `[${observation.id}] ${observation.timestamp} [${observation.relevance}] ${observation.content}`;
+	const header = `[${observation.id}] ${observation.timestamp} [${observation.relevance}] ${observation.event?.title ?? observation.content}`;
+	if (!observation.event) return header;
+	const details = observation.event.details.map((detail) => `  - ${detail}`);
+	const status = observation.event.status ? [`  status: ${observation.event.status}`] : [];
+	const supersedes = observation.event.supersedes?.length ? [`  supersedes: ${observation.event.supersedes.join(", ")}`] : [];
+	return [header, ...details, ...status, ...supersedes].join("\n");
 }
 
 export function reflectionToSummaryLine(reflection: Reflection): string {

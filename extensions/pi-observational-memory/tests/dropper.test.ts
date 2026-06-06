@@ -101,6 +101,13 @@ describe("dropper agent", () => {
 		expect(selectDropCandidates(["888888888888", "999999999999"], [oldHigh, newHigh], 1)).toEqual(["999999999999"]);
 	});
 
+	it("protects unreflected critical observations from dropping", () => {
+		const critical = observation("aaaaaaaaaaaa", { relevance: "critical" });
+		const low = observation("bbbbbbbbbbbb", { relevance: "low" });
+
+		expect(selectDropCandidates(["aaaaaaaaaaaa", "bbbbbbbbbbbb"], [critical, low], 2)).toEqual(["bbbbbbbbbbbb"]);
+	});
+
 	it("prefers stronger reflection coverage before relevance when over cap", () => {
 		const strongCritical = observation("aaaaaaaaaaaa", { relevance: "critical", timestamp: "2026-01-01T00:00:00.000Z" });
 		const partialLow = observation("bbbbbbbbbbbb", { relevance: "low", timestamp: "2026-01-01T00:00:00.000Z" });
@@ -132,12 +139,12 @@ describe("dropper agent", () => {
 		await expect(runDropper({ ...baseArgs, agentLoop: loop })).resolves.toEqual(["aaaaaaaaaaaa"]);
 	});
 
-	it("returns critical proposed ids when they are the selected valid candidates", async () => {
+	it("does not return unreflected critical proposed ids", async () => {
 		const loop = fakeAgentLoop(async (_prompts, context) => {
 			await context.tools[0].execute("tool-1", { ids: ["missing", "cccccccccccc"] });
 		});
 
-		await expect(runDropper({ ...baseArgs, agentLoop: loop })).resolves.toEqual(["cccccccccccc"]);
+		await expect(runDropper({ ...baseArgs, agentLoop: loop })).resolves.toBeUndefined();
 	});
 
 	it("returns undefined when only invalid ids are proposed", async () => {

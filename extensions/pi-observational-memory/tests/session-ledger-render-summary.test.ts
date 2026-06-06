@@ -39,6 +39,26 @@ describe("session-ledger summary rendering", () => {
 		);
 	});
 
+	it("renders event observations with exact details and status", () => {
+		const obs = observation("aaaaaaaaaaaa", {
+			event: {
+				title: "Typecheck failed",
+				details: ["Command: npm run typecheck", "Error: TS2322 at src/config.ts:47"],
+				status: "unresolved",
+				supersedes: ["bbbbbbbbbbbb"],
+			},
+		});
+
+		const summary = renderSummary([], [obs]);
+
+		expect(summary).toContain("[aaaaaaaaaaaa]");
+		expect(summary).toContain("Typecheck failed");
+		expect(summary).toContain("  - Command: npm run typecheck");
+		expect(summary).toContain("  - Error: TS2322 at src/config.ts:47");
+		expect(summary).toContain("  status: unresolved");
+		expect(summary).toContain("  supersedes: bbbbbbbbbbbb");
+	});
+
 	it("keeps raw provenance metadata out of the compact summary", () => {
 		const obs = observation("aaaaaaaaaaaa", { sourceEntryIds: ["entry-user", "entry-tool"] });
 		const ref = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);

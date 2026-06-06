@@ -96,6 +96,14 @@ function timestampRank(timestamp: string): number {
 	return Number.isFinite(parsed) ? parsed : Number.POSITIVE_INFINITY;
 }
 
+export function isProtectedObservation(
+	observation: Observation,
+	reflections: readonly Reflection[] = [],
+): boolean {
+	if (observation.relevance !== "critical") return false;
+	return !reflections.some((reflection) => reflection.supportingObservationIds.includes(observation.id));
+}
+
 export function selectDropCandidates(
 	ids: readonly string[],
 	observations: readonly Observation[],
@@ -115,7 +123,7 @@ export function selectDropCandidates(
 	return Array.from(firstProposalIndex.entries())
 		.map(([id, index]) => ({ id, index, observation: byId.get(id) }))
 		.filter((candidate): candidate is { id: string; index: number; observation: Observation } =>
-			candidate.observation !== undefined
+			candidate.observation !== undefined && !isProtectedObservation(candidate.observation, reflections)
 		)
 		.sort((a, b) => {
 			const coverageDelta = REFLECTION_COVERAGE_DROP_RANK[coverageTierForObservation(a.observation, coverageById)]

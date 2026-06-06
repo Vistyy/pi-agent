@@ -20,6 +20,12 @@ export type TestObservation = {
 	relevance: "low" | "medium" | "high" | "critical";
 	sourceEntryIds: string[];
 	tokenCount: number;
+	event?: {
+		title: string;
+		details: string[];
+		status?: string;
+		supersedes?: string[];
+	};
 };
 
 export type TestReflection = {
