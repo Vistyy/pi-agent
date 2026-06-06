@@ -15,8 +15,9 @@ const suite = argValue('--suite') ?? 'suites/memory-hard';
 const out = argValue('--out') ?? `runs/memory-hard-${variant}-${new Date().toISOString().replace(/[:.]/g, '-')}`;
 const model = argValue('--model') ?? 'openai-codex/gpt-5.4-mini';
 const concurrency = argValue('--concurrency') ?? '1';
-const prepareTurns = argValue('--memory-prepare-turns') ?? '6';
-const waitMs = argValue('--memory-prepare-wait-ms') ?? '10000';
+const forcedMemoryPrep = process.argv.includes('--forced-memory-prep');
+const prepareTurns = argValue('--memory-prepare-turns') ?? '1';
+const waitMs = argValue('--memory-prepare-wait-ms') ?? '5000';
 const compactInstructions = argValue('--compact-instructions') ?? 'Preserve exact current decisions, corrections, constraints, rejected stale options, and reasons. Prefer newer explicit corrections over older notes/reflections.';
 const latestOmExtension = argValue('--om-extension') ?? path.resolve('..', 'extensions', 'pi-observational-memory');
 const originalOmExtension = argValue('--original-extension') ?? '/tmp/pi-observational-memory-original';
@@ -33,7 +34,6 @@ function makeCwd(name: string, modelSpec: string): string {
   fs.writeFileSync(path.join(dir, '.pi/settings.json'), JSON.stringify({
     'observational-memory': {
       strategy: name === 'om-replacement' ? 'replacement' : 'additive',
-      observeAfterTokens: 1,
       reflectAfterTokens: 1000000,
       compactAfterTokens: 1000000,
       agentMaxTurns: 4,
@@ -58,7 +58,9 @@ function baseArgs(extra: string[] = []) {
 if (variant === 'clean') {
   run('npm', baseArgs());
 } else if (variant === 'om-additive' || variant === 'om-replacement') {
-  run('npm', baseArgs(['--cwd', cwd, '--extension', latestOmExtension, '--prepare-memory-before-compact', '--memory-prepare-turns', prepareTurns, '--memory-prepare-wait-ms', waitMs, '--allow-tool', 'recall']));
+  const prepArgs = forcedMemoryPrep ? ['--prepare-memory-before-compact', '--memory-prepare-turns', prepareTurns, '--memory-prepare-wait-ms', waitMs] : [];
+  run('npm', baseArgs(['--cwd', cwd, '--extension', latestOmExtension, ...prepArgs, '--allow-tool', 'recall']));
 } else if (variant === 'original') {
-  run('npm', baseArgs(['--cwd', cwd, '--extension', originalOmExtension, '--prepare-memory-before-compact', '--memory-prepare-turns', prepareTurns, '--memory-prepare-wait-ms', waitMs, '--allow-tool', 'recall']));
+  const prepArgs = forcedMemoryPrep ? ['--prepare-memory-before-compact', '--memory-prepare-turns', prepareTurns, '--memory-prepare-wait-ms', waitMs] : [];
+  run('npm', baseArgs(['--cwd', cwd, '--extension', originalOmExtension, ...prepArgs, '--allow-tool', 'recall']));
 }

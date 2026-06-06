@@ -72,10 +72,15 @@ Useful options:
 ```text
 --model provider/model
 --concurrency N
---memory-prepare-turns N
---memory-prepare-wait-ms MS
 --suite suites/memory-hard
 --cwd /tmp/custom-pi-cwd
+```
+
+Forced materialization mode, for debugging only:
+
+```bash
+npm run session-memory -- om-additive --out runs/memory-hard-om-additive-forced-001 \
+  --forced-memory-prep --memory-prepare-turns 1
 ```
 
 ## Result files
@@ -106,5 +111,7 @@ Use pass rate plus `usage.total.totalTokens` for cost/performance.
 - `clean` loads no extensions.
 - `om-additive` sets `observational-memory.strategy = "additive"` in a temp cwd.
 - `om-replacement` sets `observational-memory.strategy = "replacement"` in a temp cwd.
+- Normal runs use OM default trigger thresholds, including `observeAfterTokens = 10000`.
+- `--forced-memory-prep` adds synthetic prep turns and is not representative of normal usage cost.
 - `original` is for a local checkout of `https://github.com/elpapi42/pi-observational-memory`.
 - pi-vcc and pi-blackhole profiles were removed from active evals.
