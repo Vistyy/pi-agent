@@ -35,7 +35,7 @@ function makeCwd(name: string, modelSpec: string): string {
     'observational-memory': {
       strategy: name === 'om-replacement' ? 'replacement' : 'additive',
       observeAfterTokens: 1000,
-      reflectAfterTokens: 1000000,
+      reflectAfterTokens: name === 'om-replacement' ? 1000 : 1000000,
       compactAfterTokens: 1000000,
       agentMaxTurns: 4,
       model: configuredModel(modelSpec),
