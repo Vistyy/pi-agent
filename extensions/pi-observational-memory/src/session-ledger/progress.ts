@@ -29,17 +29,13 @@ function isObject(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null;
 }
 
-function isNonEmptyArray(value: unknown): value is unknown[] {
-	return Array.isArray(value) && value.length > 0;
-}
-
 function isValidCoverageEntry(entry: Entry, customType: MemoryCustomType): entry is Entry & { data: { coversUpToId: string } } {
 	if (entry.type !== "custom" || entry.customType !== customType) return false;
 	if (!isObject(entry.data) || typeof entry.data.coversUpToId !== "string") return false;
 
-	if (customType === OM_OBSERVATIONS_RECORDED) return isNonEmptyArray(entry.data.observations);
-	if (customType === OM_REFLECTIONS_RECORDED) return isNonEmptyArray(entry.data.reflections);
-	return isNonEmptyArray(entry.data.observationIds);
+	if (customType === OM_OBSERVATIONS_RECORDED) return Array.isArray(entry.data.observations);
+	if (customType === OM_REFLECTIONS_RECORDED) return Array.isArray(entry.data.reflections) && entry.data.reflections.length > 0;
+	return Array.isArray(entry.data.observationIds) && entry.data.observationIds.length > 0;
 }
 
 export function latestCoverageIndex(entries: Entry[], customType: MemoryCustomType): number {

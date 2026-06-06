@@ -1,5 +1,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
+import { STRATEGY } from "../config.js";
 import type { Runtime } from "../runtime.js";
 import { buildCompactionProjection, renderSummary, type Entry } from "../session-ledger/index.js";
 
@@ -27,7 +28,7 @@ export function registerCompactionHook(pi: ExtensionAPI, runtime: Runtime): void
 		runtime.compactHookInFlight = true;
 		try {
 			runtime.ensureConfig(ctx.cwd);
-			if (runtime.config.compaction !== "replacement") return;
+			if (runtime.config.strategy !== STRATEGY.replacement) return;
 			const { preparation, branchEntries } = event;
 			const { firstKeptEntryId, tokensBefore } = preparation;
 			const projection = buildCompactionProjection(

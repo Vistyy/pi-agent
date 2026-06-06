@@ -6,7 +6,7 @@ import type { Runtime } from "../src/runtime.js";
 import { agentEndApi, type AgentEndHandler } from "./fixtures/pi.js";
 import { compactionEntry, textCustomMessage, type TestEntry } from "./fixtures/session.js";
 
-function captureHandler(args: { compactAfterTokens?: number; compaction?: "default" | "replacement" | "off"; compactInFlight?: boolean } = {}) {
+function captureHandler(args: { compactAfterTokens?: number; strategy?: "additive" | "replacement" | "off"; compactInFlight?: boolean } = {}) {
 	let handler: AgentEndHandler | undefined;
 	const pi = agentEndApi((cb) => {
 		handler = cb;
@@ -14,7 +14,7 @@ function captureHandler(args: { compactAfterTokens?: number; compaction?: "defau
 	const runtime = {
 		ensureConfig: vi.fn(),
 		config: {
-			compaction: args.compaction ?? "replacement",
+			strategy: args.strategy ?? "replacement",
 			compactAfterTokens: args.compactAfterTokens ?? 3,
 		},
 		compactInFlight: args.compactInFlight ?? false,
@@ -97,7 +97,7 @@ describe("compaction trigger", () => {
 	});
 
 	it("skips when compaction is off", async () => {
-		const { handler, runtime } = captureHandler({ compaction: "off" });
+		const { handler, runtime } = captureHandler({ strategy: "off" });
 		const ctx = fakeCtx([dueBranch]);
 
 		handler(agentEnd(), ctx);

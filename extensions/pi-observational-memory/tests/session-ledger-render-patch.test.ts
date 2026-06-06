@@ -27,7 +27,7 @@ describe("session-ledger memory patch rendering", () => {
 		const first = observation("aaaaaaaaaaaa", { relevance: "critical", content: "User said exact detail A must be preserved." });
 		const second = observation("bbbbbbbbbbbb", { relevance: "critical", content: "User said exact detail B must be preserved." });
 
-		const patch = renderMemoryPatch([], [first, second], { maxTokens: 55 });
+		const patch = renderMemoryPatch([], [first, second], { maxTokens: 80 });
 
 		expect(patch).toContain("[aaaaaaaaaaaa]");
 		expect(patch).not.toContain("[bbbbbbbbbbbb]");

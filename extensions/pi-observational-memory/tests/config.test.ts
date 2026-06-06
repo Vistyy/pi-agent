@@ -9,7 +9,7 @@ vi.mock("@earendil-works/pi-coding-agent", () => ({
 	getAgentDir: () => mock.agentDir,
 }));
 
-import { DEFAULTS, loadConfig } from "../src/config.js";
+import { DEFAULTS, loadConfig, STRATEGY } from "../src/config.js";
 
 function writeJson(path: string, value: unknown) {
 	mkdirSync(join(path, ".."), { recursive: true });
@@ -36,12 +36,11 @@ describe("config", () => {
 
 	it("uses defaults", () => {
 		expect(DEFAULTS).toEqual({
-			memory: true,
-			compaction: "default",
-			additivePatch: true,
+			strategy: STRATEGY.additive,
 			observeAfterTokens: 10000,
 			reflectAfterTokens: 20000,
 			compactAfterTokens: 81000,
+			maxInitialObserveTokens: 100000,
 			observationsPoolMaxTokens: 20000,
 			observationsPoolTargetTokens: 10000,
 			agentMaxTurns: 16,
@@ -54,12 +53,11 @@ describe("config", () => {
 	it("merges global and project settings in order", () => {
 		writeJson(join(agentDir, "settings.json"), {
 			"observational-memory": {
-				memory: false,
-				compaction: "off",
-				additivePatch: true,
+				strategy: "replacement",
 				observeAfterTokens: 10,
 				reflectAfterTokens: 20,
 				compactAfterTokens: 30,
+				maxInitialObserveTokens: 60,
 				observationsPoolMaxTokens: 40,
 				observationsPoolTargetTokens: 15,
 				agentMaxTurns: 5,
@@ -70,20 +68,18 @@ describe("config", () => {
 		});
 		writeJson(join(cwd, ".pi", "settings.json"), {
 			"observational-memory": {
-				memory: true,
-				compaction: "default",
+				strategy: "additive",
 				observeAfterTokens: 100,
 				model: { provider: "openai", id: "project", thinking: "low" },
 			},
 		});
 
 		expect(loadConfig(cwd)).toMatchObject({
-			memory: true,
-			compaction: "default",
-			additivePatch: true,
+			strategy: "additive",
 			observeAfterTokens: 100,
 			reflectAfterTokens: 20,
 			compactAfterTokens: 30,
+			maxInitialObserveTokens: 60,
 			observationsPoolMaxTokens: 40,
 			observationsPoolTargetTokens: 15,
 			agentMaxTurns: 5,
@@ -96,12 +92,11 @@ describe("config", () => {
 	it("ignores invalid values", () => {
 		writeJson(join(cwd, ".pi", "settings.json"), {
 			"observational-memory": {
-				memory: "yes",
-				compaction: "unknown",
-				additivePatch: "yes",
+				strategy: "unknown",
 				observeAfterTokens: -1,
 				reflectAfterTokens: 0,
 				compactAfterTokens: 1.5,
+				maxInitialObserveTokens: "100000",
 				observationsPoolMaxTokens: "20000",
 				observationsPoolTargetTokens: "10000",
 				agentMaxTurns: null,

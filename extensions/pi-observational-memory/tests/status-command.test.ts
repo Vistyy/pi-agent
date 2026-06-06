@@ -24,9 +24,7 @@ function setup(args: { entries: TestEntry[]; runtime?: Partial<Runtime> }) {
 	const runtime = {
 		ensureConfig: vi.fn(),
 		config: {
-			memory: true,
-			compaction: "replacement",
-			additivePatch: false,
+			strategy: "replacement",
 			observeAfterTokens: 10,
 			reflectAfterTokens: 20,
 			compactAfterTokens: 30,
@@ -104,7 +102,7 @@ describe("/om:status", () => {
 		const output = await setup({
 			entries: [],
 			runtime: {
-				config: { memory: false, compaction: "off", additivePatch: false, observeAfterTokens: 10, reflectAfterTokens: 20, compactAfterTokens: 30, observationsPoolMaxTokens: 40, observationsPoolTargetTokens: 20 },
+				config: { strategy: "off", observeAfterTokens: 10, reflectAfterTokens: 20, compactAfterTokens: 30, observationsPoolMaxTokens: 40, observationsPoolTargetTokens: 20 },
 				consolidationInFlight: true,
 				consolidationPhase: "reflector",
 				compactInFlight: true,
@@ -115,9 +113,7 @@ describe("/om:status", () => {
 			},
 		}).run();
 
-		expect(output).toContain("Memory: off");
-		expect(output).toContain("Compaction: off");
-		expect(output).toContain("Additive patch: off");
+		expect(output).toContain("Strategy: off");
 		expect(output).toContain("Consolidation: running (reflector)");
 		expect(output).toContain("Auto-compaction: running");
 		expect(output).toContain("Compaction hook: running");

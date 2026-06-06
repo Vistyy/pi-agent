@@ -64,9 +64,7 @@ export function registerStatusCommand(pi: ExtensionAPI, runtime: Runtime): void 
 
 			const modeLines = [
 				"── Config ──",
-				`Memory: ${runtime.config.memory ? "on" : "off"}`,
-				`Compaction: ${runtime.config.compaction}`,
-				`Additive patch: ${runtime.config.additivePatch ? "on" : "off"}`,
+				`Strategy: ${runtime.config.strategy}`,
 				"",
 			];
 

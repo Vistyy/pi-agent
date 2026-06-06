@@ -7,7 +7,7 @@ import { compactionEntry, observation, observationsRecordedEntry, textCustomMess
 
 type BeforeAgentStartHandler = ExtensionHandler<BeforeAgentStartEvent, BeforeAgentStartEventResult>;
 
-function setup(additivePatch: boolean) {
+function setup(strategy: "additive" | "replacement" | "off") {
 	let handler: BeforeAgentStartHandler | undefined;
 	const pi = {
 		on: vi.fn((eventName: string, cb: BeforeAgentStartHandler) => {
@@ -16,7 +16,7 @@ function setup(additivePatch: boolean) {
 		}),
 	};
 	const runtime = {
-		config: { additivePatch, additivePatchMaxTokens: 2000 },
+		config: { strategy, additivePatchMaxTokens: 2000 },
 		ensureConfig: vi.fn(),
 	} as unknown as Runtime;
 	registerAdditiveContext(pi as unknown as ExtensionAPI, runtime);
@@ -46,7 +46,7 @@ describe("additive context", () => {
 			observationsRecordedEntry("om-1", { observations: [obs], coversUpToId: "raw-1" }),
 			compactionEntry("cmp-1"),
 		];
-		const { handler } = setup(true);
+		const { handler } = setup("additive");
 
 		const result = handler(event(), context(entries)) as BeforeAgentStartEventResult;
 
@@ -62,13 +62,13 @@ describe("additive context", () => {
 			textCustomMessage("raw-1", "test output"),
 			observationsRecordedEntry("om-1", { observations: [obs], coversUpToId: "raw-1" }),
 		];
-		const { handler } = setup(true);
+		const { handler } = setup("additive");
 
 		expect(handler(event(), context(entries))).toBeUndefined();
 	});
 
 	it("does not inject context when additive patch is off", () => {
-		const { handler } = setup(false);
+		const { handler } = setup("replacement");
 		expect(handler(event(), context([]))).toBeUndefined();
 	});
 });

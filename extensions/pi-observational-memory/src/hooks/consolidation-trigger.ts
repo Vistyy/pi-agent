@@ -3,6 +3,7 @@ import { runDropper } from "../agents/dropper/agent.js";
 import { observationPoolMetrics } from "../agents/dropper/pool.js";
 import { runObserver } from "../agents/observer/agent.js";
 import { runReflector } from "../agents/reflector/agent.js";
+import { STRATEGY } from "../config.js";
 import { debugLog, withDebugLogContext } from "../debug-log.js";
 import { type ResolveResult, type Runtime } from "../runtime.js";
 import { serializeSourceAddressedBranchEntries } from "../serialize.js";
@@ -117,7 +118,7 @@ function debugSessionMetadata(ctx: ConsolidationCtx): { sessionId?: string; sess
 
 function maybeLaunchConsolidation(pi: ExtensionAPI, runtime: Runtime, ctx: ConsolidationCtx): void {
 	runtime.ensureConfig(ctx.cwd);
-	if (!runtime.config.memory) return;
+	if (runtime.config.strategy === STRATEGY.off) return;
 	if (runtime.consolidationInFlight) return;
 
 	const entries = ctx.sessionManager.getBranch() as Entry[];
@@ -192,6 +193,16 @@ async function runObserverStage(
 	const chunkEntries = sourceEntriesAfter(entries, lastCoverageIdx);
 	const coversUpToId = chunkEntries.at(-1)?.id;
 	if (!coversUpToId) return "continue";
+	if (lastCoverageIdx === -1 && tokens > runtime.config.maxInitialObserveTokens) {
+		const data = buildObservationsRecordedData([], coversUpToId);
+		if (data) appendEntry(pi, OM_OBSERVATIONS_RECORDED, data);
+		debugLog("observer.initial_backfill_skipped", { tokens, coversUpToId });
+		if (ctx.hasUI) ctx.ui?.notify(
+			`Observational memory: skipped initial backfill for large existing session (~${tokens.toLocaleString()} tokens); observing future turns`,
+			"warning",
+		);
+		return "continue";
+	}
 
 	const { text: chunk, sourceEntryIds } = serializeSourceAddressedBranchEntries(chunkEntries);
 	if (!chunk.trim() || sourceEntryIds.length === 0) return "continue";

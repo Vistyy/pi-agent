@@ -1,5 +1,6 @@
 import type { BeforeAgentStartEvent, BeforeAgentStartEventResult, ExtensionAPI, ExtensionContext, ExtensionHandler } from "@earendil-works/pi-coding-agent";
 
+import { STRATEGY } from "../config.js";
 import type { Runtime } from "../runtime.js";
 import { fullProjection, renderMemoryPatch, type Entry } from "../session-ledger/index.js";
 
@@ -10,7 +11,7 @@ function hasCompaction(entries: readonly Entry[]): boolean {
 export function registerAdditiveContext(pi: ExtensionAPI, runtime: Runtime): void {
 	const handler: ExtensionHandler<BeforeAgentStartEvent, BeforeAgentStartEventResult> = (event: BeforeAgentStartEvent, ctx: ExtensionContext) => {
 		runtime.ensureConfig(ctx.cwd);
-		if (!runtime.config.additivePatch) return;
+		if (runtime.config.strategy !== STRATEGY.additive) return;
 
 		const entries = ctx.sessionManager.getBranch() as Entry[] | undefined;
 		if (!entries?.length || !hasCompaction(entries)) return;

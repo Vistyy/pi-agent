@@ -44,7 +44,8 @@ function setup(args: {
 	reflectAfterTokens?: number;
 	observationsPoolMaxTokens?: number;
 	observationsPoolTargetTokens?: number;
-	memory?: boolean;
+	maxInitialObserveTokens?: number;
+	strategy?: "additive" | "replacement" | "off";
 	consolidationInFlight?: boolean;
 	appendEntryReturnsId?: boolean;
 }) {
@@ -59,10 +60,11 @@ function setup(args: {
 	let launchedWork: (() => Promise<void>) | undefined;
 	const runtime = {
 		config: {
-			memory: args.memory ?? true,
+			strategy: args.strategy ?? "additive",
 			debugLog: false,
 			observeAfterTokens: args.observeAfterTokens ?? 1,
 			reflectAfterTokens: args.reflectAfterTokens ?? 1,
+			maxInitialObserveTokens: args.maxInitialObserveTokens ?? 100_000,
 			observationsPoolMaxTokens: args.observationsPoolMaxTokens ?? 100,
 			observationsPoolTargetTokens: args.observationsPoolTargetTokens ?? Math.floor((args.observationsPoolMaxTokens ?? 100) / 2),
 			agentMaxTurns: 9,
@@ -134,9 +136,9 @@ describe("consolidation trigger", () => {
 		expect(runtime.launchConsolidationTask).not.toHaveBeenCalled();
 	});
 
-	it("does not launch from either entrypoint when memory is off", () => {
+	it("does not launch from either entrypoint when strategy is off", () => {
 		const entries = [textCustomMessage("raw-1", "aaaaaaaa")];
-		const disabled = setup({ entries, memory: false });
+		const disabled = setup({ entries, strategy: "off" });
 
 		disabled.fireAgentStart();
 		disabled.fireTurnEnd();
@@ -199,6 +201,23 @@ describe("consolidation trigger", () => {
 
 		expect(mockAgents.runObserver).toHaveBeenCalledWith(expect.objectContaining({ allowedSourceEntryIds: ["raw-2", "raw-3"] }));
 		expect(pi.appendEntry).toHaveBeenCalledWith(OM_OBSERVATIONS_RECORDED, { observations: [newObs], coversUpToId: "raw-3" });
+	});
+
+	it("skips initial observer backfill when the existing session is too large", async () => {
+		const entries = [textCustomMessage("raw-1", "aaaaaaaa")];
+		const { fire, runLaunchedWork, getAppends, ctx } = setup({ entries, maxInitialObserveTokens: 1 });
+
+		fire();
+		await runLaunchedWork();
+
+		expect(mockAgents.runObserver).not.toHaveBeenCalled();
+		expect(getAppends()).toEqual([
+			{ customType: OM_OBSERVATIONS_RECORDED, data: { observations: [], coversUpToId: "raw-1" } },
+		]);
+		expect(ctx.ui.notify).toHaveBeenCalledWith(
+			"Observational memory: skipped initial backfill for large existing session (~2 tokens); observing future turns",
+			"warning",
+		);
 	});
 
 	it("observer no-output appends nothing and does not fake observation coverage", async () => {

@@ -32,6 +32,9 @@ function reflectionPatchBlock(reflection: Reflection): string {
 	return `[${reflection.id}] ${reflection.content}`;
 }
 
+const PATCH_HEADER = "## Observational memory exact-detail patch";
+const PATCH_INSTRUCTIONS = "Use this only for exact prior-session details that may be missing or blurred in the compacted summary. Use recall(id) when source evidence is needed.";
+
 export function renderMemoryPatch(
 	reflections: readonly Reflection[],
 	observations: readonly Observation[],
@@ -39,7 +42,7 @@ export function renderMemoryPatch(
 ): string {
 	if (options.maxTokens <= 0) return "";
 	const blocks: string[] = [];
-	let tokens = estimateStringTokens("## Observational memory exact-detail patch");
+	let tokens = estimateStringTokens([PATCH_HEADER, PATCH_INSTRUCTIONS].join("\n"));
 
 	const sortedObservations = observations
 		.filter(isPatchWorthy)
@@ -64,8 +67,8 @@ export function renderMemoryPatch(
 
 	if (blocks.length === 0 && reflectionBlocks.length === 0) return "";
 	return [
-		"## Observational memory exact-detail patch",
-		"Use this only for exact prior-session details that may be missing or blurred in the compacted summary. Use recall_observation(id) when source evidence is needed.",
+		PATCH_HEADER,
+		PATCH_INSTRUCTIONS,
 		...(blocks.length ? ["\n### Observations", blocks.join("\n")] : []),
 		...(reflectionBlocks.length ? ["\n### Reflections", reflectionBlocks.join("\n")] : []),
 	].join("\n");

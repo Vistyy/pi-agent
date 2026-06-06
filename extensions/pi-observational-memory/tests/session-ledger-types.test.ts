@@ -59,13 +59,13 @@ describe("session-ledger type guards and builders", () => {
 	});
 
 	it("rejects empty ledger entry data so no empty progress entries can be appended", () => {
-		expect(isObservationsRecordedData({ observations: [], coversUpToId: "raw-1" })).toBe(false);
+		expect(isObservationsRecordedData({ observations: [], coversUpToId: "raw-1" })).toBe(true);
 		expect(isReflectionsRecordedData({ reflections: [], coversUpToId: "raw-1" })).toBe(false);
 		expect(isObservationsDroppedData({ observationIds: [], coversUpToId: "raw-1" })).toBe(false);
 	});
 
-	it("builders return undefined for empty arrays and data for non-empty arrays", () => {
-		expect(buildObservationsRecordedData([], "raw-1")).toBeUndefined();
+	it("builders return marker data for empty observations and undefined for other empty arrays", () => {
+		expect(buildObservationsRecordedData([], "raw-1")).toEqual({ observations: [], coversUpToId: "raw-1" });
 		expect(buildReflectionsRecordedData([], "raw-1")).toBeUndefined();
 		expect(buildObservationsDroppedData([], "raw-1")).toBeUndefined();
 

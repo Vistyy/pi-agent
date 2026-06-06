@@ -9,16 +9,19 @@ export interface ConfiguredModel {
 	thinking?: ModelThinkingLevel;
 }
 
-export const COMPACTION_VALUES = ["default", "replacement", "off"] as const;
-export type CompactionMode = (typeof COMPACTION_VALUES)[number];
+export const STRATEGY = {
+	additive: "additive",
+	replacement: "replacement",
+	off: "off",
+} as const;
+export type MemoryStrategy = (typeof STRATEGY)[keyof typeof STRATEGY];
 
 export interface Config {
-	memory: boolean;
-	compaction: CompactionMode;
-	additivePatch: boolean;
+	strategy: MemoryStrategy;
 	observeAfterTokens: number;
 	reflectAfterTokens: number;
 	compactAfterTokens: number;
+	maxInitialObserveTokens: number;
 	observationsPoolMaxTokens: number;
 	observationsPoolTargetTokens: number;
 	agentMaxTurns: number;
@@ -28,12 +31,11 @@ export interface Config {
 }
 
 export const DEFAULTS: Config = {
-	memory: true,
-	compaction: "default",
-	additivePatch: true,
+	strategy: STRATEGY.additive,
 	observeAfterTokens: 10_000,
 	reflectAfterTokens: 20_000,
 	compactAfterTokens: 81_000,
+	maxInitialObserveTokens: 100_000,
 	observationsPoolMaxTokens: 20_000,
 	observationsPoolTargetTokens: 10_000,
 	agentMaxTurns: 16,
@@ -70,8 +72,8 @@ function nonEmptyString(value: unknown): string | undefined {
 	return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
-function isCompactionMode(value: unknown): value is CompactionMode {
-	return typeof value === "string" && (COMPACTION_VALUES as readonly string[]).includes(value);
+function isMemoryStrategy(value: unknown): value is MemoryStrategy {
+	return typeof value === "string" && Object.values(STRATEGY).includes(value as MemoryStrategy);
 }
 
 function normalizeModel(value: unknown): ConfiguredModel | undefined {
@@ -90,6 +92,7 @@ function normalizeSettingsConfig(value: Record<string, unknown>): Partial<Config
 		"observeAfterTokens",
 		"reflectAfterTokens",
 		"compactAfterTokens",
+		"maxInitialObserveTokens",
 		"observationsPoolMaxTokens",
 		"observationsPoolTargetTokens",
 		"agentMaxTurns",
@@ -99,9 +102,7 @@ function normalizeSettingsConfig(value: Record<string, unknown>): Partial<Config
 		const normalizedValue = positiveIntegerOrUndefined(value[key]);
 		if (normalizedValue !== undefined) normalized[key] = normalizedValue;
 	}
-	if (typeof value.memory === "boolean") normalized.memory = value.memory;
-	if (isCompactionMode(value.compaction)) normalized.compaction = value.compaction;
-	if (typeof value.additivePatch === "boolean") normalized.additivePatch = value.additivePatch;
+	if (isMemoryStrategy(value.strategy)) normalized.strategy = value.strategy;
 	if (typeof value.debugLog === "boolean") normalized.debugLog = value.debugLog;
 	const model = normalizeModel(value.model);
 	if (model) normalized.model = model;
