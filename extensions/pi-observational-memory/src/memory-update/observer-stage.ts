@@ -1,0 +1,106 @@
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { runObserver } from "../agents/observer/agent.js";
+import { debugLog } from "../debug-log.js";
+import { serializeSourceAddressedBranchEntries } from "../memory/serialize.js";
+import type { Runtime } from "../runtime.js";
+import {
+	OM_OBSERVATIONS_RECORDED,
+	buildObservationsRecordedData,
+	entryIndexById,
+	fullProjection,
+	latestCoverageIndex,
+	observationToSummaryLine,
+	rawTokensSinceObservationCoverage,
+	sourceEntryCountSinceObservationCoverage,
+	reflectionToSummaryLine,
+	type Entry,
+} from "../session-ledger/index.js";
+import { sourceEntriesAfter } from "./source-entries.js";
+import type { MemoryUpdateCtx, ResolveMemoryModel, StageOutcome } from "./types.js";
+
+export async function runObserverStage(
+	pi: ExtensionAPI,
+	runtime: Runtime,
+	ctx: MemoryUpdateCtx,
+	resolveModel: ResolveMemoryModel,
+	forceObserveBeforeEntryId?: string,
+): Promise<StageOutcome> {
+	const entries = ctx.sessionManager.getBranch() as Entry[];
+	const tokens = rawTokensSinceObservationCoverage(entries);
+	const lastCoverageIdx = latestCoverageIndex(entries, OM_OBSERVATIONS_RECORDED);
+	const boundaryIdx = forceObserveBeforeEntryId ? entryIndexById(entries).get(forceObserveBeforeEntryId) : undefined;
+	const sourceEntryCount = boundaryIdx === undefined
+		? sourceEntryCountSinceObservationCoverage(entries)
+		: sourceEntriesAfter(entries, lastCoverageIdx, boundaryIdx).length;
+	if (sourceEntryCount === 0) return "continue";
+	if (boundaryIdx === undefined && sourceEntryCount < runtime.config.observeEveryMessages) return "continue";
+
+	const chunkEntries = sourceEntriesAfter(entries, lastCoverageIdx, boundaryIdx);
+	const coversUpToId = chunkEntries.at(-1)?.id;
+	if (!coversUpToId) return "continue";
+	if (lastCoverageIdx === -1 && tokens > runtime.config.maxInitialObserveTokens) {
+		const data = buildObservationsRecordedData([], coversUpToId);
+		if (data) pi.appendEntry(OM_OBSERVATIONS_RECORDED, data);
+		debugLog("observer.initial_backfill_skipped", { tokens, coversUpToId });
+		if (ctx.hasUI) ctx.ui?.notify(
+			`Observational memory: skipped initial backfill for large existing session (~${tokens.toLocaleString()} tokens); observing future turns`,
+			"warning",
+		);
+		return "continue";
+	}
+
+	const { text: chunk, sourceEntryIds } = serializeSourceAddressedBranchEntries(chunkEntries);
+	if (!chunk.trim() || sourceEntryIds.length === 0) return "continue";
+
+	const memory = fullProjection(entries);
+	const priorReflections = memory.reflections.map(reflectionToSummaryLine);
+	const priorObservations = memory.observations.map(observationToSummaryLine);
+
+	if (ctx.hasUI) ctx.ui?.notify(
+		`Observational memory: observer running on ${sourceEntryCount.toLocaleString()} source entr${sourceEntryCount === 1 ? "y" : "ies"}`,
+		"info",
+	);
+	debugLog("observer.start", {
+		tokens,
+		coversUpToId,
+		sourceEntryIds,
+		sourceEntryCount: sourceEntryIds.length,
+		priorReflections: priorReflections.length,
+		priorObservations: priorObservations.length,
+	});
+
+	const resolved = await resolveModel("observer");
+	if (!resolved) return "abort";
+
+	const observations = await runObserver({
+		model: resolved.model as any,
+		apiKey: resolved.apiKey,
+		headers: resolved.headers,
+		priorReflections,
+		priorObservations,
+		chunk,
+		allowedSourceEntryIds: sourceEntryIds,
+		maxTurns: runtime.config.agentMaxTurns,
+		thinkingLevel: runtime.config.model?.thinking ?? "low",
+	});
+	if (!observations || observations.length === 0) {
+		debugLog("observer.empty", { coversUpToId });
+		if (ctx.hasUI) ctx.ui?.notify("Observational memory: observer returned no observations", "warning");
+		return "continue";
+	}
+
+	const data = buildObservationsRecordedData(observations, coversUpToId);
+	if (!data) return "continue";
+	debugLog("observer.records", {
+		count: observations.length,
+		observationTokens: observations.reduce((sum, observation) => sum + observation.tokenCount, 0),
+		coversUpToId,
+	});
+	pi.appendEntry(OM_OBSERVATIONS_RECORDED, data);
+	debugLog("observer.appended", { count: observations.length, coversUpToId });
+	if (ctx.hasUI) ctx.ui?.notify(
+		`Observational memory: ${observations.length} observation${observations.length === 1 ? "" : "s"} recorded`,
+		"info",
+	);
+	return "continue";
+}
