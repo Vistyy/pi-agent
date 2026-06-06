@@ -46,6 +46,7 @@ type RunPiSdkOptions = {
   compactionSettings?: { keepRecentTokens?: number; reserveTokens?: number };
   allowedTools?: string[];
   prepareMemoryBeforeCompact?: boolean;
+  memoryTriggerBeforeCompact?: boolean;
   memoryPrepareWaitMs?: number;
   memoryPrepareTurns?: number;
   waitAfterPromptMs?: number;
@@ -131,11 +132,14 @@ export async function runPiSdk(prompt: string, options: RunPiSdkOptions = {}): P
       }
     });
     let compaction: unknown;
-    if (options.prepareMemoryBeforeCompact && options.compactBeforePrompt) {
-      const turns = Math.max(1, options.memoryPrepareTurns ?? 1);
+    if ((options.prepareMemoryBeforeCompact || options.memoryTriggerBeforeCompact) && options.compactBeforePrompt) {
+      const turns = options.memoryTriggerBeforeCompact ? 1 : Math.max(1, options.memoryPrepareTurns ?? 1);
       for (let turn = 1; turn <= turns; turn += 1) {
         capturePhase = 'prep';
-        await session.prompt(`Prepare/update observational memory for this session. Observer eval turn ${turn}/${turns}. Reply READY only.`, { expandPromptTemplates: false });
+        const triggerPrompt = options.memoryTriggerBeforeCompact
+          ? 'Continue. Reply READY only.'
+          : `Prepare/update observational memory for this session. Observer eval turn ${turn}/${turns}. Reply READY only.`;
+        await session.prompt(triggerPrompt, { expandPromptTemplates: false });
         stdout = '';
         await new Promise((resolve) => setTimeout(resolve, options.memoryPrepareWaitMs ?? 5000));
       }

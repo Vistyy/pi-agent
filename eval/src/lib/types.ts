@@ -30,7 +30,7 @@ export type TokenUsage = {
   cost?: unknown;
 };
 
-export type PiInvocation = { kind: 'sdk'; model: string; sessionFile?: string; prompt: string; extensionPaths?: string[]; compactBeforePrompt?: boolean; compactInstructions?: string; compactionSettings?: { keepRecentTokens?: number; reserveTokens?: number }; allowedTools?: string[]; prepareMemoryBeforeCompact?: boolean; memoryPrepareWaitMs?: number; memoryPrepareTurns?: number };
+export type PiInvocation = { kind: 'sdk'; model: string; sessionFile?: string; prompt: string; extensionPaths?: string[]; compactBeforePrompt?: boolean; compactInstructions?: string; compactionSettings?: { keepRecentTokens?: number; reserveTokens?: number }; allowedTools?: string[]; prepareMemoryBeforeCompact?: boolean; memoryTriggerBeforeCompact?: boolean; memoryPrepareWaitMs?: number; memoryPrepareTurns?: number };
 
 export type AgentResult = {
   fixture: string;

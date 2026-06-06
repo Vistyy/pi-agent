@@ -58,9 +58,9 @@ function baseArgs(extra: string[] = []) {
 if (variant === 'clean') {
   run('npm', baseArgs());
 } else if (variant === 'om-additive' || variant === 'om-replacement') {
-  const prepArgs = forcedMemoryPrep ? ['--prepare-memory-before-compact', '--memory-prepare-turns', prepareTurns, '--memory-prepare-wait-ms', waitMs] : [];
+  const prepArgs = forcedMemoryPrep ? ['--prepare-memory-before-compact', '--memory-prepare-turns', prepareTurns, '--memory-prepare-wait-ms', waitMs] : ['--memory-trigger-before-compact', '--memory-prepare-wait-ms', waitMs];
   run('npm', baseArgs(['--cwd', cwd, '--extension', latestOmExtension, ...prepArgs, '--allow-tool', 'recall']));
 } else if (variant === 'original') {
-  const prepArgs = forcedMemoryPrep ? ['--prepare-memory-before-compact', '--memory-prepare-turns', prepareTurns, '--memory-prepare-wait-ms', waitMs] : [];
+  const prepArgs = forcedMemoryPrep ? ['--prepare-memory-before-compact', '--memory-prepare-turns', prepareTurns, '--memory-prepare-wait-ms', waitMs] : ['--memory-trigger-before-compact', '--memory-prepare-wait-ms', waitMs];
   run('npm', baseArgs(['--cwd', cwd, '--extension', originalOmExtension, ...prepArgs, '--allow-tool', 'recall']));
 }

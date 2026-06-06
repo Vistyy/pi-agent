@@ -26,6 +26,7 @@ const result = await runEval({
   allowedTools,
   cwd,
   prepareMemoryBeforeCompact: hasArg('--prepare-memory-before-compact'),
+  memoryTriggerBeforeCompact: hasArg('--memory-trigger-before-compact'),
   memoryPrepareWaitMs: Number(argValue('--memory-prepare-wait-ms') ?? '5000'),
   memoryPrepareTurns: Number(argValue('--memory-prepare-turns') ?? '1'),
 });
