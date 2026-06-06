@@ -22,6 +22,8 @@ Strategies:
 - `replacement` — replace Pi compaction with an observational-memory summary.
 - `off` — disable memory workers and memory compaction behavior.
 
+OM does not schedule compaction. Pi/manual/eval compaction triggers still run; OM flushes memory at the compaction boundary and can replace or augment the resulting context depending on strategy.
+
 ## Useful options
 
 ```json
@@ -30,7 +32,6 @@ Strategies:
     "strategy": "additive",
     "observeAfterTokens": 10000,
     "reflectAfterTokens": 20000,
-    "compactAfterTokens": 81000,
     "maxInitialObserveTokens": 100000,
     "additivePatchMaxTokens": 2000,
     "debugLog": false

@@ -20,7 +20,6 @@ export interface Config {
 	strategy: MemoryStrategy;
 	observeAfterTokens: number;
 	reflectAfterTokens: number;
-	compactAfterTokens: number;
 	maxInitialObserveTokens: number;
 	observationsPoolMaxTokens: number;
 	observationsPoolTargetTokens: number;
@@ -34,7 +33,6 @@ export const DEFAULTS: Config = {
 	strategy: STRATEGY.additive,
 	observeAfterTokens: 10_000,
 	reflectAfterTokens: 20_000,
-	compactAfterTokens: 81_000,
 	maxInitialObserveTokens: 100_000,
 	observationsPoolMaxTokens: 20_000,
 	observationsPoolTargetTokens: 10_000,
@@ -91,7 +89,6 @@ function normalizeSettingsConfig(value: Record<string, unknown>): Partial<Config
 	const numberKeys = [
 		"observeAfterTokens",
 		"reflectAfterTokens",
-		"compactAfterTokens",
 		"maxInitialObserveTokens",
 		"observationsPoolMaxTokens",
 		"observationsPoolTargetTokens",

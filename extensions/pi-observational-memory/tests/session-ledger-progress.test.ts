@@ -8,7 +8,6 @@ import {
 	latestCoverageMarkerId,
 	rawTokensAfterIndex,
 	rawTokensSinceDropCoverage,
-	rawTokensSinceLastCompaction,
 	rawTokensSinceObservationCoverage,
 	rawTokensSinceReflectionCoverage,
 } from "../src/session-ledger/index.js";

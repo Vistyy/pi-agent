@@ -89,12 +89,4 @@ describe("Runtime behavior", () => {
 		expect(notify).toHaveBeenCalledWith("Observational memory: reflector failed: reflect failed", "warning");
 		expect(notify).toHaveBeenCalledWith("Observational memory: dropper failed: drop failed", "warning");
 	});
-
-	it("keeps compaction flags independent", () => {
-		const runtime = new Runtime();
-		runtime.compactInFlight = true;
-		runtime.compactHookInFlight = true;
-		expect(runtime.consolidationInFlight).toBe(false);
-		expect(runtime.consolidationPhase).toBeUndefined();
-	});
 });

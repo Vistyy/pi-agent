@@ -5,7 +5,6 @@ import {
 	diffProjection,
 	foldLedger,
 	fullProjection,
-	rawTokensSinceLastCompaction,
 	rawTokensSinceObservationCoverage,
 	rawTokensSinceReflectionCoverage,
 	visibleProjection,
@@ -60,7 +59,6 @@ export function registerStatusCommand(pi: ExtensionAPI, runtime: Runtime): void 
 			);
 			const obsProgress = rawTokensSinceObservationCoverage(entries);
 			const reflectionProgress = rawTokensSinceReflectionCoverage(entries);
-			const compactionProgress = rawTokensSinceLastCompaction(entries);
 
 			const modeLines = [
 				"── Config ──",
@@ -77,19 +75,17 @@ export function registerStatusCommand(pi: ExtensionAPI, runtime: Runtime): void 
 				"── Activity ──",
 				`Next observation: ~${obsProgress.toLocaleString()} / ${runtime.config.observeAfterTokens.toLocaleString()} tokens (${pct(obsProgress, runtime.config.observeAfterTokens)}%)`,
 				`Next reflection:  ~${reflectionProgress.toLocaleString()} / ${runtime.config.reflectAfterTokens.toLocaleString()} tokens (${pct(reflectionProgress, runtime.config.reflectAfterTokens)}%)`,
-				`Next compaction:  ~${compactionProgress.toLocaleString()} / ${runtime.config.compactAfterTokens.toLocaleString()} tokens (${pct(compactionProgress, runtime.config.compactAfterTokens)}%)`,
 				`Visible observation pool: ~${visibleObservationTokens.toLocaleString()} / ${runtime.config.observationsPoolMaxTokens.toLocaleString()} tokens (${pct(visibleObservationTokens, runtime.config.observationsPoolMaxTokens)}%)`,
 				`Active observation pool: ~${activeObservationPool.observationTokens.toLocaleString()} / ${runtime.config.observationsPoolTargetTokens.toLocaleString()} target tokens (${pct(activeObservationPool.observationTokens, runtime.config.observationsPoolTargetTokens)}%)`,
 				`Reflection pool:         ~${visibleReflectionTokens.toLocaleString()} tokens`,
 			];
 
-			if (runtime.consolidationInFlight || runtime.compactInFlight || runtime.compactHookInFlight) {
+			if (runtime.consolidationInFlight || runtime.compactHookInFlight) {
 				lines.push("", "── In flight ──");
 				if (runtime.consolidationInFlight) {
 					const phase = runtime.consolidationPhase ? ` (${runtime.consolidationPhase})` : "";
 					lines.push(`Consolidation: running${phase}`);
 				}
-				if (runtime.compactInFlight) lines.push("Auto-compaction: running");
 				if (runtime.compactHookInFlight) lines.push("Compaction hook: running");
 			}
 
