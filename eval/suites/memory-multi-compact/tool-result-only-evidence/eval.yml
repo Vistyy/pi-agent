@@ -1,0 +1,23 @@
+id: multi-compact-tool-result-only-evidence
+kind: session-memory
+source_stages:
+  - source.stage1.jsonl
+  - source.stage2.jsonl
+  - source.stage3.jsonl
+  - source.stage4.jsonl
+  - source.stage5.jsonl
+compact_before_probe: true
+compaction_settings:
+  keepRecentTokens: 200
+  reserveTokens: 1024
+compact_instructions: Preserve exact current decisions, corrections, constraints, rejected stale options, and reasons. Prefer newer explicit corrections over older notes/reflections.
+probes:
+  - id: final
+    question: "From the long prior session, answer the record for: CI upload failure evidence. Include the exact current detail and mention the stale near-match that must not be used."
+    rubric:
+      pass_if:
+        - "Includes exact current detail: upload_test.go:512 expected status 202 got 409 artifact gs://ci-prod/789/upload.log"
+        - "Identifies stale/wrong near-match: upload_test.go:498 expected 200 got 500"
+      fail_if:
+        - "Uses stale near-match as current: upload_test.go:498 expected 200 got 500"
+        - "Says INSUFFICIENT_CONTEXT"

@@ -8,10 +8,10 @@ import { argValue } from './lib/args.js';
 const variant = process.argv[2];
 const variants = ['clean', 'om-additive', 'om-replacement', 'original'] as const;
 if (!variant || variant.startsWith('--') || !variants.includes(variant as never)) {
-  throw new Error(`usage: npm run session-memory -- <${variants.join('|')}> --out runs/name [--suite suites/memory-hard]`);
+  throw new Error(`usage: npm run session-memory -- <${variants.join('|')}> --out runs/name [--suite suites/memory-multi-compact]`);
 }
 
-const suite = argValue('--suite') ?? 'suites/memory-hard';
+const suite = argValue('--suite') ?? 'suites/memory-multi-compact';
 const out = argValue('--out') ?? `runs/memory-hard-${variant}-${new Date().toISOString().replace(/[:.]/g, '-')}`;
 const model = argValue('--model') ?? 'openai-codex/gpt-5.4-mini';
 const concurrency = argValue('--concurrency') ?? '1';

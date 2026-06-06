@@ -1,2 +1,0 @@
-{"type": "message", "id": "s3-1", "parentId": "root", "timestamp": "2026-01-03T00:01:00.000Z", "message": {"role": "user", "content": [{"type": "text", "text": "Current rule: never run `dbctl promote --cluster blue --force`; only `dbctl promote --cluster green --verify-only` may be suggested."}]}}
-{"type": "message", "id": "s3-2", "parentId": "s3-1", "timestamp": "2026-01-03T00:02:00.000Z", "message": {"role": "assistant", "content": [{"type": "text", "text": "Recorded final rule."}]}}

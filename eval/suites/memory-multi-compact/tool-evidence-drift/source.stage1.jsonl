@@ -1,3 +1,0 @@
-{"type": "session", "id": "multi-tool-evidence-drift", "timestamp": 0}
-{"type": "message", "id": "s1-1", "parentId": "root", "timestamp": "2026-01-01T00:01:00.000Z", "message": {"role": "user", "content": [{"type": "text", "text": "Tool output from CI: test `CacheRefresh.revalidates stale shard` failed at cache_refresh_test.go:318 with expected token \"shard-v7\" but got \"shard-v6\"."}]}}
-{"type": "message", "id": "s1-2", "parentId": "s1-1", "timestamp": "2026-01-01T00:02:00.000Z", "message": {"role": "assistant", "content": [{"type": "text", "text": "Recorded CI failure detail."}]}}

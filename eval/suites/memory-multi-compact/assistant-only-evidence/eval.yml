@@ -1,0 +1,23 @@
+id: multi-compact-assistant-only-evidence
+kind: session-memory
+source_stages:
+  - source.stage1.jsonl
+  - source.stage2.jsonl
+  - source.stage3.jsonl
+  - source.stage4.jsonl
+  - source.stage5.jsonl
+compact_before_probe: true
+compaction_settings:
+  keepRecentTokens: 200
+  reserveTokens: 1024
+compact_instructions: Preserve exact current decisions, corrections, constraints, rejected stale options, and reasons. Prefer newer explicit corrections over older notes/reflections.
+probes:
+  - id: final
+    question: "From the long prior session, answer the record for: assistant inspection deprecated hook. Include the exact current detail and mention the stale near-match that must not be used."
+    rubric:
+      pass_if:
+        - "Includes exact current detail: packages/ui/src/nav/Sidebar.tsx imports useLegacyRoute"
+        - "Identifies stale/wrong near-match: Header.tsx false positive"
+      fail_if:
+        - "Uses stale near-match as current: Header.tsx false positive"
+        - "Says INSUFFICIENT_CONTEXT"

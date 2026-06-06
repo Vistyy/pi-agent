@@ -1,0 +1,23 @@
+id: multi-compact-current-rule-temporal-expiry
+kind: session-memory
+source_stages:
+  - source.stage1.jsonl
+  - source.stage2.jsonl
+  - source.stage3.jsonl
+  - source.stage4.jsonl
+  - source.stage5.jsonl
+compact_before_probe: true
+compaction_settings:
+  keepRecentTokens: 200
+  reserveTokens: 1024
+compact_instructions: Preserve exact current decisions, corrections, constraints, rejected stale options, and reasons. Prefer newer explicit corrections over older notes/reflections.
+probes:
+  - id: final
+    question: "From the long prior session, answer the record for: current token TTL after incident. Include the exact current detail and mention the stale near-match that must not be used."
+    rubric:
+      pass_if:
+        - "Includes exact current detail: TOKEN_TTL_DAYS=7 due INC-7781"
+        - "Identifies stale/wrong near-match: TOKEN_TTL_DAYS=30"
+      fail_if:
+        - "Uses stale near-match as current: TOKEN_TTL_DAYS=30"
+        - "Says INSUFFICIENT_CONTEXT"

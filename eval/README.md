@@ -5,7 +5,7 @@ Small benchmark for comparing Pi default compaction against observational-memory
 ## Active suite
 
 ```text
-suites/memory-hard/      10 hardest retained cases
+suites/memory-multi-compact/      10 hardest retained cases
 runs/                    generated results, gitignored
 scratch-historical/      private scratch, gitignored
 ```
@@ -37,7 +37,7 @@ npm install
 Dry run:
 
 ```bash
-npm run eval -- suites/memory-hard --dry-run --out /tmp/pi-memory-hard-plan
+npm run eval -- suites/memory-multi-compact --dry-run --out /tmp/pi-memory-hard-plan
 ```
 
 Default Pi:
@@ -72,7 +72,7 @@ Useful options:
 ```text
 --model provider/model
 --concurrency N
---suite suites/memory-hard
+--suite suites/memory-multi-compact
 --cwd /tmp/custom-pi-cwd
 ```
 

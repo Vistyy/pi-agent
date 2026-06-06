@@ -1,2 +1,0 @@
-{"type": "message", "id": "s3-1", "parentId": "root", "timestamp": "2026-01-03T00:01:00.000Z", "message": {"role": "user", "content": [{"type": "text", "text": "Final evidence rule: cite the CI tool result only: cache_refresh_test.go:318 expected \"shard-v7\" got \"shard-v6\"."}]}}
-{"type": "message", "id": "s3-2", "parentId": "s3-1", "timestamp": "2026-01-03T00:02:00.000Z", "message": {"role": "assistant", "content": [{"type": "text", "text": "Recorded final CI evidence rule."}]}}

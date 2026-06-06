@@ -1,0 +1,23 @@
+id: multi-compact-ambiguous-similar-errors
+kind: session-memory
+source_stages:
+  - source.stage1.jsonl
+  - source.stage2.jsonl
+  - source.stage3.jsonl
+  - source.stage4.jsonl
+  - source.stage5.jsonl
+compact_before_probe: true
+compaction_settings:
+  keepRecentTokens: 200
+  reserveTokens: 1024
+compact_instructions: Preserve exact current decisions, corrections, constraints, rejected stale options, and reasons. Prefer newer explicit corrections over older notes/reflections.
+probes:
+  - id: final
+    question: "From the long prior session, answer the record for: retry-path cache failure. Include the exact current detail and mention the stale near-match that must not be used."
+    rubric:
+      pass_if:
+        - "Includes exact current detail: cache.test.ts:274 expected \"cache refresh\" got \"cache stale\""
+        - "Identifies stale/wrong near-match: cache.test.ts:247 expected \"cache hit\" got \"cache miss\""
+      fail_if:
+        - "Uses stale near-match as current: cache.test.ts:247 expected \"cache hit\" got \"cache miss\""
+        - "Says INSUFFICIENT_CONTEXT"
