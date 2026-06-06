@@ -2,12 +2,12 @@ import { agentLoop, type AgentContext, type AgentLoopConfig, type AgentTool } fr
 import type { Message, Model, ModelThinkingLevel } from "@earendil-works/pi-ai";
 import { Type } from "@earendil-works/pi-ai";
 import type { Static } from "typebox";
-import { hashId } from "../../ids.js";
-import { AGENT_LOOP_MAX_TOKENS, boundedMaxTokens } from "../../model-budget.js";
+import { hashId } from "../../memory/ids.js";
+import { AGENT_LOOP_MAX_TOKENS, boundedMaxTokens } from "../model-budget.js";
 import { OBSERVER_SYSTEM } from "./prompts.js";
-import { nowTimestamp, truncateRecordContent } from "../../serialize.js";
+import { nowTimestamp, truncateRecordContent } from "../../memory/serialize.js";
 import type { Observation, Relevance } from "../../session-ledger/index.js";
-import { estimateStringTokens } from "../../tokens.js";
+import { estimateStringTokens } from "../../memory/token-estimate.js";
 
 interface RunObserverArgs {
 	model: Model<any>;

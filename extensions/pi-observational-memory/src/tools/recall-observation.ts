@@ -10,8 +10,8 @@ import {
 	type RecalledObservation,
 } from "../session-ledger/recall.js";
 import type { Observation, Reflection } from "../session-ledger/index.js";
-import { renderRecallSourceEntries, renderRecallSourceEntry } from "../serialize.js";
-import { estimateEntryTokens } from "../tokens.js";
+import { renderRecallSourceEntries, renderRecallSourceEntry } from "../memory/serialize.js";
+import { estimateEntryTokens } from "../memory/token-estimate.js";
 
 export const RECALL_OBSERVATION_TOOL_NAME = "recall";
 

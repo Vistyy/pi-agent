@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { normalizeSourceEntryIds, OBSERVATION_TIMESTAMP_PATTERN, runObserver } from "../src/agents/observer/agent.js";
-import { estimateStringTokens } from "../src/tokens.js";
+import { estimateStringTokens } from "../src/memory/token-estimate.js";
 import { fakeAgentLoop } from "./fixtures/agent-loop.js";
 
 describe("OBSERVATION_TIMESTAMP_PATTERN", () => {

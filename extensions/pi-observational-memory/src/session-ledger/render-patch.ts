@@ -1,4 +1,4 @@
-import { estimateStringTokens } from "../tokens.js";
+import { estimateStringTokens } from "../memory/token-estimate.js";
 import type { Observation, Reflection } from "./types.js";
 
 export type MemoryPatchOptions = {

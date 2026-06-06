@@ -3,11 +3,11 @@ import type { Message, Model, ModelThinkingLevel } from "@earendil-works/pi-ai";
 import { Type } from "@earendil-works/pi-ai";
 import type { Static } from "typebox";
 import { debugLog } from "../../debug-log.js";
-import { hashId } from "../../ids.js";
-import { AGENT_LOOP_MAX_TOKENS, boundedMaxTokens } from "../../model-budget.js";
-import { truncateRecordContent } from "../../serialize.js";
+import { hashId } from "../../memory/ids.js";
+import { AGENT_LOOP_MAX_TOKENS, boundedMaxTokens } from "../model-budget.js";
+import { truncateRecordContent } from "../../memory/serialize.js";
 import { REFLECTOR_SYSTEM } from "./prompts.js";
-import { estimateStringTokens } from "../../tokens.js";
+import { estimateStringTokens } from "../../memory/token-estimate.js";
 import { reflectionToSummaryLine, type Observation, type Reflection } from "../../session-ledger/index.js";
 import {
 	coverageTierForObservation,

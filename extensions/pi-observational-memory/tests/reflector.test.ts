@@ -6,8 +6,8 @@ import {
 	runReflector,
 	summarizeSupportIdCounts,
 } from "../src/agents/reflector/agent.js";
-import { hashId } from "../src/ids.js";
-import { estimateStringTokens } from "../src/tokens.js";
+import { hashId } from "../src/memory/ids.js";
+import { estimateStringTokens } from "../src/memory/token-estimate.js";
 import { fakeAgentLoop } from "./fixtures/agent-loop.js";
 import { observation, reflection } from "./fixtures/session.js";
 

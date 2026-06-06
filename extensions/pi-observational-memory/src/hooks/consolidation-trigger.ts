@@ -6,7 +6,7 @@ import { runReflector } from "../agents/reflector/agent.js";
 import { STRATEGY } from "../config.js";
 import { debugLog, withDebugLogContext } from "../debug-log.js";
 import { type ResolveResult, type Runtime } from "../runtime.js";
-import { serializeSourceAddressedBranchEntries } from "../serialize.js";
+import { serializeSourceAddressedBranchEntries } from "../memory/serialize.js";
 import {
 	OM_OBSERVATIONS_DROPPED,
 	OM_OBSERVATIONS_RECORDED,

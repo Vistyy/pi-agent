@@ -1,4 +1,4 @@
-import { estimateEntryTokens } from "../tokens.js";
+import { estimateEntryTokens } from "../memory/token-estimate.js";
 import {
 	OM_OBSERVATIONS_DROPPED,
 	OM_OBSERVATIONS_RECORDED,
