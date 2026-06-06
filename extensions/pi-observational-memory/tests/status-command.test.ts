@@ -24,12 +24,14 @@ function setup(args: { entries: TestEntry[]; runtime?: Partial<Runtime> }) {
 	const runtime = {
 		ensureConfig: vi.fn(),
 		config: {
+			memory: true,
+			compaction: "replacement",
+			additivePatch: false,
 			observeAfterTokens: 10,
 			reflectAfterTokens: 20,
 			compactAfterTokens: 30,
 			observationsPoolMaxTokens: 40,
 			observationsPoolTargetTokens: 20,
-			passive: false,
 		},
 		consolidationInFlight: false,
 		consolidationPhase: undefined,
@@ -98,11 +100,11 @@ describe("/om:status", () => {
 		expect(output).toContain("Active observation pool: ~25 / 20 target tokens (125%)");
 	});
 
-	it("shows passive mode, consolidation in flight, compaction in flight, and stage-specific last errors", async () => {
+	it("shows disabled config, consolidation in flight, compaction in flight, and stage-specific last errors", async () => {
 		const output = await setup({
 			entries: [],
 			runtime: {
-				config: { observeAfterTokens: 10, reflectAfterTokens: 20, compactAfterTokens: 30, observationsPoolMaxTokens: 40, observationsPoolTargetTokens: 20, passive: true },
+				config: { memory: false, compaction: "off", additivePatch: false, observeAfterTokens: 10, reflectAfterTokens: 20, compactAfterTokens: 30, observationsPoolMaxTokens: 40, observationsPoolTargetTokens: 20 },
 				consolidationInFlight: true,
 				consolidationPhase: "reflector",
 				compactInFlight: true,
@@ -113,7 +115,9 @@ describe("/om:status", () => {
 			},
 		}).run();
 
-		expect(output).toContain("Passive: automatic memory workers and auto-compaction disabled");
+		expect(output).toContain("Memory: off");
+		expect(output).toContain("Compaction: off");
+		expect(output).toContain("Additive patch: off");
 		expect(output).toContain("Consolidation: running (reflector)");
 		expect(output).toContain("Auto-compaction: running");
 		expect(output).toContain("Compaction hook: running");

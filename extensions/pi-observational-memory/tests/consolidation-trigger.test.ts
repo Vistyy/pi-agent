@@ -44,7 +44,7 @@ function setup(args: {
 	reflectAfterTokens?: number;
 	observationsPoolMaxTokens?: number;
 	observationsPoolTargetTokens?: number;
-	passive?: boolean;
+	memory?: boolean;
 	consolidationInFlight?: boolean;
 	appendEntryReturnsId?: boolean;
 }) {
@@ -59,7 +59,7 @@ function setup(args: {
 	let launchedWork: (() => Promise<void>) | undefined;
 	const runtime = {
 		config: {
-			passive: args.passive ?? false,
+			memory: args.memory ?? true,
 			debugLog: false,
 			observeAfterTokens: args.observeAfterTokens ?? 1,
 			reflectAfterTokens: args.reflectAfterTokens ?? 1,
@@ -134,14 +134,14 @@ describe("consolidation trigger", () => {
 		expect(runtime.launchConsolidationTask).not.toHaveBeenCalled();
 	});
 
-	it("does not launch from either entrypoint in passive mode", () => {
+	it("does not launch from either entrypoint when memory is off", () => {
 		const entries = [textCustomMessage("raw-1", "aaaaaaaa")];
-		const passive = setup({ entries, passive: true });
+		const disabled = setup({ entries, memory: false });
 
-		passive.fireAgentStart();
-		passive.fireTurnEnd();
+		disabled.fireAgentStart();
+		disabled.fireTurnEnd();
 
-		expect(passive.runtime.launchConsolidationTask).not.toHaveBeenCalled();
+		expect(disabled.runtime.launchConsolidationTask).not.toHaveBeenCalled();
 	});
 
 	it("does not launch from either entrypoint while consolidation is already in flight", () => {

@@ -13,7 +13,7 @@ const RETRYABLE_ERROR_RE =
 export function registerCompactionTrigger(pi: ExtensionAPI, runtime: Runtime): void {
 	pi.on("agent_end", (event: any, ctx: any) => {
 		runtime.ensureConfig(ctx.cwd);
-		if (runtime.config.passive === true) return;
+		if (runtime.config.compaction === "off") return;
 		if (runtime.compactInFlight) return;
 
 		// Don't trigger compaction if Pi will auto-retry — the agent hasn't truly finished.

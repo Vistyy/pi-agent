@@ -28,7 +28,7 @@ type OmCompactionResult = {
 	};
 };
 
-function setup(args: { entries: TestEntry[]; observationsPoolMaxTokens?: number; compactHookInFlight?: boolean }) {
+function setup(args: { entries: TestEntry[]; observationsPoolMaxTokens?: number; compactHookInFlight?: boolean; compaction?: "default" | "replacement" | "off" }) {
 	let handler: BeforeCompactHandler | undefined;
 	const appendEntry = vi.fn();
 	const pi = beforeCompactApi((cb) => {
@@ -36,6 +36,7 @@ function setup(args: { entries: TestEntry[]; observationsPoolMaxTokens?: number;
 	}, appendEntry);
 	const runtime = {
 		config: {
+			compaction: args.compaction ?? "replacement",
 			observationsPoolMaxTokens: args.observationsPoolMaxTokens ?? 20_000,
 		},
 		compactHookInFlight: args.compactHookInFlight ?? false,
@@ -62,6 +63,13 @@ function setup(args: { entries: TestEntry[]; observationsPoolMaxTokens?: number;
 }
 
 describe("compaction hook", () => {
+	it("does not replace default compaction outside replacement compaction", async () => {
+		const entries = [textCustomMessage("raw-1", "aaaa")];
+
+		await expect(setup({ entries, compaction: "default" }).run("raw-1")).resolves.toBeUndefined();
+		await expect(setup({ entries, compaction: "off" }).run("raw-1")).resolves.toBeUndefined();
+	});
+
 	it("returns valid empty om.folded details when there is no memory", async () => {
 		const entries = [textCustomMessage("raw-1", "aaaa")];
 		const { run, runtime, pi } = setup({ entries });

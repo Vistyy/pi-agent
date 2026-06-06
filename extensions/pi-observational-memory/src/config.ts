@@ -9,33 +9,41 @@ export interface ConfiguredModel {
 	thinking?: ModelThinkingLevel;
 }
 
+export const COMPACTION_VALUES = ["default", "replacement", "off"] as const;
+export type CompactionMode = (typeof COMPACTION_VALUES)[number];
+
 export interface Config {
+	memory: boolean;
+	compaction: CompactionMode;
+	additivePatch: boolean;
 	observeAfterTokens: number;
 	reflectAfterTokens: number;
 	compactAfterTokens: number;
 	observationsPoolMaxTokens: number;
 	observationsPoolTargetTokens: number;
 	agentMaxTurns: number;
+	additivePatchMaxTokens: number;
 	model?: ConfiguredModel;
-	passive: boolean;
 	debugLog: boolean;
 }
 
 export const DEFAULTS: Config = {
+	memory: true,
+	compaction: "default",
+	additivePatch: true,
 	observeAfterTokens: 10_000,
 	reflectAfterTokens: 20_000,
 	compactAfterTokens: 81_000,
 	observationsPoolMaxTokens: 20_000,
 	observationsPoolTargetTokens: 10_000,
 	agentMaxTurns: 16,
-	passive: false,
+	additivePatchMaxTokens: 2_000,
 	debugLog: false,
 };
 
 export const THINKING_LEVEL_VALUES: readonly ModelThinkingLevel[] = ["off", "minimal", "low", "medium", "high", "xhigh"] as const;
 
 const SETTINGS_KEY = "observational-memory";
-const PASSIVE_ENV = "PI_OBSERVATIONAL_MEMORY_PASSIVE";
 
 function positiveIntegerOrUndefined(value: unknown): number | undefined {
 	return Number.isInteger(value) && typeof value === "number" && value > 0 ? value : undefined;
@@ -62,6 +70,10 @@ function nonEmptyString(value: unknown): string | undefined {
 	return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
+function isCompactionMode(value: unknown): value is CompactionMode {
+	return typeof value === "string" && (COMPACTION_VALUES as readonly string[]).includes(value);
+}
+
 function normalizeModel(value: unknown): ConfiguredModel | undefined {
 	if (!isRecord(value)) return undefined;
 	const provider = nonEmptyString(value.provider);
@@ -81,25 +93,19 @@ function normalizeSettingsConfig(value: Record<string, unknown>): Partial<Config
 		"observationsPoolMaxTokens",
 		"observationsPoolTargetTokens",
 		"agentMaxTurns",
+		"additivePatchMaxTokens",
 	] as const;
 	for (const key of numberKeys) {
 		const normalizedValue = positiveIntegerOrUndefined(value[key]);
 		if (normalizedValue !== undefined) normalized[key] = normalizedValue;
 	}
-	if (typeof value.passive === "boolean") normalized.passive = value.passive;
+	if (typeof value.memory === "boolean") normalized.memory = value.memory;
+	if (isCompactionMode(value.compaction)) normalized.compaction = value.compaction;
+	if (typeof value.additivePatch === "boolean") normalized.additivePatch = value.additivePatch;
 	if (typeof value.debugLog === "boolean") normalized.debugLog = value.debugLog;
 	const model = normalizeModel(value.model);
 	if (model) normalized.model = model;
 	return normalized;
-}
-
-export function readEnvConfig(env: NodeJS.ProcessEnv = process.env): Partial<Config> {
-	const rawPassive = env[PASSIVE_ENV];
-	if (rawPassive === undefined) return {};
-	const passive = rawPassive.trim().toLowerCase();
-	if (["1", "true", "yes", "on"].includes(passive)) return { passive: true };
-	if (["0", "false", "no", "off"].includes(passive)) return { passive: false };
-	return {};
 }
 
 function readNamespacedConfig(path: string): Partial<Config> {
@@ -113,18 +119,16 @@ function readNamespacedConfig(path: string): Partial<Config> {
 	}
 }
 
-export function loadConfig(cwd: string, env: NodeJS.ProcessEnv = process.env): Config {
+export function loadConfig(cwd: string): Config {
 	const globalPath = join(getAgentDir(), "settings.json");
 	const projectPath = join(cwd, ".pi", "settings.json");
 	const globalConfig = readNamespacedConfig(globalPath);
 	const projectConfig = readNamespacedConfig(projectPath);
-	const envConfig = readEnvConfig(env);
 	const merged = {
 		...DEFAULTS,
 		observationsPoolTargetTokens: undefined,
 		...globalConfig,
 		...projectConfig,
-		...envConfig,
 	};
 	const target = validTargetOrUndefined(
 		merged.observationsPoolTargetTokens,

@@ -9,7 +9,7 @@ vi.mock("@earendil-works/pi-coding-agent", () => ({
 	getAgentDir: () => mock.agentDir,
 }));
 
-import { DEFAULTS, loadConfig, readEnvConfig } from "../src/config.js";
+import { DEFAULTS, loadConfig } from "../src/config.js";
 
 function writeJson(path: string, value: unknown) {
 	mkdirSync(join(path, ".."), { recursive: true });
@@ -36,48 +36,59 @@ describe("config", () => {
 
 	it("uses defaults", () => {
 		expect(DEFAULTS).toEqual({
+			memory: true,
+			compaction: "default",
+			additivePatch: true,
 			observeAfterTokens: 10000,
 			reflectAfterTokens: 20000,
 			compactAfterTokens: 81000,
 			observationsPoolMaxTokens: 20000,
 			observationsPoolTargetTokens: 10000,
 			agentMaxTurns: 16,
-			passive: false,
+			additivePatchMaxTokens: 2000,
 			debugLog: false,
 		});
-		expect(loadConfig(cwd, {})).toEqual(DEFAULTS);
+		expect(loadConfig(cwd)).toEqual(DEFAULTS);
 	});
 
-	it("merges global, project, and env settings in order", () => {
+	it("merges global and project settings in order", () => {
 		writeJson(join(agentDir, "settings.json"), {
 			"observational-memory": {
+				memory: false,
+				compaction: "off",
+				additivePatch: true,
 				observeAfterTokens: 10,
 				reflectAfterTokens: 20,
 				compactAfterTokens: 30,
 				observationsPoolMaxTokens: 40,
 				observationsPoolTargetTokens: 15,
 				agentMaxTurns: 5,
+				additivePatchMaxTokens: 500,
 				model: { provider: "anthropic", id: "global", thinking: "medium" },
-				passive: false,
 				debugLog: true,
 			},
 		});
 		writeJson(join(cwd, ".pi", "settings.json"), {
 			"observational-memory": {
+				memory: true,
+				compaction: "default",
 				observeAfterTokens: 100,
 				model: { provider: "openai", id: "project", thinking: "low" },
 			},
 		});
 
-		expect(loadConfig(cwd, { PI_OBSERVATIONAL_MEMORY_PASSIVE: "true" })).toMatchObject({
+		expect(loadConfig(cwd)).toMatchObject({
+			memory: true,
+			compaction: "default",
+			additivePatch: true,
 			observeAfterTokens: 100,
 			reflectAfterTokens: 20,
 			compactAfterTokens: 30,
 			observationsPoolMaxTokens: 40,
 			observationsPoolTargetTokens: 15,
 			agentMaxTurns: 5,
+			additivePatchMaxTokens: 500,
 			model: { provider: "openai", id: "project", thinking: "low" },
-			passive: true,
 			debugLog: true,
 		});
 	});
@@ -85,6 +96,9 @@ describe("config", () => {
 	it("ignores invalid values", () => {
 		writeJson(join(cwd, ".pi", "settings.json"), {
 			"observational-memory": {
+				memory: "yes",
+				compaction: "unknown",
+				additivePatch: "yes",
 				observeAfterTokens: -1,
 				reflectAfterTokens: 0,
 				compactAfterTokens: 1.5,
@@ -92,12 +106,11 @@ describe("config", () => {
 				observationsPoolTargetTokens: "10000",
 				agentMaxTurns: null,
 				model: { provider: "anthropic", id: "", thinking: "huge" },
-				passive: "yes",
 				debugLog: "true",
 			},
 		});
 
-		expect(loadConfig(cwd, {})).toEqual(DEFAULTS);
+		expect(loadConfig(cwd)).toEqual(DEFAULTS);
 	});
 
 	it("derives observation pool target from the final max when omitted", () => {
@@ -107,7 +120,7 @@ describe("config", () => {
 			},
 		});
 
-		expect(loadConfig(cwd, {})).toMatchObject({
+		expect(loadConfig(cwd)).toMatchObject({
 			observationsPoolMaxTokens: 40,
 			observationsPoolTargetTokens: 20,
 		});
@@ -126,15 +139,9 @@ describe("config", () => {
 			},
 		});
 
-		expect(loadConfig(cwd, {})).toMatchObject({
+		expect(loadConfig(cwd)).toMatchObject({
 			observationsPoolMaxTokens: 40,
 			observationsPoolTargetTokens: 20,
 		});
-	});
-
-	it("parses passive env override", () => {
-		expect(readEnvConfig({ PI_OBSERVATIONAL_MEMORY_PASSIVE: "on" })).toEqual({ passive: true });
-		expect(readEnvConfig({ PI_OBSERVATIONAL_MEMORY_PASSIVE: "0" })).toEqual({ passive: false });
-		expect(readEnvConfig({ PI_OBSERVATIONAL_MEMORY_PASSIVE: "maybe" })).toEqual({});
 	});
 });

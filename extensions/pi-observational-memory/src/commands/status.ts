@@ -62,16 +62,16 @@ export function registerStatusCommand(pi: ExtensionAPI, runtime: Runtime): void 
 			const reflectionProgress = rawTokensSinceReflectionCoverage(entries);
 			const compactionProgress = rawTokensSinceLastCompaction(entries);
 
-			const passiveLines = runtime.config.passive === true
-				? [
-					"── Mode ──",
-					"Passive: automatic memory workers and auto-compaction disabled; manual/Pi compaction, commands, and recall remain active",
-					"",
-				]
-				: [];
+			const modeLines = [
+				"── Config ──",
+				`Memory: ${runtime.config.memory ? "on" : "off"}`,
+				`Compaction: ${runtime.config.compaction}`,
+				`Additive patch: ${runtime.config.additivePatch ? "on" : "off"}`,
+				"",
+			];
 
 			const lines = [
-				...passiveLines,
+				...modeLines,
 				"── Memory ──",
 				observationLine,
 				reflectionLine,

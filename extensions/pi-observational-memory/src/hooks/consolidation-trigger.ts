@@ -117,7 +117,7 @@ function debugSessionMetadata(ctx: ConsolidationCtx): { sessionId?: string; sess
 
 function maybeLaunchConsolidation(pi: ExtensionAPI, runtime: Runtime, ctx: ConsolidationCtx): void {
 	runtime.ensureConfig(ctx.cwd);
-	if (runtime.config.passive === true) return;
+	if (!runtime.config.memory) return;
 	if (runtime.consolidationInFlight) return;
 
 	const entries = ctx.sessionManager.getBranch() as Entry[];

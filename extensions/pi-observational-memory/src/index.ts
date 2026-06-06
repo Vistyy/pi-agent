@@ -1,6 +1,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { registerStatusCommand } from "./commands/status.js";
 import { registerViewCommand } from "./commands/view.js";
+import { registerAdditiveContext } from "./hooks/additive-context.js";
 import { registerCompactionHook } from "./hooks/compaction-hook.js";
 import { registerCompactionTrigger } from "./hooks/compaction-trigger.js";
 import { registerConsolidationTrigger } from "./hooks/consolidation-trigger.js";
@@ -13,6 +14,7 @@ export default function observationalMemory(pi: ExtensionAPI) {
 	registerConsolidationTrigger(pi, runtime);
 	registerCompactionTrigger(pi, runtime);
 	registerCompactionHook(pi, runtime);
+	registerAdditiveContext(pi, runtime);
 
 	registerStatusCommand(pi, runtime);
 	registerViewCommand(pi, runtime);
