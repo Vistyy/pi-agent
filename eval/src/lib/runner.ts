@@ -130,7 +130,7 @@ export async function runEval(options: EvalOptions) {
 
   const judged = await mapLimit(tasks, concurrency, async ({ fixture, probe, invocation }): Promise<JudgedResult> => {
     const run = await runPiSdk(invocation.prompt, { model, sessionFile: invocation.sessionFile, cwd: options.cwd, extensionPaths: invocation.extensionPaths, compactBeforePrompt: invocation.compactBeforePrompt, compactInstructions: invocation.compactInstructions, compactionSettings: invocation.compactionSettings, allowedTools: invocation.allowedTools, prepareMemoryBeforeCompact: invocation.prepareMemoryBeforeCompact, memoryPrepareWaitMs: invocation.memoryPrepareWaitMs, memoryPrepareTurns: invocation.memoryPrepareTurns });
-    const answer: AgentResult = { fixture, probe: probe.id, invocation, compaction: run.compaction, executed: true, exitCode: run.status, durationMs: run.durationMs, answer: run.stdout.trim(), stderr: run.stderr, usage: run.usage, answerUsage: run.answerUsage, compactionUsage: run.compactionUsage };
+    const answer: AgentResult = { fixture, probe: probe.id, invocation, compaction: run.compaction, executed: true, exitCode: run.status, durationMs: run.durationMs, answer: run.stdout.trim(), stderr: run.stderr, usage: run.usage, prepUsage: run.prepUsage, answerUsage: run.answerUsage, compactionUsage: run.compactionUsage };
     const { run: judgeRun, judge } = await runJudge(probe, answer.answer, judgeModel);
     return { ...answer, judge, classification: classifyResult(answer, judgeRun.status, judge.passed), judgeExitCode: judgeRun.status, judgeStderr: judgeRun.stderr, judgeDurationMs: judgeRun.durationMs, judgeUsage: judgeRun.usage };
   });

@@ -11,11 +11,13 @@ function addUsage(a: Required<Pick<TokenUsage, 'input'|'output'|'cacheRead'|'cac
 }
 
 export function writeSummary(results: JudgedResult[], outDir: string, extra: { wallClockMs?: number; calibration?: unknown } = {}) {
+  const prepUsage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0 };
   const answerUsage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0 };
   const compactionUsage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0 };
   const judgeUsage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0 };
   for (const r of results) {
-    addUsage(answerUsage, r.answerUsage ?? r.usage);
+    addUsage(prepUsage, r.prepUsage);
+    addUsage(answerUsage, r.answerUsage ?? (r.prepUsage ? undefined : r.usage));
     addUsage(compactionUsage, r.compactionUsage);
     addUsage(judgeUsage, r.judgeUsage);
   }
@@ -25,7 +27,8 @@ export function writeSummary(results: JudgedResult[], outDir: string, extra: { w
     passed: r.judgeExitCode === 0 && r.judge.passed,
     durationMs: { answer: r.durationMs, judge: (r as unknown as { judgeDurationMs?: number }).judgeDurationMs ?? 0 },
     tokens: {
-      answer: r.answerUsage?.totalTokens ?? r.usage?.totalTokens ?? 0,
+      prep: r.prepUsage?.totalTokens ?? 0,
+      answer: r.answerUsage?.totalTokens ?? (r.prepUsage ? 0 : r.usage?.totalTokens) ?? 0,
       compaction: r.compactionUsage?.totalTokens ?? 0,
       judge: r.judgeUsage?.totalTokens ?? 0,
       total: (r.usage?.totalTokens ?? 0) + (r.judgeUsage?.totalTokens ?? 0),
@@ -43,15 +46,16 @@ export function writeSummary(results: JudgedResult[], outDir: string, extra: { w
       judge: results.reduce((n, r) => n + ((r as unknown as { judgeDurationMs?: number }).judgeDurationMs ?? 0), 0),
     },
     usage: {
+      prep: prepUsage,
       answer: answerUsage,
       compaction: compactionUsage,
       judge: judgeUsage,
       total: {
-        input: answerUsage.input + compactionUsage.input + judgeUsage.input,
-        output: answerUsage.output + compactionUsage.output + judgeUsage.output,
-        cacheRead: answerUsage.cacheRead + compactionUsage.cacheRead + judgeUsage.cacheRead,
-        cacheWrite: answerUsage.cacheWrite + compactionUsage.cacheWrite + judgeUsage.cacheWrite,
-        totalTokens: answerUsage.totalTokens + compactionUsage.totalTokens + judgeUsage.totalTokens,
+        input: prepUsage.input + answerUsage.input + compactionUsage.input + judgeUsage.input,
+        output: prepUsage.output + answerUsage.output + compactionUsage.output + judgeUsage.output,
+        cacheRead: prepUsage.cacheRead + answerUsage.cacheRead + compactionUsage.cacheRead + judgeUsage.cacheRead,
+        cacheWrite: prepUsage.cacheWrite + answerUsage.cacheWrite + compactionUsage.cacheWrite + judgeUsage.cacheWrite,
+        totalTokens: prepUsage.totalTokens + answerUsage.totalTokens + compactionUsage.totalTokens + judgeUsage.totalTokens,
       },
     },
     calibration: extra.calibration,

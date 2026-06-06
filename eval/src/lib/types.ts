@@ -43,6 +43,7 @@ export type AgentResult = {
   answer: string;
   stderr: string;
   usage?: TokenUsage;
+  prepUsage?: TokenUsage;
   answerUsage?: TokenUsage;
   compactionUsage?: TokenUsage;
 };

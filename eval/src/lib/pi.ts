@@ -33,7 +33,7 @@ function sumUsages(usages: TokenUsage[]): TokenUsage | undefined {
   return usages.length ? usages.reduce<TokenUsage>((acc, u) => addUsage(acc, u), {}) : undefined;
 }
 
-export type PiRunResult = { stdout: string; stderr: string; status: number; durationMs: number; usage?: TokenUsage; answerUsage?: TokenUsage; compactionUsage?: TokenUsage; compaction?: unknown };
+export type PiRunResult = { stdout: string; stderr: string; status: number; durationMs: number; usage?: TokenUsage; prepUsage?: TokenUsage; answerUsage?: TokenUsage; compactionUsage?: TokenUsage; compaction?: unknown };
 
 type RunPiSdkOptions = {
   model?: string;
@@ -55,9 +55,10 @@ export async function runPiSdk(prompt: string, options: RunPiSdkOptions = {}): P
   const started = Date.now();
   let stdout = '';
   let stderr = '';
+  let prepUsage: TokenUsage | undefined;
   let answerUsage: TokenUsage | undefined;
   let compactionUsage: TokenUsage | undefined;
-  let capturingCompactionUsage = false;
+  let capturePhase: 'prep' | 'answer' | 'compaction' = 'answer';
   try {
     const authStorage = AuthStorage.create();
     const modelRegistry = ModelRegistry.create(authStorage);
@@ -105,7 +106,8 @@ export async function runPiSdk(prompt: string, options: RunPiSdkOptions = {}): P
         const originalResult = stream.result.bind(stream);
         stream.result = async () => {
           const result = await originalResult();
-          if (capturingCompactionUsage) compactionUsage = addUsage(compactionUsage ?? {}, result.usage);
+          if (capturePhase === 'prep') prepUsage = addUsage(prepUsage ?? {}, result.usage);
+          if (capturePhase === 'compaction') compactionUsage = addUsage(compactionUsage ?? {}, result.usage);
           return result;
         };
         return stream;
@@ -118,13 +120,13 @@ export async function runPiSdk(prompt: string, options: RunPiSdkOptions = {}): P
       }
       if (event.type === 'turn_end') {
         const message = (event as unknown as { message?: { usage?: TokenUsage } }).message;
-        if (message?.usage) answerUsage = addUsage(answerUsage ?? {}, message.usage);
+        if (message?.usage && capturePhase === 'answer') answerUsage = addUsage(answerUsage ?? {}, message.usage);
       }
       if (event.type === 'agent_end') {
         const messages = (event as unknown as { messages?: Array<{ usage?: TokenUsage }> }).messages ?? [];
         const usages = messages.map((m) => m.usage).filter((u): u is TokenUsage => Boolean(u));
         if (usages.length) {
-          answerUsage = addUsage(answerUsage ?? {}, sumUsages(usages));
+          if (capturePhase === 'answer') answerUsage = addUsage(answerUsage ?? {}, sumUsages(usages));
         }
       }
     });
@@ -132,27 +134,29 @@ export async function runPiSdk(prompt: string, options: RunPiSdkOptions = {}): P
     if (options.prepareMemoryBeforeCompact && options.compactBeforePrompt) {
       const turns = Math.max(1, options.memoryPrepareTurns ?? 1);
       for (let turn = 1; turn <= turns; turn += 1) {
+        capturePhase = 'prep';
         await session.prompt(`Prepare/update observational memory for this session. Observer eval turn ${turn}/${turns}. Reply READY only.`, { expandPromptTemplates: false });
         stdout = '';
         await new Promise((resolve) => setTimeout(resolve, options.memoryPrepareWaitMs ?? 5000));
       }
     }
     if (options.compactBeforePrompt) {
-      capturingCompactionUsage = true;
+      capturePhase = 'compaction';
       try {
         compaction = await session.compact(options.compactInstructions);
       } finally {
-        capturingCompactionUsage = false;
+        capturePhase = 'answer';
       }
     }
+    capturePhase = 'answer';
     await session.prompt(prompt, { expandPromptTemplates: false });
     if (options.waitAfterPromptMs) {
       await new Promise((resolve) => setTimeout(resolve, options.waitAfterPromptMs));
     }
     unsubscribe();
     session.dispose();
-    const usage = sumUsages([answerUsage, compactionUsage].filter((u): u is TokenUsage => Boolean(u)));
-    return { stdout, stderr, status: 0, durationMs: Date.now() - started, usage, answerUsage, compactionUsage, compaction };
+    const usage = sumUsages([prepUsage, answerUsage, compactionUsage].filter((u): u is TokenUsage => Boolean(u)));
+    return { stdout, stderr, status: 0, durationMs: Date.now() - started, usage, prepUsage, answerUsage, compactionUsage, compaction };
   } catch (e) {
     stderr = e instanceof Error ? (e.stack ?? e.message) : String(e);
     return { stdout, stderr, status: 1, durationMs: Date.now() - started };

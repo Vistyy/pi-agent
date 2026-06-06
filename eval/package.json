@@ -5,15 +5,8 @@
   "description": "Pi memory/compaction eval harness.",
   "scripts": {
     "eval": "tsx src/cli.ts",
-    "materialize-om": "tsx src/materialize-om.ts",
     "session-memory": "tsx src/session-memory-variant.ts",
     "mine-historical": "tsx src/historical-probe-miner.ts",
-    "om-observer": "tsx src/om-observer.ts",
-    "om-projection": "tsx src/om-projection.ts",
-    "om-reflector": "tsx src/om-reflector.ts",
-    "om-dropper": "tsx src/om-dropper.ts",
-    "om-consolidation": "tsx src/om-consolidation.ts",
-    "om-consolidation-e2e": "tsx src/om-consolidation-e2e.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

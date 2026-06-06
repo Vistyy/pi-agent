@@ -1,4 +1,0 @@
-{"type": "session", "id": "om-observer-conflict", "timestamp": "2026-01-01T00:00:00.000Z", "version": 3, "cwd": "/tmp/pi-om-observer-eval"}
-{"type": "message", "id": "u1", "parentId": "om-observer-conflict", "timestamp": "2026-01-01T00:01:00.000Z", "message": {"role": "user", "content": [{"type": "text", "text": "Decision draft: store eval artifacts in tmp/eval-output because it is easy to clean."}]}}
-{"type": "message", "id": "a1", "parentId": "u1", "timestamp": "2026-01-01T00:01:00.000Z", "message": {"role": "assistant", "content": [{"type": "text", "text": "Noted tmp/eval-output as draft artifact path."}]}}
-{"type": "message", "id": "u2", "parentId": "a1", "timestamp": "2026-01-01T00:01:00.000Z", "message": {"role": "user", "content": [{"type": "text", "text": "Final decision: do not use tmp/eval-output. Store committed synthetic eval artifacts under eval/suites only; generated runs stay under eval/runs and are gitignored."}]}}
