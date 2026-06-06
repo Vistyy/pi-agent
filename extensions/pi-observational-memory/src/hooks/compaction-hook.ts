@@ -1,6 +1,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 import { STRATEGY } from "../config.js";
+import { ensureConsolidatedBeforeCompaction } from "./consolidation-trigger.js";
 import type { Runtime } from "../runtime.js";
 import { buildCompactionProjection, renderSummary, type Entry } from "../session-ledger/index.js";
 
@@ -29,10 +30,12 @@ export function registerCompactionHook(pi: ExtensionAPI, runtime: Runtime): void
 		try {
 			runtime.ensureConfig(ctx.cwd);
 			if (runtime.config.strategy !== STRATEGY.replacement) return;
-			const { preparation, branchEntries } = event;
+			await ensureConsolidatedBeforeCompaction(pi, runtime, ctx);
+			const { preparation } = event;
+			const branchEntries = ctx.sessionManager.getBranch() as Entry[];
 			const { firstKeptEntryId, tokensBefore } = preparation;
 			const projection = buildCompactionProjection(
-				branchEntries as Entry[],
+				branchEntries,
 				firstKeptEntryId,
 				{ observationsPoolMaxTokens: observationsPoolMaxTokens(runtime) },
 			);

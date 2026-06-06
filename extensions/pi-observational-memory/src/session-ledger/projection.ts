@@ -178,7 +178,7 @@ export function buildCompactionProjection(
 	const fullFoldBoundaryId = latestFullFoldBoundaryId(entries);
 	const maintenanceBoundary = fullFoldBoundaryId ? entryBoundary(fullFoldBoundaryId) : noneBoundary();
 	const normalProjection = foldProjection(entries, {
-		observationsBoundary: entryBoundary(firstKeptEntryId),
+		observationsBoundary: tipBoundary(),
 		reflectionsBoundary: maintenanceBoundary,
 		dropsBoundary: maintenanceBoundary,
 	});

@@ -70,7 +70,7 @@ function mergeReflections(existing: Reflection[], additional: Reflection[]): Ref
 	return merged;
 }
 
-function anyStageDue(entries: Entry[], runtime: Runtime): boolean {
+export function anyStageDue(entries: Entry[], runtime: Runtime): boolean {
 	return rawTokensSinceObservationCoverage(entries) >= runtime.config.observeAfterTokens
 		|| rawTokensSinceReflectionCoverage(entries) >= runtime.config.reflectAfterTokens;
 }
@@ -143,6 +143,20 @@ function maybeLaunchConsolidation(pi: ExtensionAPI, runtime: Runtime, ctx: Conso
 	}, async () => {
 		await runConsolidationPipeline(pi, runtime, consolidationCtx);
 	}));
+}
+
+export async function ensureConsolidatedBeforeCompaction(
+	pi: ExtensionAPI,
+	runtime: Runtime,
+	ctx: ConsolidationCtx,
+): Promise<void> {
+	runtime.ensureConfig(ctx.cwd);
+	if (runtime.config.strategy === STRATEGY.off) return;
+	if (runtime.consolidationPromise) await runtime.consolidationPromise;
+	if (runtime.consolidationInFlight) return;
+	const entries = ctx.sessionManager.getBranch() as Entry[];
+	if (!anyStageDue(entries, runtime)) return;
+	await runConsolidationPipeline(pi, runtime, ctx);
 }
 
 export async function runConsolidationPipeline(

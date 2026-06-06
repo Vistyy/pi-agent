@@ -119,7 +119,7 @@ Use pass rate plus `usage.total.totalTokens` for cost/performance.
 - `clean` loads no extensions.
 - `om-additive` sets `observational-memory.strategy = "additive"` in a temp cwd.
 - `om-replacement` sets `observational-memory.strategy = "replacement"` in a temp cwd.
-- Normal runs use OM default trigger thresholds, including `observeAfterTokens = 10000`.
+- Normal runs use accelerated eval threshold `observeAfterTokens = 1000` so preloaded fixtures trigger OM.
 - OM variants add one pre-compaction trigger prompt so observer hooks can run before compaction.
 - `--forced-memory-prep` adds synthetic prep turns and is not representative of normal usage cost.
 - `original` is for a local checkout of `https://github.com/elpapi42/pi-observational-memory`.
