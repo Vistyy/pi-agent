@@ -177,7 +177,7 @@ runConsolidationPipeline()
 Due check:
 
 ```text
-rawTokensSinceObservationCoverage(entries) >= observeAfterTokens
+sourceEntryCountSinceObservationCoverage(entries) >= observeEveryMessages
 ```
 
 Input:

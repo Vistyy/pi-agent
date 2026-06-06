@@ -11,7 +11,7 @@ vi.mock("../src/agents/observer/agent.js", () => ({ runObserver: mockAgents.runO
 vi.mock("../src/agents/reflector/agent.js", () => ({ runReflector: mockAgents.runReflector }));
 vi.mock("../src/agents/dropper/agent.js", () => ({ runDropper: mockAgents.runDropper }));
 
-import { registerConsolidationTrigger } from "../src/hooks/consolidation-trigger.js";
+import { ensureConsolidatedBeforeCompaction, registerConsolidationTrigger } from "../src/hooks/consolidation-trigger.js";
 import type { Runtime } from "../src/runtime.js";
 import {
 	OM_OBSERVATIONS_DROPPED,
@@ -40,7 +40,7 @@ beforeEach(() => {
 
 function setup(args: {
 	entries: TestEntry[];
-	observeAfterTokens?: number;
+	observeEveryMessages?: number;
 	reflectAfterTokens?: number;
 	observationsPoolMaxTokens?: number;
 	observationsPoolTargetTokens?: number;
@@ -62,7 +62,7 @@ function setup(args: {
 		config: {
 			strategy: args.strategy ?? "additive",
 			debugLog: false,
-			observeAfterTokens: args.observeAfterTokens ?? 1,
+			observeEveryMessages: args.observeEveryMessages ?? 1,
 			reflectAfterTokens: args.reflectAfterTokens ?? 1,
 			maxInitialObserveTokens: args.maxInitialObserveTokens ?? 100_000,
 			observationsPoolMaxTokens: args.observationsPoolMaxTokens ?? 100,
@@ -118,6 +118,22 @@ function setup(args: {
 
 describe("consolidation trigger", () => {
 	const obsA = observation("aaaaaaaaaaaa", { sourceEntryIds: ["raw-1"], tokenCount: 10 });
+
+	it("force-observes unobserved source entries before the compaction kept tail", async () => {
+		const obs = observation("bbbbbbbbbbbb", { sourceEntryIds: ["raw-1"] });
+		mockAgents.runObserver.mockResolvedValueOnce([obs]);
+		const entries = [textCustomMessage("raw-1", "aaaa"), textCustomMessage("raw-2", "bbbb")];
+		const { pi, runtime, ctx, getAppends } = setup({ entries, observeEveryMessages: 999, reflectAfterTokens: 999 });
+
+		await ensureConsolidatedBeforeCompaction(pi as never, runtime as Runtime, ctx as never, { firstKeptEntryId: "raw-2" });
+
+		expect(mockAgents.runObserver).toHaveBeenCalledOnce();
+		expect(mockAgents.runObserver.mock.calls[0][0].chunk).toContain("[Source entry id: raw-1]");
+		expect(mockAgents.runObserver.mock.calls[0][0].chunk).not.toContain("[Source entry id: raw-2]");
+		expect(getAppends()).toEqual([
+			expect.objectContaining({ customType: OM_OBSERVATIONS_RECORDED }),
+		]);
+	});
 	const obsB = observation("bbbbbbbbbbbb", { sourceEntryIds: ["raw-2"], tokenCount: 10 });
 	const refA = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
 
@@ -128,7 +144,7 @@ describe("consolidation trigger", () => {
 			reflectionsRecordedEntry("om-ref", { reflections: [refA], coversUpToId: "raw-1" }),
 			observationsDroppedEntry("om-drop", { observationIds: ["aaaaaaaaaaaa"], coversUpToId: "raw-1" }),
 		];
-		const { fireAgentStart, fireTurnEnd, runtime } = setup({ entries, observeAfterTokens: 10, reflectAfterTokens: 10 });
+		const { fireAgentStart, fireTurnEnd, runtime } = setup({ entries, observeEveryMessages: 10, reflectAfterTokens: 10 });
 
 		fireAgentStart();
 		fireTurnEnd();
@@ -271,7 +287,7 @@ describe("consolidation trigger", () => {
 			textCustomMessage("raw-2", "bbbbbbbb"),
 			observationsDroppedEntry("om-drop", { observationIds: ["bbbbbbbbbbbb"], coversUpToId: "raw-2" }),
 		];
-		const { fire, runLaunchedWork, pi } = setup({ entries, observeAfterTokens: 999 });
+		const { fire, runLaunchedWork, pi } = setup({ entries, observeEveryMessages: 999 });
 
 		fire();
 		await runLaunchedWork();
@@ -290,7 +306,7 @@ describe("consolidation trigger", () => {
 			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
 			textCustomMessage("raw-2", "bbbbbbbb"),
 		];
-		const { fire, runLaunchedWork, getAppends } = setup({ entries, observeAfterTokens: 999, observationsPoolTargetTokens: 5 });
+		const { fire, runLaunchedWork, getAppends } = setup({ entries, observeEveryMessages: 999, observationsPoolTargetTokens: 5 });
 
 		fire();
 		await runLaunchedWork();
@@ -309,7 +325,7 @@ describe("consolidation trigger", () => {
 			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
 			textCustomMessage("raw-2", "bbbbbbbb"),
 		];
-		const { fire, runLaunchedWork, runtime } = setup({ entries, observeAfterTokens: 999, reflectAfterTokens: 1, observationsPoolTargetTokens: 5 });
+		const { fire, runLaunchedWork, runtime } = setup({ entries, observeEveryMessages: 999, reflectAfterTokens: 1, observationsPoolTargetTokens: 5 });
 
 		fire();
 		await runLaunchedWork();
@@ -329,7 +345,7 @@ describe("consolidation trigger", () => {
 			textCustomMessage("raw-2", "bbbbbbbb"),
 			observationsRecordedEntry("om-obs-b", { observations: [obsB], coversUpToId: "raw-2" }),
 		];
-		const { fire, runLaunchedWork, getAppends } = setup({ entries, observeAfterTokens: 999, observationsPoolMaxTokens: 10 });
+		const { fire, runLaunchedWork, getAppends } = setup({ entries, observeEveryMessages: 999, observationsPoolMaxTokens: 10 });
 
 		fire();
 		await runLaunchedWork();
@@ -343,7 +359,7 @@ describe("consolidation trigger", () => {
 
 	it("appends no empty reflection or drop entries", async () => {
 		const entries = [textCustomMessage("raw-1", "aaaaaaaa"), observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" })];
-		const { fire, runLaunchedWork, pi, ctx } = setup({ entries, observeAfterTokens: 999 });
+		const { fire, runLaunchedWork, pi, ctx } = setup({ entries, observeEveryMessages: 999 });
 
 		fire();
 		await runLaunchedWork();
@@ -366,7 +382,7 @@ describe("consolidation trigger", () => {
 		mockAgents.runObserver.mockResolvedValue(undefined);
 		mockAgents.runReflector.mockReset();
 		mockAgents.runReflector.mockRejectedValueOnce(new Error("reflect failed"));
-		const reflectorFailure = setup({ entries: [textCustomMessage("raw-1", "aaaaaaaa"), observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" })], observeAfterTokens: 999 });
+		const reflectorFailure = setup({ entries: [textCustomMessage("raw-1", "aaaaaaaa"), observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" })], observeEveryMessages: 999 });
 		reflectorFailure.fire();
 		await reflectorFailure.runLaunchedWork();
 		expect(reflectorFailure.runtime.lastReflectorError).toBe("reflect failed");
@@ -378,7 +394,7 @@ describe("consolidation trigger", () => {
 		mockAgents.runReflector.mockResolvedValueOnce([newRef]);
 		mockAgents.runDropper.mockReset();
 		mockAgents.runDropper.mockRejectedValueOnce(new Error("drop failed"));
-		const dropperFailure = setup({ entries: [textCustomMessage("raw-1", "aaaaaaaa"), observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" })], observeAfterTokens: 999, observationsPoolMaxTokens: 10 });
+		const dropperFailure = setup({ entries: [textCustomMessage("raw-1", "aaaaaaaa"), observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" })], observeEveryMessages: 999, observationsPoolMaxTokens: 10 });
 		dropperFailure.fire();
 		await dropperFailure.runLaunchedWork();
 		expect(dropperFailure.runtime.lastDropperError).toBe("drop failed");

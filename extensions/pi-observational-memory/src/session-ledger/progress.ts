@@ -82,11 +82,25 @@ export function earlierCoverageMarkerId(entries: Entry[], firstId: string | unde
 	return firstIndex <= secondIndex ? firstId : secondId;
 }
 
+export function sourceEntriesAfterIndex(entries: Entry[], index: number): Entry[] {
+	return entries.slice(index + 1).filter(isSourceEntry);
+}
+
+export function sourceEntryCountAfterIndex(entries: Entry[], index: number): number {
+	return sourceEntriesAfterIndex(entries, index).length;
+}
+
+export function sourceEntryCountSinceCoverage(entries: Entry[], customType: MemoryCustomType): number {
+	return sourceEntryCountAfterIndex(entries, latestCoverageIndex(entries, customType));
+}
+
+export function sourceEntryCountSinceObservationCoverage(entries: Entry[]): number {
+	return sourceEntryCountSinceCoverage(entries, OM_OBSERVATIONS_RECORDED);
+}
+
 export function rawTokensAfterIndex(entries: Entry[], index: number): number {
 	let total = 0;
-	for (let i = Math.max(0, index + 1); i < entries.length; i++) {
-		if (isSourceEntry(entries[i])) total += estimateEntryTokens(entries[i]);
-	}
+	for (const entry of sourceEntriesAfterIndex(entries, index)) total += estimateEntryTokens(entry);
 	return total;
 }
 

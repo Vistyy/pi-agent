@@ -15,6 +15,7 @@ import {
 	buildObservationsRecordedData,
 	buildReflectionsRecordedData,
 	earlierCoverageMarkerId,
+	entryIndexById,
 	foldLedger,
 	fullProjection,
 	isSourceEntry,
@@ -23,6 +24,7 @@ import {
 	observationToSummaryLine,
 	rawTokensSinceObservationCoverage,
 	rawTokensSinceReflectionCoverage,
+	sourceEntryCountSinceObservationCoverage,
 	reflectionToSummaryLine,
 	type Entry,
 	type Reflection,
@@ -51,8 +53,9 @@ type ReflectorStageResult = {
 	effectiveReflectionCoverageId?: string;
 };
 
-function sourceEntriesAfter(entries: Entry[], index: number): Entry[] {
-	return entries.slice(index + 1).filter(isSourceEntry);
+function sourceEntriesAfter(entries: Entry[], index: number, beforeIndex?: number): Entry[] {
+	const end = beforeIndex === undefined ? entries.length : Math.max(index + 1, beforeIndex);
+	return entries.slice(index + 1, end).filter(isSourceEntry);
 }
 
 function appendEntry(pi: ExtensionAPI, customType: string, data: unknown): void {
@@ -71,7 +74,7 @@ function mergeReflections(existing: Reflection[], additional: Reflection[]): Ref
 }
 
 export function anyStageDue(entries: Entry[], runtime: Runtime): boolean {
-	return rawTokensSinceObservationCoverage(entries) >= runtime.config.observeAfterTokens
+	return sourceEntryCountSinceObservationCoverage(entries) >= runtime.config.observeEveryMessages
 		|| rawTokensSinceReflectionCoverage(entries) >= runtime.config.reflectAfterTokens;
 }
 
@@ -150,26 +153,32 @@ export async function ensureConsolidatedBeforeCompaction(
 	pi: ExtensionAPI,
 	runtime: Runtime,
 	ctx: ConsolidationCtx,
+	options: { firstKeptEntryId?: string } = {},
 ): Promise<void> {
 	runtime.ensureConfig(ctx.cwd);
 	if (runtime.config.strategy === STRATEGY.off) return;
 	if (runtime.consolidationPromise) await runtime.consolidationPromise;
 	if (runtime.consolidationInFlight) return;
 	const entries = ctx.sessionManager.getBranch() as Entry[];
-	if (!anyStageDue(entries, runtime)) return;
-	await runConsolidationPipeline(pi, runtime, ctx);
+	const firstKeptIndex = entryIndexById(entries).get(options.firstKeptEntryId ?? "");
+	const lastCoverageIdx = latestCoverageIndex(entries, OM_OBSERVATIONS_RECORDED);
+	const hasUnobservedCompactedPrefix = firstKeptIndex !== undefined
+		&& sourceEntriesAfter(entries, lastCoverageIdx, firstKeptIndex).length > 0;
+	if (!hasUnobservedCompactedPrefix && !anyStageDue(entries, runtime)) return;
+	await runConsolidationPipeline(pi, runtime, ctx, { forceObserveBeforeEntryId: options.firstKeptEntryId });
 }
 
 export async function runConsolidationPipeline(
 	pi: ExtensionAPI,
 	runtime: Runtime,
 	ctx: ConsolidationCtx,
+	options: { forceObserveBeforeEntryId?: string } = {},
 ): Promise<void> {
 	const resolveModel = makeModelResolver(runtime, ctx);
 
 	runtime.consolidationPhase = "observer";
 	try {
-		const observerOutcome = await runObserverStage(pi, runtime, ctx, resolveModel);
+		const observerOutcome = await runObserverStage(pi, runtime, ctx, resolveModel, options.forceObserveBeforeEntryId);
 		if (observerOutcome === "abort") return;
 	} catch (error) {
 		debugLog("observer.error", { errorMessage: runtime.recordConsolidationStageError(ctx, "observer", error) });
@@ -199,13 +208,19 @@ async function runObserverStage(
 	runtime: Runtime,
 	ctx: ConsolidationCtx,
 	resolveModel: (stage: "observer") => Promise<ResolvedModel | undefined>,
+	forceObserveBeforeEntryId?: string,
 ): Promise<StageOutcome> {
 	const entries = ctx.sessionManager.getBranch() as Entry[];
 	const tokens = rawTokensSinceObservationCoverage(entries);
-	if (tokens < runtime.config.observeAfterTokens) return "continue";
-
 	const lastCoverageIdx = latestCoverageIndex(entries, OM_OBSERVATIONS_RECORDED);
-	const chunkEntries = sourceEntriesAfter(entries, lastCoverageIdx);
+	const boundaryIdx = forceObserveBeforeEntryId ? entryIndexById(entries).get(forceObserveBeforeEntryId) : undefined;
+	const sourceEntryCount = boundaryIdx === undefined
+		? sourceEntryCountSinceObservationCoverage(entries)
+		: sourceEntriesAfter(entries, lastCoverageIdx, boundaryIdx).length;
+	if (sourceEntryCount === 0) return "continue";
+	if (boundaryIdx === undefined && sourceEntryCount < runtime.config.observeEveryMessages) return "continue";
+
+	const chunkEntries = sourceEntriesAfter(entries, lastCoverageIdx, boundaryIdx);
 	const coversUpToId = chunkEntries.at(-1)?.id;
 	if (!coversUpToId) return "continue";
 	if (lastCoverageIdx === -1 && tokens > runtime.config.maxInitialObserveTokens) {
@@ -227,7 +242,7 @@ async function runObserverStage(
 	const priorObservations = memory.observations.map(observationToSummaryLine);
 
 	if (ctx.hasUI) ctx.ui?.notify(
-		`Observational memory: observer running on ~${tokens.toLocaleString()}-token chunk`,
+		`Observational memory: observer running on ${sourceEntryCount.toLocaleString()} source entr${sourceEntryCount === 1 ? "y" : "ies"}`,
 		"info",
 	);
 	debugLog("observer.start", {

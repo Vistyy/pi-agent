@@ -5,8 +5,8 @@ import {
 	diffProjection,
 	foldLedger,
 	fullProjection,
-	rawTokensSinceObservationCoverage,
 	rawTokensSinceReflectionCoverage,
+	sourceEntryCountSinceObservationCoverage,
 	visibleProjection,
 	type Entry,
 } from "../session-ledger/index.js";
@@ -57,7 +57,7 @@ export function registerStatusCommand(pi: ExtensionAPI, runtime: Runtime): void 
 				`Reflections:  ${folded.reflections.length} recorded / ${visible.reflections.length} visible`,
 				[addedSuffix(drift.reflectionsOnlyInFull.length)],
 			);
-			const obsProgress = rawTokensSinceObservationCoverage(entries);
+			const obsProgress = sourceEntryCountSinceObservationCoverage(entries);
 			const reflectionProgress = rawTokensSinceReflectionCoverage(entries);
 
 			const modeLines = [
@@ -73,7 +73,7 @@ export function registerStatusCommand(pi: ExtensionAPI, runtime: Runtime): void 
 				reflectionLine,
 				"",
 				"── Activity ──",
-				`Next observation: ~${obsProgress.toLocaleString()} / ${runtime.config.observeAfterTokens.toLocaleString()} tokens (${pct(obsProgress, runtime.config.observeAfterTokens)}%)`,
+				`Next observation: ${obsProgress.toLocaleString()} / ${runtime.config.observeEveryMessages.toLocaleString()} source entries (${pct(obsProgress, runtime.config.observeEveryMessages)}%)`,
 				`Next reflection:  ~${reflectionProgress.toLocaleString()} / ${runtime.config.reflectAfterTokens.toLocaleString()} tokens (${pct(reflectionProgress, runtime.config.reflectAfterTokens)}%)`,
 				`Visible observation pool: ~${visibleObservationTokens.toLocaleString()} / ${runtime.config.observationsPoolMaxTokens.toLocaleString()} tokens (${pct(visibleObservationTokens, runtime.config.observationsPoolMaxTokens)}%)`,
 				`Active observation pool: ~${activeObservationPool.observationTokens.toLocaleString()} / ${runtime.config.observationsPoolTargetTokens.toLocaleString()} target tokens (${pct(activeObservationPool.observationTokens, runtime.config.observationsPoolTargetTokens)}%)`,

@@ -18,7 +18,7 @@ export type MemoryStrategy = (typeof STRATEGY)[keyof typeof STRATEGY];
 
 export interface Config {
 	strategy: MemoryStrategy;
-	observeAfterTokens: number;
+	observeEveryMessages: number;
 	reflectAfterTokens: number;
 	maxInitialObserveTokens: number;
 	observationsPoolMaxTokens: number;
@@ -31,7 +31,7 @@ export interface Config {
 
 export const DEFAULTS: Config = {
 	strategy: STRATEGY.additive,
-	observeAfterTokens: 10_000,
+	observeEveryMessages: 4,
 	reflectAfterTokens: 20_000,
 	maxInitialObserveTokens: 100_000,
 	observationsPoolMaxTokens: 20_000,
@@ -87,7 +87,7 @@ function normalizeModel(value: unknown): ConfiguredModel | undefined {
 function normalizeSettingsConfig(value: Record<string, unknown>): Partial<Config> {
 	const normalized: Partial<Config> = {};
 	const numberKeys = [
-		"observeAfterTokens",
+		"observeEveryMessages",
 		"reflectAfterTokens",
 		"maxInitialObserveTokens",
 		"observationsPoolMaxTokens",

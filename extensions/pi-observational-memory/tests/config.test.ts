@@ -37,7 +37,7 @@ describe("config", () => {
 	it("uses defaults", () => {
 		expect(DEFAULTS).toEqual({
 			strategy: STRATEGY.additive,
-			observeAfterTokens: 10000,
+			observeEveryMessages: 4,
 			reflectAfterTokens: 20000,
 			maxInitialObserveTokens: 100000,
 			observationsPoolMaxTokens: 20000,
@@ -53,7 +53,7 @@ describe("config", () => {
 		writeJson(join(agentDir, "settings.json"), {
 			"observational-memory": {
 				strategy: "replacement",
-				observeAfterTokens: 10,
+				observeEveryMessages: 10,
 				reflectAfterTokens: 20,
 				maxInitialObserveTokens: 60,
 				observationsPoolMaxTokens: 40,
@@ -67,14 +67,14 @@ describe("config", () => {
 		writeJson(join(cwd, ".pi", "settings.json"), {
 			"observational-memory": {
 				strategy: "additive",
-				observeAfterTokens: 100,
+				observeEveryMessages: 100,
 				model: { provider: "openai", id: "project", thinking: "low" },
 			},
 		});
 
 		expect(loadConfig(cwd)).toMatchObject({
 			strategy: "additive",
-			observeAfterTokens: 100,
+			observeEveryMessages: 100,
 			reflectAfterTokens: 20,
 			maxInitialObserveTokens: 60,
 			observationsPoolMaxTokens: 40,
@@ -90,7 +90,7 @@ describe("config", () => {
 		writeJson(join(cwd, ".pi", "settings.json"), {
 			"observational-memory": {
 				strategy: "unknown",
-				observeAfterTokens: -1,
+				observeEveryMessages: -1,
 				reflectAfterTokens: 0,
 				maxInitialObserveTokens: "100000",
 				observationsPoolMaxTokens: "20000",

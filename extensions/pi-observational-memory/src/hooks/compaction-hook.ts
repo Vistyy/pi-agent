@@ -30,11 +30,11 @@ export function registerCompactionHook(pi: ExtensionAPI, runtime: Runtime): void
 		try {
 			runtime.ensureConfig(ctx.cwd);
 			if (runtime.config.strategy === STRATEGY.off) return;
-			await ensureConsolidatedBeforeCompaction(pi, runtime, ctx);
-			if (runtime.config.strategy !== STRATEGY.replacement) return;
 			const { preparation } = event;
-			const branchEntries = ctx.sessionManager.getBranch() as Entry[];
 			const { firstKeptEntryId, tokensBefore } = preparation;
+			await ensureConsolidatedBeforeCompaction(pi, runtime, ctx, { firstKeptEntryId });
+			if (runtime.config.strategy !== STRATEGY.replacement) return;
+			const branchEntries = ctx.sessionManager.getBranch() as Entry[];
 			const projection = buildCompactionProjection(
 				branchEntries,
 				firstKeptEntryId,

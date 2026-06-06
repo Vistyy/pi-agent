@@ -178,7 +178,7 @@ Question token watermarks.
 Current:
 
 ```text
-observeAfterTokens
+observeEveryMessages
 reflectAfterTokens
 rawTokensSince*Coverage
 ```

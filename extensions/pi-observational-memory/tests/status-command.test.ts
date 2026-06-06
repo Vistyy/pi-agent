@@ -25,7 +25,7 @@ function setup(args: { entries: TestEntry[]; runtime?: Partial<Runtime> }) {
 		ensureConfig: vi.fn(),
 		config: {
 			strategy: "replacement",
-			observeAfterTokens: 10,
+			observeEveryMessages: 10,
 			reflectAfterTokens: 20,
 			observationsPoolMaxTokens: 40,
 			observationsPoolTargetTokens: 20,
@@ -73,7 +73,7 @@ describe("/om:status", () => {
 		const output = await setup({ entries }).run();
 
 		expect(output).toContain("Next observation:");
-		expect(output).toContain("/ 10 tokens");
+		expect(output).toContain("/ 10 source entries");
 		expect(output).toContain("Next reflection:");
 		expect(output).toContain("/ 20 tokens");
 		expect(output).toContain("Visible observation pool: ~5 / 40 tokens (13%)");
@@ -97,7 +97,7 @@ describe("/om:status", () => {
 		const output = await setup({
 			entries: [],
 			runtime: {
-				config: { strategy: "off", observeAfterTokens: 10, reflectAfterTokens: 20, observationsPoolMaxTokens: 40, observationsPoolTargetTokens: 20 },
+				config: { strategy: "off", observeEveryMessages: 10, reflectAfterTokens: 20, observationsPoolMaxTokens: 40, observationsPoolTargetTokens: 20 },
 				consolidationInFlight: true,
 				consolidationPhase: "reflector",
 				compactHookInFlight: true,
