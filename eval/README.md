@@ -26,6 +26,10 @@ suites/session-memory-limits/<id>/
   eval.yml                         # extension-agnostic hard session memory after compaction cases
   source.precompact.synthetic.jsonl
 
+suites/om-additive-hard/<id>/
+  eval.yml                         # hard additive/replacement/default comparison cases for exact memory quality and cost
+  source.precompact.synthetic.jsonl
+
 suites/om-recall/<id>/
   eval.yml                         # OM id-based recall subsystem cases
   source.synthetic.jsonl

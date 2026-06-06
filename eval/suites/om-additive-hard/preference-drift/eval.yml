@@ -1,0 +1,29 @@
+id: om-additive-preference-drift
+kind: synthetic_hard_precompact_session
+source_session: source.precompact.synthetic.jsonl
+notes: Newer correction must beat stale older preference.
+compact_before_probe: true
+compact_instructions: Preserve exact current decisions, corrections, constraints, rejected stale options, source evidence cues, and exact IDs/paths/timestamps. Prefer newer explicit corrections over older notes/reflections.
+compaction_settings:
+  keepRecentTokens: 80
+  reserveTokens: 1024
+probes:
+  - id: release_pref
+    question: "What is my current release-note preference?"
+    rubric:
+      pass_if:
+        - Says terse bullets.
+        - Says exclude experimental flags.
+        - Says breaking changes use prefix `BREAKING:`.
+        - Does not present verbose paragraphs as current preference.
+      fail_if:
+        - Says to use verbose paragraphs.
+        - Says to include experimental flags.
+        - Omits that this overrides an earlier preference.
+calibration:
+  - id: good
+    expected_passed: true
+    answer: "Current preference: terse bullets, exclude experimental flags, label breaking changes with BREAKING:. This overrides the earlier verbose preference."
+  - id: bad_stale
+    expected_passed: false
+    answer: "Use verbose paragraphs and include experimental flags."

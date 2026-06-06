@@ -1,0 +1,28 @@
+id: om-additive-unresolved-conflict
+kind: synthetic_hard_precompact_session
+source_session: source.precompact.synthetic.jsonl
+notes: Should preserve unresolved status and not crystallize stale proposal.
+compact_before_probe: true
+compact_instructions: Preserve exact current decisions, corrections, constraints, rejected stale options, source evidence cues, and exact IDs/paths/timestamps. Prefer newer explicit corrections over older notes/reflections.
+compaction_settings:
+  keepRecentTokens: 80
+  reserveTokens: 1024
+probes:
+  - id: region_status
+    question: "What is the current final deployment region decision and deadline?"
+    rubric:
+      pass_if:
+        - Says there is no final deployment region yet or it is unresolved.
+        - Says to wait for legal signoff.
+        - Gives deadline `2026-06-03`.
+      fail_if:
+        - Says `eu-west-1` is final.
+        - Says `eu-central-1` is final.
+        - Omits unresolved/no-final-decision status.
+calibration:
+  - id: good
+    expected_passed: true
+    answer: "No final region yet; wait for legal signoff by 2026-06-03."
+  - id: bad_final
+    expected_passed: false
+    answer: "The final deployment region is eu-west-1."

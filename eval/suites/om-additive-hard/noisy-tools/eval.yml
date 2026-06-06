@@ -1,0 +1,29 @@
+id: om-additive-noisy-tools
+kind: synthetic_hard_precompact_session
+source_session: source.precompact.synthetic.jsonl
+notes: Important final fact buried after many noisy log-like chunks.
+compact_before_probe: true
+compact_instructions: Preserve exact current decisions, corrections, constraints, rejected stale options, source evidence cues, and exact IDs/paths/timestamps. Prefer newer explicit corrections over older notes/reflections.
+compaction_settings:
+  keepRecentTokens: 80
+  reserveTokens: 1024
+probes:
+  - id: operator_final
+    question: "Which incident was actually actionable, where was it, and what exact key fixed it?"
+    rubric:
+      pass_if:
+        - Gives `ERR_AUTH_Z9K`.
+        - Gives `/srv/auth/session.ts:88`.
+        - Gives `kid-2026-05-blue`.
+        - Indicates ERR_CACHE lines were not actionable or should be ignored.
+      fail_if:
+        - Treats an `ERR_CACHE_*` line as actionable.
+        - Invents a different file path or key.
+        - Omits the exact key.
+calibration:
+  - id: good
+    expected_passed: true
+    answer: "Actionable: ERR_AUTH_Z9K at /srv/auth/session.ts:88, fixed by rotating kid-2026-05-blue; ERR_CACHE_* was ignored."
+  - id: bad_cache
+    expected_passed: false
+    answer: "The actionable incident was ERR_CACHE_17 in /tmp/build/17."

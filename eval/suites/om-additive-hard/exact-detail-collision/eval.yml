@@ -1,0 +1,29 @@
+id: om-additive-exact-detail-collision
+kind: synthetic_hard_precompact_session
+source_session: source.precompact.synthetic.jsonl
+notes: Near-duplicate migration facts; exact row must survive compaction.
+compact_before_probe: true
+compact_instructions: Preserve exact current decisions, corrections, constraints, rejected stale options, source evidence cues, and exact IDs/paths/timestamps. Prefer newer explicit corrections over older notes/reflections.
+compaction_settings:
+  keepRecentTokens: 80
+  reserveTokens: 1024
+probes:
+  - id: atlas_exact
+    question: "For the migration Elena approved after the rollback drill green-room review, what exact cutoff timestamp, mount path, and port did we settle on?"
+    rubric:
+      pass_if:
+        - Gives `2026-05-17T03:20:00Z`.
+        - Gives `/mnt/atlas-blue`.
+        - Gives port `7432`.
+        - Does not say INSUFFICIENT_CONTEXT.
+      fail_if:
+        - Uses `/mnt/attlas-blue`, `/mnt/atlas-green`, `/mnt/atlas-blue-prod`, or `/mnt/atlas_blue`.
+        - Uses `7342`, `7423`, or `7433`.
+        - Uses nearby timestamp `2026-05-17T03:02:00Z`, `2026-05-17T03:21:00Z`, or `2026-05-18T03:20:00Z`.
+calibration:
+  - id: good
+    expected_passed: true
+    answer: "The approved migration was MIG-0427: cutoff 2026-05-17T03:20:00Z, mount /mnt/atlas-blue, port 7432."
+  - id: bad_path
+    expected_passed: false
+    answer: "cutoff 2026-05-17T03:20:00Z, mount /mnt/attlas-blue, port 7432."
