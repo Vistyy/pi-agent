@@ -94,6 +94,7 @@ export async function runObserverStage(
 		coversUpToId,
 	});
 	pi.appendEntry(OM_OBSERVATIONS_RECORDED, data);
+	if (runtime.compactHookInFlight) runtime.transientCompactionObservations.push(...observations);
 	debugLog("observer.appended", { count: observations.length, coversUpToId });
 	if (ctx.hasUI) ctx.ui?.notify(
 		`Observational memory: ${observations.length} observation${observations.length === 1 ? "" : "s"} recorded`,

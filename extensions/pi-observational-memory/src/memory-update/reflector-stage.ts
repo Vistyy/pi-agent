@@ -68,5 +68,6 @@ export async function runReflectorStage(
 	const data = buildReflectionsRecordedData(reflections, observationCoverageId);
 	if (!data) return "continue";
 	pi.appendEntry(OM_REFLECTIONS_RECORDED, data);
+	if (runtime.compactHookInFlight) runtime.transientCompactionReflections.push(...reflections);
 	return "continue";
 }

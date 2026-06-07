@@ -149,14 +149,24 @@ export function latestFullFoldBoundaryId(entries: Entry[]): string | undefined {
 	return undefined;
 }
 
-function buildIncrementalCompactionProjection(entries: Entry[]): Projection {
+function mergeProjection(base: Projection, next: Projection): Projection {
+	const observationIds = new Set(base.observations.map((observation) => observation.id));
+	const reflectionIds = new Set(base.reflections.map((reflection) => reflection.id));
+	return {
+		observations: [...base.observations, ...next.observations.filter((observation) => !observationIds.has(observation.id))],
+		reflections: [...base.reflections, ...next.reflections.filter((reflection) => !reflectionIds.has(reflection.id))],
+	};
+}
+
+function buildIncrementalCompactionProjection(entries: Entry[], seed: Projection = { observations: [], reflections: [] }): Projection {
 	const indexes = entryIndexById(entries);
 	const latestFullFoldBoundaryIndex = entryIndexOrNone(indexes, latestFullFoldBoundaryId(entries));
-	return foldProjection(entries, {
+	const folded = foldProjection(entries, {
 		observationsThroughIndex: tipIndex(entries),
 		reflectionsThroughIndex: latestFullFoldBoundaryIndex,
 		dropsThroughIndex: latestFullFoldBoundaryIndex,
 	});
+	return mergeProjection(seed, folded);
 }
 
 function shouldFullFold(projection: Projection, config: CompactionProjectionConfig): boolean {
@@ -191,8 +201,9 @@ export function buildNextCompactionProjection(
 	entries: Entry[],
 	firstKeptEntryId: string,
 	config: CompactionProjectionConfig,
+	seed: Projection = { observations: [], reflections: [] },
 ): CompactionProjection {
-	const incrementalProjection = buildIncrementalCompactionProjection(entries);
+	const incrementalProjection = buildIncrementalCompactionProjection(entries, mergeProjection(latestCompactedProjection(entries), seed));
 	if (!shouldFullFold(incrementalProjection, config)) return withCompactionDetails(incrementalProjection, false);
 	return withCompactionDetails(buildFullFoldCompactionProjection(entries, firstKeptEntryId), true);
 }
