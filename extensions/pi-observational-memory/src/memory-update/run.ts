@@ -113,7 +113,14 @@ export async function ensureMemoryUpdatedBeforeCompaction(
 	const hasUnobservedCompactedPrefix = firstKeptIndex !== undefined
 		&& sourceEntriesAfter(entries, lastCoverageIdx, firstKeptIndex).length > 0;
 	if (!hasUnobservedCompactedPrefix && !anyMemoryUpdateStageDue(entries, runtime)) return;
-	await runMemoryUpdate(pi, runtime, ctx, { forceObserveBeforeEntryId: options.firstKeptEntryId });
+	const runId = `compaction-memory-update-${Date.now().toString(36)}-${Math.random().toString(16).slice(2, 8)}`;
+	const sessionMetadata = debugSessionMetadata(ctx);
+	await withDebugLogContext({
+		enabled: runtime.config.debugLog === true,
+		cwd: ctx.cwd,
+		...sessionMetadata,
+		runId,
+	}, async () => runMemoryUpdate(pi, runtime, ctx, { forceObserveBeforeEntryId: options.firstKeptEntryId }));
 }
 
 async function runMemoryUpdateStage(

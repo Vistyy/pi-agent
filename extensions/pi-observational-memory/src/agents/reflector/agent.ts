@@ -174,6 +174,7 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 		systemPrompt: REFLECTOR_SYSTEM,
 		userText,
 		tools: [recordReflections as AgentTool<any>, markReviewedNoReflections as AgentTool<any>],
+		agentName: "reflector",
 	});
 	const acceptedReflections = Array.from(accumulated.values());
 	const afterCoverageById = reflectionCoverageMap(observations, [...reflections, ...acceptedReflections]);

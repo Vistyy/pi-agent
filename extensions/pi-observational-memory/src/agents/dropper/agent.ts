@@ -203,6 +203,7 @@ export async function runDropper(args: RunDropperArgs): Promise<string[] | undef
 		systemPrompt: DROPPER_SYSTEM,
 		userText,
 		tools: [dropObservations as AgentTool<any>],
+		agentName: "dropper",
 	});
 	const droppedIds = selectDropCandidates(proposedDropIds, observations, maxDropsAllowed, reflections, protectedObservationIds);
 	const reason = droppedIds.length > 0

@@ -129,6 +129,7 @@ ${conversation}`;
 		systemPrompt: OBSERVER_SYSTEM,
 		userText,
 		tools: [recordObservations as AgentTool<any>],
+		agentName: "observer",
 	});
 
 	if (accumulated.size === 0) return undefined;

@@ -42,7 +42,7 @@ function makeCwd(name: string, modelSpec: string): string {
       protectRecentObservations: 32,
       agentMaxTurns: 4,
       model: configuredModel(modelSpec),
-      debugLog: false,
+      debugLog: true,
     },
   }, null, 2));
   return dir;

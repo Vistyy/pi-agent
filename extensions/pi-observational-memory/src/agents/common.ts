@@ -1,6 +1,7 @@
 import { agentLoop, type AgentContext, type AgentLoopConfig, type AgentTool } from "@earendil-works/pi-agent-core";
 import type { Message, Model, ModelThinkingLevel } from "@earendil-works/pi-ai";
 import { AGENT_LOOP_MAX_TOKENS, boundedMaxTokens } from "./model-budget.js";
+import { debugLog } from "../debug-log.js";
 
 export type MemoryAgentLoopArgs = {
 	model: Model<any>;
@@ -13,6 +14,7 @@ export type MemoryAgentLoopArgs = {
 	systemPrompt: string;
 	userText: string;
 	tools: AgentTool<any>[];
+	agentName?: "observer" | "reflector" | "dropper";
 };
 
 export function joinOrEmpty(items: readonly string[]): string {
@@ -57,9 +59,31 @@ export async function runMemoryAgentLoop(args: MemoryAgentLoopArgs): Promise<voi
 	};
 
 	const loop = args.agentLoop ?? agentLoop;
-	const stream = loop(prompts, context, config, args.signal);
-	for await (const _event of stream) {
-		// Tool execution side effects collect outputs.
+	const started = Date.now();
+	debugLog("memory_agent.start", {
+		agent: args.agentName,
+		thinkingLevel,
+		maxTurns: effectiveMaxTurns,
+		toolCount: args.tools.length,
+		userTextLength: args.userText.length,
+	});
+	try {
+		const stream = loop(prompts, context, config, args.signal);
+		for await (const _event of stream) {
+			// Tool execution side effects collect outputs.
+		}
+		const result = await stream.result();
+		debugLog("memory_agent.end", {
+			agent: args.agentName,
+			durationMs: Date.now() - started,
+			usage: (result as { usage?: unknown }).usage,
+		});
+	} catch (error) {
+		debugLog("memory_agent.error", {
+			agent: args.agentName,
+			durationMs: Date.now() - started,
+			errorMessage: error instanceof Error ? error.message : String(error),
+		});
+		throw error;
 	}
-	await stream.result();
 }
