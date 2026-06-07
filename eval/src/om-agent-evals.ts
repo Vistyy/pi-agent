@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { AuthStorage, ModelRegistry } from '@earendil-works/pi-coding-agent';
-import type { Model } from '@earendil-works/pi-ai';
+import type { Model, ModelThinkingLevel } from '@earendil-works/pi-ai';
 import { DEFAULT_MODEL } from './lib/pi.js';
 import { runJudge } from './lib/judge.js';
 import type { Probe, TokenUsage } from './lib/types.js';
@@ -38,7 +38,7 @@ type AgentEvalRecord = {
   error?: string;
 };
 
-type Args = { model: string; judgeModel: string; outDir: string };
+type Args = { model: string; judgeModel: string; outDir: string; thinkingLevel: ModelThinkingLevel };
 
 function parseArgs(): Args {
   const args = process.argv.slice(2);
@@ -50,6 +50,7 @@ function parseArgs(): Args {
     model: get('--model', DEFAULT_MODEL)!,
     judgeModel: get('--judge-model', get('--model', DEFAULT_MODEL))!,
     outDir: get('--out', path.join('runs', `om-agent-evals-${Date.now()}`))!,
+    thinkingLevel: (get('--thinking', 'xhigh') ?? 'xhigh') as ModelThinkingLevel,
   };
 }
 
@@ -85,7 +86,7 @@ async function judged(id: string, agent: AgentEvalRecord['agent'], output: unkno
   return { id, agent, output, judge, passed: run.status === 0 && judge.passed, durationMs: Date.now() - started, judgeUsage: run.usage };
 }
 
-async function observerHardCurrentStale(modelSpec: string, judgeModel: string): Promise<AgentEvalRecord> {
+async function observerHardCurrentStale(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   const started = Date.now();
   const auth = await resolveModel(modelSpec);
   const chunk = [
@@ -101,7 +102,7 @@ async function observerHardCurrentStale(modelSpec: string, judgeModel: string): 
     priorObservations: [],
     chunk,
     allowedSourceEntryIds: ['user-a', 'assistant-b', 'user-c', 'assistant-d'],
-    thinkingLevel: 'off',
+    thinkingLevel,
     maxTurns: 6,
   });
   return judged('observer-current-stale-sqlite', 'observer', output ?? [], {
@@ -126,7 +127,7 @@ async function observerHardCurrentStale(modelSpec: string, judgeModel: string): 
   }, judgeModel, started);
 }
 
-async function observerHardAssistantOnly(modelSpec: string, judgeModel: string): Promise<AgentEvalRecord> {
+async function observerHardAssistantOnly(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   const started = Date.now();
   const auth = await resolveModel(modelSpec);
   const chunk = [
@@ -135,7 +136,7 @@ async function observerHardAssistantOnly(modelSpec: string, judgeModel: string):
     '[Source entry id: user-c] 2026-06-07 11:02 User: Do not call that fixed. The CRLF offset failure is still unresolved.',
   ].join('\n');
   const { runObserver } = await loadOmAgents();
-  const output = await runObserver({ ...auth, priorReflections: [], priorObservations: [], chunk, allowedSourceEntryIds: ['assistant-a', 'tool-b', 'user-c'], thinkingLevel: 'off', maxTurns: 6 });
+  const output = await runObserver({ ...auth, priorReflections: [], priorObservations: [], chunk, allowedSourceEntryIds: ['assistant-a', 'tool-b', 'user-c'], thinkingLevel, maxTurns: 6 });
   return judged('observer-assistant-tool-evidence', 'observer', output ?? [], {
     id: 'observer-assistant-tool-evidence',
     question: 'Did the observer preserve assistant/tool-result evidence plus the user-stated unresolved status?',
@@ -151,7 +152,7 @@ async function observerHardAssistantOnly(modelSpec: string, judgeModel: string):
   }, judgeModel, started);
 }
 
-async function reflectorHardCompression(modelSpec: string, judgeModel: string): Promise<AgentEvalRecord> {
+async function reflectorHardCompression(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   const started = Date.now();
   const auth = await resolveModel(modelSpec);
   const observations = [
@@ -161,7 +162,7 @@ async function reflectorHardCompression(modelSpec: string, judgeModel: string): 
     obs('dddddddddddd', 'Assistant acknowledged the instruction.', '2026-06-07T10:05:00.000Z'),
   ];
   const { runReflector } = await loadOmAgents();
-  const output = await runReflector({ ...auth, reflections: [], observations, thinkingLevel: 'off', maxTurns: 6 });
+  const output = await runReflector({ ...auth, reflections: [], observations, thinkingLevel, maxTurns: 6 });
   return judged('reflector-current-stale-blocker', 'reflector', output ?? [], {
     id: 'reflector-current-stale-blocker',
     question: 'Did the reflector create durable one-line reflections for current/stale decision and unresolved blocker, without reflecting acknowledgement noise?',
@@ -169,15 +170,44 @@ async function reflectorHardCompression(modelSpec: string, judgeModel: string): 
       pass_if: [
         'Output contains a reflection preserving SQLite at /tmp/jobs.db as current and Redis as rejected/stale.',
         'Output contains a reflection preserving the unresolved SQLITE_BUSY blocker at src/db/migrate.ts:88 and WAL/PRAGMA journal_mode=WAL requirement.',
-        'Each reflection cites one or more supporting observation ids from aaaaaaaaaaaa, bbbbbbbbbbbb, cccccccccccc, dddddddddddd.',
+        'Each reflection has a supportingObservationIds array containing only these exact valid ids: aaaaaaaaaaaa, bbbbbbbbbbbb, cccccccccccc, dddddddddddd.',
         'Output does not create a durable reflection merely for assistant acknowledgement.',
       ],
-      fail_if: ['Output omits current-vs-stale relationship.', 'Output omits exact error/file or WAL requirement.', 'Output invents support ids.'],
+      fail_if: ['Output omits current-vs-stale relationship.', 'Output omits exact error/file or WAL requirement.', 'Any supportingObservationIds value is not one of: aaaaaaaaaaaa, bbbbbbbbbbbb, cccccccccccc, dddddddddddd.'],
     },
   }, judgeModel, started);
 }
 
-async function reflectorReviewedZero(modelSpec: string, judgeModel: string): Promise<AgentEvalRecord> {
+async function reflectorSupersessionRelation(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const started = Date.now();
+  const auth = await resolveModel(modelSpec);
+  const observations = [
+    obs('aaaaaaaaaaaa', 'Canonical approved feature flag is `fast_sync_v2_enabled`, which supersedes `enableFastSync`; near-match to reject is `enableFastSync`.', '2026-06-07T10:00:00.000Z'),
+    obs('bbbbbbbbbbbb', 'Repeated red-herring records say `enableFastSync` is a similar stale value explicitly not current for the final task.', '2026-06-07T10:01:00.000Z'),
+    obs('cccccccccccc', 'Final meta-note: answer approved feature flag from the canonical record and rejected near-match already recorded.', '2026-06-07T10:02:00.000Z'),
+  ];
+  const { runReflector } = await loadOmAgents();
+  const output = await runReflector({ ...auth, reflections: [], observations, thinkingLevel, maxTurns: 6 });
+  return judged('reflector-supersession-relation', 'reflector', output ?? [], {
+    id: 'reflector-supersession-relation',
+    question: 'Did the reflector preserve the durable replacement/supersession relation instead of compressing it into only current-vs-stale labels?',
+    rubric: {
+      pass_if: [
+        'Output contains a reflection preserving fast_sync_v2_enabled as the approved/canonical/current feature flag.',
+        'Output contains enableFastSync as the stale/rejected near-match.',
+        'Output preserves that fast_sync_v2_enabled supersedes or replaces enableFastSync; merely saying fast_sync_v2_enabled is current and enableFastSync is stale is not enough.',
+        'The reflection cites supporting observation id aaaaaaaaaaaa and may cite bbbbbbbbbbbb or cccccccccccc.',
+      ],
+      fail_if: [
+        'Output omits the supersedes/replaces relationship between fast_sync_v2_enabled and enableFastSync.',
+        'Output treats enableFastSync as current or ambiguous.',
+        'Output invents support ids.',
+      ],
+    },
+  }, judgeModel, started);
+}
+
+async function reflectorReviewedZero(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   const started = Date.now();
   const auth = await resolveModel(modelSpec);
   const observations = [
@@ -185,7 +215,7 @@ async function reflectorReviewedZero(modelSpec: string, judgeModel: string): Pro
     obs('bbbbbbbbbbbb', 'User said thanks.', '2026-06-07T10:01:00.000Z'),
   ];
   const { runReflector } = await loadOmAgents();
-  const output = await runReflector({ ...auth, reflections: [ref('eeeeeeeeeeee', 'User prefers concise memory updates.', ['aaaaaaaaaaaa'])], observations, thinkingLevel: 'off', maxTurns: 4 });
+  const output = await runReflector({ ...auth, reflections: [ref('eeeeeeeeeeee', 'User prefers concise memory updates.', ['aaaaaaaaaaaa'])], observations, thinkingLevel, maxTurns: 4 });
   return judged('reflector-reviewed-zero-noise', 'reflector', output ?? [], {
     id: 'reflector-reviewed-zero-noise',
     question: 'Did the reflector correctly add no durable reflections for acknowledgement-only observations?',
@@ -196,7 +226,7 @@ async function reflectorReviewedZero(modelSpec: string, judgeModel: string): Pro
   }, judgeModel, started);
 }
 
-async function dropperHardSafety(modelSpec: string, judgeModel: string): Promise<AgentEvalRecord> {
+async function dropperHardSafety(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   const started = Date.now();
   const auth = await resolveModel(modelSpec);
   const observations = [
@@ -209,7 +239,7 @@ async function dropperHardSafety(modelSpec: string, judgeModel: string): Promise
     ref('eeeeeeeeeeee', 'Current job-state decision is SQLite; Redis plan is rejected stale.', ['aaaaaaaaaaaa', 'dddddddddddd']),
   ];
   const { runDropper } = await loadOmAgents();
-  const output = await runDropper({ ...auth, reflections, observations, protectedObservationIds: ['cccccccccccc'], maxDropsAllowed: 2, thinkingLevel: 'off', maxTurns: 4 });
+  const output = await runDropper({ ...auth, reflections, observations, protectedObservationIds: ['cccccccccccc'], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4 });
   return judged('dropper-safe-redundant-only', 'dropper', output ?? [], {
     id: 'dropper-safe-redundant-only',
     question: 'Did the dropper choose only safe older reviewed redundant/superseded observations and avoid unique/protected details?',
@@ -225,13 +255,63 @@ async function dropperHardSafety(modelSpec: string, judgeModel: string): Promise
   }, judgeModel, started);
 }
 
+async function dropperKeepsUnreflectedTrap(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const started = Date.now();
+  const auth = await resolveModel(modelSpec);
+  const observations = [
+    obs('aaaaaaaaaaaa', 'Approved feature flag is fast_sync_v2_enabled, which supersedes enableFastSync.', '2026-06-07T09:00:00.000Z'),
+    obs('bbbbbbbbbbbb', 'enableFastSync is a stale near-match trap and explicitly not current.', '2026-06-07T09:01:00.000Z'),
+    obs('cccccccccccc', 'Background reminder: unrelated batch log line 42.', '2026-06-07T09:02:00.000Z'),
+  ];
+  const reflections = [ref('dddddddddddd', 'Approved feature flag is fast_sync_v2_enabled.', ['aaaaaaaaaaaa'])];
+  const { runDropper } = await loadOmAgents();
+  const output = await runDropper({ ...auth, reflections, observations, protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4 });
+  return judged('dropper-keeps-unreflected-stale-trap', 'dropper', output ?? [], {
+    id: 'dropper-keeps-unreflected-stale-trap',
+    question: 'Did the dropper avoid dropping stale-trap evidence that is not covered by a reflection, while allowing irrelevant background to be dropped?',
+    rubric: {
+      pass_if: [
+        'Output is a drop-id list and does not include bbbbbbbbbbbb because the stale near-match trap enableFastSync is not preserved in the reflection.',
+        'Output may include aaaaaaaaaaaa because its current-value detail is covered by the reflection, and may include cccccccccccc as irrelevant background/noise.',
+        'Output includes no more than two ids.',
+      ],
+      fail_if: ['Output includes bbbbbbbbbbbb.', 'Output includes more than two ids.', 'Output includes ids other than aaaaaaaaaaaa, bbbbbbbbbbbb, or cccccccccccc.'],
+    },
+  }, judgeModel, started);
+}
+
+async function dropperDropsRepeatedNoise(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const started = Date.now();
+  const auth = await resolveModel(modelSpec);
+  const observations = [
+    obs('aaaaaaaaaaaa', 'Repeated red-herring records batch 1 all say enableFastSync is stale and not current.', '2026-06-07T09:00:00.000Z'),
+    obs('bbbbbbbbbbbb', 'Repeated red-herring records batch 2 all say enableFastSync is stale and not current.', '2026-06-07T09:01:00.000Z'),
+    obs('cccccccccccc', 'Canonical approved feature flag is fast_sync_v2_enabled, superseding enableFastSync.', '2026-06-07T09:02:00.000Z'),
+  ];
+  const reflections = [ref('dddddddddddd', 'fast_sync_v2_enabled supersedes enableFastSync; enableFastSync is stale/not current.', ['aaaaaaaaaaaa', 'bbbbbbbbbbbb', 'cccccccccccc'])];
+  const { runDropper } = await loadOmAgents();
+  const output = await runDropper({ ...auth, reflections, observations, protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4 });
+  return judged('dropper-drops-reflected-repeated-noise', 'dropper', output ?? [], {
+    id: 'dropper-drops-reflected-repeated-noise',
+    question: 'Did the dropper drop redundant repeated red-herring observations once their durable meaning is covered by a reflection, while keeping the canonical source detail?',
+    rubric: {
+      pass_if: [
+        'Output is a drop-id list and includes at least one of aaaaaaaaaaaa or bbbbbbbbbbbb as safe redundant repeated noise covered by the reflection.',
+        'Output does not include cccccccccccc, which means the canonical source detail for the current value and supersession relation is kept.',
+        'Output includes no more than two ids.',
+      ],
+      fail_if: ['Output includes cccccccccccc.', 'Output includes neither aaaaaaaaaaaa nor bbbbbbbbbbbb.', 'Output includes more than two ids.', 'Output includes ids other than aaaaaaaaaaaa, bbbbbbbbbbbb, or cccccccccccc.'],
+    },
+  }, judgeModel, started);
+}
+
 async function main() {
   const args = parseArgs();
   fs.mkdirSync(args.outDir, { recursive: true });
-  const cases = [observerHardCurrentStale, observerHardAssistantOnly, reflectorHardCompression, reflectorReviewedZero, dropperHardSafety];
+  const cases = [observerHardCurrentStale, observerHardAssistantOnly, reflectorHardCompression, reflectorSupersessionRelation, reflectorReviewedZero, dropperHardSafety, dropperKeepsUnreflectedTrap, dropperDropsRepeatedNoise];
   const records: AgentEvalRecord[] = [];
   for (const c of cases) {
-    try { records.push(await c(args.model, args.judgeModel)); }
+    try { records.push(await c(args.model, args.judgeModel, args.thinkingLevel)); }
     catch (error) {
       records.push({ id: c.name, agent: c.name.startsWith('observer') ? 'observer' : c.name.startsWith('reflector') ? 'reflector' : 'dropper', output: undefined, passed: false, durationMs: 0, error: error instanceof Error ? (error.stack ?? error.message) : String(error) });
     }
