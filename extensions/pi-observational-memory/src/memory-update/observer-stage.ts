@@ -1,7 +1,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { runObserver } from "../agents/observer/agent.js";
 import { debugLog } from "../debug-log.js";
-import { serializeSourceAddressedBranchEntries } from "../memory/serialize.js";
+import { serializeObserverSourceEntries } from "../memory/serialize.js";
 import type { Runtime } from "../runtime.js";
 import {
 	OM_OBSERVATIONS_RECORDED,
@@ -49,7 +49,7 @@ export async function runObserverStage(
 		return "continue";
 	}
 
-	const { text: chunk, sourceEntryIds } = serializeSourceAddressedBranchEntries(chunkEntries);
+	const { text: chunk, sourceEntryIds } = serializeObserverSourceEntries(chunkEntries);
 	if (!chunk.trim() || sourceEntryIds.length === 0) return "continue";
 
 	const memory = fullProjection(entries);

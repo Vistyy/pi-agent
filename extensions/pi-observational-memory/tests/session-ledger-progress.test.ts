@@ -26,14 +26,14 @@ import {
 } from "./fixtures/session.js";
 
 describe("session-ledger progress helpers", () => {
-	it("detects only raw/source entries as source entries", () => {
+	it("detects raw summaries and messages as source entries, but not memory ledger entries", () => {
 		expect(isSourceEntry(textCustomMessage("raw-1", "abcd"))).toBe(true);
 		expect(isSourceEntry(branchSummary("sum-1", "abcd"))).toBe(true);
 		expect(isSourceEntry(observationsRecordedEntry("om-1", {
 			observations: [observation("aaaaaaaaaaaa")],
 			coversUpToId: "raw-1",
 		}))).toBe(false);
-		expect(isSourceEntry(compactionEntry("cmp-1"))).toBe(false);
+		expect(isSourceEntry(compactionEntry("cmp-1"))).toBe(true);
 	});
 
 	it("builds a branch id to index map", () => {
@@ -42,7 +42,7 @@ describe("session-ledger progress helpers", () => {
 		expect(entryIndexById(entries).get("raw-2")).toBe(1);
 	});
 
-	it("counts raw tokens after a branch index and ignores memory/compaction entries", () => {
+	it("counts source tokens after a branch index and ignores memory ledger entries", () => {
 		const entries = [
 			textCustomMessage("raw-1", "aaaa"),
 			observationsRecordedEntry("om-1", { observations: [observation("aaaaaaaaaaaa")], coversUpToId: "raw-1" }),
@@ -51,9 +51,9 @@ describe("session-ledger progress helpers", () => {
 			branchSummary("sum-1", "cccccccccccc"),
 		];
 
-		expect(rawTokensAfterIndex(entries, 0)).toBe(5); // raw-2: 2 + sum-1: 3
-		expect(rawTokensAfterIndex(entries, 1)).toBe(5);
-		expect(rawTokensAfterIndex(entries, 2)).toBe(3);
+		expect(rawTokensAfterIndex(entries, 0)).toBe(9); // raw-2: 2 + cmp-1: 4 + sum-1: 3
+		expect(rawTokensAfterIndex(entries, 1)).toBe(9);
+		expect(rawTokensAfterIndex(entries, 2)).toBe(7);
 	});
 
 	it("uses independent coverage clocks for observations, reflections, and drops", () => {

@@ -19,7 +19,7 @@ export function estimateEntryTokens(entry: { type: string; message?: unknown; co
 			return total;
 		}
 	}
-	if (entry.type === "branch_summary" && typeof entry.summary === "string") {
+	if ((entry.type === "branch_summary" || entry.type === "compaction") && typeof entry.summary === "string") {
 		return estimateStringTokens(entry.summary);
 	}
 	return 0;

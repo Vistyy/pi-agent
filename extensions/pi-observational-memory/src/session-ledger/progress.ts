@@ -7,7 +7,7 @@ import {
 	type MemoryCustomType,
 } from "./types.js";
 
-const SOURCE_ENTRY_TYPES = new Set(["message", "custom_message", "branch_summary"]);
+const SOURCE_ENTRY_TYPES = new Set(["message", "custom_message", "branch_summary", "compaction"]);
 
 export function isSourceEntry(entry: Entry): boolean {
 	return SOURCE_ENTRY_TYPES.has(entry.type);
