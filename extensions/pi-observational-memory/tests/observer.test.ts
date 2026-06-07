@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import { normalizeSourceEntryIds, OBSERVATION_TIMESTAMP_PATTERN, runObserver } from "../src/agents/observer/agent.js";
-import { estimateStringTokens } from "../src/memory/token-estimate.js";
 import { fakeAgentLoop } from "./fixtures/agent-loop.js";
 
 describe("OBSERVATION_TIMESTAMP_PATTERN", () => {
@@ -25,14 +24,14 @@ describe("runObserver", () => {
 		allowedSourceEntryIds: ["entry-a"],
 	};
 
-	it("records observations with source ids and code-computed tokenCount", async () => {
+	it("records observations with source ids", async () => {
 		const content = "User asked for a memory update.";
 		const loop = fakeAgentLoop(async (_prompts, context) => {
 			await context.tools[0].execute("tool-1", {
 				observations: [{
 					timestamp: "2026-05-02 10:30",
-					event: { title: "Memory update requested", details: [content] },
-					content,					sourceEntryIds: ["entry-a"],
+					content,
+					sourceEntryIds: ["entry-a"],
 				}],
 			});
 		});
@@ -44,7 +43,6 @@ describe("runObserver", () => {
 			content,
 			timestamp: "2026-05-02 10:30",
 			sourceEntryIds: ["entry-a"],
-			tokenCount: estimateStringTokens([content, "Memory update requested", content, ""].join("\n")),
 		});
 		expect(observations?.[0].id).toMatch(/^[a-f0-9]{12}$/);
 	});
@@ -52,7 +50,7 @@ describe("runObserver", () => {
 	it("rejects invented source ids and returns no observations", async () => {
 		const loop = fakeAgentLoop(async (_prompts, context) => {
 			await context.tools[0].execute("tool-1", {
-				observations: [{ timestamp: "2026-05-02 10:30", event: { title: "Bad source", details: ["Bad source"] }, content: "Bad source", sourceEntryIds: ["missing"] }],
+				observations: [{ timestamp: "2026-05-02 10:30", content: "Bad source", sourceEntryIds: ["missing"] }],
 			});
 		});
 
@@ -63,8 +61,8 @@ describe("runObserver", () => {
 		const loop = fakeAgentLoop(async (_prompts, context) => {
 			await context.tools[0].execute("tool-1", {
 				observations: [
-					{ timestamp: "2026-05-02 10:30", event: { title: "Same", details: ["Same content"] }, content: "Same content", sourceEntryIds: ["entry-a"] },
-					{ timestamp: "2026-05-02 10:31", event: { title: "Same", details: ["Same content"] }, content: "Same content", sourceEntryIds: ["entry-a"] },
+					{ timestamp: "2026-05-02 10:30", content: "Same content", sourceEntryIds: ["entry-a"] },
+					{ timestamp: "2026-05-02 10:31", content: "Same content", sourceEntryIds: ["entry-a"] },
 				],
 			});
 		});

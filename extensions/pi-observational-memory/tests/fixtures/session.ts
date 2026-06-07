@@ -18,13 +18,6 @@ export type TestObservation = {
 	content: string;
 	timestamp: string;
 	sourceEntryIds: string[];
-	tokenCount: number;
-	event?: {
-		title: string;
-		details: string[];
-		status?: string;
-		supersedes?: string[];
-	};
 };
 
 export type TestReflection = {
@@ -136,7 +129,6 @@ export function observation(
 		content: `Observation ${id}`,
 		timestamp: DEFAULT_TIMESTAMP,
 		sourceEntryIds: ["raw-1"],
-		tokenCount: 10,
 		...overrides,
 	};
 }

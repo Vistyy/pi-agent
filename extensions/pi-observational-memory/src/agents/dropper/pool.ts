@@ -1,4 +1,4 @@
-import type { Observation } from "../../session-ledger/index.js";
+import { observationTokenSum, type Observation } from "../../session-ledger/index.js";
 
 export type ObservationPoolMetrics = {
 	observationTokens: number;
@@ -9,10 +9,6 @@ export type ObservationPoolMetrics = {
 	overTarget: boolean;
 	ready: boolean;
 };
-
-export function observationTokenSum(observations: readonly { tokenCount: number }[]): number {
-	return observations.reduce((sum, observation) => sum + observation.tokenCount, 0);
-}
 
 export function derivedMaxDropCount(activeObservationCount: number): number {
 	if (!Number.isFinite(activeObservationCount) || activeObservationCount <= 0) return 0;

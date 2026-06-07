@@ -35,11 +35,7 @@ function context(entries: unknown[]): ExtensionContext {
 describe("additive context", () => {
 	it("injects exact-detail patch only when enabled after compaction", () => {
 		const obs = observation("aaaaaaaaaaaa", {
-			event: {
-				title: "Tests passed",
-				details: ["npm test passed: 20 files, 150 tests"],
-				status: "completed",
-			},
+			content: "Tests passed: npm test passed: 20 files, 150 tests; completed.",
 		});
 		const entries = [
 			textCustomMessage("raw-1", "test output"),

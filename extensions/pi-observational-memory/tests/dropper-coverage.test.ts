@@ -7,6 +7,7 @@ import {
 	summarizeCoverage,
 	summarizeCoverageTransitions,
 } from "../src/agents/coverage.js";
+import { observationTokenEstimate } from "../src/session-ledger/index.js";
 import { observation, reflection } from "./fixtures/session.js";
 
 describe("reflection coverage helpers", () => {
@@ -43,9 +44,9 @@ describe("reflection coverage helpers", () => {
 		]);
 
 		expect(summarizeCoverage(observations, coverage)).toEqual({
-			none: { count: 1, tokens: 3 },
-			partial: { count: 1, tokens: 5 },
-			strong: { count: 1, tokens: 7 },
+			none: { count: 1, tokens: observationTokenEstimate(observations[0]) },
+			partial: { count: 1, tokens: observationTokenEstimate(observations[1]) },
+			strong: { count: 1, tokens: observationTokenEstimate(observations[2]) },
 		});
 	});
 
@@ -64,9 +65,9 @@ describe("reflection coverage helpers", () => {
 		]);
 
 		expect(summarizeCoverageTransitions(observations, before, after)).toEqual({
-			"none->partial": { count: 1, tokens: 3 },
-			"partial->strong": { count: 1, tokens: 5 },
-			"none->strong": { count: 1, tokens: 7 },
+			"none->partial": { count: 1, tokens: observationTokenEstimate(observations[0]) },
+			"partial->strong": { count: 1, tokens: observationTokenEstimate(observations[1]) },
+			"none->strong": { count: 1, tokens: observationTokenEstimate(observations[2]) },
 		});
 	});
 

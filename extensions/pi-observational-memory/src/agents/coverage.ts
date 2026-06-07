@@ -1,4 +1,4 @@
-import type { Observation, Reflection } from "../session-ledger/index.js";
+import { observationTokenEstimate, type Observation, type Reflection } from "../session-ledger/index.js";
 
 export const REFLECTION_COVERAGE_TIERS = ["none", "partial", "strong"] as const;
 export type ReflectionCoverageTier = typeof REFLECTION_COVERAGE_TIERS[number];
@@ -55,7 +55,7 @@ export function summarizeCoverage(
 		const tier = coverageById.get(observation.id) ?? "none";
 		const bucket = summary[tier];
 		bucket.count++;
-		bucket.tokens += observation.tokenCount;
+		bucket.tokens += observationTokenEstimate(observation);
 	}
 	return summary;
 }
@@ -87,7 +87,7 @@ export function summarizeCoverageTransitions(
 		const key = `${from}->${to}`;
 		const bucket = summary[key] ?? { count: 0, tokens: 0 };
 		bucket.count++;
-		bucket.tokens += observation.tokenCount;
+		bucket.tokens += observationTokenEstimate(observation);
 		summary[key] = bucket;
 	}
 	return summary;

@@ -4,7 +4,7 @@ import { Type } from "@earendil-works/pi-ai";
 import type { Static } from "typebox";
 import { debugLog } from "../../debug-log.js";
 import { joinOrEmpty, runMemoryAgentLoop } from "../common.js";
-import { reflectionToSummaryLine, type Observation, type Reflection } from "../../session-ledger/index.js";
+import { observationTokenEstimate, observationTokenSum, reflectionToSummaryLine, type Observation, type Reflection } from "../../session-ledger/index.js";
 import { DROPPER_SYSTEM } from "./prompts.js";
 import {
 	REFLECTION_COVERAGE_DROP_RANK,
@@ -104,7 +104,7 @@ export async function runDropper(args: RunDropperArgs): Promise<string[] | undef
 
 	const protectedIds = new Set(protectedObservationIds);
 	const eligibleObservations = observations.filter((observation) => !protectedIds.has(observation.id));
-	const observationTokens = eligibleObservations.reduce((sum, observation) => sum + observation.tokenCount, 0);
+	const observationTokens = observationTokenSum(eligibleObservations);
 	const coverageById = reflectionCoverageMap(observations, reflections);
 	const coverageSummary = summarizeCoverage(eligibleObservations, coverageById);
 	debugLog("dropper.agent_start", {
@@ -212,7 +212,10 @@ export async function runDropper(args: RunDropperArgs): Promise<string[] | undef
 			: proposedDropIds.length === 0
 				? "all_filtered"
 				: "selected_empty";
-	const selectedDropTokens = droppedIds.reduce((sum, id) => sum + (allowed.get(id)?.tokenCount ?? 0), 0);
+	const selectedDropTokens = droppedIds.reduce((sum, id) => {
+		const observation = allowed.get(id);
+		return sum + (observation ? observationTokenEstimate(observation) : 0);
+	}, 0);
 	debugLog("dropper.result", {
 		reason,
 		toolCallCount,

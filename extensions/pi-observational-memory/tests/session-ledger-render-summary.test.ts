@@ -38,24 +38,15 @@ describe("session-ledger summary rendering", () => {
 		);
 	});
 
-	it("renders event observations with exact details and status", () => {
+	it("renders exact observation content without structured event fields", () => {
 		const obs = observation("aaaaaaaaaaaa", {
-			event: {
-				title: "Typecheck failed",
-				details: ["Command: npm run typecheck", "Error: TS2322 at src/config.ts:47"],
-				status: "unresolved",
-				supersedes: ["bbbbbbbbbbbb"],
-			},
+			content: "Typecheck failed: Command `npm run typecheck`; Error: TS2322 at src/config.ts:47; unresolved.",
 		});
 
 		const summary = renderSummary([], [obs]);
 
 		expect(summary).toContain("[aaaaaaaaaaaa]");
-		expect(summary).toContain("Typecheck failed");
-		expect(summary).toContain("  - Command: npm run typecheck");
-		expect(summary).toContain("  - Error: TS2322 at src/config.ts:47");
-		expect(summary).toContain("  status: unresolved");
-		expect(summary).toContain("  supersedes: bbbbbbbbbbbb");
+		expect(summary).toContain("Typecheck failed: Command `npm run typecheck`; Error: TS2322 at src/config.ts:47; unresolved.");
 	});
 
 	it("keeps raw provenance metadata out of the compact summary", () => {

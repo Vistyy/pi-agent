@@ -9,6 +9,7 @@ import {
 	entryIndexById,
 	fullProjection,
 	latestCoverageIndex,
+	observationTokenSum,
 	observationToSummaryLine,
 	sourceTokensSinceObservationCoverage,
 	sourceEntryCountSinceObservationCoverage,
@@ -90,7 +91,7 @@ export async function runObserverStage(
 	if (!data) return "continue";
 	debugLog("observer.records", {
 		count: observations.length,
-		observationTokens: observations.reduce((sum, observation) => sum + observation.tokenCount, 0),
+		observationTokens: observationTokenSum(observations),
 		coversUpToId,
 	});
 	pi.appendEntry(OM_OBSERVATIONS_RECORDED, data);

@@ -8,14 +8,16 @@ import {
 	sourceEntryCountSinceObservationCoverage,
 	sourceEntryCountSinceReflectionReviewCoverage,
 	latestCompactedProjection,
+	observationTokenSum,
 	type Entry,
+	type Reflection,
 } from "../session-ledger/index.js";
 
 function pct(current: number, total: number): number {
 	return total > 0 ? Math.round((current / total) * 100) : 0;
 }
 
-function tokenSum(items: { tokenCount: number }[]): number {
+function reflectionTokenSum(items: Reflection[]): number {
 	return items.reduce((sum, item) => sum + item.tokenCount, 0);
 }
 
@@ -43,8 +45,8 @@ export function registerStatusCommand(pi: ExtensionAPI, runtime: Runtime): void 
 			const full = fullProjection(entries);
 			const drift = diffProjection(visible, full);
 
-			const visibleObservationTokens = tokenSum(visible.observations);
-			const visibleReflectionTokens = tokenSum(visible.reflections);
+			const visibleObservationTokens = observationTokenSum(visible.observations);
+			const visibleReflectionTokens = reflectionTokenSum(visible.reflections);
 			const activeObservationPool = observationPoolMetrics(folded.activeObservations, runtime.config.dropWhenActiveObservationsOver);
 			const observationLine = appendSuffixes(
 				`Observations: ${folded.observations.length} recorded / ${folded.droppedObservationIds.size} dropped / ${folded.activeObservations.length} active / ${visible.observations.length} visible`,

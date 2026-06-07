@@ -154,7 +154,7 @@ describe("compaction hook", () => {
 			reflectionsRecordedEntry("om-ffffffffffff", { reflections: [ref2], coversUpToId: "raw-2" }),
 			observationsDroppedEntry("om-drop-2", { observationIds: ["aaaaaaaaaaaa"], coversUpToId: "raw-2" }),
 		];
-		const { run } = setup({ entries, observationsPoolMaxTokens: 100 });
+		const { run } = setup({ entries, observationsPoolMaxTokens: 10 });
 
 		const result = await run("raw-2");
 

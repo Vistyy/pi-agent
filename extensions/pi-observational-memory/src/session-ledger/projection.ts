@@ -1,3 +1,4 @@
+import { observationTokenSum } from "./observation-tokens.js";
 import {
 	OM_FOLDED,
 	isMemoryDetails,
@@ -170,10 +171,7 @@ function buildIncrementalCompactionProjection(entries: Entry[], seed: Projection
 }
 
 function shouldFullFold(projection: Projection, config: CompactionProjectionConfig): boolean {
-	const observationTokens = projection.observations.reduce(
-		(total, observation) => total + observation.tokenCount,
-		0,
-	);
+	const observationTokens = observationTokenSum(projection.observations);
 	return observationTokens >= config.observationsPoolMaxTokens;
 }
 

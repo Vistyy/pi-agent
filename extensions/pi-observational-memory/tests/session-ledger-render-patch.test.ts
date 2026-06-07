@@ -7,11 +7,7 @@ describe("session-ledger memory patch rendering", () => {
 	it("renders exact observations with ids", () => {
 		const low = observation("aaaaaaaaaaaa", { content: "Routine acknowledgement." });
 		const exact = observation("bbbbbbbbbbbb", {
-			event: {
-				title: "Typecheck failed",
-				details: ["Command: npm run typecheck", "Error: TS2322 at src/config.ts:47"],
-				status: "unresolved",
-			},
+			content: "Typecheck failed: Command: npm run typecheck; Error: TS2322 at src/config.ts:47; unresolved.",
 		});
 
 		const patch = renderMemoryPatch([], [low, exact], { maxTokens: 200 });

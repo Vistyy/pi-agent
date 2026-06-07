@@ -45,7 +45,6 @@ describe("session-ledger type guards and builders", () => {
 		expect(isObservation(observation("aaaaaaaaaaaa"))).toBe(true);
 		expect(isObservation({ ...observation("bbbbbbbbbbbb"), sourceEntryIds: [] })).toBe(false);
 		expect(isObservation({ ...observation("cccccccccccc"), sourceEntryIds: undefined })).toBe(false);
-		expect(isObservation({ ...observation("dddddddddddd"), tokenCount: undefined })).toBe(false);
 	});
 
 	it("accepts valid reflection records", () => {

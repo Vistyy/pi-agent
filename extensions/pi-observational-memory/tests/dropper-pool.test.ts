@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { derivedMaxDropCount, observationPoolMetrics } from "../src/agents/dropper/pool.js";
-import { foldLedger, type Entry } from "../src/session-ledger/index.js";
+import { foldLedger, observationTokenSum, type Entry } from "../src/session-ledger/index.js";
 import { observation, observationsDroppedEntry, observationsRecordedEntry, textCustomMessage } from "./fixtures/session.js";
 
 describe("dropper active observation pool metrics", () => {
@@ -9,7 +9,7 @@ describe("dropper active observation pool metrics", () => {
 		const observations = [observation("aaaaaaaaaaaa", { tokenCount: 20 })];
 
 		expect(observationPoolMetrics(observations, 2)).toMatchObject({
-			observationTokens: 20,
+			observationTokens: observationTokenSum(observations),
 			activeObservationCount: 1,
 			dropWhenActiveObservationsOver: 2,
 			observationsOverTarget: 0,
@@ -27,7 +27,7 @@ describe("dropper active observation pool metrics", () => {
 
 		const metrics = observationPoolMetrics(observations, 2);
 
-		expect(metrics.observationTokens).toBe(100);
+		expect(metrics.observationTokens).toBe(observationTokenSum(observations));
 		expect(metrics.activeObservationCount).toBe(2);
 		expect(metrics.observationsOverTarget).toBe(0);
 		expect(metrics.maxDropsAllowed).toBe(0);
@@ -44,7 +44,7 @@ describe("dropper active observation pool metrics", () => {
 
 		const metrics = observationPoolMetrics(observations, 2);
 
-		expect(metrics.observationTokens).toBe(150);
+		expect(metrics.observationTokens).toBe(observationTokenSum(observations));
 		expect(metrics.activeObservationCount).toBe(3);
 		expect(metrics.observationsOverTarget).toBe(1);
 		expect(metrics.maxDropsAllowed).toBe(1);
@@ -72,7 +72,7 @@ describe("dropper active observation pool metrics", () => {
 		const metrics = observationPoolMetrics(folded.activeObservations, 1);
 
 		expect(folded.activeObservations.map((obs) => obs.id)).toEqual(["bbbbbbbbbbbb"]);
-		expect(metrics.observationTokens).toBe(20);
+		expect(metrics.observationTokens).toBe(observationTokenSum(folded.activeObservations));
 		expect(metrics.overTarget).toBe(false);
 		expect(metrics.ready).toBe(false);
 	});

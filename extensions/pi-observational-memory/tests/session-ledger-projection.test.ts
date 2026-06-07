@@ -154,7 +154,7 @@ describe("session-ledger projections", () => {
 			observationsDroppedEntry("om-drop-2", { observationIds: ["aaaaaaaaaaaa"], coversUpToId: "raw-2" }),
 		];
 
-		const result = buildNextCompactionProjection(entries, "raw-2", { observationsPoolMaxTokens: 100 });
+		const result = buildNextCompactionProjection(entries, "raw-2", { observationsPoolMaxTokens: 10 });
 
 		expect(result.fullFold).toBe(true);
 		expect(result.observations.map((obs) => obs.id)).toEqual(["bbbbbbbbbbbb"]);
@@ -202,7 +202,7 @@ describe("session-ledger projections", () => {
 			observationsRecordedEntry("om-aaaaaaaaaaaa", { observations: [obs1], coversUpToId: "raw-1" }),
 		];
 
-		expect(buildNextCompactionProjection(entries, "raw-1", { observationsPoolMaxTokens: 50 }).fullFold).toBe(true);
+		expect(buildNextCompactionProjection(entries, "raw-1", { observationsPoolMaxTokens: 1 }).fullFold).toBe(true);
 	});
 
 	it("reports visible/full drift", () => {

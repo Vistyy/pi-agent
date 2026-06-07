@@ -20,20 +20,11 @@ export type Entry = {
 	firstKeptEntryId?: string;
 };
 
-export type ObservationEvent = {
-	title: string;
-	details: string[];
-	status?: string;
-	supersedes?: string[];
-};
-
 export type Observation = {
 	id: string;
 	content: string;
 	timestamp: string;
 	sourceEntryIds: string[];
-	tokenCount: number;
-	event?: ObservationEvent;
 };
 
 export type Reflection = {
@@ -95,25 +86,13 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
 	return !!value && typeof value === "object";
 }
 
-export function isObservationEvent(value: unknown): value is ObservationEvent {
-	if (!isPlainRecord(value)) return false;
-	return (
-		isNonEmptyString(value.title) &&
-		isNonEmptyStringArray(value.details) &&
-		(value.status === undefined || isNonEmptyString(value.status)) &&
-		(value.supersedes === undefined || Array.isArray(value.supersedes) && value.supersedes.every(isMemoryId))
-	);
-}
-
 export function isObservation(value: unknown): value is Observation {
 	if (!isPlainRecord(value)) return false;
 	return (
 		isMemoryId(value.id) &&
 		isNonEmptyString(value.content) &&
 		isNonEmptyString(value.timestamp) &&
-		isNonEmptyStringArray(value.sourceEntryIds) &&
-		isTokenCount(value.tokenCount) &&
-		(value.event === undefined || isObservationEvent(value.event))
+		isNonEmptyStringArray(value.sourceEntryIds)
 	);
 }
 
