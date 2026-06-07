@@ -4,7 +4,7 @@ import {
 	fullProjection,
 	observationToSummaryLine,
 	reflectionToSummaryLine,
-	visibleProjection,
+	latestCompactedProjection,
 	type Entry,
 	type Projection,
 } from "../session-ledger/index.js";
@@ -53,7 +53,7 @@ export function registerViewCommand(pi: ExtensionAPI, runtime: Runtime): void {
 				return;
 			}
 
-			notifyView(renderContentOnlyProjection(visibleProjection(entries), "visible"));
+			notifyView(renderContentOnlyProjection(latestCompactedProjection(entries), "visible"));
 		},
 	});
 }

@@ -180,7 +180,7 @@ Current:
 ```text
 observeEveryMessages
 reflectEveryObservations
-rawTokensSince*Coverage
+sourceTokensSince*Coverage
 ```
 
 Candidate direction:

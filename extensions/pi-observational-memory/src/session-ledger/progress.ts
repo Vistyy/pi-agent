@@ -98,25 +98,25 @@ export function sourceEntryCountSinceObservationCoverage(entries: Entry[]): numb
 	return sourceEntryCountSinceCoverage(entries, OM_OBSERVATIONS_RECORDED);
 }
 
-export function rawTokensAfterIndex(entries: Entry[], index: number): number {
+export function sourceTokensAfterIndex(entries: Entry[], index: number): number {
 	let total = 0;
 	for (const entry of sourceEntriesAfterIndex(entries, index)) total += estimateEntryTokens(entry);
 	return total;
 }
 
-export function rawTokensSinceCoverage(entries: Entry[], customType: MemoryCustomType): number {
-	return rawTokensAfterIndex(entries, latestCoverageIndex(entries, customType));
+export function sourceTokensSinceCoverage(entries: Entry[], customType: MemoryCustomType): number {
+	return sourceTokensAfterIndex(entries, latestCoverageIndex(entries, customType));
 }
 
-export function rawTokensSinceObservationCoverage(entries: Entry[]): number {
-	return rawTokensSinceCoverage(entries, OM_OBSERVATIONS_RECORDED);
+export function sourceTokensSinceObservationCoverage(entries: Entry[]): number {
+	return sourceTokensSinceCoverage(entries, OM_OBSERVATIONS_RECORDED);
 }
 
-export function rawTokensSinceReflectionCoverage(entries: Entry[]): number {
-	return rawTokensSinceCoverage(entries, OM_REFLECTIONS_RECORDED);
+export function sourceTokensSinceReflectionCoverage(entries: Entry[]): number {
+	return sourceTokensSinceCoverage(entries, OM_REFLECTIONS_RECORDED);
 }
 
-export function rawTokensSinceDropCoverage(entries: Entry[]): number {
-	return rawTokensSinceCoverage(entries, OM_OBSERVATIONS_DROPPED);
+export function sourceTokensSinceDropCoverage(entries: Entry[]): number {
+	return sourceTokensSinceCoverage(entries, OM_OBSERVATIONS_DROPPED);
 }
 

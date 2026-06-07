@@ -6,10 +6,10 @@ import {
 	isSourceEntry,
 	latestCoverageIndex,
 	latestCoverageMarkerId,
-	rawTokensAfterIndex,
-	rawTokensSinceDropCoverage,
-	rawTokensSinceObservationCoverage,
-	rawTokensSinceReflectionCoverage,
+	sourceTokensAfterIndex,
+	sourceTokensSinceDropCoverage,
+	sourceTokensSinceObservationCoverage,
+	sourceTokensSinceReflectionCoverage,
 } from "../src/session-ledger/index.js";
 import {
 	OM_OBSERVATIONS_DROPPED,
@@ -51,9 +51,9 @@ describe("session-ledger progress helpers", () => {
 			branchSummary("sum-1", "cccccccccccc"),
 		];
 
-		expect(rawTokensAfterIndex(entries, 0)).toBe(9); // raw-2: 2 + cmp-1: 4 + sum-1: 3
-		expect(rawTokensAfterIndex(entries, 1)).toBe(9);
-		expect(rawTokensAfterIndex(entries, 2)).toBe(7);
+		expect(sourceTokensAfterIndex(entries, 0)).toBe(9); // raw-2: 2 + cmp-1: 4 + sum-1: 3
+		expect(sourceTokensAfterIndex(entries, 1)).toBe(9);
+		expect(sourceTokensAfterIndex(entries, 2)).toBe(7);
 	});
 
 	it("uses independent coverage clocks for observations, reflections, and drops", () => {
@@ -67,9 +67,9 @@ describe("session-ledger progress helpers", () => {
 			textCustomMessage("raw-4", "dddddddddddddddd"),
 		];
 
-		expect(rawTokensSinceObservationCoverage(entries)).toBe(9); // raw-2 + raw-3 + raw-4
-		expect(rawTokensSinceReflectionCoverage(entries)).toBe(7); // raw-3 + raw-4
-		expect(rawTokensSinceDropCoverage(entries)).toBe(7); // covers ledger entry om-eeeeeeeeeeee, raw after it
+		expect(sourceTokensSinceObservationCoverage(entries)).toBe(9); // raw-2 + raw-3 + raw-4
+		expect(sourceTokensSinceReflectionCoverage(entries)).toBe(7); // raw-3 + raw-4
+		expect(sourceTokensSinceDropCoverage(entries)).toBe(7); // covers ledger entry om-eeeeeeeeeeee, raw after it
 	});
 
 	it("lets coversUpToId point to a memory ledger entry", () => {
@@ -81,7 +81,7 @@ describe("session-ledger progress helpers", () => {
 		];
 
 		expect(latestCoverageIndex(entries,OM_OBSERVATIONS_DROPPED)).toBe(1);
-		expect(rawTokensSinceDropCoverage(entries)).toBe(2);
+		expect(sourceTokensSinceDropCoverage(entries)).toBe(2);
 	});
 
 	it("chooses the max covered branch position, not merely latest ledger entry order", () => {
@@ -95,7 +95,7 @@ describe("session-ledger progress helpers", () => {
 
 		expect(latestCoverageIndex(entries,OM_OBSERVATIONS_RECORDED)).toBe(1);
 		expect(latestCoverageMarkerId(entries,OM_OBSERVATIONS_RECORDED)).toBe("raw-2");
-		expect(rawTokensSinceObservationCoverage(entries)).toBe(3);
+		expect(sourceTokensSinceObservationCoverage(entries)).toBe(3);
 	});
 
 	it("returns latest inner coverage marker and earlier marker by branch index", () => {

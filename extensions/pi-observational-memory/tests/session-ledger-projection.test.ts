@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
-	buildCompactionProjection,
+	buildNextCompactionProjection,
 	diffProjection,
 	fullProjection,
 	latestFullFoldBoundaryId,
-	visibleProjection,
+	latestCompactedProjection,
 } from "../src/session-ledger/index.js";
 import {
 	compactionEntry,
@@ -42,7 +42,7 @@ describe("session-ledger projections", () => {
 			observationsRecordedEntry("om-aaaaaaaaaaaa", { observations: [observation("aaaaaaaaaaaa")], coversUpToId: "raw-1" }),
 		];
 
-		expect(visibleProjection(entries)).toEqual({ observations: [], reflections: [] });
+		expect(latestCompactedProjection(entries)).toEqual({ observations: [], reflections: [] });
 	});
 
 	it("visible projection uses the latest valid om.folded compaction details", () => {
@@ -56,7 +56,7 @@ describe("session-ledger projections", () => {
 			compactionEntry("cmp-2", { firstKeptEntryId: "raw-2", details: memoryDetails({ fullFold: true, observations: [obs2], reflections: [ref1] }) }),
 		];
 
-		expect(visibleProjection(entries)).toEqual({ observations: [obs2], reflections: [ref1] });
+		expect(latestCompactedProjection(entries)).toEqual({ observations: [obs2], reflections: [ref1] });
 	});
 
 	it("finds the latest full-fold boundary", () => {
@@ -83,7 +83,7 @@ describe("session-ledger projections", () => {
 			observationsDroppedEntry("om-drop-1", { observationIds: ["aaaaaaaaaaaa"], coversUpToId: "raw-2" }),
 		];
 
-		const result = buildCompactionProjection(entries, "raw-2", { observationsPoolMaxTokens: 100 });
+		const result = buildNextCompactionProjection(entries, "raw-2", { observationsPoolMaxTokens: 100 });
 
 		expect(result.fullFold).toBe(false);
 		expect(result.observations.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa"]);
@@ -107,7 +107,7 @@ describe("session-ledger projections", () => {
 			observationsDroppedEntry("om-drop-2", { observationIds: ["aaaaaaaaaaaa"], coversUpToId: "raw-2" }),
 		];
 
-		const result = buildCompactionProjection(entries, "raw-2", { observationsPoolMaxTokens: 100 });
+		const result = buildNextCompactionProjection(entries, "raw-2", { observationsPoolMaxTokens: 100 });
 
 		expect(result.fullFold).toBe(false);
 		expect(result.observations.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa", "bbbbbbbbbbbb"]);
@@ -131,7 +131,7 @@ describe("session-ledger projections", () => {
 			observationsDroppedEntry("om-drop-2", { observationIds: ["aaaaaaaaaaaa"], coversUpToId: "raw-2" }),
 		];
 
-		const result = buildCompactionProjection(entries, "raw-2", { observationsPoolMaxTokens: 100 });
+		const result = buildNextCompactionProjection(entries, "raw-2", { observationsPoolMaxTokens: 100 });
 
 		expect(result.fullFold).toBe(true);
 		expect(result.observations.map((obs) => obs.id)).toEqual(["bbbbbbbbbbbb"]);
@@ -179,7 +179,7 @@ describe("session-ledger projections", () => {
 			observationsRecordedEntry("om-aaaaaaaaaaaa", { observations: [obs1], coversUpToId: "raw-1" }),
 		];
 
-		expect(buildCompactionProjection(entries, "raw-1", { observationsPoolMaxTokens: 50 }).fullFold).toBe(true);
+		expect(buildNextCompactionProjection(entries, "raw-1", { observationsPoolMaxTokens: 50 }).fullFold).toBe(true);
 	});
 
 	it("reports visible/full drift", () => {

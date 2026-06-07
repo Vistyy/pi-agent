@@ -431,7 +431,7 @@ src/agents/dropper/pool.ts
 ### High-risk / overcomplicated
 
 ```text
-rawTokensSince*Coverage progress model
+sourceTokensSince*Coverage progress model
 projection fullFold / maintenanceBoundary behavior
 same-run-only dropper gate
 long/conflicting reflector prompt

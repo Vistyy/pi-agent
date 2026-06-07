@@ -10,7 +10,7 @@ import {
 	fullProjection,
 	latestCoverageIndex,
 	observationToSummaryLine,
-	rawTokensSinceObservationCoverage,
+	sourceTokensSinceObservationCoverage,
 	sourceEntryCountSinceObservationCoverage,
 	reflectionToSummaryLine,
 	type Entry,
@@ -26,7 +26,7 @@ export async function runObserverStage(
 	forceObserveBeforeEntryId?: string,
 ): Promise<StageOutcome> {
 	const entries = ctx.sessionManager.getBranch() as Entry[];
-	const tokens = rawTokensSinceObservationCoverage(entries);
+	const tokens = sourceTokensSinceObservationCoverage(entries);
 	const lastCoverageIdx = latestCoverageIndex(entries, OM_OBSERVATIONS_RECORDED);
 	const boundaryIdx = forceObserveBeforeEntryId ? entryIndexById(entries).get(forceObserveBeforeEntryId) : undefined;
 	const sourceEntryCount = boundaryIdx === undefined

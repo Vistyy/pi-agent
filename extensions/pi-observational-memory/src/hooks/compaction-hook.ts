@@ -3,7 +3,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { STRATEGY } from "../config.js";
 import { ensureMemoryUpdatedBeforeCompaction } from "./memory-update.js";
 import type { Runtime } from "../runtime.js";
-import { buildCompactionProjection, renderSummary, type Entry } from "../session-ledger/index.js";
+import { buildNextCompactionProjection, renderSummary, type Entry } from "../session-ledger/index.js";
 
 const DEFAULT_OBSERVATIONS_POOL_MAX_TOKENS = 20_000;
 
@@ -35,7 +35,7 @@ export function registerCompactionHook(pi: ExtensionAPI, runtime: Runtime): void
 			await ensureMemoryUpdatedBeforeCompaction(pi, runtime, ctx, { firstKeptEntryId });
 			if (runtime.config.strategy !== STRATEGY.replacement) return;
 			const branchEntries = ctx.sessionManager.getBranch() as Entry[];
-			const projection = buildCompactionProjection(
+			const projection = buildNextCompactionProjection(
 				branchEntries,
 				firstKeptEntryId,
 				{ observationsPoolMaxTokens: observationsPoolMaxTokens(runtime) },

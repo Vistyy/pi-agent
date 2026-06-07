@@ -6,7 +6,7 @@ import {
 	foldLedger,
 	fullProjection,
 	sourceEntryCountSinceObservationCoverage,
-	visibleProjection,
+	latestCompactedProjection,
 	type Entry,
 } from "../session-ledger/index.js";
 
@@ -38,7 +38,7 @@ export function registerStatusCommand(pi: ExtensionAPI, runtime: Runtime): void 
 			runtime.ensureConfig(ctx.cwd);
 			const entries = ctx.sessionManager.getBranch() as Entry[];
 			const folded = foldLedger(entries);
-			const visible = visibleProjection(entries);
+			const visible = latestCompactedProjection(entries);
 			const full = fullProjection(entries);
 			const drift = diffProjection(visible, full);
 
