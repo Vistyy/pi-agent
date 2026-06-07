@@ -1,5 +1,21 @@
 {
   "providers": {
+    "openai": {
+      "modelOverrides": {
+        "gpt-5.5": {
+          "contextWindow": 200000,
+          "maxTokens": 64000
+        },
+        "gpt-5.4": {
+          "contextWindow": 200000,
+          "maxTokens": 64000
+        },
+        "gpt-5.4-mini": {
+          "contextWindow": 200000,
+          "maxTokens": 64000
+        }
+      }
+    },
     "deepseek": {
       "baseUrl": "https://api.deepseek.com",
       "api": "openai-completions",
@@ -25,8 +41,8 @@
             "xhigh": "max"
           },
           "input": ["text"],
-          "contextWindow": 1000000,
-          "maxTokens": 384000,
+          "contextWindow": 200000,
+          "maxTokens": 64000,
           "cost": {
             "input": 0.14,
             "output": 0.28,
@@ -47,8 +63,8 @@
             "xhigh": "max"
           },
           "input": ["text"],
-          "contextWindow": 1000000,
-          "maxTokens": 384000,
+          "contextWindow": 200000,
+          "maxTokens": 64000,
           "cost": {
             "input": 0.435,
             "output": 0.87,
