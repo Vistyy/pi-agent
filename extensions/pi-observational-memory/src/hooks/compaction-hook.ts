@@ -28,6 +28,8 @@ export function registerCompactionHook(pi: ExtensionAPI, runtime: Runtime): void
 
 		runtime.compactHookInFlight = true;
 		try {
+			runtime.transientCompactionObservations = [];
+			runtime.transientCompactionReflections = [];
 			runtime.ensureConfig(ctx.cwd);
 			if (runtime.config.strategy === STRATEGY.off) return;
 			const { preparation } = event;
@@ -39,6 +41,10 @@ export function registerCompactionHook(pi: ExtensionAPI, runtime: Runtime): void
 				branchEntries,
 				firstKeptEntryId,
 				{ observationsPoolMaxTokens: observationsPoolMaxTokens(runtime) },
+				{
+					observations: runtime.transientCompactionObservations,
+					reflections: runtime.transientCompactionReflections,
+				},
 			);
 			const summary = renderSummary(projection.reflections, projection.observations);
 
