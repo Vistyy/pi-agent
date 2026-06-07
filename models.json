@@ -73,6 +73,63 @@
           }
         }
       ]
+    },
+    "alibaba": {
+      "baseUrl": "https://ws-3fbjf16rgghk7mks.eu-central-1.maas.aliyuncs.com/compatible-mode/v1",
+      "api": "openai-completions",
+      "apiKey": "$DASHSCOPE_API_KEY",
+      "compat": {
+        "supportsDeveloperRole": false,
+        "supportsReasoningEffort": false,
+        "maxTokensField": "max_tokens",
+        "thinkingFormat": "qwen"
+      },
+      "models": [
+        {
+          "id": "qwen3.7-plus",
+          "name": "Qwen3.7 Plus",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "off": "disabled",
+            "minimal": null,
+            "low": null,
+            "medium": null,
+            "high": null,
+            "xhigh": "enabled"
+          },
+          "input": ["text", "image"],
+          "contextWindow": 256000,
+          "maxTokens": 32768,
+          "cost": {
+            "input": 0.276,
+            "output": 1.101,
+            "cacheRead": 0.028,
+            "cacheWrite": 0.344
+          }
+        },
+        {
+          "id": "qwen3.7-max",
+          "name": "Qwen3.7 Max",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "off": "disabled",
+            "minimal": null,
+            "low": null,
+            "medium": null,
+            "high": null,
+            "xhigh": "enabled"
+          },
+          "input": ["text"],
+          "contextWindow": 256000,
+          "maxTokens": 32768,
+          "cost": {
+            "input": 1.65,
+            "output": 4.951,
+            "cacheRead": 0.165,
+            "cacheWrite": 2.063
+          }
+        }
+      ]
     }
   }
 }
