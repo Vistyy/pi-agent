@@ -28,7 +28,7 @@ describe("dropper agent", () => {
 
 		await runDropper({ ...baseArgs, agentLoop: loop });
 
-		expect(userText).toContain("Active observations: 3");
+		expect(userText).toContain("Eligible observations: 3 of 3 active");
 		expect(userText).toContain("[coverage: partial]");
 		expect(userText).toContain("[coverage: none]");
 		expect(userText).toContain("Maximum drops allowed this run: 20 observations");

@@ -102,18 +102,21 @@ export async function runDropper(args: RunDropperArgs): Promise<string[] | undef
 	const { model, apiKey, headers, reflections, observations, maxDropsAllowed, protectedObservationIds = [], signal } = args;
 	if (observations.length === 0) return undefined;
 
-	const observationTokens = observations.reduce((sum, observation) => sum + observation.tokenCount, 0);
+	const protectedIds = new Set(protectedObservationIds);
+	const eligibleObservations = observations.filter((observation) => !protectedIds.has(observation.id));
+	const observationTokens = eligibleObservations.reduce((sum, observation) => sum + observation.tokenCount, 0);
 	const coverageById = reflectionCoverageMap(observations, reflections);
-	const coverageSummary = summarizeCoverage(observations, coverageById);
+	const coverageSummary = summarizeCoverage(eligibleObservations, coverageById);
 	debugLog("dropper.agent_start", {
 		activeObservationCount: observations.length,
+		eligibleObservationCount: eligibleObservations.length,
 		reflectionCount: reflections.length,
 		observationTokens,
 		maxDropsAllowed,
 		protectedObservationCount: protectedObservationIds.length,
 		coverageSummary,
 	});
-	if (maxDropsAllowed <= 0) {
+	if (maxDropsAllowed <= 0 || eligibleObservations.length === 0) {
 		debugLog("dropper.result", {
 			reason: "not_over_target",
 			toolCallCount: 0,
@@ -129,7 +132,7 @@ export async function runDropper(args: RunDropperArgs): Promise<string[] | undef
 
 	const proposedDropIds: string[] = [];
 	const proposed = new Set<string>();
-	const allowed = new Map(observations.map((observation) => [observation.id, observation]));
+	const allowed = new Map(eligibleObservations.map((observation) => [observation.id, observation]));
 	let toolCallCount = 0;
 	let rawRequestedIdsCount = 0;
 	let missingIdsCount = 0;
@@ -188,7 +191,7 @@ export async function runDropper(args: RunDropperArgs): Promise<string[] | undef
 		},
 	};
 
-	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nCURRENT OBSERVATIONS:\n${joinOrEmpty(observations.map((observation) => observationToMemoryAgentLine(observation, coverageTierForObservation(observation, coverageById))))}\n\nActive observations: ${observations.length.toLocaleString()} (~${observationTokens.toLocaleString()} tokens).\nMaximum drops allowed this run: ${maxDropsAllowed.toLocaleString()} observation${maxDropsAllowed === 1 ? "" : "s"}. This maximum is a hard safety cap, not a target. Drop fewer or none if fewer observations are clearly safe.`;
+	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nELIGIBLE OBSERVATIONS:\n${joinOrEmpty(eligibleObservations.map((observation) => observationToMemoryAgentLine(observation, coverageTierForObservation(observation, coverageById))))}\n\nEligible observations: ${eligibleObservations.length.toLocaleString()} of ${observations.length.toLocaleString()} active (~${observationTokens.toLocaleString()} tokens). Protected recent/unreviewed observations are omitted.\nMaximum drops allowed this run: ${maxDropsAllowed.toLocaleString()} observation${maxDropsAllowed === 1 ? "" : "s"}. This maximum is a hard safety cap, not a target. Drop fewer or none if fewer observations are clearly safe.`;
 	await runMemoryAgentLoop({
 		model,
 		apiKey,
