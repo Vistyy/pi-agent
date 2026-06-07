@@ -1,9 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-	maxDropCountForPool,
-	normalizeDropObservationIds,
-	observationPoolFullness,
+normalizeDropObservationIds,
 	runDropper,
 	selectDropCandidates,
 } from "../src/agents/dropper/agent.js";
@@ -19,40 +17,10 @@ describe("dropper agent", () => {
 		apiKey: "test",
 		reflections: [reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"])],
 		observations: [obsA, obsB, critical],
-		targetTokens: 20,
+		maxDropsAllowed: 20,
 	};
 
-	it("computes observation pool fullness defensively", () => {
-		expect(observationPoolFullness(0, 100)).toBe(0);
-		expect(observationPoolFullness(-1, 100)).toBe(0);
-		expect(observationPoolFullness(10, 0)).toBe(0);
-		expect(observationPoolFullness(10, Number.NaN)).toBe(0);
-		expect(observationPoolFullness(25, 100)).toBe(0.25);
-	});
-
-	it("computes max drops from token excess above target", () => {
-		const observations = Array.from({ length: 10 }, (_, index) =>
-			observation(`${index}`.padStart(12, "a"), { relevance: "low", tokenCount: 10 }),
-		);
-
-		expect(maxDropCountForPool(observations, 100, 100)).toBe(0);
-		expect(maxDropCountForPool(observations, 100, 90)).toBe(1);
-		expect(maxDropCountForPool(observations, 100, 50)).toBe(5);
-		expect(maxDropCountForPool(observations, 100, 0)).toBe(10);
-	});
-
-	it("uses active observation count for target-return max drops while critical ids remain eligible later", () => {
-		const observations = [
-			observation("aaaaaaaaaaaa", { relevance: "low", tokenCount: 10 }),
-			observation("bbbbbbbbbbbb", { relevance: "medium", tokenCount: 10 }),
-			observation("cccccccccccc", { relevance: "critical", tokenCount: 10 }),
-			observation("dddddddddddd", { relevance: "critical", tokenCount: 10 }),
-		];
-
-		expect(maxDropCountForPool(observations, 40, 20)).toBe(2);
-	});
-
-	it("passes target-return max drops as a hard upper bound", async () => {
+	it("passes max drops as a hard upper bound", async () => {
 		let userText = "";
 		const loop = fakeAgentLoop((prompts) => {
 			userText = prompts[0].content[0].text;
@@ -60,13 +28,11 @@ describe("dropper agent", () => {
 
 		await runDropper({ ...baseArgs, agentLoop: loop });
 
-		expect(userText).toContain("fullness against target: ~150%");
-		expect(userText).toContain("over target by ~10 tokens");
+		expect(userText).toContain("Active observations: 3");
 		expect(userText).toContain("[coverage: partial]");
 		expect(userText).toContain("[coverage: none]");
-		expect(userText).toContain("Maximum drops allowed this run: 1 observation");
-		expect(userText).toContain("sized to move the active pool toward the target");
-		expect(userText).toContain("hard upper bound, not a target");
+		expect(userText).toContain("Maximum drops allowed this run: 20 observations");
+		expect(userText).toContain("hard safety cap, not a target");
 		expect(userText).toContain("Drop fewer or none");
 	});
 
@@ -136,7 +102,7 @@ describe("dropper agent", () => {
 			await context.tools[0].execute("tool-1", { ids: ["aaaaaaaaaaaa", "missing", "bbbbbbbbbbbb"] });
 		});
 
-		await expect(runDropper({ ...baseArgs, agentLoop: loop })).resolves.toEqual(["aaaaaaaaaaaa"]);
+		await expect(runDropper({ ...baseArgs, agentLoop: loop })).resolves.toEqual(["aaaaaaaaaaaa", "bbbbbbbbbbbb"]);
 	});
 
 	it("does not return unreflected critical proposed ids", async () => {
@@ -161,7 +127,7 @@ describe("dropper agent", () => {
 			await context.tools[0].execute("tool-2", { ids: ["bbbbbbbbbbbb", "aaaaaaaaaaaa"] });
 		});
 
-		await expect(runDropper({ ...baseArgs, agentLoop: loop })).resolves.toEqual(["aaaaaaaaaaaa"]);
+		await expect(runDropper({ ...baseArgs, agentLoop: loop })).resolves.toEqual(["aaaaaaaaaaaa", "bbbbbbbbbbbb"]);
 	});
 
 	it("returns undefined when no tool call drops observations", async () => {
@@ -169,18 +135,4 @@ describe("dropper agent", () => {
 		await expect(runDropper({ ...baseArgs, agentLoop: loop })).resolves.toBeUndefined();
 	});
 
-	it("skips the model at or below the target", async () => {
-		let called = false;
-		const loop = fakeAgentLoop(() => {
-			called = true;
-		});
-
-		await expect(runDropper({
-			...baseArgs,
-			observations: [observation("aaaaaaaaaaaa", { relevance: "low", tokenCount: 10 })],
-			targetTokens: 10,
-			agentLoop: loop,
-		})).resolves.toBeUndefined();
-		expect(called).toBe(false);
-	});
 });

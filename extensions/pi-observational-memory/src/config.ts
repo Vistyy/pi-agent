@@ -19,10 +19,10 @@ export type MemoryStrategy = (typeof STRATEGY)[keyof typeof STRATEGY];
 export interface Config {
 	strategy: MemoryStrategy;
 	observeEveryMessages: number;
-	reflectAfterTokens: number;
+	reflectEveryObservations: number;
+	dropWhenActiveObservationsOver: number;
 	maxInitialObserveTokens: number;
 	observationsPoolMaxTokens: number;
-	observationsPoolTargetTokens: number;
 	agentMaxTurns: number;
 	additivePatchMaxTokens: number;
 	model?: ConfiguredModel;
@@ -32,10 +32,10 @@ export interface Config {
 export const DEFAULTS: Config = {
 	strategy: STRATEGY.additive,
 	observeEveryMessages: 4,
-	reflectAfterTokens: 20_000,
+	reflectEveryObservations: 8,
+	dropWhenActiveObservationsOver: 40,
 	maxInitialObserveTokens: 100_000,
 	observationsPoolMaxTokens: 20_000,
-	observationsPoolTargetTokens: 10_000,
 	agentMaxTurns: 16,
 	additivePatchMaxTokens: 2_000,
 	debugLog: false,
@@ -47,15 +47,6 @@ const SETTINGS_KEY = "observational-memory";
 
 function positiveIntegerOrUndefined(value: unknown): number | undefined {
 	return Number.isInteger(value) && typeof value === "number" && value > 0 ? value : undefined;
-}
-
-function validTargetOrUndefined(value: unknown, maxTokens: number): number | undefined {
-	const target = positiveIntegerOrUndefined(value);
-	return target !== undefined && target < maxTokens ? target : undefined;
-}
-
-function derivedObservationPoolTarget(maxTokens: number): number {
-	return Math.floor(maxTokens / 2);
 }
 
 function isThinkingLevel(value: unknown): value is ModelThinkingLevel {
@@ -88,10 +79,10 @@ function normalizeSettingsConfig(value: Record<string, unknown>): Partial<Config
 	const normalized: Partial<Config> = {};
 	const numberKeys = [
 		"observeEveryMessages",
-		"reflectAfterTokens",
+		"reflectEveryObservations",
+		"dropWhenActiveObservationsOver",
 		"maxInitialObserveTokens",
 		"observationsPoolMaxTokens",
-		"observationsPoolTargetTokens",
 		"agentMaxTurns",
 		"additivePatchMaxTokens",
 	] as const;
@@ -122,19 +113,9 @@ export function loadConfig(cwd: string): Config {
 	const projectPath = join(cwd, ".pi", "settings.json");
 	const globalConfig = readNamespacedConfig(globalPath);
 	const projectConfig = readNamespacedConfig(projectPath);
-	const merged = {
+	return {
 		...DEFAULTS,
-		observationsPoolTargetTokens: undefined,
 		...globalConfig,
 		...projectConfig,
-	};
-	const target = validTargetOrUndefined(
-		merged.observationsPoolTargetTokens,
-		merged.observationsPoolMaxTokens,
-	) ?? derivedObservationPoolTarget(merged.observationsPoolMaxTokens);
-
-	return {
-		...merged,
-		observationsPoolTargetTokens: target,
 	};
 }

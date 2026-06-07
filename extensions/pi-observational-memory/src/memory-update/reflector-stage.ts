@@ -5,12 +5,22 @@ import {
 	OM_OBSERVATIONS_RECORDED,
 	OM_REFLECTIONS_RECORDED,
 	buildReflectionsRecordedData,
+	entryIndexById,
 	foldLedger,
 	latestCoverageMarkerId,
-	rawTokensSinceReflectionCoverage,
 	type Entry,
+	type Observation,
 } from "../session-ledger/index.js";
 import type { MemoryUpdateCtx, ReflectorStageResult, ResolveMemoryModel } from "./types.js";
+
+function observationsSinceReflectionCoverage(entries: Entry[], observations: readonly Observation[]): Observation[] {
+	const reflectionCoverageId = latestCoverageMarkerId(entries, OM_REFLECTIONS_RECORDED);
+	const reflectionCoverageIdx = entryIndexById(entries).get(reflectionCoverageId ?? "") ?? -1;
+	const idToIndex = entryIndexById(entries);
+	return observations.filter((observation) =>
+		observation.sourceEntryIds.some((sourceEntryId) => (idToIndex.get(sourceEntryId) ?? -1) > reflectionCoverageIdx)
+	);
+}
 
 export async function runReflectorStage(
 	pi: ExtensionAPI,
@@ -19,20 +29,20 @@ export async function runReflectorStage(
 	resolveModel: ResolveMemoryModel,
 ): Promise<ReflectorStageResult> {
 	const entries = ctx.sessionManager.getBranch() as Entry[];
-	const reflectionTokens = rawTokensSinceReflectionCoverage(entries);
-	if (reflectionTokens < runtime.config.reflectAfterTokens) return { outcome: "continue", sameRunReflections: [] };
-
 	const observationCoverageId = latestCoverageMarkerId(entries, OM_OBSERVATIONS_RECORDED);
 	if (!observationCoverageId) return { outcome: "continue", sameRunReflections: [] };
 
+	const folded = foldLedger(entries);
+	const unreflectedObservations = observationsSinceReflectionCoverage(entries, folded.activeObservations);
+	if (unreflectedObservations.length < runtime.config.reflectEveryObservations) return { outcome: "continue", sameRunReflections: [] };
+
 	if (ctx.hasUI) ctx.ui?.notify(
-		`Observational memory: reflector running (~${reflectionTokens.toLocaleString()} tokens)`,
+		`Observational memory: reflector running (${unreflectedObservations.length.toLocaleString()} observations since reflection)`,
 		"info",
 	);
 	const resolved = await resolveModel("reflector");
 	if (!resolved) return { outcome: "abort", sameRunReflections: [] };
 
-	const folded = foldLedger(entries);
 	const reflections = await runReflector({
 		model: resolved.model as any,
 		apiKey: resolved.apiKey,

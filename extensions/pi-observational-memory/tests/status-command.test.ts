@@ -26,9 +26,9 @@ function setup(args: { entries: TestEntry[]; runtime?: Partial<Runtime> }) {
 		config: {
 			strategy: "replacement",
 			observeEveryMessages: 10,
-			reflectAfterTokens: 20,
+			reflectEveryObservations: 20,
 			observationsPoolMaxTokens: 40,
-			observationsPoolTargetTokens: 20,
+			dropWhenActiveObservationsOver: 20,
 		},
 		memoryUpdateInFlight: false,
 		memoryUpdatePhase: undefined,
@@ -75,9 +75,9 @@ describe("/om:status", () => {
 		expect(output).toContain("Next observation:");
 		expect(output).toContain("/ 10 source entries");
 		expect(output).toContain("Next reflection:");
-		expect(output).toContain("/ 20 tokens");
+		expect(output).toContain("/ 20 active observations");
 		expect(output).toContain("Visible observation pool: ~5 / 40 tokens (13%)");
-		expect(output).toContain("Active observation pool: ~5 / 20 target tokens (25%)");
+		expect(output).toContain("Active observation pool: 1 / 20 observations (5%)");
 		expect(output).toContain("Reflection pool:         ~3 tokens");
 	});
 
@@ -90,14 +90,14 @@ describe("/om:status", () => {
 
 		const output = await setup({ entries }).run();
 
-		expect(output).toContain("Active observation pool: ~25 / 20 target tokens (125%)");
+		expect(output).toContain("Active observation pool: 1 / 20 observations (5%)");
 	});
 
 	it("shows disabled config, memory update in flight, compaction hook in flight, and stage-specific last errors", async () => {
 		const output = await setup({
 			entries: [],
 			runtime: {
-				config: { strategy: "off", observeEveryMessages: 10, reflectAfterTokens: 20, observationsPoolMaxTokens: 40, observationsPoolTargetTokens: 20 },
+				config: { strategy: "off", observeEveryMessages: 10, reflectEveryObservations: 20, observationsPoolMaxTokens: 40, dropWhenActiveObservationsOver: 20 },
 				memoryUpdateInFlight: true,
 				memoryUpdatePhase: "reflector",
 				compactHookInFlight: true,

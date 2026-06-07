@@ -215,7 +215,7 @@ but due trigger is token-based and source chunk can include huge tool results
 Due check:
 
 ```text
-rawTokensSinceReflectionCoverage(entries) >= reflectAfterTokens
+new active observations since reflection coverage >= reflectEveryObservations
 and latest observation coverage marker exists
 ```
 

@@ -38,10 +38,10 @@ describe("config", () => {
 		expect(DEFAULTS).toEqual({
 			strategy: STRATEGY.additive,
 			observeEveryMessages: 4,
-			reflectAfterTokens: 20000,
+			reflectEveryObservations: 8,
 			maxInitialObserveTokens: 100000,
 			observationsPoolMaxTokens: 20000,
-			observationsPoolTargetTokens: 10000,
+			dropWhenActiveObservationsOver: 40,
 			agentMaxTurns: 16,
 			additivePatchMaxTokens: 2000,
 			debugLog: false,
@@ -54,10 +54,10 @@ describe("config", () => {
 			"observational-memory": {
 				strategy: "replacement",
 				observeEveryMessages: 10,
-				reflectAfterTokens: 20,
+				reflectEveryObservations: 20,
 				maxInitialObserveTokens: 60,
 				observationsPoolMaxTokens: 40,
-				observationsPoolTargetTokens: 15,
+				dropWhenActiveObservationsOver: 15,
 				agentMaxTurns: 5,
 				additivePatchMaxTokens: 500,
 				model: { provider: "anthropic", id: "global", thinking: "medium" },
@@ -75,10 +75,10 @@ describe("config", () => {
 		expect(loadConfig(cwd)).toMatchObject({
 			strategy: "additive",
 			observeEveryMessages: 100,
-			reflectAfterTokens: 20,
+			reflectEveryObservations: 20,
 			maxInitialObserveTokens: 60,
 			observationsPoolMaxTokens: 40,
-			observationsPoolTargetTokens: 15,
+			dropWhenActiveObservationsOver: 15,
 			agentMaxTurns: 5,
 			additivePatchMaxTokens: 500,
 			model: { provider: "openai", id: "project", thinking: "low" },
@@ -91,10 +91,10 @@ describe("config", () => {
 			"observational-memory": {
 				strategy: "unknown",
 				observeEveryMessages: -1,
-				reflectAfterTokens: 0,
+				reflectEveryObservations: 0,
 				maxInitialObserveTokens: "100000",
 				observationsPoolMaxTokens: "20000",
-				observationsPoolTargetTokens: "10000",
+				dropWhenActiveObservationsOver: "10000",
 				agentMaxTurns: null,
 				model: { provider: "anthropic", id: "", thinking: "huge" },
 				debugLog: "true",
@@ -104,35 +104,4 @@ describe("config", () => {
 		expect(loadConfig(cwd)).toEqual(DEFAULTS);
 	});
 
-	it("derives observation pool target from the final max when omitted", () => {
-		writeJson(join(cwd, ".pi", "settings.json"), {
-			"observational-memory": {
-				observationsPoolMaxTokens: 40,
-			},
-		});
-
-		expect(loadConfig(cwd)).toMatchObject({
-			observationsPoolMaxTokens: 40,
-			observationsPoolTargetTokens: 20,
-		});
-	});
-
-	it("falls back to derived target when explicit target is invalid for the final max", () => {
-		writeJson(join(agentDir, "settings.json"), {
-			"observational-memory": {
-				observationsPoolMaxTokens: 100,
-				observationsPoolTargetTokens: 80,
-			},
-		});
-		writeJson(join(cwd, ".pi", "settings.json"), {
-			"observational-memory": {
-				observationsPoolMaxTokens: 40,
-			},
-		});
-
-		expect(loadConfig(cwd)).toMatchObject({
-			observationsPoolMaxTokens: 40,
-			observationsPoolTargetTokens: 20,
-		});
-	});
 });

@@ -179,7 +179,7 @@ Current:
 
 ```text
 observeEveryMessages
-reflectAfterTokens
+reflectEveryObservations
 rawTokensSince*Coverage
 ```
 

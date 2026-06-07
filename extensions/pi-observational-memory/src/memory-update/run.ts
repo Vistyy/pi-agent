@@ -5,8 +5,8 @@ import { type ResolveResult, type Runtime } from "../runtime.js";
 import {
 	OM_OBSERVATIONS_RECORDED,
 	entryIndexById,
+	foldLedger,
 	latestCoverageIndex,
-	rawTokensSinceReflectionCoverage,
 	sourceEntryCountSinceObservationCoverage,
 	type Entry,
 } from "../session-ledger/index.js";
@@ -17,8 +17,10 @@ import { sourceEntriesAfter } from "./source-entries.js";
 import type { MemoryUpdateCtx, ResolvedModel } from "./types.js";
 
 export function anyMemoryUpdateStageDue(entries: Entry[], runtime: Runtime): boolean {
+	const activeObservationCount = foldLedger(entries).activeObservations.length;
 	return sourceEntryCountSinceObservationCoverage(entries) >= runtime.config.observeEveryMessages
-		|| rawTokensSinceReflectionCoverage(entries) >= runtime.config.reflectAfterTokens;
+		|| activeObservationCount >= runtime.config.reflectEveryObservations
+		|| activeObservationCount > runtime.config.dropWhenActiveObservationsOver;
 }
 
 function makeModelResolver(runtime: Runtime, ctx: MemoryUpdateCtx): (stage: "observer" | "reflector" | "dropper") => Promise<ResolvedModel | undefined> {

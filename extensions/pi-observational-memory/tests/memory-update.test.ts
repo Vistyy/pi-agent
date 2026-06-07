@@ -41,9 +41,9 @@ beforeEach(() => {
 function setup(args: {
 	entries: TestEntry[];
 	observeEveryMessages?: number;
-	reflectAfterTokens?: number;
+	reflectEveryObservations?: number;
 	observationsPoolMaxTokens?: number;
-	observationsPoolTargetTokens?: number;
+	dropWhenActiveObservationsOver?: number;
 	maxInitialObserveTokens?: number;
 	strategy?: "additive" | "replacement" | "off";
 	memoryUpdateInFlight?: boolean;
@@ -63,10 +63,10 @@ function setup(args: {
 			strategy: args.strategy ?? "additive",
 			debugLog: false,
 			observeEveryMessages: args.observeEveryMessages ?? 1,
-			reflectAfterTokens: args.reflectAfterTokens ?? 1,
+			reflectEveryObservations: args.reflectEveryObservations ?? 1,
 			maxInitialObserveTokens: args.maxInitialObserveTokens ?? 100_000,
 			observationsPoolMaxTokens: args.observationsPoolMaxTokens ?? 100,
-			observationsPoolTargetTokens: args.observationsPoolTargetTokens ?? Math.floor((args.observationsPoolMaxTokens ?? 100) / 2),
+			dropWhenActiveObservationsOver: args.dropWhenActiveObservationsOver ?? Math.floor((args.observationsPoolMaxTokens ?? 100) / 2),
 			agentMaxTurns: 9,
 			model: { provider: "anthropic", id: "memory", thinking: "minimal" },
 		},
@@ -123,7 +123,7 @@ describe("memory update hook", () => {
 		const obs = observation("bbbbbbbbbbbb", { sourceEntryIds: ["raw-1"] });
 		mockAgents.runObserver.mockResolvedValueOnce([obs]);
 		const entries = [textCustomMessage("raw-1", "aaaa"), textCustomMessage("raw-2", "bbbb")];
-		const { pi, runtime, ctx, getAppends } = setup({ entries, observeEveryMessages: 999, reflectAfterTokens: 999 });
+		const { pi, runtime, ctx, getAppends } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 999 });
 
 		await ensureMemoryUpdatedBeforeCompaction(pi as never, runtime as Runtime, ctx as never, { firstKeptEntryId: "raw-2" });
 
@@ -144,7 +144,7 @@ describe("memory update hook", () => {
 			reflectionsRecordedEntry("om-ref", { reflections: [refA], coversUpToId: "raw-1" }),
 			observationsDroppedEntry("om-drop", { observationIds: ["aaaaaaaaaaaa"], coversUpToId: "raw-1" }),
 		];
-		const { fireAgentStart, fireTurnEnd, runtime } = setup({ entries, observeEveryMessages: 10, reflectAfterTokens: 10 });
+		const { fireAgentStart, fireTurnEnd, runtime } = setup({ entries, observeEveryMessages: 10, reflectEveryObservations: 10 });
 
 		fireAgentStart();
 		fireTurnEnd();
@@ -186,7 +186,7 @@ describe("memory update hook", () => {
 		const obs = observation("cccccccccccc", { sourceEntryIds: ["raw-1"], tokenCount: 4 });
 		mockAgents.runObserver.mockResolvedValueOnce([obs]);
 		const entries = [textCustomMessage("raw-1", "aaaaaaaa")];
-		const { fire, runLaunchedWork, pi, runtime } = setup({ entries, reflectAfterTokens: 999 });
+		const { fire, runLaunchedWork, pi, runtime } = setup({ entries, reflectEveryObservations: 999 });
 
 		fire();
 		await runLaunchedWork();
@@ -210,7 +210,7 @@ describe("memory update hook", () => {
 			textCustomMessage("raw-2", "bbbbbbbb"),
 			textCustomMessage("raw-3", "cccccccc"),
 		];
-		const { fire, runLaunchedWork, pi } = setup({ entries, reflectAfterTokens: 999 });
+		const { fire, runLaunchedWork, pi } = setup({ entries, reflectEveryObservations: 999 });
 
 		fire();
 		await runLaunchedWork();
@@ -306,7 +306,7 @@ describe("memory update hook", () => {
 			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
 			textCustomMessage("raw-2", "bbbbbbbb"),
 		];
-		const { fire, runLaunchedWork, getAppends } = setup({ entries, observeEveryMessages: 999, observationsPoolTargetTokens: 5 });
+		const { fire, runLaunchedWork, getAppends } = setup({ entries, observeEveryMessages: 999, dropWhenActiveObservationsOver: 0 });
 
 		fire();
 		await runLaunchedWork();
@@ -325,7 +325,7 @@ describe("memory update hook", () => {
 			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
 			textCustomMessage("raw-2", "bbbbbbbb"),
 		];
-		const { fire, runLaunchedWork, runtime } = setup({ entries, observeEveryMessages: 999, reflectAfterTokens: 1, observationsPoolTargetTokens: 5 });
+		const { fire, runLaunchedWork, runtime } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 1, dropWhenActiveObservationsOver: 0 });
 
 		fire();
 		await runLaunchedWork();
@@ -345,7 +345,7 @@ describe("memory update hook", () => {
 			textCustomMessage("raw-2", "bbbbbbbb"),
 			observationsRecordedEntry("om-obs-b", { observations: [obsB], coversUpToId: "raw-2" }),
 		];
-		const { fire, runLaunchedWork, getAppends } = setup({ entries, observeEveryMessages: 999, observationsPoolMaxTokens: 10 });
+		const { fire, runLaunchedWork, getAppends } = setup({ entries, observeEveryMessages: 999, dropWhenActiveObservationsOver: 0 });
 
 		fire();
 		await runLaunchedWork();
@@ -366,12 +366,12 @@ describe("memory update hook", () => {
 			reflectionsRecordedEntry("om-ref", { reflections: [ref], coversUpToId: "raw-1" }),
 			textCustomMessage("raw-2", "bbbbbbbb"),
 		];
-		const { fire, runLaunchedWork, getAppends } = setup({ entries, observeEveryMessages: 999, reflectAfterTokens: 1, observationsPoolTargetTokens: 5 });
+		const { fire, runLaunchedWork, getAppends } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 1, dropWhenActiveObservationsOver: 0 });
 
 		fire();
 		await runLaunchedWork();
 
-		expect(mockAgents.runReflector).toHaveBeenCalled();
+		expect(mockAgents.runReflector).not.toHaveBeenCalled();
 		expect(mockAgents.runDropper).toHaveBeenCalledWith(expect.objectContaining({ reflections: [ref], observations: [obsA] }));
 		expect(getAppends()).toEqual([
 			{ customType: OM_OBSERVATIONS_DROPPED, data: { observationIds: ["aaaaaaaaaaaa"], coversUpToId: "raw-1" } },
@@ -415,7 +415,7 @@ describe("memory update hook", () => {
 		mockAgents.runReflector.mockResolvedValueOnce([newRef]);
 		mockAgents.runDropper.mockReset();
 		mockAgents.runDropper.mockRejectedValueOnce(new Error("drop failed"));
-		const dropperFailure = setup({ entries: [textCustomMessage("raw-1", "aaaaaaaa"), observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" })], observeEveryMessages: 999, observationsPoolMaxTokens: 10 });
+		const dropperFailure = setup({ entries: [textCustomMessage("raw-1", "aaaaaaaa"), observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" })], observeEveryMessages: 999, dropWhenActiveObservationsOver: 0 });
 		dropperFailure.fire();
 		await dropperFailure.runLaunchedWork();
 		expect(dropperFailure.runtime.lastDropperError).toBe("drop failed");

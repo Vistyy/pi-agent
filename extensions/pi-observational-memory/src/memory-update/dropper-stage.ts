@@ -34,15 +34,13 @@ export async function runDropperStage(
 		debugLog("dropper.waiting_for_reflection", { reflectionCount: 0 });
 		return "continue";
 	}
-	const metrics = observationPoolMetrics(folded.activeObservations, runtime.config.observationsPoolTargetTokens);
+	const metrics = observationPoolMetrics(folded.activeObservations, runtime.config.dropWhenActiveObservationsOver);
 	if (!metrics.ready) {
 		debugLog("dropper.not_ready", {
 			observationTokens: metrics.observationTokens,
-			targetTokens: metrics.targetTokens,
-			tokensOverTarget: metrics.tokensOverTarget,
-			fullness: metrics.fullness,
 			activeObservationCount: metrics.activeObservationCount,
-			droppableCount: metrics.droppableCount,
+			dropWhenActiveObservationsOver: metrics.dropWhenActiveObservationsOver,
+			observationsOverTarget: metrics.observationsOverTarget,
 			maxDropsAllowed: metrics.maxDropsAllowed,
 		});
 		return "continue";
@@ -52,15 +50,14 @@ export async function runDropperStage(
 		reflectionCoverageId,
 		reflectionCount: folded.reflections.length,
 		activeObservationCount: metrics.activeObservationCount,
+		dropWhenActiveObservationsOver: metrics.dropWhenActiveObservationsOver,
+		observationsOverTarget: metrics.observationsOverTarget,
 		observationTokens: metrics.observationTokens,
-		targetTokens: metrics.targetTokens,
-		tokensOverTarget: metrics.tokensOverTarget,
-		fullness: metrics.fullness,
 		maxDropsAllowed: metrics.maxDropsAllowed,
 	});
 
 	if (ctx.hasUI) ctx.ui?.notify(
-		`Observational memory: dropper running after reflection — active observation pool ~${metrics.observationTokens.toLocaleString()} / ${metrics.targetTokens.toLocaleString()} target tokens (${Math.round(metrics.fullness * 100).toLocaleString()}%)`,
+		`Observational memory: dropper running — active observations ${metrics.activeObservationCount.toLocaleString()} / ${metrics.dropWhenActiveObservationsOver.toLocaleString()} limit`,
 		"info",
 	);
 	const resolved = await resolveModel("dropper");
@@ -72,7 +69,7 @@ export async function runDropperStage(
 		headers: resolved.headers,
 		reflections: folded.reflections,
 		observations: folded.activeObservations,
-		targetTokens: runtime.config.observationsPoolTargetTokens,
+		maxDropsAllowed: metrics.maxDropsAllowed,
 		maxTurns: runtime.config.agentMaxTurns,
 		thinkingLevel: runtime.config.model?.thinking ?? "low",
 	});
