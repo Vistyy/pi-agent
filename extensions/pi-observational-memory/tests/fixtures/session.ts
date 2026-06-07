@@ -187,6 +187,22 @@ export function reflectionsRecordedEntry(
 	};
 }
 
+export function reflectionsReviewedEntry(
+	id: string,
+	args: { coversUpToId: string },
+	overrides: Partial<TestEntry> = {},
+): TestEntry {
+	return {
+		type: "custom",
+		id,
+		parentId: null,
+		timestamp: DEFAULT_TIMESTAMP,
+		customType: OM_REFLECTIONS_REVIEWED,
+		data: args,
+		...overrides,
+	};
+}
+
 export function observationsDroppedEntry(
 	id: string,
 	args: { observationIds: string[]; coversUpToId: string },

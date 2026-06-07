@@ -123,8 +123,16 @@ export function sourceTokensSinceObservationCoverage(entries: Entry[]): number {
 	return sourceTokensSinceCoverage(entries, OM_OBSERVATIONS_RECORDED);
 }
 
+export function sourceEntryCountSinceReflectionReviewCoverage(entries: Entry[]): number {
+	return sourceEntryCountAfterIndex(entries, latestReflectionReviewIndex(entries));
+}
+
 export function sourceTokensSinceReflectionCoverage(entries: Entry[]): number {
 	return sourceTokensSinceCoverage(entries, OM_REFLECTIONS_RECORDED);
+}
+
+export function sourceTokensSinceReflectionReviewCoverage(entries: Entry[]): number {
+	return sourceTokensAfterIndex(entries, latestReflectionReviewIndex(entries));
 }
 
 export function sourceTokensSinceDropCoverage(entries: Entry[]): number {

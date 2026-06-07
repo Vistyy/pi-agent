@@ -6,6 +6,9 @@ import {
 	isSourceEntry,
 	latestCoverageIndex,
 	latestCoverageMarkerId,
+	latestReflectionReviewIndex,
+	latestReflectionReviewMarkerId,
+	sourceEntryCountSinceReflectionReviewCoverage,
 	sourceTokensAfterIndex,
 	sourceTokensSinceDropCoverage,
 	sourceTokensSinceObservationCoverage,
@@ -22,6 +25,7 @@ import {
 	observationsRecordedEntry,
 	reflection,
 	reflectionsRecordedEntry,
+	reflectionsReviewedEntry,
 	textCustomMessage,
 } from "./fixtures/session.js";
 
@@ -113,6 +117,20 @@ describe("session-ledger progress helpers", () => {
 		expect(earlierCoverageMarkerId(entries, "raw-1", undefined)).toBe("raw-1");
 		expect(earlierCoverageMarkerId(entries, "missing", "raw-2")).toBe("raw-2");
 		expect(earlierCoverageMarkerId(entries, "missing-a", "missing-b")).toBeUndefined();
+	});
+
+	it("uses recorded reflections and reviewed-zero markers for reflection review coverage", () => {
+		const entries = [
+			textCustomMessage("raw-1", "aaaa"),
+			reflectionsRecordedEntry("om-ref", { reflections: [reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"])], coversUpToId: "raw-1" }),
+			textCustomMessage("raw-2", "bbbbbbbb"),
+			reflectionsReviewedEntry("om-reviewed", { coversUpToId: "raw-2" }),
+			textCustomMessage("raw-3", "cccccccccccc"),
+		];
+
+		expect(latestReflectionReviewIndex(entries)).toBe(2);
+		expect(latestReflectionReviewMarkerId(entries)).toBe("raw-2");
+		expect(sourceEntryCountSinceReflectionReviewCoverage(entries)).toBe(1);
 	});
 
 });

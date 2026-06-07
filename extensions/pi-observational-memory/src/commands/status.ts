@@ -6,6 +6,7 @@ import {
 	foldLedger,
 	fullProjection,
 	sourceEntryCountSinceObservationCoverage,
+	sourceEntryCountSinceReflectionReviewCoverage,
 	latestCompactedProjection,
 	type Entry,
 } from "../session-ledger/index.js";
@@ -58,6 +59,7 @@ export function registerStatusCommand(pi: ExtensionAPI, runtime: Runtime): void 
 			);
 			const obsProgress = sourceEntryCountSinceObservationCoverage(entries);
 			const reflectionProgress = folded.activeObservations.length;
+			const reflectionReviewLag = sourceEntryCountSinceReflectionReviewCoverage(entries);
 
 			const modeLines = [
 				"── Config ──",
@@ -76,6 +78,8 @@ export function registerStatusCommand(pi: ExtensionAPI, runtime: Runtime): void 
 				`Next reflection:  ${reflectionProgress.toLocaleString()} / ${runtime.config.reflectEveryObservations.toLocaleString()} active observations (${pct(reflectionProgress, runtime.config.reflectEveryObservations)}%)`,
 				`Visible observation pool: ~${visibleObservationTokens.toLocaleString()} / ${runtime.config.observationsPoolMaxTokens.toLocaleString()} tokens (${pct(visibleObservationTokens, runtime.config.observationsPoolMaxTokens)}%)`,
 				`Active observation pool: ${activeObservationPool.activeObservationCount.toLocaleString()} / ${runtime.config.dropWhenActiveObservationsOver.toLocaleString()} observations (${pct(activeObservationPool.activeObservationCount, runtime.config.dropWhenActiveObservationsOver)}%)`,
+				`Drop protected recent:   ${(runtime.config.protectRecentObservations ?? 20).toLocaleString()} observations`,
+				`Reflection review lag:   ${reflectionReviewLag.toLocaleString()} source entries`,
 				`Reflection pool:         ~${visibleReflectionTokens.toLocaleString()} tokens`,
 			];
 
