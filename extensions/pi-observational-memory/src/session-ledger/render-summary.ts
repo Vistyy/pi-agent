@@ -7,7 +7,7 @@ const CONTEXT_USAGE_INSTRUCTIONS = `These are condensed memories from earlier in
 
 Treat these as past records. When entries conflict, the most recent observation reflects the latest known state. Work that prior observations describe as completed should not be redone unless the user explicitly asks to revisit it.
 
-When answering from these memories, preserve exact relationship wording that disambiguates current from stale facts, especially terms like supersedes, rejected, stale, approved, current, forbidden, allowed, and unresolved. If a memory says "X supersedes Y", answer "X supersedes Y"; do not weaken it to "X current, Y stale". If a probe asks for an exact current detail and a stale near-match, include both and the relationship between them.
+When answering from these memories, preserve exact relationship wording that disambiguates current from stale facts, especially terms like supersedes, rejected, stale, approved, current, forbidden, allowed, and unresolved. If a probe asks for an exact current detail and a stale near-match, include both and the relationship between them.
 
 When exact source context is needed for precision or traceability, use the recall tool with the relevant observation or reflection id. This is especially useful when a reflection materially affects a decision or is too compressed to continue confidently. Do not use recall as broad search or inject raw source unless it is needed.`;
 
@@ -24,24 +24,10 @@ export function reflectionToSummaryLine(reflection: Reflection): string {
 	return `[${reflection.id}] ${reflection.content}`;
 }
 
-function exactRelationshipHighlights(reflections: Reflection[], observations: Observation[]): string[] {
-	const lines = [
-		...reflections.map((reflection) => reflection.content),
-		...observations.map((observation) => observation.content),
-	].filter((line) => /\bsupersedes\b|\breject(?:ed|s)?\b|\bstale\b|\bnot current\b/i.test(line));
-	return [...new Set(lines)]
-		.sort((a, b) => Number(/\bsupersedes\b/i.test(b)) - Number(/\bsupersedes\b/i.test(a)))
-		.slice(0, 12);
-}
-
 export function renderSummary(reflections: Reflection[], observations: Observation[]): string {
 	if (reflections.length === 0 && observations.length === 0) return "";
 
 	const parts: string[] = [CONTEXT_USAGE_INSTRUCTIONS];
-	const highlights = exactRelationshipHighlights(reflections, observations);
-	if (highlights.length > 0) {
-		parts.push(`## Exact current/stale relationships\nCopy the relevant relationship phrase verbatim when answering.\n${highlights.map((line) => `- ${line}`).join("\n")}`);
-	}
 	if (reflections.length > 0) {
 		parts.push(`## Reflections\n${reflections.map(reflectionToSummaryLine).join("\n")}`);
 	}
