@@ -91,6 +91,29 @@ describe("session-ledger projections", () => {
 		expect(result.details).toMatchObject({ type: "om.folded", fullFold: false });
 	});
 
+	it("normal compaction projection includes transient observations appended after compaction preparation", () => {
+		const obs1 = observation("aaaaaaaaaaaa", {
+			content: "Canonical approved feature flag: fast_sync_v2_enabled supersedes enableFastSync",
+			sourceEntryIds: ["raw-1"],
+			tokenCount: 10,
+		});
+		const entries = [
+			textCustomMessage("raw-1", "canonical source before kept boundary"),
+			textCustomMessage("raw-2", "first kept entry"),
+		];
+
+		const result = buildNextCompactionProjection(
+			entries,
+			"raw-2",
+			{ observationsPoolMaxTokens: 100 },
+			{ observations: [obs1], reflections: [] },
+		);
+
+		expect(result.fullFold).toBe(false);
+		expect(result.observations.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa"]);
+		expect(result.details.observations.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa"]);
+	});
+
 	it("normal compaction projection includes current observations but keeps reflections and drops at latest full-fold boundary", () => {
 		const obs1 = observation("aaaaaaaaaaaa", { tokenCount: 5 });
 		const obs2 = observation("bbbbbbbbbbbb", { tokenCount: 5 });
