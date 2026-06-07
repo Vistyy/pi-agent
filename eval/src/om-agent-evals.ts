@@ -106,20 +106,21 @@ async function observerHardCurrentStale(modelSpec: string, judgeModel: string): 
   });
   return judged('observer-current-stale-sqlite', 'observer', output ?? [], {
     id: 'observer-current-stale-sqlite',
-    question: 'Did the observer extract the hard durable evidence from the chunk without preserving routine acknowledgement noise?',
+    question: 'Did the observer extract the hard durable evidence from the chunk while omitting only the final assistant acknowledgement?',
     rubric: {
       pass_if: [
         'Output contains an observation preserving that Redis is rejected/stale and SQLite at /tmp/jobs.db is current.',
-        'Output contains the exact command npm run migrate -- --dry-run.',
+        'Output contains the exact command npm run migrate -- --dry-run from source assistant-b; this is substantive assistant/tool evidence, not acknowledgement noise.',
         'Output contains the exact error SQLITE_BUSY at src/db/migrate.ts:88.',
         'Output contains the WAL requirement PRAGMA journal_mode=WAL.',
         'Recorded observations cite only source ids present in the chunk.',
-        'Output does not preserve the assistant acknowledgement as a standalone meaningful observation.',
+        'Output does not include source id assistant-d and does not preserve the final "Okay" acknowledgement as a standalone observation.',
       ],
       fail_if: [
         'Output treats Redis as current or omits that Redis is rejected/stale.',
         'Output omits /tmp/jobs.db or src/db/migrate.ts:88.',
         'Output invents source ids.',
+        'Output includes source id assistant-d or a standalone observation for the final assistant acknowledgement.',
       ],
     },
   }, judgeModel, started);
@@ -137,15 +138,15 @@ async function observerHardAssistantOnly(modelSpec: string, judgeModel: string):
   const output = await runObserver({ ...auth, priorReflections: [], priorObservations: [], chunk, allowedSourceEntryIds: ['assistant-a', 'tool-b', 'user-c'], thinkingLevel: 'off', maxTurns: 6 });
   return judged('observer-assistant-tool-evidence', 'observer', output ?? [], {
     id: 'observer-assistant-tool-evidence',
-    question: 'Did the observer preserve assistant/tool-result-only evidence and the unresolved status?',
+    question: 'Did the observer preserve assistant/tool-result evidence plus the user-stated unresolved status?',
     rubric: {
       pass_if: [
-        'Output preserves that the parser entrypoint changed from src/parser.ts to src/parser/index.ts.',
-        'Output preserves the exact failing test tests/parser-regression.test.ts > keeps CRLF offsets.',
+        'Output preserves assistant-authored evidence that the parser entrypoint changed from src/parser.ts to src/parser/index.ts.',
+        'Output preserves tool-result evidence for the exact failing test tests/parser-regression.test.ts > keeps CRLF offsets.',
         'Output preserves expected column 17 and received column 16.',
-        'Output marks or clearly states the CRLF offset failure remains unresolved/not fixed.',
+        'Output preserves user-c evidence that the CRLF offset failure remains unresolved/not fixed.',
       ],
-      fail_if: ['Output ignores assistant/tool result evidence because it was not user-authored.', 'Output says or implies the CRLF offset issue is fixed.'],
+      fail_if: ['Output ignores assistant/tool result evidence because it was not user-authored.', 'Output says or implies the CRLF offset issue is fixed.', 'Output invents source ids.'],
     },
   }, judgeModel, started);
 }
