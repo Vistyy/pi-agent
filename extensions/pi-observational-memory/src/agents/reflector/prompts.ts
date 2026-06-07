@@ -9,6 +9,7 @@ Call record_reflections for compact facts that should survive beyond raw observa
 
 Rules:
 - each reflection must be one line
+- preserve exact current-vs-stale relationship wording from observations, especially supersedes/rejected/stale/not current/unresolved/not approved
 - every reflection must cite supporting observation ids from the input
 - do not duplicate existing reflections
 - if review finds no durable reflection to add, call mark_reviewed_no_reflections`;
