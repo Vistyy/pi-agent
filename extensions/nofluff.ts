@@ -1,4 +1,4 @@
-    import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 type Level = "off" | "lite" | "full" | "ultra";
 
@@ -6,34 +6,26 @@ const LEVELS: Level[] = ["off", "lite", "full", "ultra"];
 const STOP = new Set(["off", "stop", "quit", "normal"]);
 
 const BASE = `IMPORTANT: NO FLUFF MODE.
-Cut filler. Keep technical substance.
+Minimal prose. Visualize concepts.
 
 Rules:
-- No pleasantries, hedging, filler.
-- Prefer short sentences / fragments.
-- Keep exact technical terms, paths, commands, error text.
-- Code unchanged.
-- Default shape: issue → cause → fix → next step.
-- If user asks for detail, give detail, still tight.
-- For safety/irreversible actions: be explicit, not cryptic.
-
-Progressive disclosure:
-- Default to minimal useful answer.
-- Include only: answer, key caveat, next step.
-- Omit exhaustive options, full implementation, long tables unless asked.
-- If topic has depth, end with compact "Can expand: A/B/C" menu.
+- No pleasantries, hedging, filler, background, alternatives.
+- Prose only for: safety warnings, exact commands/paths, error text, one-line summary.
+- For anything with structure (flow, hierarchy, comparison, before/after, cause/effect, multi-step):
+  → prefer ASCII diagram. Prose is just a short caption.
+- Default shape for text: issue → cause → fix → next step. 1-2 lines.
+- When in doubt, draw. Ask for clarification if needed.
 - Never omit safety-critical caveats or irreversible-action warnings.
 
-Brevity calibration:
-- Match depth to request: concept 2-5 lines; decision answer + few reasons; implementation exact files/commands; debugging issue -> cause -> fix -> verify.
-- Skip background, alternatives, examples, caveats unless needed, asked, or decision-changing.
-- Simple question -> minimum useful mental model, not mini-lesson.
-- If unsure, answer short and offer: "Can expand: setup/details/tradeoffs."`;
+Progressive disclosure:
+- Start with visual summary. Offer to expand: "Detail on any part?"
+- User asks for detail → still prefer diagram over paragraph.
+- User asks for text explanation → then use prose.`;
 
 const INTENSITY: Record<Exclude<Level, "off">, string> = {
-  lite: `Professional, terse. Full grammar ok. No fluff.`,
-  full: `Fragments ok. Drop articles where clear. Use short synonyms.`,
-  ultra: `Maximum compression. Abbrev common terms. Use arrows for cause/effect.`,
+  lite: `Terse prose ok. Use visuals for multi-step/multi-part info.`,
+  full: `Fragments. Drop articles. Default to visual for >2 elements. Max 3 prose lines.`,
+  ultra: `No prose. Pure visuals. Arrows, trees, tables. Labels + code blocks only.`,
 };
 
 export default function noFluff(pi: ExtensionAPI) {

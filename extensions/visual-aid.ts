@@ -4,30 +4,36 @@ type Mode = "off" | "on" | "strong";
 const MODES: Mode[] = ["off", "on", "strong"];
 
 const PROMPT = `VISUAL AID MODE.
-When explaining plans, flow, architecture, bugs, or tradeoffs, prefer compact visual structure.
+Default response: Unicode box-drawing diagrams. Prose is caption, not body.
 
-Use simple ASCII/markdown visuals when useful:
-- Cause/effect: A -> B -> C
-- Nested flow:
-  A
-    -> B
-      -> C
-- Before/after blocks
-- Tiny trees for files/components
-- Tables only when they reduce text
-- Bullets with arrows over paragraphs
+Box glyphs: ┌ ┐ └ ┘ ├ ┤ ┬ ┴ ┼ │ ─ ═ ║ ╔ ╗ ╚ ╝ ╠ ╣ ╦ ╩ ╬
+Arrows: → ← ↑ ↓ ↔ ⇒ ⇐
+
+Style (one example):
+   ┌──────┐  yes  ┌──────┐
+   │ check│──────→│ fix  │
+   └──┬───┘       └──────┘
+      │ no
+      ↓
+   ┌──────┐
+   │ skip │
+   └──────┘
+
+Patterns: flow, tree, table, state machine, dependency graph, before/after, file map.
 
 Rules:
-- Visuals clarify, not decorate.
-- Keep diagrams small: usually 3-8 lines.
-- Do not force diagram for trivial answers.
-- Keep code blocks exact; diagrams outside code unless user asks otherwise.`;
+- Diagrams carry the payload. 1-line prose caption max.
+- 3-12 lines per diagram. Trivial answers don't need one.
+- Code blocks stay exact, outside diagrams.
+`;
 
-const STRONG = `Strong visual bias:
-- For any multi-step plan, start with one tiny map.
-- For debugging, show symptom -> likely cause -> check -> fix.
-- For implementation, show files -> changes -> test path.
-- Prefer arrows and indentation over prose.`;
+const STRONG = `Strong visual mode:
+- Every non-trivial reply must contain a Unicode box-drawing diagram.
+- No prose paragraphs. 1-line label max.
+- Double-line ╔╗╚╝╠╣╦╩╬ for emphasis. ⚠/✓ for pass/fail markers.
+- Debug: ┌symptom┐ → ┌cause┐ → ┌fix┐ → ┌verify┐
+- Impl: file tree + edit arrows + test path.
+- Arrows, boxes, indentation. No sentences.`;
 
 export default function visualAid(pi: ExtensionAPI) {
   let mode: Mode = "on";
