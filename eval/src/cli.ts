@@ -1,4 +1,5 @@
 #!/usr/bin/env tsx
+import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import { argValue, hasArg } from './lib/args.js';
 import { DEFAULT_MODEL } from './lib/pi.js';
 import { runEval } from './lib/runner.js';
@@ -8,6 +9,7 @@ const outDir = argValue('--out') ?? `runs/${new Date().toISOString().replace(/[:
 const model = argValue('--model') ?? DEFAULT_MODEL;
 const judgeModel = argValue('--judge-model') ?? model;
 const concurrency = Number(argValue('--concurrency') ?? '1');
+const thinkingLevel = argValue('--thinking') as ModelThinkingLevel | undefined;
 const extensionPaths = process.argv.flatMap((arg, index, argv) => arg === '--extension' ? [argv[index + 1]].filter(Boolean) : []);
 const allowedTools = process.argv.flatMap((arg, index, argv) => arg === '--allow-tool' ? [argv[index + 1]].filter(Boolean) : []);
 const cwd = argValue('--cwd');
@@ -18,6 +20,7 @@ const result = await runEval({
   model,
   judgeModel,
   concurrency,
+  thinkingLevel,
   dryRun: hasArg('--dry-run'),
   calibrate: hasArg('--calibrate'),
   extensionPaths,

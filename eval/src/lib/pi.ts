@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import {
   AuthStorage,
   createAgentSession,
@@ -52,6 +53,7 @@ type RunPiSdkOptions = {
   memoryPrepareWaitMs?: number;
   memoryPrepareTurns?: number;
   waitAfterPromptMs?: number;
+  thinkingLevel?: ModelThinkingLevel;
 };
 
 function appendStageFile(session: unknown, stageFile: string): void {
@@ -103,7 +105,7 @@ export async function runPiSdk(prompt: string, options: RunPiSdkOptions = {}): P
       cwd,
       agentDir,
       model,
-      thinkingLevel: 'off',
+      thinkingLevel: options.thinkingLevel ?? 'off',
       authStorage,
       modelRegistry,
       sessionManager: options.sessionFile ? SessionManager.open(options.sessionFile) : SessionManager.inMemory(cwd),
@@ -185,13 +187,13 @@ export async function runPiSdk(prompt: string, options: RunPiSdkOptions = {}): P
   }
 }
 
-export function isolatedPiArgs(model: string, prompt: string, session?: string): string[] {
+export function isolatedPiArgs(model: string, prompt: string, session?: string, thinkingLevel: ModelThinkingLevel = 'off'): string[] {
   const args = ['--print'];
   if (session) args.push('--session', session);
   else args.push('--no-session');
   args.push(
     '--no-tools', '--no-extensions', '--no-skills', '--no-prompt-templates', '--no-themes', '--no-context-files',
-    '--thinking', 'off', '--model', model, prompt,
+    '--thinking', thinkingLevel, '--model', model, prompt,
   );
   return args;
 }

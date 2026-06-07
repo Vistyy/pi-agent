@@ -1,3 +1,5 @@
+import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
+
 export type Rubric = { pass_if?: string[]; fail_if?: string[] };
 
 export type Probe = {
@@ -31,7 +33,7 @@ export type TokenUsage = {
   cost?: unknown;
 };
 
-export type PiInvocation = { kind: 'sdk'; model: string; sessionFile?: string; stageFiles?: string[]; prompt: string; extensionPaths?: string[]; compactBeforePrompt?: boolean; compactInstructions?: string; compactionSettings?: { keepRecentTokens?: number; reserveTokens?: number }; allowedTools?: string[]; prepareMemoryBeforeCompact?: boolean; memoryTriggerBeforeCompact?: boolean; memoryPrepareWaitMs?: number; memoryPrepareTurns?: number };
+export type PiInvocation = { kind: 'sdk'; model: string; thinkingLevel?: ModelThinkingLevel; sessionFile?: string; stageFiles?: string[]; prompt: string; extensionPaths?: string[]; compactBeforePrompt?: boolean; compactInstructions?: string; compactionSettings?: { keepRecentTokens?: number; reserveTokens?: number }; allowedTools?: string[]; prepareMemoryBeforeCompact?: boolean; memoryTriggerBeforeCompact?: boolean; memoryPrepareWaitMs?: number; memoryPrepareTurns?: number };
 
 export type AgentResult = {
   fixture: string;

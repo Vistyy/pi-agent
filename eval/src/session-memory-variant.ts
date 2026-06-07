@@ -1,5 +1,6 @@
 #!/usr/bin/env tsx
 import { spawnSync } from 'node:child_process';
+import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -14,6 +15,7 @@ if (!variant || variant.startsWith('--') || !variants.includes(variant as never)
 const suite = argValue('--suite') ?? 'suites/memory-multi-compact';
 const out = argValue('--out') ?? `runs/memory-hard-${variant}-${new Date().toISOString().replace(/[:.]/g, '-')}`;
 const model = argValue('--model') ?? 'openai-codex/gpt-5.4-mini';
+const thinking = (argValue('--thinking') ?? 'xhigh') as ModelThinkingLevel;
 const concurrency = argValue('--concurrency') ?? '1';
 const forcedMemoryPrep = process.argv.includes('--forced-memory-prep');
 const prepareTurns = argValue('--memory-prepare-turns') ?? '1';
@@ -25,7 +27,7 @@ const cwd = argValue('--cwd') ?? makeCwd(variant, model);
 
 function configuredModel(modelSpec: string) {
   const [provider, ...rest] = modelSpec.split('/');
-  return { provider, id: rest.join('/') || 'gpt-5.4-mini', thinking: 'off' };
+  return { provider, id: rest.join('/') || 'gpt-5.4-mini', thinking };
 }
 
 function makeCwd(name: string, modelSpec: string): string {
@@ -53,7 +55,7 @@ function run(cmd: string, args: string[]) {
 }
 
 function baseArgs(extra: string[] = []) {
-  return ['run', 'eval', '--', suite, '--out', out, '--model', model, '--compact-before-prompt', '--compact-instructions', compactInstructions, '--concurrency', concurrency, ...extra];
+  return ['run', 'eval', '--', suite, '--out', out, '--model', model, '--thinking', thinking, '--compact-before-prompt', '--compact-instructions', compactInstructions, '--concurrency', concurrency, ...extra];
 }
 
 if (variant === 'clean') {

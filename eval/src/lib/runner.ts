@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import os from 'node:os';
+import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import path from 'node:path';
 import { mapLimit } from './concurrency.js';
 import { fixtureDirs, fixtureId, readCalibration, readEvalFile, readProbes, sourceSessionPath, sourceStagePaths } from './fixtures.js';
@@ -37,9 +38,10 @@ export type EvalOptions = {
   memoryTriggerBeforeCompact?: boolean;
   memoryPrepareWaitMs?: number;
   memoryPrepareTurns?: number;
+  thinkingLevel?: ModelThinkingLevel;
 };
 
-function buildTasks(options: Pick<EvalOptions, 'fixturesRoot' | 'model' | 'extensionPaths' | 'compactBeforePrompt' | 'compactInstructions' | 'allowedTools' | 'prepareMemoryBeforeCompact' | 'memoryTriggerBeforeCompact' | 'memoryPrepareWaitMs' | 'memoryPrepareTurns'>): EvalTask[] {
+function buildTasks(options: Pick<EvalOptions, 'fixturesRoot' | 'model' | 'thinkingLevel' | 'extensionPaths' | 'compactBeforePrompt' | 'compactInstructions' | 'allowedTools' | 'prepareMemoryBeforeCompact' | 'memoryTriggerBeforeCompact' | 'memoryPrepareWaitMs' | 'memoryPrepareTurns'>): EvalTask[] {
   const tasks: EvalTask[] = [];
   const model = options.model ?? DEFAULT_MODEL;
   for (const dir of fixtureDirs(options.fixturesRoot)) {
@@ -51,7 +53,7 @@ function buildTasks(options: Pick<EvalOptions, 'fixturesRoot' | 'model' | 'exten
     const stageFiles = sourceStagePaths(dir).slice(1);
     for (const probe of readProbes(dir)) {
       const prompt = `Answer using existing session context only. Be very concise: 1-3 short sentences, or bullets only if needed. Include only details required by the probe. If context is insufficient, say exactly: INSUFFICIENT_CONTEXT.\n\nProbe: ${probe.question}`;
-      tasks.push({ fixture, probe, invocation: { kind: 'sdk', model, sessionFile: sessionCopy, stageFiles, prompt, extensionPaths: options.extensionPaths, compactBeforePrompt: options.compactBeforePrompt ?? evalFile.compact_before_probe, compactInstructions: options.compactInstructions ?? evalFile.compact_instructions, compactionSettings: evalFile.compaction_settings, allowedTools: options.allowedTools, prepareMemoryBeforeCompact: options.prepareMemoryBeforeCompact, memoryTriggerBeforeCompact: options.memoryTriggerBeforeCompact, memoryPrepareWaitMs: options.memoryPrepareWaitMs, memoryPrepareTurns: options.memoryPrepareTurns } });
+      tasks.push({ fixture, probe, invocation: { kind: 'sdk', model, thinkingLevel: options.thinkingLevel, sessionFile: sessionCopy, stageFiles, prompt, extensionPaths: options.extensionPaths, compactBeforePrompt: options.compactBeforePrompt ?? evalFile.compact_before_probe, compactInstructions: options.compactInstructions ?? evalFile.compact_instructions, compactionSettings: evalFile.compaction_settings, allowedTools: options.allowedTools, prepareMemoryBeforeCompact: options.prepareMemoryBeforeCompact, memoryTriggerBeforeCompact: options.memoryTriggerBeforeCompact, memoryPrepareWaitMs: options.memoryPrepareWaitMs, memoryPrepareTurns: options.memoryPrepareTurns } });
     }
   }
   return tasks;
@@ -131,7 +133,7 @@ export async function runEval(options: EvalOptions) {
   }
 
   const judged = await mapLimit(tasks, concurrency, async ({ fixture, probe, invocation }): Promise<JudgedResult> => {
-    const run = await runPiSdk(invocation.prompt, { model, sessionFile: invocation.sessionFile, stageFiles: invocation.stageFiles, cwd: options.cwd, extensionPaths: invocation.extensionPaths, compactBeforePrompt: invocation.compactBeforePrompt, compactInstructions: invocation.compactInstructions, compactionSettings: invocation.compactionSettings, allowedTools: invocation.allowedTools, prepareMemoryBeforeCompact: invocation.prepareMemoryBeforeCompact, memoryTriggerBeforeCompact: invocation.memoryTriggerBeforeCompact, memoryPrepareWaitMs: invocation.memoryPrepareWaitMs, memoryPrepareTurns: invocation.memoryPrepareTurns });
+    const run = await runPiSdk(invocation.prompt, { model, thinkingLevel: invocation.thinkingLevel, sessionFile: invocation.sessionFile, stageFiles: invocation.stageFiles, cwd: options.cwd, extensionPaths: invocation.extensionPaths, compactBeforePrompt: invocation.compactBeforePrompt, compactInstructions: invocation.compactInstructions, compactionSettings: invocation.compactionSettings, allowedTools: invocation.allowedTools, prepareMemoryBeforeCompact: invocation.prepareMemoryBeforeCompact, memoryTriggerBeforeCompact: invocation.memoryTriggerBeforeCompact, memoryPrepareWaitMs: invocation.memoryPrepareWaitMs, memoryPrepareTurns: invocation.memoryPrepareTurns });
     const answer: AgentResult = { fixture, probe: probe.id, invocation, compaction: run.compaction, executed: true, exitCode: run.status, durationMs: run.durationMs, answer: run.stdout.trim(), stderr: run.stderr, usage: run.usage, prepUsage: run.prepUsage, answerUsage: run.answerUsage, compactionUsage: run.compactionUsage };
     const { run: judgeRun, judge } = await runJudge(probe, answer.answer, judgeModel);
     return { ...answer, judge, classification: classifyResult(answer, judgeRun.status, judge.passed), judgeExitCode: judgeRun.status, judgeStderr: judgeRun.stderr, judgeDurationMs: judgeRun.durationMs, judgeUsage: judgeRun.usage };
