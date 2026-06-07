@@ -30,10 +30,10 @@ OM does not schedule compaction. Pi/manual/eval compaction triggers still run; O
 {
   "observational-memory": {
     "strategy": "additive",
-    "observeEveryMessages": 4,
-    "reflectEveryObservations": 8,
-    "dropWhenActiveObservationsOver": 40,
-    "protectRecentObservations": 20,
+    "observeEveryMessages": 32,
+    "reflectEveryObservations": 16,
+    "dropWhenActiveObservationsOver": 80,
+    "protectRecentObservations": 32,
     "maxInitialObserveTokens": 100000,
     "additivePatchMaxTokens": 2000,
     "debugLog": false

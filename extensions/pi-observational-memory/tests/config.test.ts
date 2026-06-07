@@ -37,12 +37,12 @@ describe("config", () => {
 	it("uses defaults", () => {
 		expect(DEFAULTS).toEqual({
 			strategy: STRATEGY.additive,
-			observeEveryMessages: 4,
-			reflectEveryObservations: 8,
+			observeEveryMessages: 32,
+			reflectEveryObservations: 16,
 			maxInitialObserveTokens: 100000,
 			observationsPoolMaxTokens: 20000,
-			dropWhenActiveObservationsOver: 40,
-			protectRecentObservations: 20,
+			dropWhenActiveObservationsOver: 80,
+			protectRecentObservations: 32,
 			agentMaxTurns: 16,
 			additivePatchMaxTokens: 2000,
 			debugLog: false,

@@ -36,9 +36,10 @@ function makeCwd(name: string, modelSpec: string): string {
   fs.writeFileSync(path.join(dir, '.pi/settings.json'), JSON.stringify({
     'observational-memory': {
       strategy: name === 'om-replacement' ? 'replacement' : 'additive',
-      observeAfterTokens: 1000,
-      reflectAfterTokens: name === 'om-replacement' ? 1000 : 1000000,
-      compactAfterTokens: 1000000,
+      observeEveryMessages: 32,
+      reflectEveryObservations: 16,
+      dropWhenActiveObservationsOver: 80,
+      protectRecentObservations: 32,
       agentMaxTurns: 4,
       model: configuredModel(modelSpec),
       debugLog: false,

@@ -32,10 +32,10 @@ export interface Config {
 
 export const DEFAULTS: Config = {
 	strategy: STRATEGY.additive,
-	observeEveryMessages: 4,
-	reflectEveryObservations: 8,
-	dropWhenActiveObservationsOver: 40,
-	protectRecentObservations: 20,
+	observeEveryMessages: 32,
+	reflectEveryObservations: 16,
+	dropWhenActiveObservationsOver: 80,
+	protectRecentObservations: 32,
 	maxInitialObserveTokens: 100_000,
 	observationsPoolMaxTokens: 20_000,
 	agentMaxTurns: 16,
