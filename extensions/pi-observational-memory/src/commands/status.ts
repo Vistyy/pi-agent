@@ -9,16 +9,12 @@ import {
 	sourceEntryCountSinceReflectionReviewCoverage,
 	latestCompactedProjection,
 	observationTokenSum,
+	reflectionTokenSum,
 	type Entry,
-	type Reflection,
 } from "../session-ledger/index.js";
 
 function pct(current: number, total: number): number {
 	return total > 0 ? Math.round((current / total) * 100) : 0;
-}
-
-function reflectionTokenSum(items: Reflection[]): number {
-	return items.reduce((sum, item) => sum + item.tokenCount, 0);
 }
 
 function addedSuffix(count: number): string | undefined {

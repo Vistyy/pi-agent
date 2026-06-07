@@ -144,7 +144,6 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 					id,
 					content,
 					supportingObservationIds,
-					tokenCount: estimateStringTokens(content),
 				});
 				added++;
 			}

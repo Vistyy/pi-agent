@@ -73,7 +73,7 @@ describe("session-ledger projections", () => {
 	});
 
 	it("first normal compaction includes observations by coverage and excludes maintenance streams", () => {
-		const obs1 = observation("aaaaaaaaaaaa", { sourceEntryIds: ["raw-2"], tokenCount: 10 });
+		const obs1 = observation("aaaaaaaaaaaa", { sourceEntryIds: ["raw-2"] });
 		const ref1 = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
 		const entries = [
 			textCustomMessage("raw-1", "aaaa"),
@@ -94,9 +94,7 @@ describe("session-ledger projections", () => {
 	it("normal compaction projection includes transient observations appended after compaction preparation", () => {
 		const obs1 = observation("aaaaaaaaaaaa", {
 			content: "Canonical approved feature flag: fast_sync_v2_enabled supersedes enableFastSync",
-			sourceEntryIds: ["raw-1"],
-			tokenCount: 10,
-		});
+			sourceEntryIds: ["raw-1"],		});
 		const entries = [
 			textCustomMessage("raw-1", "canonical source before kept boundary"),
 			textCustomMessage("raw-2", "first kept entry"),
@@ -115,8 +113,8 @@ describe("session-ledger projections", () => {
 	});
 
 	it("normal compaction projection includes current observations but keeps reflections and drops at latest full-fold boundary", () => {
-		const obs1 = observation("aaaaaaaaaaaa", { tokenCount: 5 });
-		const obs2 = observation("bbbbbbbbbbbb", { tokenCount: 5 });
+		const obs1 = observation("aaaaaaaaaaaa");
+		const obs2 = observation("bbbbbbbbbbbb");
 		const ref1 = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
 		const ref2 = reflection("ffffffffffff", ["bbbbbbbbbbbb"]);
 		const entries = [
@@ -139,8 +137,8 @@ describe("session-ledger projections", () => {
 	});
 
 	it("full compaction projection applies reflections and drops through current boundary by coverage", () => {
-		const obs1 = observation("aaaaaaaaaaaa", { tokenCount: 80 });
-		const obs2 = observation("bbbbbbbbbbbb", { tokenCount: 30 });
+		const obs1 = observation("aaaaaaaaaaaa");
+		const obs2 = observation("bbbbbbbbbbbb");
 		const ref1 = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
 		const ref2 = reflection("ffffffffffff", ["bbbbbbbbbbbb"]);
 		const entries = [
@@ -163,7 +161,7 @@ describe("session-ledger projections", () => {
 	});
 
 	it("ignores dangling coversUpToId markers during projection", () => {
-		const obs1 = observation("aaaaaaaaaaaa", { tokenCount: 10 });
+		const obs1 = observation("aaaaaaaaaaaa");
 		const ref1 = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
 		const entries = [
 			textCustomMessage("raw-1", "aaaa"),
@@ -196,7 +194,7 @@ describe("session-ledger projections", () => {
 	});
 
 	it("uses >= observationsPoolMaxTokens for full-fold pressure", () => {
-		const obs1 = observation("aaaaaaaaaaaa", { tokenCount: 50 });
+		const obs1 = observation("aaaaaaaaaaaa");
 		const entries = [
 			textCustomMessage("raw-1", "aaaa"),
 			observationsRecordedEntry("om-aaaaaaaaaaaa", { observations: [obs1], coversUpToId: "raw-1" }),

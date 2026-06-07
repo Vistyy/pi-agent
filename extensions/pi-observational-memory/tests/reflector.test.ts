@@ -7,7 +7,6 @@ import {
 	summarizeSupportIdCounts,
 } from "../src/agents/reflector/agent.js";
 import { hashId } from "../src/memory/ids.js";
-import { estimateStringTokens } from "../src/memory/token-estimate.js";
 import { fakeAgentLoop } from "./fixtures/agent-loop.js";
 import { observation, reflection } from "./fixtures/session.js";
 
@@ -85,7 +84,7 @@ describe("reflector agent", () => {
 		expect(normalizeSupportingObservationIds([], ["aaaaaaaaaaaa"])).toBeUndefined();
 	});
 
-	it("records one-line reflections with code-computed ids and token counts", async () => {
+	it("records one-line reflections with code-computed ids", async () => {
 		const content = "User prefers source-backed memory.";
 		const loop = fakeAgentLoop(async (_prompts, context) => {
 			await context.tools[0].execute("tool-1", {
@@ -95,7 +94,7 @@ describe("reflector agent", () => {
 
 		const result = await runReflector({ ...baseArgs, agentLoop: loop });
 
-		expect(result).toEqual([{ id: hashId(content), content, supportingObservationIds: ["aaaaaaaaaaaa", "bbbbbbbbbbbb"], tokenCount: estimateStringTokens(content) }]);
+		expect(result).toEqual([{ id: hashId(content), content, supportingObservationIds: ["aaaaaaaaaaaa", "bbbbbbbbbbbb"] }]);
 	});
 
 	it("rejects invented support ids and multiline content", async () => {

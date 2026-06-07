@@ -24,7 +24,6 @@ export type TestReflection = {
 	id: string;
 	content: string;
 	supportingObservationIds: string[];
-	tokenCount: number;
 };
 
 export const OM_OBSERVATIONS_RECORDED = "om.observations.recorded";
@@ -142,7 +141,6 @@ export function reflection(
 		id,
 		content: `Reflection ${id}`,
 		supportingObservationIds,
-		tokenCount: 5,
 		...overrides,
 	};
 }

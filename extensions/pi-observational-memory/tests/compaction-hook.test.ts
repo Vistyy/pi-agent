@@ -95,7 +95,7 @@ describe("compaction hook", () => {
 	});
 
 	it("first normal compaction writes covered observations without orphan reflections", async () => {
-		const obs1 = observation("aaaaaaaaaaaa", { sourceEntryIds: ["raw-1"], tokenCount: 10 });
+		const obs1 = observation("aaaaaaaaaaaa", { sourceEntryIds: ["raw-1"] });
 		const ref1 = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
 		const entries = [
 			textCustomMessage("raw-1", "aaaa"),
@@ -114,8 +114,8 @@ describe("compaction hook", () => {
 	});
 
 	it("writes a normal projection without applying new reflections or drops", async () => {
-		const obs1 = observation("aaaaaaaaaaaa", { tokenCount: 5 });
-		const obs2 = observation("bbbbbbbbbbbb", { tokenCount: 5 });
+		const obs1 = observation("aaaaaaaaaaaa");
+		const obs2 = observation("bbbbbbbbbbbb");
 		const ref1 = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
 		const ref2 = reflection("ffffffffffff", ["bbbbbbbbbbbb"]);
 		const entries = [
@@ -140,8 +140,8 @@ describe("compaction hook", () => {
 	});
 
 	it("writes a full projection when observation pool pressure reaches the threshold", async () => {
-		const obs1 = observation("aaaaaaaaaaaa", { tokenCount: 80 });
-		const obs2 = observation("bbbbbbbbbbbb", { tokenCount: 30 });
+		const obs1 = observation("aaaaaaaaaaaa");
+		const obs2 = observation("bbbbbbbbbbbb");
 		const ref1 = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
 		const ref2 = reflection("ffffffffffff", ["bbbbbbbbbbbb"]);
 		const entries = [

@@ -6,7 +6,7 @@ import { observation, observationsDroppedEntry, observationsRecordedEntry, textC
 
 describe("dropper active observation pool metrics", () => {
 	it("reports below-limit pools as not ready", () => {
-		const observations = [observation("aaaaaaaaaaaa", { tokenCount: 20 })];
+		const observations = [observation("aaaaaaaaaaaa")];
 
 		expect(observationPoolMetrics(observations, 2)).toMatchObject({
 			observationTokens: observationTokenSum(observations),
@@ -21,8 +21,8 @@ describe("dropper active observation pool metrics", () => {
 
 	it("reports at-limit pools as not ready", () => {
 		const observations = [
-			observation("aaaaaaaaaaaa", { tokenCount: 50 }),
-			observation("bbbbbbbbbbbb", { tokenCount: 50 }),
+			observation("aaaaaaaaaaaa"),
+			observation("bbbbbbbbbbbb"),
 		];
 
 		const metrics = observationPoolMetrics(observations, 2);
@@ -37,9 +37,9 @@ describe("dropper active observation pool metrics", () => {
 
 	it("reports above-limit pools as ready with derived drop cap", () => {
 		const observations = [
-			observation("aaaaaaaaaaaa", { tokenCount: 50 }),
-			observation("bbbbbbbbbbbb", { tokenCount: 50 }),
-			observation("cccccccccccc", { tokenCount: 50 }),
+			observation("aaaaaaaaaaaa"),
+			observation("bbbbbbbbbbbb"),
+			observation("cccccccccccc"),
 		];
 
 		const metrics = observationPoolMetrics(observations, 2);
@@ -60,8 +60,8 @@ describe("dropper active observation pool metrics", () => {
 	});
 
 	it("uses folded active observations so tombstones reduce readiness", () => {
-		const dropped = observation("aaaaaaaaaaaa", { tokenCount: 100 });
-		const active = observation("bbbbbbbbbbbb", { tokenCount: 20 });
+		const dropped = observation("aaaaaaaaaaaa");
+		const active = observation("bbbbbbbbbbbb");
 		const entries = [
 			textCustomMessage("raw-1", "aaaaaaaa"),
 			observationsRecordedEntry("om-obs", { observations: [dropped, active], coversUpToId: "raw-1" }),

@@ -34,9 +34,9 @@ describe("reflection coverage helpers", () => {
 
 	it("summarizes coverage counts and token totals", () => {
 		const observations = [
-			observation("aaaaaaaaaaaa", { tokenCount: 3 }),
-			observation("bbbbbbbbbbbb", { tokenCount: 5 }),
-			observation("cccccccccccc", { tokenCount: 7 }),
+			observation("aaaaaaaaaaaa"),
+			observation("bbbbbbbbbbbb"),
+			observation("cccccccccccc"),
 		];
 		const coverage = reflectionCoverageMap(observations, [
 			reflection("rrrrrrrrrrr1", ["bbbbbbbbbbbb", "cccccccccccc"]),
@@ -52,9 +52,9 @@ describe("reflection coverage helpers", () => {
 
 	it("summarizes coverage transitions without exposing ids", () => {
 		const observations = [
-			observation("aaaaaaaaaaaa", { tokenCount: 3 }),
-			observation("bbbbbbbbbbbb", { tokenCount: 5 }),
-			observation("cccccccccccc", { tokenCount: 7 }),
+			observation("aaaaaaaaaaaa"),
+			observation("bbbbbbbbbbbb"),
+			observation("cccccccccccc"),
 		];
 		const before = reflectionCoverageMap(observations, [
 			reflection("rrrrrrrrrrr1", ["bbbbbbbbbbbb"]),

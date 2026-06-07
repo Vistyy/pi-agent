@@ -60,8 +60,8 @@ describe("/om:status", () => {
 	});
 
 	it("shows separate progress clocks, visible pool, active observation pool, and reflection pool", async () => {
-		const obs = observation("aaaaaaaaaaaa", { tokenCount: 5 });
-		const ref = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"], { tokenCount: 3 });
+		const obs = observation("aaaaaaaaaaaa");
+		const ref = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
 		const entries = [
 			textCustomMessage("raw-1", "aaaaaaaa"),
 			observationsRecordedEntry("om-obs", { observations: [obs], coversUpToId: "raw-1" }),
@@ -78,11 +78,11 @@ describe("/om:status", () => {
 		expect(output).toContain("/ 20 active observations");
 		expect(output).toContain("Visible observation pool: ~6 / 40 tokens (15%)");
 		expect(output).toContain("Active observation pool: 1 / 20 observations (5%)");
-		expect(output).toContain("Reflection pool:         ~3 tokens");
+		expect(output).toContain("Reflection pool:         ~6 tokens");
 	});
 
 	it("shows over-target active observation pool in the Activity section", async () => {
-		const obs = observation("aaaaaaaaaaaa", { tokenCount: 25 });
+		const obs = observation("aaaaaaaaaaaa");
 		const entries = [
 			textCustomMessage("raw-1", "aaaaaaaa"),
 			observationsRecordedEntry("om-obs", { observations: [obs], coversUpToId: "raw-1" }),

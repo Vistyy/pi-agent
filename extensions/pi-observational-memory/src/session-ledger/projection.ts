@@ -1,4 +1,4 @@
-import { observationTokenSum } from "./observation-tokens.js";
+import { observationTokenSum } from "./memory-tokens.js";
 import {
 	OM_FOLDED,
 	isMemoryDetails,

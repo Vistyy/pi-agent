@@ -118,7 +118,7 @@ function setup(args: {
 }
 
 describe("memory update hook", () => {
-	const obsA = observation("aaaaaaaaaaaa", { sourceEntryIds: ["raw-1"], tokenCount: 10 });
+	const obsA = observation("aaaaaaaaaaaa", { sourceEntryIds: ["raw-1"] });
 
 	it("force-observes unobserved source entries before the compaction kept tail", async () => {
 		const obs = observation("bbbbbbbbbbbb", { sourceEntryIds: ["raw-1"] });
@@ -135,7 +135,7 @@ describe("memory update hook", () => {
 			expect.objectContaining({ customType: OM_OBSERVATIONS_RECORDED }),
 		]);
 	});
-	const obsB = observation("bbbbbbbbbbbb", { sourceEntryIds: ["raw-2"], tokenCount: 10 });
+	const obsB = observation("bbbbbbbbbbbb", { sourceEntryIds: ["raw-2"] });
 	const refA = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
 
 	it("does not launch below all thresholds from either entrypoint", () => {
@@ -184,7 +184,7 @@ describe("memory update hook", () => {
 	});
 
 	it("runs observer first and appends source-addressed observations", async () => {
-		const obs = observation("cccccccccccc", { sourceEntryIds: ["raw-1"], tokenCount: 4 });
+		const obs = observation("cccccccccccc", { sourceEntryIds: ["raw-1"] });
 		mockAgents.runObserver.mockResolvedValueOnce([obs]);
 		const entries = [textCustomMessage("raw-1", "aaaaaaaa")];
 		const { fire, runLaunchedWork, pi, runtime } = setup({ entries, reflectEveryObservations: 999 });

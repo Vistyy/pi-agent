@@ -31,7 +31,6 @@ export type Reflection = {
 	id: string;
 	content: string;
 	supportingObservationIds: string[];
-	tokenCount: number;
 };
 
 export type ObservationsRecordedEntryData = {
@@ -102,8 +101,7 @@ export function isReflection(value: unknown): value is Reflection {
 		isMemoryId(value.id) &&
 		isNonEmptyString(value.content) &&
 		!/\r|\n/.test(value.content) &&
-		isNonEmptyStringArray(value.supportingObservationIds) &&
-		isTokenCount(value.tokenCount)
+		isNonEmptyStringArray(value.supportingObservationIds)
 	);
 }
 
