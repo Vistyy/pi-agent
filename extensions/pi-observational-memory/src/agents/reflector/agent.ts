@@ -30,6 +30,8 @@ interface RunReflectorArgs {
 	thinkingLevel?: ModelThinkingLevel;
 }
 
+const MarkReviewedNoReflectionsSchema = Type.Object({});
+
 const RecordReflectionsSchema = Type.Object({
 	reflections: Type.Array(
 		Type.Object({
@@ -40,6 +42,7 @@ const RecordReflectionsSchema = Type.Object({
 	),
 });
 
+type MarkReviewedNoReflectionsArgs = Static<typeof MarkReviewedNoReflectionsSchema>;
 type RecordReflectionsArgs = Static<typeof RecordReflectionsSchema>;
 
 export function summarizeSupportIdCounts(reflections: readonly Reflection[]): {
@@ -96,6 +99,21 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 	let rejectedReflectionCount = 0;
 	let rejectedEmptyOrMultilineContentCount = 0;
 	let rejectedInvalidSupportIdsCount = 0;
+	let reviewedNoReflectionsCallCount = 0;
+
+	const markReviewedNoReflections: AgentTool<typeof MarkReviewedNoReflectionsSchema> = {
+		name: "mark_reviewed_no_reflections",
+		label: "Mark reviewed",
+		description: "Mark this observation set reviewed when no durable reflections should be added.",
+		parameters: MarkReviewedNoReflectionsSchema,
+		execute: async (_id, _params: MarkReviewedNoReflectionsArgs) => {
+			reviewedNoReflectionsCallCount++;
+			return {
+				content: [{ type: "text", text: "Marked reviewed with no new reflections." }],
+				details: { reviewed: true },
+			};
+		},
+	};
 
 	const recordReflections: AgentTool<typeof RecordReflectionsSchema> = {
 		name: "record_reflections",
@@ -140,7 +158,7 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 		},
 	};
 
-	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nCURRENT OBSERVATIONS:\n${joinOrEmpty(observations.map((observation) => observationToMemoryAgentLine(observation, coverageTierForObservation(observation, coverageById))))}\n\nCrystallize any missing checkpoint facts, current decisions, constraints, rejected/stale alternatives, unresolved conflicts, exact critical details, or patterns into new reflections. If the observations add no continuing context, do not call the tool.`;
+	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nCURRENT OBSERVATIONS:\n${joinOrEmpty(observations.map((observation) => observationToMemoryAgentLine(observation, coverageTierForObservation(observation, coverageById))))}\n\nReview these observations. Call record_reflections for durable new memory, or mark_reviewed_no_reflections if none should be added.`;
 	debugLog("reflector.prompt", {
 		reflectionCount: reflections.length,
 		observationCount: observations.length,
@@ -156,13 +174,14 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 		thinkingLevel: args.thinkingLevel,
 		systemPrompt: REFLECTOR_SYSTEM,
 		userText,
-		tools: [recordReflections as AgentTool<any>],
+		tools: [recordReflections as AgentTool<any>, markReviewedNoReflections as AgentTool<any>],
 	});
 	const acceptedReflections = Array.from(accumulated.values());
 	const afterCoverageById = reflectionCoverageMap(observations, [...reflections, ...acceptedReflections]);
 	debugLog("reflector.result", {
-		reason: acceptedReflections.length > 0 ? "accepted_nonempty" : toolCallCount === 0 ? "no_tool_call" : "all_filtered",
+		reason: acceptedReflections.length > 0 ? "accepted_nonempty" : reviewedNoReflectionsCallCount > 0 ? "reviewed_no_reflections" : toolCallCount === 0 ? "no_tool_call" : "all_filtered",
 		toolCallCount,
+		reviewedNoReflectionsCallCount,
 		rawProposedReflectionCount,
 		acceptedReflectionCount,
 		duplicateReflectionCount,
