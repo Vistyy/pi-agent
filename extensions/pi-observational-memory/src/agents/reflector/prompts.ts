@@ -9,7 +9,8 @@ Call record_reflections for compact facts that should survive beyond raw observa
 
 Rules:
 - each reflection must be one line
-- preserve exact current-vs-stale relationship wording from observations, especially supersedes/rejected/stale/not current/unresolved/not approved
+- preserve relationship semantics and decisive wording from observations: what is current, what changed, what replaced what, what is rejected, what remains unresolved, and what must or must not be used
+- when reflecting blockers, decisions, or corrections, keep exact supporting paths, commands, errors, ids, and values needed to act later
 - every reflection must cite supporting observation ids from the input
 - do not duplicate existing reflections
 - if review finds no durable reflection to add, call mark_reviewed_no_reflections`;
