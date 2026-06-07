@@ -21,6 +21,7 @@ export interface Config {
 	observeEveryMessages: number;
 	reflectEveryObservations: number;
 	dropWhenActiveObservationsOver: number;
+	protectRecentObservations: number;
 	maxInitialObserveTokens: number;
 	observationsPoolMaxTokens: number;
 	agentMaxTurns: number;
@@ -34,6 +35,7 @@ export const DEFAULTS: Config = {
 	observeEveryMessages: 4,
 	reflectEveryObservations: 8,
 	dropWhenActiveObservationsOver: 40,
+	protectRecentObservations: 20,
 	maxInitialObserveTokens: 100_000,
 	observationsPoolMaxTokens: 20_000,
 	agentMaxTurns: 16,
@@ -81,6 +83,7 @@ function normalizeSettingsConfig(value: Record<string, unknown>): Partial<Config
 		"observeEveryMessages",
 		"reflectEveryObservations",
 		"dropWhenActiveObservationsOver",
+		"protectRecentObservations",
 		"maxInitialObserveTokens",
 		"observationsPoolMaxTokens",
 		"agentMaxTurns",

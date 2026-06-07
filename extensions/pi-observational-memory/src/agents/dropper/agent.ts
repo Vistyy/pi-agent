@@ -10,9 +10,9 @@ import {
 	REFLECTION_COVERAGE_DROP_RANK,
 	coverageTierForObservation,
 	reflectionCoverageMap,
-	summarizeCoverageByRelevance,
-	summarizeCoverageByRelevanceForIds,
-	observationToDropperLine,
+	summarizeCoverage,
+	summarizeCoverageForIds,
+	observationToMemoryAgentLine,
 } from "../coverage.js";
 interface RunDropperArgs {
 	model: Model<any>;
@@ -21,18 +21,12 @@ interface RunDropperArgs {
 	reflections: Reflection[];
 	observations: Observation[];
 	maxDropsAllowed: number;
+	protectedObservationIds?: readonly string[];
 	signal?: AbortSignal;
 	agentLoop?: typeof agentLoop;
 	maxTurns?: number;
 	thinkingLevel?: ModelThinkingLevel;
 }
-
-const RELEVANCE_DROP_RANK: Record<Observation["relevance"], number> = {
-	low: 0,
-	medium: 1,
-	high: 2,
-	critical: 3,
-};
 
 const DropObservationsSchema = Type.Object({
 	ids: Type.Array(Type.String({ minLength: 1 }), { minItems: 1 }),
@@ -40,13 +34,6 @@ const DropObservationsSchema = Type.Object({
 });
 
 type DropObservationsArgs = Static<typeof DropObservationsSchema>;
-
-function relevanceCounts(observations: readonly Observation[]): Record<Observation["relevance"], number> {
-	return observations.reduce<Record<Observation["relevance"], number>>((counts, observation) => {
-		counts[observation.relevance]++;
-		return counts;
-	}, { low: 0, medium: 0, high: 0, critical: 0 });
-}
 
 export function normalizeDropObservationIds(
 	ids: readonly string[] | undefined,
@@ -73,10 +60,9 @@ function timestampRank(timestamp: string): number {
 
 export function isProtectedObservation(
 	observation: Observation,
-	reflections: readonly Reflection[] = [],
+	protectedObservationIds: ReadonlySet<string> = new Set(),
 ): boolean {
-	if (observation.relevance !== "critical") return false;
-	return !reflections.some((reflection) => reflection.supportingObservationIds.includes(observation.id));
+	return protectedObservationIds.has(observation.id);
 }
 
 export function selectDropCandidates(
@@ -84,11 +70,13 @@ export function selectDropCandidates(
 	observations: readonly Observation[],
 	maxDrops: number,
 	reflections: readonly Reflection[] = [],
+	protectedObservationIds: readonly string[] = [],
 ): string[] {
 	if (maxDrops <= 0 || ids.length === 0) return [];
 
 	const byId = new Map(observations.map((observation) => [observation.id, observation]));
 	const coverageById = reflectionCoverageMap(observations, reflections);
+	const protectedIds = new Set(protectedObservationIds);
 	const firstProposalIndex = new Map<string, number>();
 	for (let i = 0; i < ids.length; i++) {
 		const id = ids[i];
@@ -98,33 +86,32 @@ export function selectDropCandidates(
 	return Array.from(firstProposalIndex.entries())
 		.map(([id, index]) => ({ id, index, observation: byId.get(id) }))
 		.filter((candidate): candidate is { id: string; index: number; observation: Observation } =>
-			candidate.observation !== undefined && !isProtectedObservation(candidate.observation, reflections)
+			candidate.observation !== undefined && !isProtectedObservation(candidate.observation, protectedIds)
 		)
 		.sort((a, b) => {
 			const coverageDelta = REFLECTION_COVERAGE_DROP_RANK[coverageTierForObservation(a.observation, coverageById)]
 				- REFLECTION_COVERAGE_DROP_RANK[coverageTierForObservation(b.observation, coverageById)];
-			const relevanceDelta = RELEVANCE_DROP_RANK[a.observation.relevance] - RELEVANCE_DROP_RANK[b.observation.relevance];
 			const ageDelta = timestampRank(a.observation.timestamp) - timestampRank(b.observation.timestamp);
-			return coverageDelta || relevanceDelta || ageDelta || a.index - b.index;
+			return coverageDelta || ageDelta || a.index - b.index;
 		})
 		.slice(0, maxDrops)
 		.map((candidate) => candidate.id);
 }
 
 export async function runDropper(args: RunDropperArgs): Promise<string[] | undefined> {
-	const { model, apiKey, headers, reflections, observations, maxDropsAllowed, signal } = args;
+	const { model, apiKey, headers, reflections, observations, maxDropsAllowed, protectedObservationIds = [], signal } = args;
 	if (observations.length === 0) return undefined;
 
 	const observationTokens = observations.reduce((sum, observation) => sum + observation.tokenCount, 0);
 	const coverageById = reflectionCoverageMap(observations, reflections);
-	const coverageSummaryByRelevance = summarizeCoverageByRelevance(observations, coverageById);
+	const coverageSummary = summarizeCoverage(observations, coverageById);
 	debugLog("dropper.agent_start", {
 		activeObservationCount: observations.length,
 		reflectionCount: reflections.length,
 		observationTokens,
 		maxDropsAllowed,
-		relevanceCounts: relevanceCounts(observations),
-		coverageSummaryByRelevance,
+		protectedObservationCount: protectedObservationIds.length,
+		coverageSummary,
 	});
 	if (maxDropsAllowed <= 0) {
 		debugLog("dropper.result", {
@@ -134,7 +121,7 @@ export async function runDropper(args: RunDropperArgs): Promise<string[] | undef
 			acceptedCandidateCount: 0,
 			selectedDropsCount: 0,
 			selectedDropTokens: 0,
-			selectedCoverageSummaryByRelevance: summarizeCoverageByRelevanceForIds([], observations, coverageById),
+			selectedCoverageSummary: summarizeCoverageForIds([], observations, coverageById),
 			maxDropsAllowed,
 		});
 		return undefined;
@@ -146,7 +133,6 @@ export async function runDropper(args: RunDropperArgs): Promise<string[] | undef
 	let toolCallCount = 0;
 	let rawRequestedIdsCount = 0;
 	let missingIdsCount = 0;
-	let criticalCandidateIdsCount = 0;
 	let duplicateInRequestCount = 0;
 	let duplicateInRunCount = 0;
 
@@ -161,7 +147,6 @@ export async function runDropper(args: RunDropperArgs): Promise<string[] | undef
 			const seenInRequest = new Set<string>();
 			let added = 0;
 			let requestMissingIds = 0;
-			let requestCriticalCandidateIds = 0;
 			let requestDuplicateIds = 0;
 			let requestDuplicateInRunIds = 0;
 			for (const id of params.ids) {
@@ -184,10 +169,6 @@ export async function runDropper(args: RunDropperArgs): Promise<string[] | undef
 				}
 				proposed.add(id);
 				proposedDropIds.push(id);
-				if (observation.relevance === "critical") {
-					criticalCandidateIdsCount++;
-					requestCriticalCandidateIds++;
-				}
 				added++;
 			}
 			debugLog("dropper.tool_call", {
@@ -195,7 +176,6 @@ export async function runDropper(args: RunDropperArgs): Promise<string[] | undef
 				rawRequestedIdsCount: params.ids.length,
 				acceptedIdsCount: added,
 				missingIdsCount: requestMissingIds,
-				criticalCandidateIdsCount: requestCriticalCandidateIds,
 				duplicateInRequestCount: requestDuplicateIds,
 				duplicateInRunCount: requestDuplicateInRunIds,
 				totalCandidates: proposedDropIds.length,
@@ -208,7 +188,7 @@ export async function runDropper(args: RunDropperArgs): Promise<string[] | undef
 		},
 	};
 
-	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nCURRENT OBSERVATIONS:\n${joinOrEmpty(observations.map((observation) => observationToDropperLine(observation, coverageTierForObservation(observation, coverageById))))}\n\nActive observations: ${observations.length.toLocaleString()} (~${observationTokens.toLocaleString()} tokens).\nMaximum drops allowed this run: ${maxDropsAllowed.toLocaleString()} observation${maxDropsAllowed === 1 ? "" : "s"}. This maximum is a hard safety cap, not a target. Drop fewer or none if fewer observations are clearly safe.`;
+	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nCURRENT OBSERVATIONS:\n${joinOrEmpty(observations.map((observation) => observationToMemoryAgentLine(observation, coverageTierForObservation(observation, coverageById))))}\n\nActive observations: ${observations.length.toLocaleString()} (~${observationTokens.toLocaleString()} tokens).\nMaximum drops allowed this run: ${maxDropsAllowed.toLocaleString()} observation${maxDropsAllowed === 1 ? "" : "s"}. This maximum is a hard safety cap, not a target. Drop fewer or none if fewer observations are clearly safe.`;
 	await runMemoryAgentLoop({
 		model,
 		apiKey,
@@ -221,7 +201,7 @@ export async function runDropper(args: RunDropperArgs): Promise<string[] | undef
 		userText,
 		tools: [dropObservations as AgentTool<any>],
 	});
-	const droppedIds = selectDropCandidates(proposedDropIds, observations, maxDropsAllowed, reflections);
+	const droppedIds = selectDropCandidates(proposedDropIds, observations, maxDropsAllowed, reflections, protectedObservationIds);
 	const reason = droppedIds.length > 0
 		? "selected_nonempty"
 		: toolCallCount === 0
@@ -235,13 +215,12 @@ export async function runDropper(args: RunDropperArgs): Promise<string[] | undef
 		toolCallCount,
 		rawRequestedIdsCount,
 		missingIdsCount,
-		criticalCandidateIdsCount,
 		duplicateInRequestCount,
 		duplicateInRunCount,
 		acceptedCandidateCount: proposedDropIds.length,
 		selectedDropsCount: droppedIds.length,
 		selectedDropTokens,
-		selectedCoverageSummaryByRelevance: summarizeCoverageByRelevanceForIds(droppedIds, observations, coverageById),
+		selectedCoverageSummary: summarizeCoverageForIds(droppedIds, observations, coverageById),
 		maxDropsAllowed,
 	});
 	return droppedIds.length > 0 ? droppedIds : undefined;

@@ -17,7 +17,6 @@ export type TestObservation = {
 	id: string;
 	content: string;
 	timestamp: string;
-	relevance: "low" | "medium" | "high" | "critical";
 	sourceEntryIds: string[];
 	tokenCount: number;
 	event?: {
@@ -37,6 +36,7 @@ export type TestReflection = {
 
 export const OM_OBSERVATIONS_RECORDED = "om.observations.recorded";
 export const OM_REFLECTIONS_RECORDED = "om.reflections.recorded";
+export const OM_REFLECTIONS_REVIEWED = "om.reflections.reviewed";
 export const OM_OBSERVATIONS_DROPPED = "om.observations.dropped";
 export const OM_FOLDED = "om.folded";
 
@@ -135,7 +135,6 @@ export function observation(
 		id,
 		content: `Observation ${id}`,
 		timestamp: DEFAULT_TIMESTAMP,
-		relevance: "medium",
 		sourceEntryIds: ["raw-1"],
 		tokenCount: 10,
 		...overrides,

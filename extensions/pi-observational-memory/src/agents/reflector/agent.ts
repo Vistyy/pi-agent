@@ -11,11 +11,12 @@ import { estimateStringTokens } from "../../memory/token-estimate.js";
 import { reflectionToSummaryLine, type Observation, type Reflection } from "../../session-ledger/index.js";
 import {
 	coverageTierForObservation,
+	observationToMemoryAgentLine,
 	reflectionCoverageMap,
-	summarizeCoverageByRelevance,
-	summarizeCoverageTransitionsByRelevance,
-	type ReflectionCoverageTier,
+	summarizeCoverage,
+	summarizeCoverageTransitions,
 } from "../coverage.js";
+export { observationToMemoryAgentLine } from "../coverage.js";
 
 interface RunReflectorArgs {
 	model: Model<any>;
@@ -40,13 +41,6 @@ const RecordReflectionsSchema = Type.Object({
 });
 
 type RecordReflectionsArgs = Static<typeof RecordReflectionsSchema>;
-
-export function observationToReflectorLine(
-	observation: Observation,
-	coverage: ReflectionCoverageTier,
-): string {
-	return `[${observation.id}] ${observation.timestamp} [${observation.relevance}] [coverage: ${coverage}] ${observation.content}`;
-}
 
 export function summarizeSupportIdCounts(reflections: readonly Reflection[]): {
 	reflectionCount: number;
@@ -89,7 +83,7 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 	debugLog("reflector.agent_start", {
 		activeObservationCount: observations.length,
 		reflectionCount: reflections.length,
-		coverageSummaryByRelevance: summarizeCoverageByRelevance(observations, coverageById),
+		coverageSummary: summarizeCoverage(observations, coverageById),
 	});
 
 	const allowedObservationIds = observations.map((observation) => observation.id);
@@ -100,6 +94,8 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 	let acceptedReflectionCount = 0;
 	let duplicateReflectionCount = 0;
 	let rejectedReflectionCount = 0;
+	let rejectedEmptyOrMultilineContentCount = 0;
+	let rejectedInvalidSupportIdsCount = 0;
 
 	const recordReflections: AgentTool<typeof RecordReflectionsSchema> = {
 		name: "record_reflections",
@@ -117,6 +113,8 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 				const supportingObservationIds = normalizeSupportingObservationIds(proposal.supportingObservationIds, allowedObservationIds);
 				if (!content || !supportingObservationIds) {
 					rejected++;
+					if (!content) rejectedEmptyOrMultilineContentCount++;
+					if (!supportingObservationIds) rejectedInvalidSupportIdsCount++;
 					continue;
 				}
 				const id = hashId(content);
@@ -142,7 +140,12 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 		},
 	};
 
-	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nCURRENT OBSERVATIONS:\n${joinOrEmpty(observations.map((observation) => observationToReflectorLine(observation, coverageTierForObservation(observation, coverageById))))}\n\nCrystallize any missing checkpoint facts, current decisions, constraints, rejected/stale alternatives, unresolved conflicts, exact critical details, or patterns into new reflections. If the observations add no continuing context, do not call the tool.`;
+	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nCURRENT OBSERVATIONS:\n${joinOrEmpty(observations.map((observation) => observationToMemoryAgentLine(observation, coverageTierForObservation(observation, coverageById))))}\n\nCrystallize any missing checkpoint facts, current decisions, constraints, rejected/stale alternatives, unresolved conflicts, exact critical details, or patterns into new reflections. If the observations add no continuing context, do not call the tool.`;
+	debugLog("reflector.prompt", {
+		reflectionCount: reflections.length,
+		observationCount: observations.length,
+		userTextTokenEstimate: estimateStringTokens(userText),
+	});
 	await runMemoryAgentLoop({
 		model,
 		apiKey,
@@ -164,8 +167,10 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 		acceptedReflectionCount,
 		duplicateReflectionCount,
 		rejectedReflectionCount,
+		rejectedEmptyOrMultilineContentCount,
+		rejectedInvalidSupportIdsCount,
 		acceptedSupportIdCounts: summarizeSupportIdCounts(acceptedReflections),
-		coverageTransitionsByRelevance: summarizeCoverageTransitionsByRelevance(observations, coverageById, afterCoverageById),
+		coverageTransitions: summarizeCoverageTransitions(observations, coverageById, afterCoverageById),
 	});
 	return acceptedReflections.length > 0 ? acceptedReflections : undefined;
 }

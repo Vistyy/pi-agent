@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
 	normalizeSupportingObservationIds,
-	observationToReflectorLine,
+	observationToMemoryAgentLine,
 	runReflector,
 	summarizeSupportIdCounts,
 } from "../src/agents/reflector/agent.js";
@@ -47,13 +47,12 @@ describe("reflector agent", () => {
 	});
 
 	it("renders reflector observation lines with coverage evidence only", () => {
-		const line = observationToReflectorLine(
-			observation("aaaaaaaaaaaa", { relevance: "critical", content: "Important reflected fact" }),
+		const line = observationToMemoryAgentLine(
+			observation("aaaaaaaaaaaa", { content: "Important reflected fact" }),
 			"partial",
 		);
 
 		expect(line).toContain("[aaaaaaaaaaaa]");
-		expect(line).toContain("[critical]");
 		expect(line).toContain("[coverage: partial]");
 		expect(line).toContain("Important reflected fact");
 	});

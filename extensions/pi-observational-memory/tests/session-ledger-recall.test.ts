@@ -33,9 +33,7 @@ function nonSourceEntry(id: string): Entry {
 function observation(overrides: Partial<Observation> & Pick<Observation, "id" | "sourceEntryIds">): Observation {
 	return {
 		content: `Observation ${overrides.id}`,
-		timestamp: "2026-05-19 00:00",
-		relevance: "high",
-		tokenCount: 4,
+		timestamp: "2026-05-19 00:00",		tokenCount: 4,
 		...overrides,
 	};
 }

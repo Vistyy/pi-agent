@@ -6,26 +6,22 @@ export type MemoryPatchOptions = {
 };
 
 function observationPriority(observation: Observation): number {
-	if (observation.relevance === "critical") return 0;
-	if (observation.relevance === "high") return 1;
-	if (observation.event?.status && /unresolved|blocked|rejected|current|completed|confirmed/i.test(observation.event.status)) return 2;
-	return 3;
+	if (observation.event?.status && /unresolved|blocked|rejected|current|completed|confirmed/i.test(observation.event.status)) return 0;
+	return 1;
 }
 
-function isPatchWorthy(observation: Observation): boolean {
-	if (observation.relevance === "critical" || observation.relevance === "high") return true;
-	if (observation.event?.details.some((detail) => /\/|\b[A-Z]{2,}\d+\b|\berror\b|\bfailed\b|\bpassed\b|\bnpm\b|\bgit\b|\bcommit\b|\bdecision\b|\brejected\b|\bblocked\b|\bunresolved\b|\d/.test(detail))) return true;
-	return false;
+function isPatchWorthy(_observation: Observation): boolean {
+	return true;
 }
 
 function observationPatchBlock(observation: Observation): string {
 	if (observation.event) {
-		const header = `[${observation.id}] ${observation.timestamp} [${observation.relevance}] ${observation.event.title}`;
+		const header = `[${observation.id}] ${observation.timestamp} ${observation.event.title}`;
 		const details = observation.event.details.map((detail) => `  - ${detail}`);
 		const status = observation.event.status ? [`  status: ${observation.event.status}`] : [];
 		return [header, ...details, ...status].join("\n");
 	}
-	return `[${observation.id}] ${observation.timestamp} [${observation.relevance}] ${observation.content}`;
+	return `[${observation.id}] ${observation.timestamp} ${observation.content}`;
 }
 
 function reflectionPatchBlock(reflection: Reflection): string {

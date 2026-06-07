@@ -6,7 +6,7 @@ import { observation, observationsDroppedEntry, observationsRecordedEntry, textC
 
 describe("dropper active observation pool metrics", () => {
 	it("reports below-limit pools as not ready", () => {
-		const observations = [observation("aaaaaaaaaaaa", { relevance: "low", tokenCount: 20 })];
+		const observations = [observation("aaaaaaaaaaaa", { tokenCount: 20 })];
 
 		expect(observationPoolMetrics(observations, 2)).toMatchObject({
 			observationTokens: 20,
@@ -21,8 +21,8 @@ describe("dropper active observation pool metrics", () => {
 
 	it("reports at-limit pools as not ready", () => {
 		const observations = [
-			observation("aaaaaaaaaaaa", { relevance: "low", tokenCount: 50 }),
-			observation("bbbbbbbbbbbb", { relevance: "medium", tokenCount: 50 }),
+			observation("aaaaaaaaaaaa", { tokenCount: 50 }),
+			observation("bbbbbbbbbbbb", { tokenCount: 50 }),
 		];
 
 		const metrics = observationPoolMetrics(observations, 2);
@@ -37,9 +37,9 @@ describe("dropper active observation pool metrics", () => {
 
 	it("reports above-limit pools as ready with derived drop cap", () => {
 		const observations = [
-			observation("aaaaaaaaaaaa", { relevance: "low", tokenCount: 50 }),
-			observation("bbbbbbbbbbbb", { relevance: "medium", tokenCount: 50 }),
-			observation("cccccccccccc", { relevance: "critical", tokenCount: 50 }),
+			observation("aaaaaaaaaaaa", { tokenCount: 50 }),
+			observation("bbbbbbbbbbbb", { tokenCount: 50 }),
+			observation("cccccccccccc", { tokenCount: 50 }),
 		];
 
 		const metrics = observationPoolMetrics(observations, 2);
@@ -60,8 +60,8 @@ describe("dropper active observation pool metrics", () => {
 	});
 
 	it("uses folded active observations so tombstones reduce readiness", () => {
-		const dropped = observation("aaaaaaaaaaaa", { relevance: "low", tokenCount: 100 });
-		const active = observation("bbbbbbbbbbbb", { relevance: "low", tokenCount: 20 });
+		const dropped = observation("aaaaaaaaaaaa", { tokenCount: 100 });
+		const active = observation("bbbbbbbbbbbb", { tokenCount: 20 });
 		const entries = [
 			textCustomMessage("raw-1", "aaaaaaaa"),
 			observationsRecordedEntry("om-obs", { observations: [dropped, active], coversUpToId: "raw-1" }),

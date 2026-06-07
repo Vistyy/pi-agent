@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-normalizeDropObservationIds,
+	normalizeDropObservationIds,
 	runDropper,
 	selectDropCandidates,
 } from "../src/agents/dropper/agent.js";
@@ -9,14 +9,14 @@ import { fakeAgentLoop } from "./fixtures/agent-loop.js";
 import { observation, reflection } from "./fixtures/session.js";
 
 describe("dropper agent", () => {
-	const obsA = observation("aaaaaaaaaaaa", { relevance: "medium" });
-	const obsB = observation("bbbbbbbbbbbb", { relevance: "low" });
-	const critical = observation("cccccccccccc", { relevance: "critical" });
+	const obsA = observation("aaaaaaaaaaaa");
+	const obsB = observation("bbbbbbbbbbbb");
+	const obsC = observation("cccccccccccc");
 	const baseArgs = {
 		model: {},
 		apiKey: "test",
 		reflections: [reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"])],
-		observations: [obsA, obsB, critical],
+		observations: [obsA, obsB, obsC],
 		maxDropsAllowed: 20,
 	};
 
@@ -36,65 +36,28 @@ describe("dropper agent", () => {
 		expect(userText).toContain("Drop fewer or none");
 	});
 
-	it("normalizes active drop ids, filters invalid ids, dedupes, and accepts critical observations", () => {
-		expect(normalizeDropObservationIds(["bbbbbbbbbbbb", "missing", "bbbbbbbbbbbb", "cccccccccccc", "aaaaaaaaaaaa"], [obsA, obsB, critical])).toEqual(["bbbbbbbbbbbb", "cccccccccccc", "aaaaaaaaaaaa"]);
-		expect(normalizeDropObservationIds(["missing", "cccccccccccc"], [obsA, obsB, critical])).toEqual(["cccccccccccc"]);
-		expect(normalizeDropObservationIds(["missing"], [obsA, obsB, critical])).toBeUndefined();
+	it("normalizes active drop ids, filters invalid ids, and dedupes", () => {
+		expect(normalizeDropObservationIds(["bbbbbbbbbbbb", "missing", "bbbbbbbbbbbb", "cccccccccccc", "aaaaaaaaaaaa"], [obsA, obsB, obsC])).toEqual(["bbbbbbbbbbbb", "cccccccccccc", "aaaaaaaaaaaa"]);
+		expect(normalizeDropObservationIds(["missing", "cccccccccccc"], [obsA, obsB, obsC])).toEqual(["cccccccccccc"]);
+		expect(normalizeDropObservationIds(["missing"], [obsA, obsB, obsC])).toBeUndefined();
 	});
 
-	it("selects final candidates by coverage, lower relevance, age, then stable ordering", () => {
-		const highA = observation("aaaaaaaaaaaa", { relevance: "high" });
-		const lowA = observation("bbbbbbbbbbbb", { relevance: "low" });
-		const medium = observation("dddddddddddd", { relevance: "medium" });
-		const lowB = observation("eeeeeeeeeeee", { relevance: "low" });
-		const highB = observation("ffffffffffff", { relevance: "high" });
-		const critical = observation("111111111111", { relevance: "critical" });
-		const observations = [highA, lowA, medium, lowB, highB, critical];
+	it("selects final candidates by coverage, age, then stable ordering", () => {
+		const first = observation("aaaaaaaaaaaa");
+		const second = observation("bbbbbbbbbbbb");
+		const third = observation("dddddddddddd");
+		const observations = [first, second, third];
+		const refs = [reflection("rrrrrrrrrrr1", ["bbbbbbbbbbbb"]), reflection("rrrrrrrrrrr2", ["dddddddddddd", "bbbbbbbbbbbb"] )];
 
-		expect(selectDropCandidates([
-			"aaaaaaaaaaaa",
-			"missing",
-			"111111111111",
-			"bbbbbbbbbbbb",
-			"dddddddddddd",
-			"bbbbbbbbbbbb",
-			"eeeeeeeeeeee",
-			"ffffffffffff",
-		], observations, 3)).toEqual(["bbbbbbbbbbbb", "eeeeeeeeeeee", "dddddddddddd"]);
+		expect(selectDropCandidates(["aaaaaaaaaaaa", "dddddddddddd", "bbbbbbbbbbbb"], observations, 2, refs)).toEqual(["bbbbbbbbbbbb", "dddddddddddd"]);
 
-		const oldHigh = observation("999999999999", { relevance: "high", timestamp: "2026-01-01T00:00:00.000Z" });
-		const newHigh = observation("888888888888", { relevance: "high", timestamp: "2026-02-01T00:00:00.000Z" });
-		expect(selectDropCandidates(["888888888888", "999999999999"], [oldHigh, newHigh], 1)).toEqual(["999999999999"]);
+		const oldObs = observation("999999999999", { timestamp: "2026-01-01T00:00:00.000Z" });
+		const newObs = observation("888888888888", { timestamp: "2026-02-01T00:00:00.000Z" });
+		expect(selectDropCandidates(["888888888888", "999999999999"], [oldObs, newObs], 1)).toEqual(["999999999999"]);
 	});
 
-	it("protects unreflected critical observations from dropping", () => {
-		const critical = observation("aaaaaaaaaaaa", { relevance: "critical" });
-		const low = observation("bbbbbbbbbbbb", { relevance: "low" });
-
-		expect(selectDropCandidates(["aaaaaaaaaaaa", "bbbbbbbbbbbb"], [critical, low], 2)).toEqual(["bbbbbbbbbbbb"]);
-	});
-
-	it("prefers stronger reflection coverage before relevance when over cap", () => {
-		const strongCritical = observation("aaaaaaaaaaaa", { relevance: "critical", timestamp: "2026-01-01T00:00:00.000Z" });
-		const partialLow = observation("bbbbbbbbbbbb", { relevance: "low", timestamp: "2026-01-01T00:00:00.000Z" });
-		const noneLow = observation("cccccccccccc", { relevance: "low", timestamp: "2026-01-01T00:00:00.000Z" });
-		const observations = [strongCritical, partialLow, noneLow];
-		const reflections = [
-			reflection("rrrrrrrrrrr1", ["aaaaaaaaaaaa", "bbbbbbbbbbbb"]),
-			reflection("rrrrrrrrrrr2", ["aaaaaaaaaaaa"]),
-		];
-
-		expect(selectDropCandidates(["cccccccccccc", "bbbbbbbbbbbb", "aaaaaaaaaaaa"], observations, 2, reflections)).toEqual(["aaaaaaaaaaaa", "bbbbbbbbbbbb"]);
-	});
-
-	it("keeps critical lower priority than lower relevance when coverage is equal", () => {
-		const critical = observation("aaaaaaaaaaaa", { relevance: "critical", timestamp: "2026-01-01T00:00:00.000Z" });
-		const high = observation("bbbbbbbbbbbb", { relevance: "high", timestamp: "2026-01-01T00:00:00.000Z" });
-		const low = observation("cccccccccccc", { relevance: "low", timestamp: "2026-01-01T00:00:00.000Z" });
-		const observations = [critical, high, low];
-		const reflections = [reflection("rrrrrrrrrrr1", ["aaaaaaaaaaaa", "bbbbbbbbbbbb", "cccccccccccc"]), reflection("rrrrrrrrrrr2", ["aaaaaaaaaaaa", "bbbbbbbbbbbb", "cccccccccccc"])];
-
-		expect(selectDropCandidates(["aaaaaaaaaaaa", "bbbbbbbbbbbb", "cccccccccccc"], observations, 2, reflections)).toEqual(["cccccccccccc", "bbbbbbbbbbbb"]);
+	it("protects caller-supplied protected observations", () => {
+		expect(selectDropCandidates(["aaaaaaaaaaaa", "bbbbbbbbbbbb"], [obsA, obsB], 2, [], ["aaaaaaaaaaaa"])).toEqual(["bbbbbbbbbbbb"]);
 	});
 
 	it("returns capped coverage-preferred proposed observation ids", async () => {
@@ -105,12 +68,12 @@ describe("dropper agent", () => {
 		await expect(runDropper({ ...baseArgs, agentLoop: loop })).resolves.toEqual(["aaaaaaaaaaaa", "bbbbbbbbbbbb"]);
 	});
 
-	it("does not return unreflected critical proposed ids", async () => {
+	it("does not return protected proposed ids", async () => {
 		const loop = fakeAgentLoop(async (_prompts, context) => {
 			await context.tools[0].execute("tool-1", { ids: ["missing", "cccccccccccc"] });
 		});
 
-		await expect(runDropper({ ...baseArgs, agentLoop: loop })).resolves.toBeUndefined();
+		await expect(runDropper({ ...baseArgs, agentLoop: loop, protectedObservationIds: ["cccccccccccc"] })).resolves.toBeUndefined();
 	});
 
 	it("returns undefined when only invalid ids are proposed", async () => {
@@ -134,5 +97,4 @@ describe("dropper agent", () => {
 		const loop = fakeAgentLoop(() => {});
 		await expect(runDropper({ ...baseArgs, agentLoop: loop })).resolves.toBeUndefined();
 	});
-
 });

@@ -57,7 +57,7 @@ describe("additive context", () => {
 	});
 
 	it("does not inject before compaction", () => {
-		const obs = observation("aaaaaaaaaaaa", { relevance: "critical" });
+		const obs = observation("aaaaaaaaaaaa");
 		const entries = [
 			textCustomMessage("raw-1", "test output"),
 			observationsRecordedEntry("om-1", { observations: [obs], coversUpToId: "raw-1" }),

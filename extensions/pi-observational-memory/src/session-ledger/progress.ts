@@ -3,6 +3,7 @@ import {
 	OM_OBSERVATIONS_DROPPED,
 	OM_OBSERVATIONS_RECORDED,
 	OM_REFLECTIONS_RECORDED,
+	OM_REFLECTIONS_REVIEWED,
 	type Entry,
 	type MemoryCustomType,
 } from "./types.js";
@@ -35,6 +36,7 @@ function isValidCoverageEntry(entry: Entry, customType: MemoryCustomType): entry
 
 	if (customType === OM_OBSERVATIONS_RECORDED) return Array.isArray(entry.data.observations);
 	if (customType === OM_REFLECTIONS_RECORDED) return Array.isArray(entry.data.reflections) && entry.data.reflections.length > 0;
+	if (customType === OM_REFLECTIONS_REVIEWED) return true;
 	return Array.isArray(entry.data.observationIds) && entry.data.observationIds.length > 0;
 }
 
@@ -96,6 +98,15 @@ export function sourceEntryCountSinceCoverage(entries: Entry[], customType: Memo
 
 export function sourceEntryCountSinceObservationCoverage(entries: Entry[]): number {
 	return sourceEntryCountSinceCoverage(entries, OM_OBSERVATIONS_RECORDED);
+}
+
+export function latestReflectionReviewIndex(entries: Entry[]): number {
+	return Math.max(latestCoverageIndex(entries, OM_REFLECTIONS_RECORDED), latestCoverageIndex(entries, OM_REFLECTIONS_REVIEWED));
+}
+
+export function latestReflectionReviewMarkerId(entries: Entry[]): string | undefined {
+	const index = latestReflectionReviewIndex(entries);
+	return index >= 0 ? entries[index]?.id : undefined;
 }
 
 export function sourceTokensAfterIndex(entries: Entry[], index: number): number {

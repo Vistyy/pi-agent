@@ -17,6 +17,7 @@ import {
 	OM_OBSERVATIONS_DROPPED,
 	OM_OBSERVATIONS_RECORDED,
 	OM_REFLECTIONS_RECORDED,
+	OM_REFLECTIONS_REVIEWED,
 } from "../src/session-ledger/index.js";
 import {
 	observation,
@@ -332,7 +333,7 @@ describe("memory update hook", () => {
 
 		expect(runtime.launchMemoryUpdateTask).toHaveBeenCalledTimes(1);
 		expect(mockAgents.runReflector).toHaveBeenCalled();
-		expect(mockAgents.runDropper).not.toHaveBeenCalled();
+		expect(mockAgents.runDropper).toHaveBeenCalledWith(expect.objectContaining({ protectedObservationIds: ["aaaaaaaaaaaa"] }));
 	});
 
 	it("runs reflector before dropper and covers drops through reflection coverage", async () => {
@@ -378,14 +379,14 @@ describe("memory update hook", () => {
 		]);
 	});
 
-	it("appends no empty reflection or drop entries", async () => {
+	it("appends reflection review marker and no empty drop entries", async () => {
 		const entries = [textCustomMessage("raw-1", "aaaaaaaa"), observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" })];
 		const { fire, runLaunchedWork, pi, ctx } = setup({ entries, observeEveryMessages: 999 });
 
 		fire();
 		await runLaunchedWork();
 
-		expect(pi.appendEntry).not.toHaveBeenCalled();
+		expect(pi.appendEntry).toHaveBeenCalledWith(OM_REFLECTIONS_REVIEWED, { coversUpToId: "raw-1" });
 		expect(mockAgents.runDropper).not.toHaveBeenCalled();
 		expect(ctx.ui.notify).not.toHaveBeenCalledWith(expect.stringContaining("dropper running"), "info");
 	});

@@ -25,17 +25,16 @@ describe("session-ledger summary rendering", () => {
 		expect(summary).toContain("## Reflections\n[eeeeeeeeeeee] User prefers source-backed memory.");
 	});
 
-	it("renders observations with ids, timestamps, relevance, and content", () => {
+	it("renders observations with ids, timestamps, and content", () => {
 		const obs = observation("aaaaaaaaaaaa", {
 			content: "User confirmed recall should use exact source entry ids.",
 			timestamp: "2026-05-02 10:30",
-			relevance: "high",
 		});
 
 		const summary = renderSummary([], [obs]);
 
 		expect(summary).toContain(
-			"## Observations\n[aaaaaaaaaaaa] 2026-05-02 10:30 [high] User confirmed recall should use exact source entry ids.",
+			"## Observations\n[aaaaaaaaaaaa] 2026-05-02 10:30 User confirmed recall should use exact source entry ids.",
 		);
 	});
 

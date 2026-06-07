@@ -42,6 +42,7 @@ describe("config", () => {
 			maxInitialObserveTokens: 100000,
 			observationsPoolMaxTokens: 20000,
 			dropWhenActiveObservationsOver: 40,
+			protectRecentObservations: 20,
 			agentMaxTurns: 16,
 			additivePatchMaxTokens: 2000,
 			debugLog: false,

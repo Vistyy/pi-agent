@@ -1,5 +1,5 @@
 import type { Runtime } from "../runtime.js";
-import { entryIndexById, latestCoverageMarkerId, OM_REFLECTIONS_RECORDED, type Entry, type Observation } from "../session-ledger/index.js";
+import { entryIndexById, latestReflectionReviewMarkerId, type Entry, type Observation } from "../session-ledger/index.js";
 import type { ResolvedModel } from "./types.js";
 
 export function commonAgentArgs(runtime: Runtime, resolved: ResolvedModel) {
@@ -13,7 +13,7 @@ export function commonAgentArgs(runtime: Runtime, resolved: ResolvedModel) {
 }
 
 export function observationsSinceReflectionCoverage(entries: Entry[], observations: readonly Observation[]): Observation[] {
-	const reflectionCoverageId = latestCoverageMarkerId(entries, OM_REFLECTIONS_RECORDED);
+	const reflectionCoverageId = latestReflectionReviewMarkerId(entries);
 	const reflectionCoverageIdx = entryIndexById(entries).get(reflectionCoverageId ?? "") ?? -1;
 	const idToIndex = entryIndexById(entries);
 	return observations.filter((observation) =>

@@ -25,7 +25,7 @@ type RecallObservationToolStatus =
 	| "no_source"
 	| "source_unavailable";
 
-type ObservationDetails = Pick<Observation, "id" | "content" | "timestamp" | "relevance"> & { status?: "active" | "dropped" };
+type ObservationDetails = Pick<Observation, "id" | "content" | "timestamp"> & { status?: "active" | "dropped" };
 type ReflectionDetails = Pick<Reflection, "id" | "content" | "supportingObservationIds"> & { reflectionIndex: number };
 
 export type RecallSourceEntryDetails = {
@@ -142,7 +142,7 @@ function sourceEntryDetails(entry: Entry, includeContent: boolean): RecallSource
 }
 
 function observationDetails(observation: Observation, status?: "active" | "dropped"): ObservationDetails {
-	return { id: observation.id, content: observation.content, timestamp: observation.timestamp, relevance: observation.relevance, ...(status ? { status } : {}) };
+	return { id: observation.id, content: observation.content, timestamp: observation.timestamp, ...(status ? { status } : {}) };
 }
 
 function reflectionDetails(reflection: Reflection, reflectionIndex: number): ReflectionDetails {
@@ -212,7 +212,7 @@ function reflectionLineText(reflection: ReflectionDetails): string {
 
 function observationLineText(observation: ObservationDetails): string {
 	const status = observation.status === "dropped" ? " [dropped]" : "";
-	return `[${observation.id}]${status} ${observation.timestamp} [${observation.relevance}] ${observation.content}`;
+	return `[${observation.id}]${status} ${observation.timestamp} ${observation.content}`;
 }
 
 function directObservationMatches(result: Extract<RecallResult, { status: "found" }>): RecalledObservation[] {
@@ -351,7 +351,7 @@ function sourceMetadataLine(source: RecallSourceEntryDetails): string {
 
 function observationLine(observation: ObservationDetails): string {
 	const status = observation.status === "dropped" ? " dropped" : "";
-	return alignedRow("✓ observation", `${observation.timestamp} [${observation.relevance}]${status}`, observation.content);
+	return alignedRow("✓ observation", `${observation.timestamp}${status}`, observation.content);
 }
 
 function reflectionLine(reflection: ReflectionDetails): string {

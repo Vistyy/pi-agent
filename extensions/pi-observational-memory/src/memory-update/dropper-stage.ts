@@ -6,11 +6,12 @@ import type { Runtime } from "../runtime.js";
 import {
 	OM_OBSERVATIONS_DROPPED,
 	OM_OBSERVATIONS_RECORDED,
-	OM_REFLECTIONS_RECORDED,
 	buildObservationsDroppedData,
 	earlierCoverageMarkerId,
+	entryIndexById,
 	foldLedger,
 	latestCoverageMarkerId,
+	latestReflectionReviewMarkerId,
 	type Entry,
 } from "../session-ledger/index.js";
 import { commonAgentArgs } from "./stage-utils.js";
@@ -24,17 +25,13 @@ export async function runDropperStage(
 ): Promise<StageOutcome> {
 	const entries = ctx.sessionManager.getBranch() as Entry[];
 	const observationCoverageId = latestCoverageMarkerId(entries, OM_OBSERVATIONS_RECORDED);
-	const reflectionCoverageId = latestCoverageMarkerId(entries, OM_REFLECTIONS_RECORDED);
+	const reflectionCoverageId = latestReflectionReviewMarkerId(entries);
 	if (!observationCoverageId || !reflectionCoverageId) {
-		debugLog("dropper.waiting_for_reflection", { hasObservationCoverage: Boolean(observationCoverageId), hasReflectionCoverage: Boolean(reflectionCoverageId) });
+		debugLog("dropper.waiting_for_reflection", { hasObservationCoverage: Boolean(observationCoverageId), hasReflectionReviewCoverage: Boolean(reflectionCoverageId) });
 		return "continue";
 	}
 
 	const folded = foldLedger(entries);
-	if (folded.reflections.length === 0) {
-		debugLog("dropper.waiting_for_reflection", { reflectionCount: 0 });
-		return "continue";
-	}
 	const metrics = observationPoolMetrics(folded.activeObservations, runtime.config.dropWhenActiveObservationsOver);
 	if (!metrics.ready) {
 		debugLog("dropper.not_ready", {
@@ -50,6 +47,7 @@ export async function runDropperStage(
 		observationCoverageId,
 		reflectionCoverageId,
 		reflectionCount: folded.reflections.length,
+		protectRecentObservations: runtime.config.protectRecentObservations,
 		activeObservationCount: metrics.activeObservationCount,
 		dropWhenActiveObservationsOver: metrics.dropWhenActiveObservationsOver,
 		observationsOverTarget: metrics.observationsOverTarget,
@@ -64,11 +62,20 @@ export async function runDropperStage(
 	const resolved = await resolveModel("dropper");
 	if (!resolved) return "abort";
 
+	const idToIndex = entryIndexById(entries);
+	const reflectionCoverageIndex = idToIndex.get(reflectionCoverageId) ?? -1;
+	const recentProtectedIds = new Set(folded.activeObservations.slice(-runtime.config.protectRecentObservations).map((observation) => observation.id));
+	const protectedObservationIds = folded.activeObservations
+		.filter((observation) => recentProtectedIds.has(observation.id)
+			|| observation.sourceEntryIds.some((sourceEntryId) => (idToIndex.get(sourceEntryId) ?? -1) > reflectionCoverageIndex))
+		.map((observation) => observation.id);
+
 	const droppedIds = await runDropper({
 		...commonAgentArgs(runtime, resolved),
 		reflections: folded.reflections,
 		observations: folded.activeObservations,
 		maxDropsAllowed: metrics.maxDropsAllowed,
+		protectedObservationIds,
 	});
 	const coversUpToId = earlierCoverageMarkerId(entries, observationCoverageId, reflectionCoverageId);
 	const data = coversUpToId && droppedIds ? buildObservationsDroppedData(droppedIds, coversUpToId) : undefined;

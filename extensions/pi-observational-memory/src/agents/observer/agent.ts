@@ -6,7 +6,7 @@ import { hashId } from "../../memory/ids.js";
 import { joinOrEmpty, normalizeAllowedIdsStrict, runMemoryAgentLoop } from "../common.js";
 import { OBSERVER_SYSTEM } from "./prompts.js";
 import { nowTimestamp, truncateRecordContent } from "../../memory/serialize.js";
-import type { Observation, Relevance } from "../../session-ledger/index.js";
+import type { Observation } from "../../session-ledger/index.js";
 import { estimateStringTokens } from "../../memory/token-estimate.js";
 
 interface RunObserverArgs {
@@ -22,13 +22,6 @@ interface RunObserverArgs {
 	maxTurns?: number;
 	thinkingLevel?: ModelThinkingLevel;
 }
-
-const RelevanceSchema = Type.Union([
-	Type.Literal("low"),
-	Type.Literal("medium"),
-	Type.Literal("high"),
-	Type.Literal("critical"),
-]);
 
 export const OBSERVATION_TIMESTAMP_PATTERN = "^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$";
 
@@ -52,7 +45,6 @@ const RecordObservationsSchema = Type.Object({
 				minLength: 1,
 				description: "Optional fallback single-line prose. If omitted, it is derived from event title and details.",
 			})),
-			relevance: RelevanceSchema,
 			sourceEntryIds: Type.Array(
 				Type.String({ minLength: 1 }),
 				{
@@ -113,7 +105,6 @@ export async function runObserver(args: RunObserverArgs): Promise<Observation[] 
 					id,
 					content,
 					timestamp: obs.timestamp,
-					relevance: obs.relevance as Relevance,
 					sourceEntryIds,
 					tokenCount: estimateStringTokens([content, event.title, ...event.details, event.status ?? ""].join("\n")),
 					event,

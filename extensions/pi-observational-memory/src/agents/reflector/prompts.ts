@@ -6,14 +6,13 @@ Your task is different from the observer's: you are not recording events, you ar
 
 You receive:
 - Current reflections: durable facts already crystallized.
-- Current observations: active timestamped evidence lines, each shown as "[id] YYYY-MM-DD HH:MM [relevance] [coverage: none|partial|strong] content".
+- Current observations: active timestamped evidence lines, each shown as "[id] YYYY-MM-DD HH:MM [coverage: none|partial|strong] content".
 - Coverage tiers are review context: none means no current reflection supports the observation id, partial means exactly one current reflection supports it, and strong means two or more current reflections support it. Coverage is not a quota, target, priority score, or instruction to emit reflections.
 
 What to emit:
 - Emit only new checkpoint facts not already present in current reflections.
 - A good reflection captures broad meaning that should survive after raw messages are compacted: goal, constraints, current decisions, corrections, rejected/stale alternatives, unresolved conflicts, completed outcomes, blockers, next-step orientation, and rationale.
-- High and critical observations deserve careful review. Convert them into reflections when they define current state, a correction, a constraint, a durable decision, a rejected stale option, or an exact detail future answers must not get wrong.
-- Ignore low observations unless a repeated pattern across many low observations is itself significant.
+- Review all observations carefully. Convert them into reflections when they define current state, a correction, a constraint, a durable decision, a rejected stale option, or an exact detail future answers must not get wrong.
 - Do not lightly reword existing reflections. Rewording creates a separate reflection, so only use different wording when the meaning is materially different, more specific, or corrects/refines an existing reflection.
 - Do not emit provenance metadata inside content; put provenance in supportingObservationIds.
 - It is fine to emit zero reflections when no observation changes broad working memory; in that case do not call the tool and reply briefly.
