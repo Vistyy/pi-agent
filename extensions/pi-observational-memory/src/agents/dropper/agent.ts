@@ -1,9 +1,9 @@
-import { agentLoop, type AgentContext, type AgentLoopConfig, type AgentTool } from "@earendil-works/pi-agent-core";
-import type { Message, Model, ModelThinkingLevel } from "@earendil-works/pi-ai";
+import { agentLoop, type AgentTool } from "@earendil-works/pi-agent-core";
+import type { Model, ModelThinkingLevel } from "@earendil-works/pi-ai";
 import { Type } from "@earendil-works/pi-ai";
 import type { Static } from "typebox";
 import { debugLog } from "../../debug-log.js";
-import { AGENT_LOOP_MAX_TOKENS, boundedMaxTokens } from "../model-budget.js";
+import { joinOrEmpty, runMemoryAgentLoop } from "../common.js";
 import { reflectionToSummaryLine, type Observation, type Reflection } from "../../session-ledger/index.js";
 import { DROPPER_SYSTEM } from "./prompts.js";
 import {
@@ -13,26 +13,7 @@ import {
 	summarizeCoverageByRelevance,
 	summarizeCoverageByRelevanceForIds,
 	observationToDropperLine,
-} from "./coverage.js";
-export {
-	derivedMaxDropCount,
-	observationPoolMetrics,
-} from "./pool.js";
-export type { ObservationPoolMetrics } from "./pool.js";
-export {
-	REFLECTION_COVERAGE_TIERS,
-	coverageTierForObservation,
-	emptyCoverageSummaryByRelevance,
-	observationToDropperLine,
-	reflectionCoverageMap,
-	reflectionCoverageTierForCount,
-	reflectionSupportCounts,
-	summarizeCoverageByRelevance,
-	summarizeCoverageByRelevanceForIds,
-	summarizeCoverageTransitionsByRelevance,
-} from "./coverage.js";
-export type { CoverageSummaryByRelevance, CoverageTransitionSummaryByRelevance, ReflectionCoverageTier } from "./coverage.js";
-
+} from "../coverage.js";
 interface RunDropperArgs {
 	model: Model<any>;
 	apiKey: string;
@@ -59,10 +40,6 @@ const DropObservationsSchema = Type.Object({
 });
 
 type DropObservationsArgs = Static<typeof DropObservationsSchema>;
-
-function joinOrEmpty(items: string[]): string {
-	return items.length ? items.join("\n") : "(none yet)";
-}
 
 function relevanceCounts(observations: readonly Observation[]): Record<Observation["relevance"], number> {
 	return observations.reduce<Record<Observation["relevance"], number>>((counts, observation) => {
@@ -232,29 +209,18 @@ export async function runDropper(args: RunDropperArgs): Promise<string[] | undef
 	};
 
 	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nCURRENT OBSERVATIONS:\n${joinOrEmpty(observations.map((observation) => observationToDropperLine(observation, coverageTierForObservation(observation, coverageById))))}\n\nActive observations: ${observations.length.toLocaleString()} (~${observationTokens.toLocaleString()} tokens).\nMaximum drops allowed this run: ${maxDropsAllowed.toLocaleString()} observation${maxDropsAllowed === 1 ? "" : "s"}. This maximum is a hard safety cap, not a target. Drop fewer or none if fewer observations are clearly safe.`;
-	const prompts: Message[] = [{ role: "user", content: [{ type: "text", text: userText }], timestamp: Date.now() }];
-	const context: AgentContext = { systemPrompt: DROPPER_SYSTEM, messages: [], tools: [dropObservations as AgentTool<any>] };
-	const reasoning = (model as { reasoning?: unknown }).reasoning;
-	const thinkingLevel = args.thinkingLevel ?? "low";
-	const effectiveMaxTurns = args.maxTurns && args.maxTurns > 0 ? args.maxTurns : undefined;
-	let turnCount = 0;
-	const config: AgentLoopConfig = {
+	await runMemoryAgentLoop({
 		model,
 		apiKey,
 		headers,
-		maxTokens: boundedMaxTokens(model, AGENT_LOOP_MAX_TOKENS),
-		convertToLlm: (msgs) => msgs as Message[],
-		toolExecution: "sequential",
-		...(reasoning && thinkingLevel !== "off" ? { reasoning: thinkingLevel } : {}),
-		...(effectiveMaxTurns !== undefined ? { shouldStopAfterTurn: () => ++turnCount >= effectiveMaxTurns } : {}),
-	};
-
-	const loop = args.agentLoop ?? agentLoop;
-	const stream = loop(prompts, context, config, signal);
-	for await (const _event of stream) {
-		// Tool execution collects candidate ids.
-	}
-	await stream.result();
+		signal,
+		agentLoop: args.agentLoop,
+		maxTurns: args.maxTurns,
+		thinkingLevel: args.thinkingLevel,
+		systemPrompt: DROPPER_SYSTEM,
+		userText,
+		tools: [dropObservations as AgentTool<any>],
+	});
 	const droppedIds = selectDropCandidates(proposedDropIds, observations, maxDropsAllowed, reflections);
 	const reason = droppedIds.length > 0
 		? "selected_nonempty"

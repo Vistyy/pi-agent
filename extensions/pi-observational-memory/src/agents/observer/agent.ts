@@ -1,9 +1,9 @@
-import { agentLoop, type AgentContext, type AgentLoopConfig, type AgentTool } from "@earendil-works/pi-agent-core";
-import type { Message, Model, ModelThinkingLevel } from "@earendil-works/pi-ai";
+import { agentLoop, type AgentTool } from "@earendil-works/pi-agent-core";
+import type { Model, ModelThinkingLevel } from "@earendil-works/pi-ai";
 import { Type } from "@earendil-works/pi-ai";
 import type { Static } from "typebox";
 import { hashId } from "../../memory/ids.js";
-import { AGENT_LOOP_MAX_TOKENS, boundedMaxTokens } from "../model-budget.js";
+import { joinOrEmpty, normalizeAllowedIdsStrict, runMemoryAgentLoop } from "../common.js";
 import { OBSERVER_SYSTEM } from "./prompts.js";
 import { nowTimestamp, truncateRecordContent } from "../../memory/serialize.js";
 import type { Observation, Relevance } from "../../session-ledger/index.js";
@@ -69,26 +69,7 @@ const RecordObservationsSchema = Type.Object({
 
 type RecordObservationsArgs = Static<typeof RecordObservationsSchema>;
 
-function joinOrEmpty(items: string[]): string {
-	return items.length ? items.join("\n") : "(none yet)";
-}
-
-export function normalizeSourceEntryIds(
-	sourceEntryIds: readonly string[] | undefined,
-	allowedSourceEntryIds: readonly string[],
-): string[] | undefined {
-	if (!sourceEntryIds || sourceEntryIds.length === 0) return undefined;
-	const allowedOrder = new Map<string, number>();
-	for (let i = 0; i < allowedSourceEntryIds.length; i++) allowedOrder.set(allowedSourceEntryIds[i], i);
-
-	const seen = new Set<string>();
-	for (const id of sourceEntryIds) {
-		if (!allowedOrder.has(id)) return undefined;
-		seen.add(id);
-	}
-	if (seen.size === 0) return undefined;
-	return Array.from(seen).sort((a, b) => (allowedOrder.get(a) ?? 0) - (allowedOrder.get(b) ?? 0));
-}
+export const normalizeSourceEntryIds = normalizeAllowedIdsStrict;
 
 export async function runObserver(args: RunObserverArgs): Promise<Observation[] | undefined> {
 	const { model, apiKey, headers, priorReflections, priorObservations, chunk, allowedSourceEntryIds, signal } = args;
@@ -166,48 +147,18 @@ Compress the following new conversation chunk into observations by calling recor
 NEW CONVERSATION CHUNK:
 ${conversation}`;
 
-	const prompts: Message[] = [
-		{
-			role: "user",
-			content: [{ type: "text", text: userText }],
-			timestamp: Date.now(),
-		},
-	];
-
-	const context: AgentContext = {
-		systemPrompt: OBSERVER_SYSTEM,
-		messages: [],
-		tools: [recordObservations as AgentTool<any>],
-	};
-
-	const reasoning = (model as { reasoning?: unknown }).reasoning;
-	const thinkingLevel = args.thinkingLevel ?? "low";
-	const effectiveMaxTurns = args.maxTurns && args.maxTurns > 0 ? args.maxTurns : undefined;
-	let turnCount = 0;
-	const config: AgentLoopConfig = {
+	await runMemoryAgentLoop({
 		model,
 		apiKey,
 		headers,
-		maxTokens: boundedMaxTokens(model, AGENT_LOOP_MAX_TOKENS),
-		convertToLlm: (msgs) => msgs as Message[],
-		toolExecution: "sequential",
-		...(reasoning && thinkingLevel !== "off" ? { reasoning: thinkingLevel } : {}),
-		...(effectiveMaxTurns !== undefined
-			? {
-				shouldStopAfterTurn: () => {
-					turnCount++;
-					return turnCount >= effectiveMaxTurns;
-				},
-			}
-			: {}),
-	};
-
-	const loop = args.agentLoop ?? agentLoop;
-	const stream = loop(prompts, context, config, signal);
-	for await (const _event of stream) {
-		// Drain events; the tool's execute already collects records.
-	}
-	await stream.result();
+		signal,
+		agentLoop: args.agentLoop,
+		maxTurns: args.maxTurns,
+		thinkingLevel: args.thinkingLevel,
+		systemPrompt: OBSERVER_SYSTEM,
+		userText,
+		tools: [recordObservations as AgentTool<any>],
+	});
 
 	if (accumulated.size === 0) return undefined;
 	return Array.from(accumulated.values());

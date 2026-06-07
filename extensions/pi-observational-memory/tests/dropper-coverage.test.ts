@@ -6,7 +6,7 @@ import {
 	reflectionCoverageTierForCount,
 	summarizeCoverageByRelevance,
 	summarizeCoverageTransitionsByRelevance,
-} from "../src/agents/dropper/agent.js";
+} from "../src/agents/coverage.js";
 import { observation, reflection } from "./fixtures/session.js";
 
 describe("dropper reflection coverage helpers", () => {

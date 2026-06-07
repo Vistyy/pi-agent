@@ -1,10 +1,10 @@
-import { agentLoop, type AgentContext, type AgentLoopConfig, type AgentTool } from "@earendil-works/pi-agent-core";
-import type { Message, Model, ModelThinkingLevel } from "@earendil-works/pi-ai";
+import { agentLoop, type AgentTool } from "@earendil-works/pi-agent-core";
+import type { Model, ModelThinkingLevel } from "@earendil-works/pi-ai";
 import { Type } from "@earendil-works/pi-ai";
 import type { Static } from "typebox";
 import { debugLog } from "../../debug-log.js";
 import { hashId } from "../../memory/ids.js";
-import { AGENT_LOOP_MAX_TOKENS, boundedMaxTokens } from "../model-budget.js";
+import { joinOrEmpty, normalizeAllowedIdsStrict, runMemoryAgentLoop } from "../common.js";
 import { truncateRecordContent } from "../../memory/serialize.js";
 import { REFLECTOR_SYSTEM } from "./prompts.js";
 import { estimateStringTokens } from "../../memory/token-estimate.js";
@@ -15,7 +15,7 @@ import {
 	summarizeCoverageByRelevance,
 	summarizeCoverageTransitionsByRelevance,
 	type ReflectionCoverageTier,
-} from "../dropper/coverage.js";
+} from "../coverage.js";
 
 interface RunReflectorArgs {
 	model: Model<any>;
@@ -40,10 +40,6 @@ const RecordReflectionsSchema = Type.Object({
 });
 
 type RecordReflectionsArgs = Static<typeof RecordReflectionsSchema>;
-
-function joinOrEmpty(items: string[]): string {
-	return items.length ? items.join("\n") : "(none yet)";
-}
 
 export function observationToReflectorLine(
 	observation: Observation,
@@ -77,24 +73,7 @@ export function summarizeSupportIdCounts(reflections: readonly Reflection[]): {
 	};
 }
 
-export function normalizeSupportingObservationIds(
-	supportingObservationIds: readonly string[] | undefined,
-	allowedObservationIds: readonly string[],
-): string[] | undefined {
-	if (!supportingObservationIds || supportingObservationIds.length === 0) return undefined;
-	const allowedOrder = new Map<string, number>();
-	for (let i = 0; i < allowedObservationIds.length; i++) {
-		if (!allowedOrder.has(allowedObservationIds[i])) allowedOrder.set(allowedObservationIds[i], i);
-	}
-
-	const seen = new Set<string>();
-	for (const id of supportingObservationIds) {
-		if (!allowedOrder.has(id)) return undefined;
-		seen.add(id);
-	}
-	if (seen.size === 0) return undefined;
-	return Array.from(seen).sort((a, b) => (allowedOrder.get(a) ?? 0) - (allowedOrder.get(b) ?? 0));
-}
+export const normalizeSupportingObservationIds = normalizeAllowedIdsStrict;
 
 function normalizeReflectionContent(content: string): string | undefined {
 	const normalized = truncateRecordContent(content.trim());
@@ -164,29 +143,18 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 	};
 
 	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nCURRENT OBSERVATIONS:\n${joinOrEmpty(observations.map((observation) => observationToReflectorLine(observation, coverageTierForObservation(observation, coverageById))))}\n\nCrystallize any missing checkpoint facts, current decisions, constraints, rejected/stale alternatives, unresolved conflicts, exact critical details, or patterns into new reflections. If the observations add no continuing context, do not call the tool.`;
-	const prompts: Message[] = [{ role: "user", content: [{ type: "text", text: userText }], timestamp: Date.now() }];
-	const context: AgentContext = { systemPrompt: REFLECTOR_SYSTEM, messages: [], tools: [recordReflections as AgentTool<any>] };
-	const reasoning = (model as { reasoning?: unknown }).reasoning;
-	const thinkingLevel = args.thinkingLevel ?? "low";
-	const effectiveMaxTurns = args.maxTurns && args.maxTurns > 0 ? args.maxTurns : undefined;
-	let turnCount = 0;
-	const config: AgentLoopConfig = {
+	await runMemoryAgentLoop({
 		model,
 		apiKey,
 		headers,
-		maxTokens: boundedMaxTokens(model, AGENT_LOOP_MAX_TOKENS),
-		convertToLlm: (msgs) => msgs as Message[],
-		toolExecution: "sequential",
-		...(reasoning && thinkingLevel !== "off" ? { reasoning: thinkingLevel } : {}),
-		...(effectiveMaxTurns !== undefined ? { shouldStopAfterTurn: () => ++turnCount >= effectiveMaxTurns } : {}),
-	};
-
-	const loop = args.agentLoop ?? agentLoop;
-	const stream = loop(prompts, context, config, signal);
-	for await (const _event of stream) {
-		// Tool execution collects records.
-	}
-	await stream.result();
+		signal,
+		agentLoop: args.agentLoop,
+		maxTurns: args.maxTurns,
+		thinkingLevel: args.thinkingLevel,
+		systemPrompt: REFLECTOR_SYSTEM,
+		userText,
+		tools: [recordReflections as AgentTool<any>],
+	});
 	const acceptedReflections = Array.from(accumulated.values());
 	const afterCoverageById = reflectionCoverageMap(observations, [...reflections, ...acceptedReflections]);
 	debugLog("reflector.result", {

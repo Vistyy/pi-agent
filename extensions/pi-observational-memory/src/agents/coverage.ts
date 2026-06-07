@@ -1,4 +1,4 @@
-import type { Observation, Reflection } from "../../session-ledger/index.js";
+import type { Observation, Reflection } from "../session-ledger/index.js";
 
 export const REFLECTION_COVERAGE_TIERS = ["none", "partial", "strong"] as const;
 export type ReflectionCoverageTier = typeof REFLECTION_COVERAGE_TIERS[number];
@@ -49,7 +49,7 @@ function emptyCoverageBucket(): CoverageBucket {
 	};
 }
 
-export function emptyCoverageSummaryByRelevance(): CoverageSummaryByRelevance {
+function emptyCoverageSummaryByRelevance(): CoverageSummaryByRelevance {
 	return {
 		low: emptyCoverageBucket(),
 		medium: emptyCoverageBucket(),
@@ -85,7 +85,7 @@ export function summarizeCoverageByRelevanceForIds(
 	return summarizeCoverageByRelevance(selected, coverageById);
 }
 
-export function emptyCoverageTransitionSummaryByRelevance(): CoverageTransitionSummaryByRelevance {
+function emptyCoverageTransitionSummaryByRelevance(): CoverageTransitionSummaryByRelevance {
 	return {
 		low: {},
 		medium: {},
