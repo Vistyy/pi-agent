@@ -13,6 +13,7 @@ import {
 	latestCoverageMarkerId,
 	type Entry,
 } from "../session-ledger/index.js";
+import { commonAgentArgs } from "./stage-utils.js";
 import type { MemoryUpdateCtx, ResolveMemoryModel, StageOutcome } from "./types.js";
 
 export async function runDropperStage(
@@ -64,14 +65,10 @@ export async function runDropperStage(
 	if (!resolved) return "abort";
 
 	const droppedIds = await runDropper({
-		model: resolved.model as any,
-		apiKey: resolved.apiKey,
-		headers: resolved.headers,
+		...commonAgentArgs(runtime, resolved),
 		reflections: folded.reflections,
 		observations: folded.activeObservations,
 		maxDropsAllowed: metrics.maxDropsAllowed,
-		maxTurns: runtime.config.agentMaxTurns,
-		thinkingLevel: runtime.config.model?.thinking ?? "low",
 	});
 	const coversUpToId = earlierCoverageMarkerId(entries, observationCoverageId, reflectionCoverageId);
 	const data = coversUpToId && droppedIds ? buildObservationsDroppedData(droppedIds, coversUpToId) : undefined;

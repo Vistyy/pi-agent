@@ -1,5 +1,4 @@
 import type { ResolveResult } from "../runtime.js";
-import type { Reflection } from "../session-ledger/index.js";
 
 export type ResolvedModel = Extract<ResolveResult, { ok: true }>;
 
@@ -17,11 +16,5 @@ export type MemoryUpdateCtx = {
 };
 
 export type StageOutcome = "continue" | "abort";
-
-export type ReflectorStageResult = {
-	outcome: StageOutcome;
-	sameRunReflections: Reflection[];
-	effectiveReflectionCoverageId?: string;
-};
 
 export type ResolveMemoryModel = (stage: "observer" | "reflector" | "dropper") => Promise<ResolvedModel | undefined>;

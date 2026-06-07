@@ -14,12 +14,15 @@ import { runDropperStage } from "./dropper-stage.js";
 import { runObserverStage } from "./observer-stage.js";
 import { runReflectorStage } from "./reflector-stage.js";
 import { sourceEntriesAfter } from "./source-entries.js";
-import type { MemoryUpdateCtx, ResolvedModel } from "./types.js";
+import { observationsSinceReflectionCoverage } from "./stage-utils.js";
+import type { MemoryUpdateCtx, ResolvedModel, StageOutcome } from "./types.js";
 
 export function anyMemoryUpdateStageDue(entries: Entry[], runtime: Runtime): boolean {
-	const activeObservationCount = foldLedger(entries).activeObservations.length;
+	const folded = foldLedger(entries);
+	const activeObservationCount = folded.activeObservations.length;
+	const unreflectedObservationCount = observationsSinceReflectionCoverage(entries, folded.activeObservations).length;
 	return sourceEntryCountSinceObservationCoverage(entries) >= runtime.config.observeEveryMessages
-		|| activeObservationCount >= runtime.config.reflectEveryObservations
+		|| unreflectedObservationCount >= runtime.config.reflectEveryObservations
 		|| activeObservationCount > runtime.config.dropWhenActiveObservationsOver;
 }
 
@@ -113,6 +116,21 @@ export async function ensureMemoryUpdatedBeforeCompaction(
 	await runMemoryUpdate(pi, runtime, ctx, { forceObserveBeforeEntryId: options.firstKeptEntryId });
 }
 
+async function runMemoryUpdateStage(
+	runtime: Runtime,
+	ctx: MemoryUpdateCtx,
+	stage: "observer" | "reflector" | "dropper",
+	run: () => Promise<StageOutcome>,
+): Promise<StageOutcome> {
+	runtime.memoryUpdatePhase = stage;
+	try {
+		return await run();
+	} catch (error) {
+		debugLog(`${stage}.error`, { errorMessage: runtime.recordMemoryUpdateStageError(ctx, stage, error) });
+		return "abort";
+	}
+}
+
 export async function runMemoryUpdate(
 	pi: ExtensionAPI,
 	runtime: Runtime,
@@ -121,28 +139,26 @@ export async function runMemoryUpdate(
 ): Promise<void> {
 	const resolveModel = makeModelResolver(runtime, ctx);
 
-	runtime.memoryUpdatePhase = "observer";
-	try {
-		const observerOutcome = await runObserverStage(pi, runtime, ctx, resolveModel, options.forceObserveBeforeEntryId);
-		if (observerOutcome === "abort") return;
-	} catch (error) {
-		debugLog("observer.error", { errorMessage: runtime.recordMemoryUpdateStageError(ctx, "observer", error) });
-		return;
-	}
+	const observerOutcome = await runMemoryUpdateStage(
+		runtime,
+		ctx,
+		"observer",
+		() => runObserverStage(pi, runtime, ctx, resolveModel, options.forceObserveBeforeEntryId),
+	);
+	if (observerOutcome === "abort") return;
 
-	runtime.memoryUpdatePhase = "reflector";
-	try {
-		const reflectorResult = await runReflectorStage(pi, runtime, ctx, resolveModel);
-		if (reflectorResult.outcome === "abort") return;
-	} catch (error) {
-		debugLog("reflector.error", { errorMessage: runtime.recordMemoryUpdateStageError(ctx, "reflector", error) });
-		return;
-	}
+	const reflectorOutcome = await runMemoryUpdateStage(
+		runtime,
+		ctx,
+		"reflector",
+		() => runReflectorStage(pi, runtime, ctx, resolveModel),
+	);
+	if (reflectorOutcome === "abort") return;
 
-	runtime.memoryUpdatePhase = "dropper";
-	try {
-		await runDropperStage(pi, runtime, ctx, resolveModel);
-	} catch (error) {
-		debugLog("dropper.error", { errorMessage: runtime.recordMemoryUpdateStageError(ctx, "dropper", error) });
-	}
+	await runMemoryUpdateStage(
+		runtime,
+		ctx,
+		"dropper",
+		() => runDropperStage(pi, runtime, ctx, resolveModel),
+	);
 }

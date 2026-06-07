@@ -16,6 +16,7 @@ import {
 	type Entry,
 } from "../session-ledger/index.js";
 import { sourceEntriesAfter } from "./source-entries.js";
+import { commonAgentArgs } from "./stage-utils.js";
 import type { MemoryUpdateCtx, ResolveMemoryModel, StageOutcome } from "./types.js";
 
 export async function runObserverStage(
@@ -73,15 +74,11 @@ export async function runObserverStage(
 	if (!resolved) return "abort";
 
 	const observations = await runObserver({
-		model: resolved.model as any,
-		apiKey: resolved.apiKey,
-		headers: resolved.headers,
+		...commonAgentArgs(runtime, resolved),
 		priorReflections,
 		priorObservations,
 		chunk,
 		allowedSourceEntryIds: sourceEntryIds,
-		maxTurns: runtime.config.agentMaxTurns,
-		thinkingLevel: runtime.config.model?.thinking ?? "low",
 	});
 	if (!observations || observations.length === 0) {
 		debugLog("observer.empty", { coversUpToId });
