@@ -127,22 +127,6 @@ function latestActivity(result) {
   return activities[activities.length - 1];
 }
 
-function estimateTokensFromChars(chars) {
-  const safeChars = typeof chars === "number" && Number.isFinite(chars) && chars > 0 ? chars : 0;
-  return safeChars > 0 ? Math.ceil(safeChars / 4) : 0;
-}
-
-function getThinkingChars(activity) {
-  if (typeof activity?._thinkingChars === "number") return activity._thinkingChars;
-  if (typeof activity?.tokens === "number") return activity.tokens * 4;
-  return 0;
-}
-
-function setThinkingChars(activity, chars) {
-  Object.defineProperty(activity, "_thinkingChars", { value: Math.max(0, chars), writable: true, configurable: true, enumerable: false });
-  activity.tokens = estimateTokensFromChars(chars);
-}
-
 function latestRunningThinkingActivity(result) {
   const activities = Array.isArray(result.activities) ? result.activities : [];
   for (let i = activities.length - 1; i >= 0; i--) {
@@ -153,9 +137,7 @@ function latestRunningThinkingActivity(result) {
 }
 
 function createThinkingActivity(result) {
-  const activity = addActivity(result, { type: "thinking", status: "running", tokens: 0 });
-  setThinkingChars(activity, 0);
-  return activity;
+  return addActivity(result, { type: "thinking", status: "running" });
 }
 
 function ensureLatestThinkingActivity(result) {
@@ -176,13 +158,11 @@ function processMessageUpdateEvent(event, result) {
     case "thinking_delta": {
       const activity = ensureLatestThinkingActivity(result);
       activity.status = "running";
-      if (typeof assistantEvent.delta === "string") setThinkingChars(activity, getThinkingChars(activity) + assistantEvent.delta.length);
       return true;
     }
     case "thinking_end": {
       const activity = ensureLatestThinkingActivity(result);
       activity.status = "completed";
-      if (typeof assistantEvent.content === "string") setThinkingChars(activity, assistantEvent.content.length);
       return true;
     }
     default:
@@ -235,7 +215,8 @@ function processToolExecutionEvent(event, result) {
       activity.status = event.isError ? "error" : "completed";
       activity.isError = Boolean(event.isError);
       const latestText = extractResultText(event.result);
-      if (latestText) activity.latestText = latestText;
+      if (event.isError && latestText) activity.latestText = latestText;
+      else delete activity.latestText;
       return true;
     }
     default:

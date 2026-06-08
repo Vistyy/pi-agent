@@ -50,7 +50,6 @@ describe("runner event parsing", () => {
         toolName: "read",
         status: "completed",
         displayText: "read src/index.ts",
-        latestText: "file contents",
       }),
     ]);
     expect("toolExecutions" in r).toBe(false);

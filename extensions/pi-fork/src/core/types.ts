@@ -30,7 +30,6 @@ export interface ForkToolActivity {
 export interface ForkThinkingActivity {
   type: "thinking";
   status: "running" | "completed";
-  tokens: number;
 }
 
 export type ForkActivity = ForkToolActivity | ForkThinkingActivity;

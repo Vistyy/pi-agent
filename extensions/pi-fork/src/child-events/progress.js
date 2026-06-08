@@ -1,5 +1,5 @@
 import { getFinalAssistantText } from "./text.js";
-import { MAX_INLINE_ERROR_PREVIEW_CHARS, formatCount, truncateInline } from "./format.js";
+import { MAX_INLINE_ERROR_PREVIEW_CHARS, truncateInline } from "./format.js";
 
 function formatToolStatusIcon(tool) {
   if (tool?.status === "running") return "…";
@@ -16,8 +16,7 @@ function formatToolErrorSuffix(tool) {
 function formatThinkingActivityProgress(thinking) {
   if (!thinking || typeof thinking !== "object") return "";
   const icon = thinking.status === "running" ? "…" : "✓";
-  const tokens = typeof thinking.tokens === "number" ? thinking.tokens : 0;
-  const label = tokens > 0 ? `thinking ~${formatCount(tokens)} tokens` : thinking.status === "running" ? "thinking..." : "thinking";
+  const label = thinking.status === "running" ? "thinking..." : "thinking";
   return `${icon} ${label}`;
 }
 

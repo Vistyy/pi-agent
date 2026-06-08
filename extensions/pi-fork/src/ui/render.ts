@@ -138,48 +138,15 @@ function latestToolWithPreview(result: ForkResult): any | undefined {
   return undefined;
 }
 
-function estimateTokensFromChars(chars: number): number {
-  return chars > 0 ? Math.ceil(chars / 4) : 0;
-}
-
-function thinkingTokens(thinking: any): number {
-  if (typeof thinking?.tokens === "number") return thinking.tokens;
-  if (typeof thinking?.chars === "number") return estimateTokensFromChars(thinking.chars);
-  return 0;
-}
-
 function thinkingLine(thinking: any, fg: (color: any, text: string) => string): string {
   if (!thinking) return "";
   const icon = thinking.status === "running" ? fg("warning", "…") : fg("success", "✓");
-  const tokens = thinkingTokens(thinking);
-  const label = tokens > 0
-    ? `thinking ~${fmtCount(tokens)} tokens`
-    : thinking.status === "running" ? "thinking..." : "thinking";
+  const label = thinking.status === "running" ? "thinking..." : "thinking";
   return `${icon} ${fg("toolOutput", label)}`;
 }
 
-function responseActivity(result: ForkResult): any | undefined {
-  if (forkStatus(result) === "running") return undefined;
-  const text = getFinalAssistantText(result.messages).trim();
-  if (!text) return undefined;
-  return {
-    type: "response",
-    status: "completed",
-    tokens: estimateTokensFromChars(text.length),
-  };
-}
-
-function responseLine(response: any, fg: (color: any, text: string) => string): string {
-  const tokens = typeof response?.tokens === "number" ? response.tokens : 0;
-  const label = tokens > 0 ? `response ~${fmtCount(tokens)} tokens` : "response";
-  return `${fg("success", "✓")} ${fg("toolOutput", label)}`;
-}
-
 function storedActivities(result: ForkResult): any[] {
-  const activities = Array.isArray(result.activities) ? [...result.activities] : [];
-  const response = responseActivity(result);
-  if (response) activities.push(response);
-  return activities;
+  return Array.isArray(result.activities) ? [...result.activities] : [];
 }
 
 function totalActivityCount(result: ForkResult, stored: any[]): number {
@@ -187,7 +154,6 @@ function totalActivityCount(result: ForkResult, stored: any[]): number {
 }
 
 function activityLine(activity: any, fg: (color: any, text: string) => string): string {
-  if (activity?.type === "response") return responseLine(activity, fg);
   if (activity?.type === "thinking") return thinkingLine(activity, fg);
   if (activity?.type === "tool") {
     return `${toolIcon(activity, fg)} ${fg(activity?.status === "error" ? "error" : "toolOutput", toolLabel(activity))}${toolErrorSuffix(activity, fg)}`;
