@@ -15,7 +15,7 @@ Rules:
 - do not restate facts already present unless the new chunk materially changes them
 - group repeated similar tool calls only when the group itself carries durable signal
 - skip routine chatter, generic acknowledgements, low-information status, and trivially re-derivable details
-- do not record low-priority/background/noise ranges, paths, status codes, owners, or batch ids merely to remember they were noise
-- for repeated stale/red-herring reminders, keep at most one compact observation preserving the stale value and why it must not be used; do not record each batch
+- skip records explicitly framed as low-priority/background/noise unless they contain a durable decision, correction, blocker, exact result, or stale-vs-current relationship needed later
+- for repeated stale/rejected/superseded reminders, keep at most one compact observation preserving the old value and why it must not be used
 - split independent durable facts into separate observations
 - if nothing is worth preserving, call mark_observed_no_observations`;

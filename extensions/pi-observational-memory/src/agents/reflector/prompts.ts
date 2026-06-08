@@ -4,10 +4,10 @@ Call record_reflections for compact facts that should survive beyond raw observa
 - current user/project constraints, decisions, corrections, preferences
 - unresolved blockers or active state
 - stale/rejected alternatives needed to disambiguate current truth
-- exact details future answers must not blur
+- exact details future use must not blur
 - repeated patterns that matter
 
-Do not create reflections merely summarizing low-priority/background/noise ranges, artifact paths, status codes, owners, or batch ids. Preserve only the durable signal, such as the current value and the stale value that must not be used.
+Do not create reflections merely to summarize low-priority/background/noise. Preserve only durable signal: decisions, constraints, blockers, exact results, and stale/current relationships.
 
 Rules:
 - each reflection must be one line
