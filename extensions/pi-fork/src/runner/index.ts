@@ -22,13 +22,9 @@ const SIGKILL_TIMEOUT_MS = 5000;
 type OnUpdateCallback = (partial: AgentToolResult<ForkDetails>) => void;
 export type ContextWindowResolver = (provider?: string, model?: string) => number | undefined;
 
-function resolvePiSpawn(): { command: string; prefixArgs: string[] } {
-  const isNode = /[\\/]node(?:\.exe)?$/i.test(process.execPath);
-  const isBun = /[\\/]bun(?:\.exe)?$/i.test(process.execPath);
-  if ((isNode || isBun) && process.argv[1]) {
-    return { command: process.execPath, prefixArgs: [process.argv[1]] };
-  }
-  return { command: process.execPath, prefixArgs: [] };
+export function resolvePiSpawn(): { command: string; prefixArgs: string[] } {
+  const configured = process.env.PI_FORK_PI_COMMAND?.trim();
+  return { command: configured || "pi", prefixArgs: [] };
 }
 
 function writeForkSessionToTempFile(
