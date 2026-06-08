@@ -1,0 +1,43 @@
+{
+  "lastChangelogVersion": "0.79.0",
+  "defaultProvider": "openai-codex",
+  "defaultModel": "gpt-5.5",
+  "defaultThinkingLevel": "low",
+  "doubleEscapeAction": "tree",
+  "theme": "syzom-dark",
+  "packages": [],
+  "terminal": {
+    "clearOnShrink": false
+  },
+  "observational-memory": {
+    "strategy": "replacement",
+    "model": {
+      "provider": "openai-codex",
+      "id": "gpt-5.4-mini"
+    },
+    "debugLog": true
+  },
+  "pi-fork": {
+    "extensions": [],
+    "offline": true,
+    "costFooter": true,
+    "defaultEffort": "balanced",
+    "effortProfiles": {
+      "fast": {
+        "provider": "openai-codex",
+        "id": "gpt-5.3-codex-spark",
+        "thinking": "medium"
+      },
+      "balanced": {
+        "provider": "openai-codex",
+        "id": "gpt-5.4-mini",
+        "thinking": "xhigh"
+      },
+      "deep": {
+        "provider": "deepseek",
+        "id": "deepseek-v4-pro",
+        "thinking": "xhigh"
+      }
+    }
+  }
+}
