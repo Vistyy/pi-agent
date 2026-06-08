@@ -7,6 +7,8 @@ Call record_reflections for compact facts that should survive beyond raw observa
 - exact details future answers must not blur
 - repeated patterns that matter
 
+Do not create reflections merely summarizing low-priority/background/noise ranges, artifact paths, status codes, owners, or batch ids. Preserve only the durable signal, such as the current value and the stale value that must not be used.
+
 Rules:
 - each reflection must be one line
 - preserve relationship semantics and decisive wording from observations: what is current, what changed, what replaced what, what is rejected, what remains unresolved, and what must or must not be used

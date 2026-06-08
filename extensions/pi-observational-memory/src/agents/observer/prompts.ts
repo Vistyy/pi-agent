@@ -13,8 +13,9 @@ Rules:
 - use only sourceEntryIds shown in the chunk; use the smallest exact supporting set
 - preserve exact wording/details compactly in one-line prose
 - do not restate facts already present unless the new chunk materially changes them
-- group repeated similar tool calls or noisy records into one observation when the group itself matters
+- group repeated similar tool calls only when the group itself carries durable signal
 - skip routine chatter, generic acknowledgements, low-information status, and trivially re-derivable details
-- skip records explicitly labeled low priority/background/noise unless they contain a current decision, correction, blocker, or stale-vs-current relationship
+- do not record low-priority/background/noise ranges, paths, status codes, owners, or batch ids merely to remember they were noise
+- for repeated stale/red-herring reminders, keep at most one compact observation preserving the stale value and why it must not be used; do not record each batch
 - split independent durable facts into separate observations
 - if nothing is worth preserving, call mark_observed_no_observations`;
