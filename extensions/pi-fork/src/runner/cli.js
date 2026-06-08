@@ -1,49 +1,20 @@
 /**
- * Helpers for inheriting selected parent CLI flags in child fork processes.
+ * Parse the small set of parent CLI flags that should affect child Pi runs.
+ *
+ * Unknown flags are intentionally not forwarded. Fork children should inherit
+ * only stable runtime settings, not every parent startup option.
  */
-
-import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-function looksLikeExplicitRelativePath(value) {
-  return (
-    value.startsWith("./") ||
-    value.startsWith("../") ||
-    value.startsWith(".\\") ||
-    value.startsWith("..\\")
-  );
-}
-
-function resolvePathArg(value, options = {}) {
-  const { allowPackageSource = false, alwaysResolveRelative = false } = options;
+function resolvePathArg(value, alwaysResolveRelative = false) {
   if (!value) return value;
-  if (allowPackageSource && (value.startsWith("npm:") || value.startsWith("git:"))) return value;
   if (value.startsWith("~/")) return path.join(os.homedir(), value.slice(2));
   if (path.isAbsolute(value)) return value;
-
-  const resolved = path.resolve(process.cwd(), value);
-  if (
-    alwaysResolveRelative ||
-    looksLikeExplicitRelativePath(value) ||
-    path.extname(value) !== "" ||
-    fs.existsSync(resolved)
-  ) {
-    return resolved;
-  }
-  return value;
+  return alwaysResolveRelative ? path.resolve(process.cwd(), value) : value;
 }
 
-/**
- * Parse process.argv into groups used for child pi invocations.
- *
- * - extensionArgs: forwarded with path resolution
- * - alwaysProxy: forwarded verbatim to every child
- * - fallbackModel/thinking/tools: used only when the child session does not
- *   already restore these from its JSONL context.
- */
 export function parseInheritedCliArgs(argv) {
-  const extensionArgs = [];
   const alwaysProxy = [];
   let fallbackModel;
   let fallbackThinking;
@@ -61,7 +32,6 @@ export function parseInheritedCliArgs(argv) {
     const eqIdx = raw.indexOf("=");
     const flagName = eqIdx !== -1 ? raw.slice(0, eqIdx) : raw;
     const inlineValue = eqIdx !== -1 ? raw.slice(eqIdx + 1) : undefined;
-
     const nextToken = argv[i + 1];
     const nextIsValue = nextToken !== undefined && !nextToken.startsWith("-");
 
@@ -71,101 +41,21 @@ export function parseInheritedCliArgs(argv) {
       return [undefined, 1];
     };
 
-    if (
-      [
-        "--mode",
-        "--session",
-        "--fork",
-        "--append-system-prompt",
-        "--export",
-      ].includes(flagName)
-    ) {
-      const [, skip] = getValue();
-      i += skip;
-      continue;
-    }
-
-    if (["--list-models"].includes(flagName)) {
-      const [, skip] = getValue();
-      i += skip;
-      continue;
-    }
-
-    if (
-      [
-        "--print",
-        "-p",
-        "--no-session",
-        "--continue",
-        "-c",
-        "--resume",
-        "-r",
-        "--offline",
-        "--help",
-        "-h",
-        "--version",
-        "-v",
-      ].includes(flagName)
-    ) {
-      i++;
-      continue;
-    }
-
-    if (flagName === "--no-extensions" || flagName === "-ne") {
-      extensionArgs.push(flagName);
-      i++;
-      continue;
-    }
-
-    if (flagName === "--extension" || flagName === "-e") {
-      const [value, skip] = getValue();
-      if (value !== undefined) {
-        extensionArgs.push(flagName, resolvePathArg(value, { allowPackageSource: true }));
-      }
-      i += skip;
-      continue;
-    }
-
-    if (["--skill", "--prompt-template", "--theme"].includes(flagName)) {
-      const [value, skip] = getValue();
-      if (value !== undefined) alwaysProxy.push(flagName, resolvePathArg(value));
-      i += skip;
-      continue;
-    }
-
     if (flagName === "--session-dir") {
       const [value, skip] = getValue();
-      if (value !== undefined) {
-        alwaysProxy.push(flagName, resolvePathArg(value, { alwaysResolveRelative: true }));
-      }
+      if (value !== undefined) alwaysProxy.push(flagName, resolvePathArg(value, true));
       i += skip;
       continue;
     }
 
-    if (
-      [
-        "--provider",
-        "--api-key",
-        "--system-prompt",
-        "--models",
-      ].includes(flagName)
-    ) {
+    if (["--provider", "--api-key", "--models"].includes(flagName)) {
       const [value, skip] = getValue();
       if (value !== undefined) alwaysProxy.push(flagName, value);
       i += skip;
       continue;
     }
 
-    if (
-      [
-        "--no-skills",
-        "-ns",
-        "--no-prompt-templates",
-        "-np",
-        "--no-themes",
-        "--verbose",
-      ].includes(flagName)
-    ) {
+    if (["--no-skills", "-ns", "--no-prompt-templates", "-np", "--no-themes"].includes(flagName)) {
       alwaysProxy.push(flagName);
       i++;
       continue;
@@ -198,24 +88,11 @@ export function parseInheritedCliArgs(argv) {
       continue;
     }
 
-    if (inlineValue !== undefined) {
-      alwaysProxy.push(flagName, inlineValue);
-      i++;
-      continue;
-    }
-
-    if (nextIsValue) {
-      alwaysProxy.push(flagName, nextToken);
-      i += 2;
-      continue;
-    }
-
-    alwaysProxy.push(flagName);
-    i++;
+    const [, skip] = getValue();
+    i += skip;
   }
 
   return {
-    extensionArgs,
     alwaysProxy,
     fallbackModel,
     fallbackThinking,

@@ -1,5 +1,4 @@
 export interface InheritedCliArgs {
-  extensionArgs: string[];
   alwaysProxy: string[];
   fallbackModel?: string;
   fallbackThinking?: string;

@@ -64,11 +64,12 @@ function resolveEffortState(
   const profile = config.effortProfiles?.[selected];
   if (profile) return { selected, source, profile };
 
-  const label = source === "tool" ? "Requested" : "Default";
   return {
     selected,
     source,
-    warning: `${label} effort \"${selected}\" has no configured profile; using child Pi defaults.`,
+    warning: source === "tool"
+      ? `Requested effort \"${selected}\" has no configured profile; using child Pi defaults.`
+      : undefined,
   };
 }
 

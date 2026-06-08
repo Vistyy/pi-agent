@@ -18,8 +18,6 @@ import { getForkProgressText, processPiJsonLine } from "./events.js";
 
 const isWindows = process.platform === "win32";
 const SIGKILL_TIMEOUT_MS = 5000;
-const AGENT_END_GRACE_MS = 250;
-const RETRY_DECISION_GRACE_MS = 1000;
 
 type OnUpdateCallback = (partial: AgentToolResult<ForkDetails>) => void;
 export type ContextWindowResolver = (provider?: string, model?: string) => number | undefined;
@@ -204,28 +202,6 @@ export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
       let didClose = false;
       let settled = false;
       let abortHandler: (() => void) | undefined;
-      let semanticCompletionTimer: NodeJS.Timeout | undefined;
-      let retryDecisionTimer: NodeJS.Timeout | undefined;
-
-      const clearSemanticCompletionTimer = () => {
-        if (semanticCompletionTimer) {
-          clearTimeout(semanticCompletionTimer);
-          semanticCompletionTimer = undefined;
-        }
-      };
-
-      const clearRetryDecisionTimer = () => {
-        if (retryDecisionTimer) {
-          clearTimeout(retryDecisionTimer);
-          retryDecisionTimer = undefined;
-        }
-        if (result.retry?.pending) result.retry.pending = false;
-      };
-
-      const clearCompletionTimers = () => {
-        clearSemanticCompletionTimer();
-        clearRetryDecisionTimer();
-      };
 
       const terminateChild = () => {
         if (isWindows) {
@@ -248,76 +224,14 @@ export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
       const finish = (code: number) => {
         if (settled) return;
         settled = true;
-        clearCompletionTimers();
         if (signal && abortHandler) {
           signal.removeEventListener("abort", abortHandler);
         }
         resolve(code);
       };
 
-      const finishSemantically = () => {
-        if (didClose || settled) return;
-        if (buffer.trim()) {
-          flushBufferedLines(buffer);
-          buffer = "";
-        }
-        proc.stdout.removeListener("data", onStdoutData);
-        proc.stderr.removeListener("data", onStderrData);
-        finish(0);
-        terminateChild();
-      };
-
-      const scheduleSemanticCompletion = (delayMs: number) => {
-        clearSemanticCompletionTimer();
-        semanticCompletionTimer = setTimeout(() => {
-          if (didClose || settled) return;
-          finishSemantically();
-        }, delayMs);
-        semanticCompletionTimer.unref();
-      };
-
-      const isErrorAgentEnd = () => result.stopReason === "error" || result.stopReason === "aborted";
-
-      const maybeFinishFromAgentEnd = () => {
-        if (didClose || settled) return;
-
-        if (result.retry?.active) {
-          clearSemanticCompletionTimer();
-          clearRetryDecisionTimer();
-          return;
-        }
-
-        if (result.retry?.success === false) {
-          clearRetryDecisionTimer();
-          scheduleSemanticCompletion(AGENT_END_GRACE_MS);
-          return;
-        }
-
-        if (!result.sawAgentEnd) return;
-
-        if (isErrorAgentEnd()) {
-          clearSemanticCompletionTimer();
-          if (!retryDecisionTimer) {
-            if (!result.retry || typeof result.retry !== "object") result.retry = {};
-            result.retry.pending = true;
-            retryDecisionTimer = setTimeout(() => {
-              retryDecisionTimer = undefined;
-              if (result.retry?.pending) result.retry.pending = false;
-              if (didClose || settled || result.retry?.active) return;
-              scheduleSemanticCompletion(0);
-            }, RETRY_DECISION_GRACE_MS);
-            retryDecisionTimer.unref();
-          }
-          return;
-        }
-
-        clearRetryDecisionTimer();
-        scheduleSemanticCompletion(AGENT_END_GRACE_MS);
-      };
-
       const flushLine = (line: string) => {
         if (processPiJsonLine(line, result)) emitUpdate();
-        maybeFinishFromAgentEnd();
       };
 
       const flushBufferedLines = (text: string) => {

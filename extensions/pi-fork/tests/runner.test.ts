@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { buildPiArgs } from "../src/runner/index.js";
 
 const inherited = {
-  extensionArgs: [],
   alwaysProxy: [],
   fallbackModel: undefined,
   fallbackThinking: undefined,
