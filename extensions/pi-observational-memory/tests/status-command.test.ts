@@ -75,7 +75,7 @@ describe("/om:status", () => {
 		expect(output).toContain("Next observation:");
 		expect(output).toContain("/ 10 source entries");
 		expect(output).toContain("Next reflection:");
-		expect(output).toContain("/ 20 active observations");
+		expect(output).toContain("/ 20 new observations");
 		expect(output).toContain("Visible observation pool: ~6 / 40 tokens (15%)");
 		expect(output).toContain("Active observation pool: 1 / 20 observations (5%)");
 		expect(output).toContain("Reflection pool:         ~6 tokens");
