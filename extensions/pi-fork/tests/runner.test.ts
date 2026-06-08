@@ -1,0 +1,40 @@
+import { describe, expect, it } from "vitest";
+import { buildPiArgs } from "../src/runner/index.js";
+
+const inherited = {
+  extensionArgs: [],
+  alwaysProxy: [],
+  fallbackModel: undefined,
+  fallbackThinking: undefined,
+  fallbackTools: undefined,
+  fallbackNoTools: false,
+};
+
+describe("buildPiArgs", () => {
+  it("disables child extensions by default when extensions is an array", () => {
+    expect(buildPiArgs("task", "/tmp/session.jsonl", [], undefined, inherited)).toContain("--no-extensions");
+  });
+
+  it("preserves normal Pi extension discovery for explicit null", () => {
+    expect(buildPiArgs("task", "/tmp/session.jsonl", null, undefined, inherited)).not.toContain("--no-extensions");
+  });
+
+  it("allowlists explicit child extensions", () => {
+    const args = buildPiArgs("task", "/tmp/session.jsonl", ["/x/ext"], undefined, inherited);
+    expect(args).toEqual(expect.arrayContaining(["--no-extensions", "--extension", "/x/ext"]));
+  });
+
+  it("applies effort profile model flags", () => {
+    const args = buildPiArgs("task", "/tmp/session.jsonl", [], {
+      provider: "openai-codex",
+      id: "gpt-5.5",
+      thinking: "high",
+    }, inherited);
+
+    expect(args).toEqual(expect.arrayContaining([
+      "--provider", "openai-codex",
+      "--model", "gpt-5.5",
+      "--thinking", "high",
+    ]));
+  });
+});
