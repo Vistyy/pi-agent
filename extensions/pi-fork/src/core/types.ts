@@ -17,7 +17,8 @@ export interface UsageStats {
   turns: number;
 }
 
-export interface ForkToolExecution {
+export interface ForkToolActivity {
+  type: "tool";
   toolCallId: string;
   toolName: string;
   status: "running" | "completed" | "error";
@@ -26,24 +27,13 @@ export interface ForkToolExecution {
   displayText?: string;
   latestText?: string;
   isError?: boolean;
-  activityOrder?: number;
-}
-
-export interface ForkThinkingState {
-  status: "running" | "completed";
-  tokens: number;
-  /** Backward-compatible field for older stored fork results. New results use estimated tokens. */
-  chars?: number;
-  activityOrder?: number;
-}
-
-export interface ForkToolActivity extends ForkToolExecution {
-  type: "tool";
   activityOrder: number;
 }
 
-export interface ForkThinkingActivity extends ForkThinkingState {
+export interface ForkThinkingActivity {
   type: "thinking";
+  status: "running" | "completed";
+  tokens: number;
   activityOrder: number;
 }
 
@@ -99,11 +89,8 @@ export interface ForkResult {
   sawAgentEnd?: boolean;
   effort?: ForkEffortState;
   retry?: ForkRetryState;
-  thinking?: ForkThinkingState;
   activityCount?: number;
   activities?: ForkActivity[];
-  toolExecutionCount?: number;
-  toolExecutions?: ForkToolExecution[];
 }
 
 export interface ForkDetails {
