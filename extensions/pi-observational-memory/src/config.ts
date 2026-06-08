@@ -36,7 +36,7 @@ export interface Config {
 export const DEFAULTS: Config = {
 	strategy: STRATEGY.additive,
 	observeEveryMessages: 32,
-	reflectEveryObservations: 4,
+	reflectEveryObservations: 8,
 	dropWhenActiveObservationsOver: 80,
 	protectRecentObservations: 32,
 	maxInitialObserveTokens: 100_000,
