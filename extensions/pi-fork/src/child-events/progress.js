@@ -1,5 +1,5 @@
-import { getFinalAssistantText } from "./event-text.js";
-import { MAX_INLINE_ERROR_PREVIEW_CHARS, formatCount, truncateInline } from "./event-format.js";
+import { getFinalAssistantText } from "./text.js";
+import { MAX_INLINE_ERROR_PREVIEW_CHARS, formatCount, truncateInline } from "./format.js";
 
 function formatToolStatusIcon(tool) {
   if (tool?.status === "running") return "…";

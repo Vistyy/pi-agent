@@ -7,7 +7,7 @@ import {
   getSeenMessageSignatures,
   stableStringify,
   stringifyPreview,
-} from "./event-format.js";
+} from "./format.js";
 
 const MAX_STORED_ACTIVITIES = 25;
 
@@ -310,5 +310,5 @@ export function processPiJsonLine(line, result) {
   return processPiEvent(event, result);
 }
 
-export { getFinalAssistantText, getResultSummaryText } from "./event-text.js";
+export { getFinalAssistantText, getResultSummaryText } from "./text.js";
 export { getForkProgressText } from "./progress.js";

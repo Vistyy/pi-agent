@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getResultSummaryText, processPiJsonLine } from "../src/runner/events.js";
+import { getResultSummaryText, processPiJsonLine } from "../src/child-events/index.js";
 import { emptyUsage, type ForkResult } from "../src/core/types.js";
 
 function result(): ForkResult {

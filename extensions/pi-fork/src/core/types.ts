@@ -4,7 +4,7 @@
 
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import type { Message } from "@earendil-works/pi-ai";
-import { getFinalAssistantText } from "../runner/events.js";
+import { getFinalAssistantText } from "../child-events/index.js";
 
 export interface UsageStats {
   input: number;

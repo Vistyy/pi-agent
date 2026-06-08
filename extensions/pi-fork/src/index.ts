@@ -16,7 +16,7 @@ import { EFFORT_LEVELS, loadConfig, type ForkConfig } from "./config.js";
 import { aggregateInclusiveCost, formatForkCostStatus } from "./core/cost.js";
 import { type ForkDetails, type ForkEffort, type ForkEffortSource, type ForkEffortState, type ForkResult, emptyUsage, isResultError } from "./core/types.js";
 import { runFork } from "./runner/index.js";
-import { getResultSummaryText } from "./runner/events.js";
+import { getResultSummaryText } from "./child-events/index.js";
 import { renderForkCall, renderForkResult } from "./ui/render.js";
 
 const ForkParams = Type.Object({

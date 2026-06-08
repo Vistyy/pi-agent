@@ -14,7 +14,7 @@ import { buildChildEnv } from "./env.js";
 import { buildForkTaskPrompt } from "./prompt.js";
 import { type ForkDetails, type ForkEffortProfile, type ForkEffortState, type ForkResult, emptyUsage, normalizeCompletedResult } from "../core/types.js";
 import { parseInheritedCliArgs } from "./cli.js";
-import { getForkProgressText, processPiJsonLine } from "./events.js";
+import { getForkProgressText, processPiJsonLine } from "../child-events/index.js";
 
 const isWindows = process.platform === "win32";
 const SIGKILL_TIMEOUT_MS = 5000;
