@@ -16,9 +16,9 @@ const suite = argValue('--suite') ?? 'suites/memory-multi-compact';
 const out = argValue('--out') ?? `runs/memory-hard-${variant}-${new Date().toISOString().replace(/[:.]/g, '-')}`;
 const model = argValue('--model') ?? 'openai-codex/gpt-5.4-mini';
 const thinking = (argValue('--thinking') ?? 'xhigh') as ModelThinkingLevel;
-const observerThinking = (argValue('--observer-thinking') ?? thinking) as ModelThinkingLevel;
-const reflectorThinking = (argValue('--reflector-thinking') ?? thinking) as ModelThinkingLevel;
-const dropperThinking = (argValue('--dropper-thinking') ?? thinking) as ModelThinkingLevel;
+const observerThinking = argValue('--observer-thinking') as ModelThinkingLevel | undefined;
+const reflectorThinking = argValue('--reflector-thinking') as ModelThinkingLevel | undefined;
+const dropperThinking = argValue('--dropper-thinking') as ModelThinkingLevel | undefined;
 const concurrency = argValue('--concurrency') ?? '1';
 const forcedMemoryPrep = process.argv.includes('--forced-memory-prep');
 const prepareTurns = argValue('--memory-prepare-turns') ?? '1';
@@ -36,21 +36,20 @@ function configuredModel(modelSpec: string) {
 function makeCwd(name: string, modelSpec: string): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), `pi-memory-hard-${name}-`));
   fs.mkdirSync(path.join(dir, '.pi'), { recursive: true });
-  fs.writeFileSync(path.join(dir, '.pi/settings.json'), JSON.stringify({
-    'observational-memory': {
-      strategy: name === 'om-replacement' ? 'replacement' : 'additive',
-      observeEveryMessages: 32,
-      reflectEveryObservations: 4,
-      dropWhenActiveObservationsOver: 80,
-      protectRecentObservations: 32,
-      agentMaxTurns: 4,
-      model: configuredModel(modelSpec),
-      observerThinking,
-      reflectorThinking,
-      dropperThinking,
-      debugLog: true,
-    },
-  }, null, 2));
+  const omConfig: Record<string, unknown> = {
+    strategy: name === 'om-replacement' ? 'replacement' : 'additive',
+    observeEveryMessages: 32,
+    reflectEveryObservations: 4,
+    dropWhenActiveObservationsOver: 80,
+    protectRecentObservations: 32,
+    agentMaxTurns: 4,
+    model: configuredModel(modelSpec),
+    debugLog: true,
+  };
+  if (observerThinking) omConfig.observerThinking = observerThinking;
+  if (reflectorThinking) omConfig.reflectorThinking = reflectorThinking;
+  if (dropperThinking) omConfig.dropperThinking = dropperThinking;
+  fs.writeFileSync(path.join(dir, '.pi/settings.json'), JSON.stringify({ 'observational-memory': omConfig }, null, 2));
   return dir;
 }
 
