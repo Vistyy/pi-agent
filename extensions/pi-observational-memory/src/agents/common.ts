@@ -1,7 +1,8 @@
 import { agentLoop, type AgentContext, type AgentLoopConfig, type AgentTool } from "@earendil-works/pi-agent-core";
-import type { Message, Model, ModelThinkingLevel } from "@earendil-works/pi-ai";
+import { streamSimple, type Message, type Model, type ModelThinkingLevel } from "@earendil-works/pi-ai";
 import { AGENT_LOOP_MAX_TOKENS, boundedMaxTokens } from "./model-budget.js";
 import { debugLog } from "../debug-log.js";
+import { estimateStringTokens } from "../memory/token-estimate.js";
 
 export type MemoryAgentLoopArgs = {
 	model: Model<any>;
@@ -40,6 +41,14 @@ export function normalizeAllowedIdsStrict(
 	return Array.from(seen).sort((a, b) => (allowedOrder.get(a) ?? 0) - (allowedOrder.get(b) ?? 0));
 }
 
+function estimateJsonTokens(value: unknown): number {
+	try {
+		return estimateStringTokens(JSON.stringify(value));
+	} catch {
+		return 0;
+	}
+}
+
 export async function runMemoryAgentLoop(args: MemoryAgentLoopArgs): Promise<void> {
 	const prompts: Message[] = [{ role: "user", content: [{ type: "text", text: args.userText }], timestamp: Date.now() }];
 	const context: AgentContext = { systemPrompt: args.systemPrompt, messages: [], tools: args.tools };
@@ -59,6 +68,35 @@ export async function runMemoryAgentLoop(args: MemoryAgentLoopArgs): Promise<voi
 	};
 
 	const loop = args.agentLoop ?? agentLoop;
+	let providerRequestCount = 0;
+	const streamFn = async (model: Model<any>, llmContext: unknown, options?: Parameters<typeof streamSimple>[2]) => {
+		providerRequestCount++;
+		const requestStarted = Date.now();
+		const context = llmContext as { systemPrompt?: string; messages?: unknown[]; tools?: unknown[] };
+		debugLog("memory_agent.provider_request", {
+			agent: args.agentName,
+			requestIndex: providerRequestCount,
+			systemPromptTokenEstimate: estimateStringTokens(context.systemPrompt ?? ""),
+			messagesTokenEstimate: estimateJsonTokens(context.messages ?? []),
+			toolsTokenEstimate: estimateJsonTokens(context.tools ?? []),
+			messageCount: context.messages?.length ?? 0,
+			toolCount: context.tools?.length ?? 0,
+		});
+		const stream = streamSimple(model, llmContext as Parameters<typeof streamSimple>[1], options);
+		const originalResult = stream.result.bind(stream);
+		stream.result = async () => {
+			const result = await originalResult();
+			debugLog("memory_agent.provider_result", {
+				agent: args.agentName,
+				requestIndex: providerRequestCount,
+				durationMs: Date.now() - requestStarted,
+				usage: (result as { usage?: unknown }).usage,
+				stopReason: (result as { stopReason?: unknown }).stopReason,
+			});
+			return result;
+		};
+		return stream;
+	};
 	const started = Date.now();
 	debugLog("memory_agent.start", {
 		agent: args.agentName,
@@ -68,7 +106,7 @@ export async function runMemoryAgentLoop(args: MemoryAgentLoopArgs): Promise<voi
 		userTextLength: args.userText.length,
 	});
 	try {
-		const stream = loop(prompts, context, config, args.signal);
+		const stream = loop(prompts, context, config, args.signal, streamFn);
 		for await (const _event of stream) {
 			// Tool execution side effects collect outputs.
 		}
@@ -77,6 +115,7 @@ export async function runMemoryAgentLoop(args: MemoryAgentLoopArgs): Promise<voi
 			agent: args.agentName,
 			durationMs: Date.now() - started,
 			usage: (result as { usage?: unknown }).usage,
+			providerRequestCount,
 		});
 	} catch (error) {
 		debugLog("memory_agent.error", {
