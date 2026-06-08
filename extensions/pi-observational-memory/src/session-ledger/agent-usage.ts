@@ -65,7 +65,7 @@ function emptyTotals(): AgentUsageTotals {
 }
 
 function numberValue(value: unknown): number {
-	return typeof value === "number" && Number.isFinite(value) ? value : 0;
+	return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : 0;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
