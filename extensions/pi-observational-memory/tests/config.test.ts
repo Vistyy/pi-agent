@@ -47,7 +47,7 @@ describe("config", () => {
 			additivePatchMaxTokens: 2000,
 			observerThinking: "low",
 			reflectorThinking: "xhigh",
-			dropperThinking: "xhigh",
+			dropperThinking: "low",
 			debugLog: false,
 		});
 		expect(loadConfig(cwd)).toEqual(DEFAULTS);

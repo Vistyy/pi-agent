@@ -38,7 +38,7 @@ OM does not schedule compaction. Pi/manual/eval compaction triggers still run; O
     "additivePatchMaxTokens": 2000,
     "observerThinking": "low",
     "reflectorThinking": "xhigh",
-    "dropperThinking": "xhigh",
+    "dropperThinking": "low",
     "debugLog": false
   }
 }

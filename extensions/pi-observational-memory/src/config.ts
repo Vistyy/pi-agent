@@ -45,7 +45,7 @@ export const DEFAULTS: Config = {
 	additivePatchMaxTokens: 2_000,
 	observerThinking: "low",
 	reflectorThinking: "xhigh",
-	dropperThinking: "xhigh",
+	dropperThinking: "low",
 	debugLog: false,
 };
 
