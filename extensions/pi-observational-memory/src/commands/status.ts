@@ -1,5 +1,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { observationPoolMetrics } from "../agents/dropper/pool.js";
+import { observationsSinceReflectionCoverage } from "../memory-update/stage-utils.js";
 import type { Runtime } from "../runtime.js";
 import {
 	diffProjection,
@@ -56,7 +57,7 @@ export function registerStatusCommand(pi: ExtensionAPI, runtime: Runtime): void 
 				[addedSuffix(drift.reflectionsOnlyInFull.length)],
 			);
 			const obsProgress = sourceEntryCountSinceObservationCoverage(entries);
-			const reflectionProgress = folded.activeObservations.length;
+			const reflectionProgress = observationsSinceReflectionCoverage(entries, folded.activeObservations).length;
 			const reflectionReviewLag = sourceEntryCountSinceReflectionReviewCoverage(entries);
 
 			const modeLines = [
