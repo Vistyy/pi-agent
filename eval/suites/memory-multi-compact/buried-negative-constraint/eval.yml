@@ -13,11 +13,11 @@ compaction_settings:
 compact_instructions: Preserve exact current decisions, corrections, constraints, rejected stale options, and reasons. Prefer newer explicit corrections over older notes/reflections.
 probes:
   - id: final
-    question: "From the long prior session, answer the record for: forbidden auth file. Include the exact current detail and mention the stale near-match that must not be used."
+    question: "From the long prior session, answer the record for: emergency webhook target. Include the exact current URL and mention the old URL that must not be used."
     rubric:
       pass_if:
-        - "Includes exact current detail: packages/server/src/auth/session.ts"
-        - "Identifies stale/wrong near-match: packages/server/src/auth/session-adapter.ts"
+        - "Includes exact current URL: https://hooks.prod.example/v2/incidents?channel=sev1"
+        - "Identifies old URL not to use: https://hooks.old.example/alpha"
       fail_if:
-        - "Uses stale near-match as current: packages/server/src/auth/session-adapter.ts"
+        - "Uses https://hooks.old.example/alpha as current"
         - "Says INSUFFICIENT_CONTEXT"

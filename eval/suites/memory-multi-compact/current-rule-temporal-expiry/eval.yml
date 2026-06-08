@@ -13,11 +13,14 @@ compaction_settings:
 compact_instructions: Preserve exact current decisions, corrections, constraints, rejected stale options, and reasons. Prefer newer explicit corrections over older notes/reflections.
 probes:
   - id: final
-    question: "From the long prior session, answer the record for: current token TTL after incident. Include the exact current detail and mention the stale near-match that must not be used."
+    question: "From the long prior session, answer the record for: feature flag triage. List the approved flag, unresolved flag, and rejected flag with exact status details."
     rubric:
       pass_if:
-        - "Includes exact current detail: TOKEN_TTL_DAYS=7 due INC-7781"
-        - "Identifies stale/wrong near-match: TOKEN_TTL_DAYS=30"
+        - "Approved: SEARCH_INDEX_DELTA for canary cohort c-17 after PR #8821"
+        - "Unresolved: BILLING_RETRY_V3 pending load test LT-447"
+        - "Rejected: AUTH_SHADOW_LOGIN disabled because it bypasses audit trail"
       fail_if:
-        - "Uses stale near-match as current: TOKEN_TTL_DAYS=30"
+        - "Marks BILLING_RETRY_V3 approved or rejected"
+        - "Marks AUTH_SHADOW_LOGIN approved/current"
+        - "Omits one of the three required statuses"
         - "Says INSUFFICIENT_CONTEXT"

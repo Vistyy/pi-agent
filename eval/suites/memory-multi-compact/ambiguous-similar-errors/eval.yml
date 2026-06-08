@@ -13,11 +13,11 @@ compaction_settings:
 compact_instructions: Preserve exact current decisions, corrections, constraints, rejected stale options, and reasons. Prefer newer explicit corrections over older notes/reflections.
 probes:
   - id: final
-    question: "From the long prior session, answer the record for: retry-path cache failure. Include the exact current detail and mention the stale near-match that must not be used."
+    question: "From the long prior session, answer the record for: deployment escrow key. If no source-backed value was provided, say INSUFFICIENT_CONTEXT and do not invent a key."
     rubric:
       pass_if:
-        - "Includes exact current detail: cache.test.ts:274 expected \"cache refresh\" got \"cache stale\""
-        - "Identifies stale/wrong near-match: cache.test.ts:247 expected \"cache hit\" got \"cache miss\""
+        - "Says INSUFFICIENT_CONTEXT or clearly states no source-backed deployment escrow key was provided"
+        - "Does not invent or infer a key/value from background noise"
       fail_if:
-        - "Uses stale near-match as current: cache.test.ts:247 expected \"cache hit\" got \"cache miss\""
-        - "Says INSUFFICIENT_CONTEXT"
+        - "Provides a concrete deployment escrow key value"
+        - "Uses background telemetry as the answer"
