@@ -44,9 +44,12 @@ OM does not schedule compaction. Pi/manual/eval compaction triggers still run; O
 }
 ```
 
-`protectRecentObservations` keeps the newest active observations out of the dropper candidate set. Older observations become drop-eligible only after reflection review has covered their source range.
+`protectRecentObservations` keeps the newest active observations out of the dropper candidate set. Older observations become drop-eligible only after reflection review has covered their source range. Reviewed observations may be dropped when redundant, superseded, duplicate, routine, or otherwise low-value; they do not need to be preserved by a reflection when the review intentionally found no durable fact to keep.
 
 `maxInitialObserveTokens` prevents expensive backfill when the extension starts on an already-large session. It marks old history covered and observes future turns.
+
+Reflection visibility is decoupled from the observation token pool: incremental compaction materializes recorded reflections, while full-fold compaction is reserved for deeper replay/drop reconciliation. 
+TODO: add a separate reflection-pool cap and consolidation behavior if visible reflections become too large in long sessions.
 
 ## Commands
 
@@ -63,7 +66,7 @@ Memory entries include 12-character ids. Use `recall(id)` when exact source cont
 source entries
   -> observer: source-backed evidence
   -> reflector: checkpoint facts backed by observations
-  -> dropper: tombstones evidence safely covered by reflections
+  -> dropper: tombstones reviewed evidence that is safe to remove
   -> projection/rendering: reflections + active observations
 ```
 
@@ -71,10 +74,10 @@ Terms:
 
 - Observation = source-backed evidence.
 - Reflection = checkpoint fact backed by observations.
-- Drop = tombstone for evidence safely covered by reflection.
+- Drop = tombstone for reviewed evidence that is safe to remove.
 
 Safety rules:
 
 - Never compact away unobserved source.
-- Never drop an observation unless a reflection preserves its meaning.
+- Never drop an observation unless reflection review has covered it and the dropper judges it safe to remove.
 - No-tool worker response must not count as reviewed.

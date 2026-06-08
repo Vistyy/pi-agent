@@ -72,7 +72,7 @@ describe("session-ledger projections", () => {
 		expect(latestFullFoldBoundaryId(entries)).toBe("raw-3");
 	});
 
-	it("first normal compaction includes observations by coverage and excludes maintenance streams", () => {
+	it("first normal compaction includes observations and reflections by coverage but excludes maintenance drops", () => {
 		const obs1 = observation("aaaaaaaaaaaa", { sourceEntryIds: ["raw-2"] });
 		const ref1 = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
 		const entries = [
@@ -87,7 +87,7 @@ describe("session-ledger projections", () => {
 
 		expect(result.fullFold).toBe(false);
 		expect(result.observations.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa"]);
-		expect(result.reflections).toEqual([]);
+		expect(result.reflections.map((ref) => ref.id)).toEqual(["eeeeeeeeeeee"]);
 		expect(result.details).toMatchObject({ type: "om.folded", fullFold: false });
 	});
 
@@ -112,7 +112,7 @@ describe("session-ledger projections", () => {
 		expect(result.details.observations.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa"]);
 	});
 
-	it("normal compaction projection includes current observations but keeps reflections and drops at latest full-fold boundary", () => {
+	it("normal compaction projection includes current observations and reflections but keeps drops at latest full-fold boundary", () => {
 		const obs1 = observation("aaaaaaaaaaaa");
 		const obs2 = observation("bbbbbbbbbbbb");
 		const ref1 = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
@@ -132,7 +132,7 @@ describe("session-ledger projections", () => {
 
 		expect(result.fullFold).toBe(false);
 		expect(result.observations.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa", "bbbbbbbbbbbb"]);
-		expect(result.reflections.map((ref) => ref.id)).toEqual(["eeeeeeeeeeee"]);
+		expect(result.reflections.map((ref) => ref.id)).toEqual(["eeeeeeeeeeee", "ffffffffffff"]);
 		expect(result.details).toMatchObject({ type: "om.folded", fullFold: false });
 	});
 

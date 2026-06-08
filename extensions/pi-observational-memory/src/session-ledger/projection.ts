@@ -164,7 +164,7 @@ function buildIncrementalCompactionProjection(entries: Entry[], seed: Projection
 	const latestFullFoldBoundaryIndex = entryIndexOrNone(indexes, latestFullFoldBoundaryId(entries));
 	const folded = foldProjection(entries, {
 		observationsThroughIndex: tipIndex(entries),
-		reflectionsThroughIndex: latestFullFoldBoundaryIndex,
+		reflectionsThroughIndex: tipIndex(entries),
 		dropsThroughIndex: latestFullFoldBoundaryIndex,
 	});
 	return mergeProjection(seed, folded);
