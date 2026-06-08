@@ -61,8 +61,20 @@ Memory entries include 12-character ids. Use `recall(id)` when exact source cont
 
 ```text
 source entries
-  -> observer: source-backed observations, no relevance/lifecycle labels
-  -> reflector: durable reflections or om.reflections.reviewed marker when review emits none
-  -> dropper: lifecycle/safety choice over older reviewed observations outside protected recent window
+  -> observer: source-backed evidence
+  -> reflector: checkpoint facts backed by observations
+  -> dropper: tombstones evidence safely covered by reflections
   -> projection/rendering: reflections + active observations
 ```
+
+Terms:
+
+- Observation = source-backed evidence.
+- Reflection = checkpoint fact backed by observations.
+- Drop = tombstone for evidence safely covered by reflection.
+
+Safety rules:
+
+- Never compact away unobserved source.
+- Never drop an observation unless a reflection preserves its meaning.
+- No-tool worker response must not count as reviewed.
