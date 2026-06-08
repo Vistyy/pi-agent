@@ -1,0 +1,32 @@
+id: discriminator-nonmonotonic-currentness
+kind: session-memory
+source_stages:
+  - source.stage1.jsonl
+  - source.stage2.jsonl
+  - source.stage3.jsonl
+  - source.stage4.jsonl
+  - source.stage5.jsonl
+compact_before_probe: true
+compaction_settings:
+  keepRecentTokens: 200
+  reserveTokens: 1024
+compact_instructions: Preserve exact current decisions, corrections, constraints, rejected stale options, and reasons. Prefer newer explicit corrections over older notes/reflections.
+probes:
+  - id: bucket
+    question: "From the prior session, what is the current release artifact bucket? Also mention the stale beta bucket that must not be used as current."
+    rubric:
+      pass_if:
+        - "Current bucket is exactly gs://rel-alpha/current"
+        - "Mentions gs://rel-beta/current is stale/not current for bucket"
+      fail_if:
+        - "Uses gs://rel-beta/current as current bucket"
+        - "Says INSUFFICIENT_CONTEXT"
+  - id: signer
+    question: "From the prior session, what is the current release signer key? Also clarify whether it rolled back with the bucket."
+    rubric:
+      pass_if:
+        - "Current signer key is exactly KMS/beta-signer"
+        - "States signer did not roll back / only bucket rolled back"
+      fail_if:
+        - "Uses KMS/alpha-signer as current signer"
+        - "Says INSUFFICIENT_CONTEXT"
