@@ -1,7 +1,6 @@
 /** Formatting helpers for child Pi event previews. */
 
 const MAX_TOOL_PREVIEW_CHARS = 1200;
-export const MAX_TOOL_ARGS_PREVIEW_CHARS = 300;
 export const MAX_INLINE_ERROR_PREVIEW_CHARS = 160;
 export function getSeenMessageSignatures(result) {
   if (!Object.prototype.hasOwnProperty.call(result, "__seenMessageSignatures")) {

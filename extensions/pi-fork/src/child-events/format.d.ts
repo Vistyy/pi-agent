@@ -1,5 +1,4 @@
 export const MAX_INLINE_ERROR_PREVIEW_CHARS: number;
-export const MAX_TOOL_ARGS_PREVIEW_CHARS: number;
 export function getSeenMessageSignatures(result: any): Set<string>;
 export function stableStringify(value: unknown): string;
 export function truncateTail(text: string, maxChars: number): string;

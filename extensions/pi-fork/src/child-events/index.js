@@ -1,12 +1,10 @@
 /** Parse child Pi JSON-mode events into a compact fork result. */
 
 import {
-  MAX_TOOL_ARGS_PREVIEW_CHARS,
   extractResultText,
   formatToolCallPreview,
   getSeenMessageSignatures,
   stableStringify,
-  stringifyPreview,
 } from "./format.js";
 
 const MAX_STORED_ACTIVITIES = 25;
@@ -79,7 +77,6 @@ function addMessages(result, messages) {
 
 function ensureRetryState(result) {
   if (!result.retry || typeof result.retry !== "object") result.retry = {};
-  if (!Array.isArray(result.retry.history)) result.retry.history = [];
   return result.retry;
 }
 
@@ -93,7 +90,6 @@ function processAutoRetryStart(event, result) {
   if (typeof event.delayMs === "number") retry.delayMs = event.delayMs;
   if (typeof event.errorMessage === "string") retry.errorMessage = event.errorMessage;
   delete retry.finalError;
-  retry.history.push({ type: "start", attempt: retry.attempt, maxAttempts: retry.maxAttempts, delayMs: retry.delayMs, errorMessage: retry.errorMessage });
   result.sawAgentEnd = false;
   return true;
 }
@@ -105,29 +101,11 @@ function processAutoRetryEnd(event, result) {
   retry.success = Boolean(event.success);
   if (typeof event.attempt === "number") retry.attempt = event.attempt;
   if (typeof event.finalError === "string") retry.finalError = event.finalError;
-  retry.history.push({ type: "end", attempt: retry.attempt, success: retry.success, finalError: retry.finalError });
   if (!retry.success) {
     result.stopReason = "error";
     if (retry.finalError) result.errorMessage = retry.finalError;
   }
   return true;
-}
-
-function maxActivityOrder(result) {
-  const activities = Array.isArray(result.activities) ? result.activities : [];
-  let max = 0;
-  for (const activity of activities) {
-    if (typeof activity?.activityOrder === "number") max = Math.max(max, activity.activityOrder);
-  }
-  return max;
-}
-
-function nextActivityOrder(result) {
-  if (!Object.prototype.hasOwnProperty.call(result, "__activityOrder")) {
-    Object.defineProperty(result, "__activityOrder", { value: maxActivityOrder(result), enumerable: false, configurable: false, writable: true });
-  }
-  result.__activityOrder += 1;
-  return result.__activityOrder;
 }
 
 function ensureActivities(result) {
@@ -175,7 +153,7 @@ function latestRunningThinkingActivity(result) {
 }
 
 function createThinkingActivity(result) {
-  const activity = addActivity(result, { type: "thinking", status: "running", tokens: 0, activityOrder: nextActivityOrder(result) });
+  const activity = addActivity(result, { type: "thinking", status: "running", tokens: 0 });
   setThinkingChars(activity, 0);
   return activity;
 }
@@ -218,7 +196,7 @@ function findToolActivity(result, toolCallId) {
 }
 
 function ensureToolActivity(result, event) {
-  const toolCallId = typeof event.toolCallId === "string" ? event.toolCallId : `unknown-${nextActivityOrder(result)}`;
+  const toolCallId = typeof event.toolCallId === "string" ? event.toolCallId : `unknown-${result.activityCount || 0}`;
   let activity = findToolActivity(result, toolCallId);
   if (!activity) {
     activity = addActivity(result, {
@@ -226,14 +204,11 @@ function ensureToolActivity(result, event) {
       toolCallId,
       toolName: typeof event.toolName === "string" ? event.toolName : "tool",
       status: "running",
-      updates: 0,
-      activityOrder: nextActivityOrder(result),
     });
   }
 
   if (typeof event.toolName === "string") activity.toolName = event.toolName;
   if (Object.prototype.hasOwnProperty.call(event, "args")) {
-    activity.argsPreview = stringifyPreview(event.args, MAX_TOOL_ARGS_PREVIEW_CHARS);
     activity.displayText = formatToolCallPreview(activity.toolName, event.args);
   }
   if (!activity.displayText) activity.displayText = activity.toolName;
@@ -252,7 +227,6 @@ function processToolExecutionEvent(event, result) {
     case "tool_execution_update": {
       activity.status = "running";
       activity.isError = false;
-      activity.updates = (activity.updates || 0) + 1;
       const latestText = extractResultText(event.partialResult);
       if (latestText) activity.latestText = latestText;
       return true;

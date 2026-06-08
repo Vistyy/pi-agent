@@ -166,7 +166,6 @@ function responseActivity(result: ForkResult): any | undefined {
     type: "response",
     status: "completed",
     tokens: estimateTokensFromChars(text.length),
-    activityOrder: Number.MAX_SAFE_INTEGER,
   };
 }
 

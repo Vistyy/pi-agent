@@ -22,19 +22,15 @@ export interface ForkToolActivity {
   toolCallId: string;
   toolName: string;
   status: "running" | "completed" | "error";
-  updates: number;
-  argsPreview?: string;
   displayText?: string;
   latestText?: string;
   isError?: boolean;
-  activityOrder: number;
 }
 
 export interface ForkThinkingActivity {
   type: "thinking";
   status: "running" | "completed";
   tokens: number;
-  activityOrder: number;
 }
 
 export type ForkActivity = ForkToolActivity | ForkThinkingActivity;
@@ -54,16 +50,6 @@ export interface ForkEffortState {
   warning?: string;
 }
 
-export interface ForkRetryHistoryEntry {
-  type: "start" | "end";
-  attempt?: number;
-  maxAttempts?: number;
-  delayMs?: number;
-  errorMessage?: string;
-  success?: boolean;
-  finalError?: string;
-}
-
 export interface ForkRetryState {
   active?: boolean;
   pending?: boolean;
@@ -73,7 +59,6 @@ export interface ForkRetryState {
   errorMessage?: string;
   finalError?: string;
   success?: boolean;
-  history?: ForkRetryHistoryEntry[];
 }
 
 export interface ForkResult {
