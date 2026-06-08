@@ -1,15 +1,12 @@
 /** Parse child Pi JSON-mode events into a compact fork result. */
 
 import {
-  MAX_INLINE_ERROR_PREVIEW_CHARS,
   MAX_TOOL_ARGS_PREVIEW_CHARS,
   extractResultText,
-  formatCount,
   formatToolCallPreview,
   getSeenMessageSignatures,
   stableStringify,
   stringifyPreview,
-  truncateInline,
 } from "./event-format.js";
 
 const MAX_STORED_ACTIVITIES = 25;
@@ -313,115 +310,5 @@ export function processPiJsonLine(line, result) {
   return processPiEvent(event, result);
 }
 
-export function getFinalAssistantText(messages) {
-  if (!Array.isArray(messages)) return "";
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const message = messages[i];
-    if (!message || message.role !== "assistant" || !Array.isArray(message.content)) continue;
-    for (const part of message.content) {
-      if (part?.type === "text" && typeof part.text === "string" && part.text.length > 0) return part.text;
-    }
-  }
-  return "";
-}
-
-function getLatestRelevantToolActivity(result) {
-  const activities = Array.isArray(result?.activities) ? result.activities : [];
-  for (let i = activities.length - 1; i >= 0; i--) {
-    const activity = activities[i];
-    if (activity?.type === "tool" && activity.status === "running") return activity;
-  }
-  for (let i = activities.length - 1; i >= 0; i--) {
-    const activity = activities[i];
-    if (activity?.type === "tool") return activity;
-  }
-  return undefined;
-}
-
-function formatToolStatusIcon(tool) {
-  if (tool?.status === "running") return "…";
-  if (tool?.status === "error") return "×";
-  return "✓";
-}
-
-function formatToolErrorSuffix(tool) {
-  if (tool?.status !== "error" && !tool?.isError) return "";
-  if (typeof tool.latestText !== "string" || !tool.latestText.trim()) return "";
-  return ` — ${truncateInline(tool.latestText, MAX_INLINE_ERROR_PREVIEW_CHARS)}`;
-}
-
-function getThinkingTokens(thinking) {
-  return typeof thinking?.tokens === "number" ? thinking.tokens : 0;
-}
-
-function formatThinkingActivityProgress(thinking) {
-  if (!thinking || typeof thinking !== "object") return "";
-  const icon = thinking.status === "running" ? "…" : "✓";
-  const tokens = getThinkingTokens(thinking);
-  const label = tokens > 0 ? `thinking ~${formatCount(tokens)} tokens` : thinking.status === "running" ? "thinking..." : "thinking";
-  return `${icon} ${label}`;
-}
-
-function formatActivityProgress(activity) {
-  if (activity?.type === "thinking") return formatThinkingActivityProgress(activity);
-  if (activity?.type === "tool") return `${formatToolStatusIcon(activity)} ${activity.displayText || activity.toolName || "tool"}${formatToolErrorSuffix(activity)}`;
-  return "";
-}
-
-function getStoredActivities(result) {
-  const activities = Array.isArray(result?.activities) ? result.activities : [];
-  return activities.filter((activity) => activity && typeof activity === "object");
-}
-
-function totalActivities(result, storedActivities) {
-  return typeof result?.activityCount === "number" ? Math.max(result.activityCount, storedActivities.length) : storedActivities.length;
-}
-
-function formatRetryProgress(retry) {
-  if (!retry || typeof retry !== "object" || !retry.active) return "";
-  const attempt = typeof retry.attempt === "number" ? retry.attempt : undefined;
-  const maxAttempts = typeof retry.maxAttempts === "number" ? retry.maxAttempts : undefined;
-  const attemptText = attempt && maxAttempts ? `attempt ${attempt}/${maxAttempts}` : attempt ? `attempt ${attempt}` : "retrying";
-  const delayText = typeof retry.delayMs === "number" && retry.delayMs > 0 ? `, waiting ${Math.round(retry.delayMs / 1000)}s` : "";
-  const errorText = typeof retry.errorMessage === "string" && retry.errorMessage.trim() ? ` after ${truncateInline(retry.errorMessage.trim(), MAX_INLINE_ERROR_PREVIEW_CHARS)}` : "";
-  return `Retrying${errorText} (${attemptText}${delayText})`;
-}
-
-function formatActivityProgressList(result) {
-  const storedActivities = getStoredActivities(result);
-  const lines = [];
-  const toShow = storedActivities.slice(-10);
-  const skipped = Math.max(0, totalActivities(result, storedActivities) - toShow.length);
-  if (skipped > 0) lines.push(`... ${skipped} earlier activit${skipped === 1 ? "y" : "ies"}`);
-  for (const activity of toShow) {
-    const line = formatActivityProgress(activity);
-    if (line) lines.push(line);
-  }
-  return lines.join("\n").trim();
-}
-
-export function getForkProgressText(result) {
-  const retryProgress = formatRetryProgress(result?.retry);
-  if (retryProgress) return retryProgress;
-
-  const finalText = getFinalAssistantText(result?.messages);
-  if (finalText) return finalText;
-
-  const activityProgress = formatActivityProgressList(result);
-  if (activityProgress) return activityProgress;
-
-  const latestTool = getLatestRelevantToolActivity(result);
-  if (latestTool) return formatActivityProgress(latestTool);
-
-  if (typeof result?.errorMessage === "string" && result.errorMessage.trim()) return result.errorMessage.trim();
-  return "(running...)";
-}
-
-export function getResultSummaryText(result) {
-  const finalText = getFinalAssistantText(result?.messages);
-  if (finalText) return finalText;
-  if (typeof result?.errorMessage === "string" && result.errorMessage.trim()) return result.errorMessage.trim();
-  const isError = (typeof result?.exitCode === "number" && result.exitCode > 0) || result?.stopReason === "error" || result?.stopReason === "aborted";
-  if (isError && typeof result?.stderr === "string" && result.stderr.trim()) return result.stderr.trim();
-  return "(no output)";
-}
+export { getFinalAssistantText, getResultSummaryText } from "./event-text.js";
+export { getForkProgressText } from "./progress.js";
