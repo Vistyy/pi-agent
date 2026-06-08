@@ -33,7 +33,7 @@ describe("dropper agent", () => {
 		expect(userText).toContain("[coverage: none]");
 		expect(userText).toContain("Maximum drops allowed this run: 20 observations");
 		expect(userText).toContain("hard safety cap, not a target");
-		expect(userText).toContain("Drop fewer or none");
+		expect(userText).toContain("mark_no_drops if none are clearly safe");
 	});
 
 	it("normalizes active drop ids, filters invalid ids, and dedupes", () => {

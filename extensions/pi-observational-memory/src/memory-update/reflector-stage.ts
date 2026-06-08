@@ -59,8 +59,12 @@ export async function runReflectorStage(
 		observations: folded.activeObservations,
 	});
 	if (!reflections) {
+		debugLog("reflector.no_tool_output", { observationCoverageId });
+		return "continue";
+	}
+	if (reflections.length === 0) {
 		const reviewedData = buildReflectionsReviewedData(observationCoverageId);
-		debugLog("reflector.no_output", { observationCoverageId, appendedReview: reviewedData !== undefined });
+		debugLog("reflector.reviewed_empty", { observationCoverageId, appendedReview: reviewedData !== undefined });
 		if (reviewedData) pi.appendEntry(OM_REFLECTIONS_REVIEWED, reviewedData);
 		return "continue";
 	}

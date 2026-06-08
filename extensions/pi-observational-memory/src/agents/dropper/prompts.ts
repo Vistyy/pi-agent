@@ -9,4 +9,4 @@ Keep by default. Do not drop observations that uniquely carry preferences, const
 
 Do not drop an observation merely because it is stale or superseded; drop it only when the surviving reflections or observations preserve the stale value and why it must not be used.
 
-The maximum drop count is a hard cap, not a target. Drop fewer or none when uncertain.`;
+The maximum drop count is a hard cap, not a target. If no eligible observations are clearly safe to drop, call mark_no_drops.`;

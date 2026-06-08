@@ -24,6 +24,9 @@ interface RunObserverArgs {
 
 export const OBSERVATION_TIMESTAMP_PATTERN = "^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$";
 
+const MarkObservedNoObservationsSchema = Type.Object({});
+type MarkObservedNoObservationsArgs = Static<typeof MarkObservedNoObservationsSchema>;
+
 const RecordObservationsSchema = Type.Object({
 	observations: Type.Array(
 		Type.Object({
@@ -58,6 +61,18 @@ export async function runObserver(args: RunObserverArgs): Promise<Observation[] 
 	if (!conversation) return undefined;
 
 	const accumulated = new Map<string, Observation>();
+	let reviewedNoObservations = false;
+
+	const markObservedNoObservations: AgentTool<typeof MarkObservedNoObservationsSchema> = {
+		name: "mark_observed_no_observations",
+		label: "Mark observed",
+		description: "Mark this chunk observed when it contains no durable observations to record. This tool call terminates the run.",
+		parameters: MarkObservedNoObservationsSchema,
+		execute: async (_id, _params: MarkObservedNoObservationsArgs) => {
+			reviewedNoObservations = true;
+			return { content: [{ type: "text", text: "Marked chunk observed with no durable observations." }], details: { reviewed: true }, terminate: true };
+		},
+	};
 
 	const recordObservations: AgentTool<typeof RecordObservationsSchema> = {
 		name: "record_observations",
@@ -111,7 +126,7 @@ ${joinOrEmpty(priorReflections)}
 CURRENT OBSERVATIONS:
 ${joinOrEmpty(priorObservations)}
 
-Compress the following new conversation chunk into observations by calling record_observations once with every durable observation to keep. Do not restate facts already present in current reflections or current observations. Prefer inline conversation timestamps when assigning times; fall back to the current local time above only if no message timestamp applies.
+Compress the following new conversation chunk into observations. If it contains durable observations, call record_observations once with every durable observation to keep. If it contains no durable observations, call mark_observed_no_observations. Do not restate facts already present in current reflections or current observations. Prefer inline conversation timestamps when assigning times; fall back to the current local time above only if no message timestamp applies.
 
 NEW CONVERSATION CHUNK:
 ${conversation}`;
@@ -126,10 +141,10 @@ ${conversation}`;
 		thinkingLevel: args.thinkingLevel,
 		systemPrompt: OBSERVER_SYSTEM,
 		userText,
-		tools: [recordObservations as AgentTool<any>],
+		tools: [recordObservations as AgentTool<any>, markObservedNoObservations as AgentTool<any>],
 		agentName: "observer",
 	});
 
-	if (accumulated.size === 0) return undefined;
+	if (accumulated.size === 0) return reviewedNoObservations ? [] : undefined;
 	return Array.from(accumulated.values());
 }

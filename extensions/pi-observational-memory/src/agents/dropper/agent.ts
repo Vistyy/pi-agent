@@ -28,11 +28,14 @@ interface RunDropperArgs {
 	thinkingLevel?: ModelThinkingLevel;
 }
 
+const MarkNoDropsSchema = Type.Object({});
+
 const DropObservationsSchema = Type.Object({
 	ids: Type.Array(Type.String({ minLength: 1 }), { minItems: 1 }),
 	reason: Type.Optional(Type.String()),
 });
 
+type MarkNoDropsArgs = Static<typeof MarkNoDropsSchema>;
 type DropObservationsArgs = Static<typeof DropObservationsSchema>;
 
 export function normalizeDropObservationIds(
@@ -138,11 +141,23 @@ export async function runDropper(args: RunDropperArgs): Promise<string[] | undef
 	let missingIdsCount = 0;
 	let duplicateInRequestCount = 0;
 	let duplicateInRunCount = 0;
+	let noDropsCallCount = 0;
+
+	const markNoDrops: AgentTool<typeof MarkNoDropsSchema> = {
+		name: "mark_no_drops",
+		label: "Mark no drops",
+		description: "Mark that no eligible observations are clearly safe to drop. This tool call terminates the run.",
+		parameters: MarkNoDropsSchema,
+		execute: async (_id, _params: MarkNoDropsArgs) => {
+			noDropsCallCount++;
+			return { content: [{ type: "text", text: "Marked no safe drops." }], details: { reviewed: true }, terminate: true };
+		},
+	};
 
 	const dropObservations: AgentTool<typeof DropObservationsSchema> = {
 		name: "drop_observations",
 		label: "Drop observations",
-		description: "Propose active observation ids that are safe to remove from compacted memory.",
+		description: "Propose one complete batch of active observation ids that are safe to remove from compacted memory. This tool call terminates the run.",
 		parameters: DropObservationsSchema,
 		execute: async (_id, params: DropObservationsArgs) => {
 			toolCallCount++;
@@ -187,11 +202,12 @@ export async function runDropper(args: RunDropperArgs): Promise<string[] | undef
 			return {
 				content: [{ type: "text", text: `Queued ${added} drop candidate${added === 1 ? "" : "s"}. Candidates this run: ${proposedDropIds.length}. Maximum drops allowed: ${maxDropsAllowed}.` }],
 				details: { added, totalCandidates: proposedDropIds.length, maxDropsAllowed },
+				terminate: true,
 			};
 		},
 	};
 
-	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nELIGIBLE OBSERVATIONS:\n${joinOrEmpty(eligibleObservations.map((observation) => observationToMemoryAgentLine(observation, coverageTierForObservation(observation, coverageById))))}\n\nEligible observations: ${eligibleObservations.length.toLocaleString()} of ${observations.length.toLocaleString()} active (~${observationTokens.toLocaleString()} tokens). Protected recent/unreviewed observations are omitted.\nMaximum drops allowed this run: ${maxDropsAllowed.toLocaleString()} observation${maxDropsAllowed === 1 ? "" : "s"}. This maximum is a hard safety cap, not a target. Drop fewer or none if fewer observations are clearly safe.`;
+	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nELIGIBLE OBSERVATIONS:\n${joinOrEmpty(eligibleObservations.map((observation) => observationToMemoryAgentLine(observation, coverageTierForObservation(observation, coverageById))))}\n\nEligible observations: ${eligibleObservations.length.toLocaleString()} of ${observations.length.toLocaleString()} active (~${observationTokens.toLocaleString()} tokens). Protected recent/unreviewed observations are omitted.\nMaximum drops allowed this run: ${maxDropsAllowed.toLocaleString()} observation${maxDropsAllowed === 1 ? "" : "s"}. This maximum is a hard safety cap, not a target. Call drop_observations once with every clearly safe drop, or mark_no_drops if none are clearly safe.`;
 	await runMemoryAgentLoop({
 		model,
 		apiKey,
@@ -202,14 +218,16 @@ export async function runDropper(args: RunDropperArgs): Promise<string[] | undef
 		thinkingLevel: args.thinkingLevel,
 		systemPrompt: DROPPER_SYSTEM,
 		userText,
-		tools: [dropObservations as AgentTool<any>],
+		tools: [dropObservations as AgentTool<any>, markNoDrops as AgentTool<any>],
 		agentName: "dropper",
 	});
 	const droppedIds = selectDropCandidates(proposedDropIds, observations, maxDropsAllowed, reflections, protectedObservationIds);
 	const reason = droppedIds.length > 0
 		? "selected_nonempty"
-		: toolCallCount === 0
-			? "no_tool_call"
+		: noDropsCallCount > 0
+			? "reviewed_no_drops"
+			: toolCallCount === 0
+				? "no_tool_call"
 			: proposedDropIds.length === 0
 				? "all_filtered"
 				: "selected_empty";
@@ -224,6 +242,7 @@ export async function runDropper(args: RunDropperArgs): Promise<string[] | undef
 		missingIdsCount,
 		duplicateInRequestCount,
 		duplicateInRunCount,
+		noDropsCallCount,
 		acceptedCandidateCount: proposedDropIds.length,
 		selectedDropsCount: droppedIds.length,
 		selectedDropTokens,

@@ -104,13 +104,14 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 	const markReviewedNoReflections: AgentTool<typeof MarkReviewedNoReflectionsSchema> = {
 		name: "mark_reviewed_no_reflections",
 		label: "Mark reviewed",
-		description: "Mark this observation set reviewed when no durable reflections should be added.",
+		description: "Mark this observation set reviewed when no durable reflections should be added. This tool call terminates the run.",
 		parameters: MarkReviewedNoReflectionsSchema,
 		execute: async (_id, _params: MarkReviewedNoReflectionsArgs) => {
 			reviewedNoReflectionsCallCount++;
 			return {
 				content: [{ type: "text", text: "Marked reviewed with no new reflections." }],
 				details: { reviewed: true },
+				terminate: true,
 			};
 		},
 	};
@@ -118,7 +119,7 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 	const recordReflections: AgentTool<typeof RecordReflectionsSchema> = {
 		name: "record_reflections",
 		label: "Record reflections",
-		description: "Record new durable reflections with supporting observation ids.",
+		description: "Record one complete batch of new durable reflections with supporting observation ids. This tool call terminates the run.",
 		parameters: RecordReflectionsSchema,
 		execute: async (_id, params: RecordReflectionsArgs) => {
 			toolCallCount++;
@@ -153,11 +154,12 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 			return {
 				content: [{ type: "text", text: `Recorded ${added} reflection${added === 1 ? "" : "s"}; ${duplicates} duplicate${duplicates === 1 ? "" : "s"}; ${rejected} rejected. Total this run: ${accumulated.size}.` }],
 				details: { added, duplicates, rejected, total: accumulated.size },
+				terminate: true,
 			};
 		},
 	};
 
-	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nCURRENT OBSERVATIONS:\n${joinOrEmpty(observations.map((observation) => observationToMemoryAgentLine(observation, coverageTierForObservation(observation, coverageById))))}\n\nReview these observations. Call record_reflections for durable new memory, or mark_reviewed_no_reflections if none should be added.`;
+	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nCURRENT OBSERVATIONS:\n${joinOrEmpty(observations.map((observation) => observationToMemoryAgentLine(observation, coverageTierForObservation(observation, coverageById))))}\n\nReview these observations. Call record_reflections once with every durable new reflection, or mark_reviewed_no_reflections if none should be added.`;
 	debugLog("reflector.prompt", {
 		reflectionCount: reflections.length,
 		observationCount: observations.length,
@@ -191,5 +193,6 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 		acceptedSupportIdCounts: summarizeSupportIdCounts(acceptedReflections),
 		coverageTransitions: summarizeCoverageTransitions(observations, coverageById, afterCoverageById),
 	});
-	return acceptedReflections.length > 0 ? acceptedReflections : undefined;
+	if (acceptedReflections.length > 0) return acceptedReflections;
+	return reviewedNoReflectionsCallCount > 0 ? [] : undefined;
 }

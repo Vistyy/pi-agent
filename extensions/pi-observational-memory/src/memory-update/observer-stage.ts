@@ -81,15 +81,15 @@ export async function runObserverStage(
 		chunk,
 		allowedSourceEntryIds: sourceEntryIds,
 	});
-	if (!observations || observations.length === 0) {
-		debugLog("observer.empty", { coversUpToId });
-		if (ctx.hasUI) ctx.ui?.notify("Observational memory: observer returned no observations", "warning");
+	if (!observations) {
+		debugLog("observer.no_tool_output", { coversUpToId });
+		if (ctx.hasUI) ctx.ui?.notify("Observational memory: observer returned no tool output", "warning");
 		return "continue";
 	}
 
 	const data = buildObservationsRecordedData(observations, coversUpToId);
 	if (!data) return "continue";
-	debugLog("observer.records", {
+	debugLog(observations.length === 0 ? "observer.reviewed_empty" : "observer.records", {
 		count: observations.length,
 		observationTokens: observationTokenSum(observations),
 		coversUpToId,
@@ -98,7 +98,9 @@ export async function runObserverStage(
 	if (runtime.compactHookInFlight) runtime.transientCompactionObservations.push(...observations);
 	debugLog("observer.appended", { count: observations.length, coversUpToId });
 	if (ctx.hasUI) ctx.ui?.notify(
-		`Observational memory: ${observations.length} observation${observations.length === 1 ? "" : "s"} recorded`,
+		observations.length === 0
+			? "Observational memory: observer marked chunk observed with no observations"
+			: `Observational memory: ${observations.length} observation${observations.length === 1 ? "" : "s"} recorded`,
 		"info",
 	);
 	return "continue";

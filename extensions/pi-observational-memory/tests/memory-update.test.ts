@@ -321,6 +321,7 @@ describe("memory update hook", () => {
 	});
 
 	it("waits for reflection coverage even when active observation pool is over target", async () => {
+		mockAgents.runReflector.mockResolvedValueOnce([]);
 		const entries = [
 			textCustomMessage("raw-1", "aaaaaaaa"),
 			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
@@ -380,6 +381,7 @@ describe("memory update hook", () => {
 	});
 
 	it("appends reflection review marker and no empty drop entries", async () => {
+		mockAgents.runReflector.mockResolvedValueOnce([]);
 		const entries = [textCustomMessage("raw-1", "aaaaaaaa"), observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" })];
 		const { fire, runLaunchedWork, pi, ctx } = setup({ entries, observeEveryMessages: 999 });
 
