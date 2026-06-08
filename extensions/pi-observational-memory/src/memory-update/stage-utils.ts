@@ -1,14 +1,15 @@
 import type { Runtime } from "../runtime.js";
 import { entryIndexById, latestReflectionReviewMarkerId, type Entry, type Observation } from "../session-ledger/index.js";
+import type { ModelThinkingLevel } from "@earendil-works/pi-ai";
 import type { ResolvedModel } from "./types.js";
 
-export function commonAgentArgs(runtime: Runtime, resolved: ResolvedModel) {
+export function commonAgentArgs(runtime: Runtime, resolved: ResolvedModel, thinkingOverride?: ModelThinkingLevel) {
 	return {
 		model: resolved.model as any,
 		apiKey: resolved.apiKey,
 		headers: resolved.headers,
 		maxTurns: runtime.config.agentMaxTurns,
-		thinkingLevel: runtime.config.model?.thinking ?? "low",
+		thinkingLevel: thinkingOverride ?? runtime.config.model?.thinking ?? "low",
 	};
 }
 

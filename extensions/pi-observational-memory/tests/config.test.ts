@@ -38,13 +38,16 @@ describe("config", () => {
 		expect(DEFAULTS).toEqual({
 			strategy: STRATEGY.additive,
 			observeEveryMessages: 32,
-			reflectEveryObservations: 16,
+			reflectEveryObservations: 4,
 			maxInitialObserveTokens: 100000,
 			observationsPoolMaxTokens: 20000,
 			dropWhenActiveObservationsOver: 80,
 			protectRecentObservations: 32,
 			agentMaxTurns: 16,
 			additivePatchMaxTokens: 2000,
+			observerThinking: "low",
+			reflectorThinking: "xhigh",
+			dropperThinking: "xhigh",
 			debugLog: false,
 		});
 		expect(loadConfig(cwd)).toEqual(DEFAULTS);
@@ -62,6 +65,9 @@ describe("config", () => {
 				agentMaxTurns: 5,
 				additivePatchMaxTokens: 500,
 				model: { provider: "anthropic", id: "global", thinking: "medium" },
+				observerThinking: "low",
+				reflectorThinking: "high",
+				dropperThinking: "xhigh",
 				debugLog: true,
 			},
 		});
@@ -83,6 +89,9 @@ describe("config", () => {
 			agentMaxTurns: 5,
 			additivePatchMaxTokens: 500,
 			model: { provider: "openai", id: "project", thinking: "low" },
+			observerThinking: "low",
+			reflectorThinking: "high",
+			dropperThinking: "xhigh",
 			debugLog: true,
 		});
 	});
@@ -98,6 +107,9 @@ describe("config", () => {
 				dropWhenActiveObservationsOver: "10000",
 				agentMaxTurns: null,
 				model: { provider: "anthropic", id: "", thinking: "huge" },
+				observerThinking: "huge",
+				reflectorThinking: 10,
+				dropperThinking: null,
 				debugLog: "true",
 			},
 		});

@@ -16,6 +16,9 @@ const suite = argValue('--suite') ?? 'suites/memory-multi-compact';
 const out = argValue('--out') ?? `runs/memory-hard-${variant}-${new Date().toISOString().replace(/[:.]/g, '-')}`;
 const model = argValue('--model') ?? 'openai-codex/gpt-5.4-mini';
 const thinking = (argValue('--thinking') ?? 'xhigh') as ModelThinkingLevel;
+const observerThinking = (argValue('--observer-thinking') ?? thinking) as ModelThinkingLevel;
+const reflectorThinking = (argValue('--reflector-thinking') ?? thinking) as ModelThinkingLevel;
+const dropperThinking = (argValue('--dropper-thinking') ?? thinking) as ModelThinkingLevel;
 const concurrency = argValue('--concurrency') ?? '1';
 const forcedMemoryPrep = process.argv.includes('--forced-memory-prep');
 const prepareTurns = argValue('--memory-prepare-turns') ?? '1';
@@ -37,11 +40,14 @@ function makeCwd(name: string, modelSpec: string): string {
     'observational-memory': {
       strategy: name === 'om-replacement' ? 'replacement' : 'additive',
       observeEveryMessages: 32,
-      reflectEveryObservations: 16,
+      reflectEveryObservations: 4,
       dropWhenActiveObservationsOver: 80,
       protectRecentObservations: 32,
       agentMaxTurns: 4,
       model: configuredModel(modelSpec),
+      observerThinking,
+      reflectorThinking,
+      dropperThinking,
       debugLog: true,
     },
   }, null, 2));

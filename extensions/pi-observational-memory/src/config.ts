@@ -27,19 +27,25 @@ export interface Config {
 	agentMaxTurns: number;
 	additivePatchMaxTokens: number;
 	model?: ConfiguredModel;
+	observerThinking?: ModelThinkingLevel;
+	reflectorThinking?: ModelThinkingLevel;
+	dropperThinking?: ModelThinkingLevel;
 	debugLog: boolean;
 }
 
 export const DEFAULTS: Config = {
 	strategy: STRATEGY.additive,
 	observeEveryMessages: 32,
-	reflectEveryObservations: 16,
+	reflectEveryObservations: 4,
 	dropWhenActiveObservationsOver: 80,
 	protectRecentObservations: 32,
 	maxInitialObserveTokens: 100_000,
 	observationsPoolMaxTokens: 20_000,
 	agentMaxTurns: 16,
 	additivePatchMaxTokens: 2_000,
+	observerThinking: "low",
+	reflectorThinking: "xhigh",
+	dropperThinking: "xhigh",
 	debugLog: false,
 };
 
@@ -95,6 +101,9 @@ function normalizeSettingsConfig(value: Record<string, unknown>): Partial<Config
 	}
 	if (isMemoryStrategy(value.strategy)) normalized.strategy = value.strategy;
 	if (typeof value.debugLog === "boolean") normalized.debugLog = value.debugLog;
+	if (isThinkingLevel(value.observerThinking)) normalized.observerThinking = value.observerThinking;
+	if (isThinkingLevel(value.reflectorThinking)) normalized.reflectorThinking = value.reflectorThinking;
+	if (isThinkingLevel(value.dropperThinking)) normalized.dropperThinking = value.dropperThinking;
 	const model = normalizeModel(value.model);
 	if (model) normalized.model = model;
 	return normalized;

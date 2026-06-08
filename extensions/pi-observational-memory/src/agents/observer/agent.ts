@@ -63,9 +63,8 @@ export async function runObserver(args: RunObserverArgs): Promise<Observation[] 
 		name: "record_observations",
 		label: "Record observations",
 		description:
-			"Record a batch of new observations distilled from the conversation chunk. " +
-			"Call this multiple times as you work through the chunk. Stop calling when coverage is complete, " +
-			"then emit a short plain-text confirmation to end the run.",
+			"Record one complete batch of observations distilled from the conversation chunk. " +
+			"This tool call terminates the run, so include every durable observation to keep in this single call.",
 		parameters: RecordObservationsSchema,
 		execute: async (_id, params: RecordObservationsArgs) => {
 			let added = 0;
@@ -98,9 +97,8 @@ export async function runObserver(args: RunObserverArgs): Promise<Observation[] 
 				`Recorded ${added} new observation${added === 1 ? "" : "s"} ` +
 				(duplicates > 0 ? `(${duplicates} duplicate${duplicates === 1 ? "" : "s"} skipped).` : ".") +
 				rejectedPart +
-				` Total so far this run: ${accumulated.size}. ` +
-				`Continue if the chunk still has uncovered content; otherwise stop calling the tool and emit a short plain-text confirmation.`;
-			return { content: [{ type: "text", text: ack }], details: { added, duplicates, rejected, total: accumulated.size } };
+				` Total this run: ${accumulated.size}.`;
+			return { content: [{ type: "text", text: ack }], details: { added, duplicates, rejected, total: accumulated.size }, terminate: true };
 		},
 	};
 
@@ -113,7 +111,7 @@ ${joinOrEmpty(priorReflections)}
 CURRENT OBSERVATIONS:
 ${joinOrEmpty(priorObservations)}
 
-Compress the following new conversation chunk into observations by calling record_observations one or more times. Do not restate facts already present in current reflections or current observations. Prefer inline conversation timestamps when assigning times; fall back to the current local time above only if no message timestamp applies. Stop calling the tool and reply with a short plain-text confirmation once the chunk is fully covered.
+Compress the following new conversation chunk into observations by calling record_observations once with every durable observation to keep. Do not restate facts already present in current reflections or current observations. Prefer inline conversation timestamps when assigning times; fall back to the current local time above only if no message timestamp applies.
 
 NEW CONVERSATION CHUNK:
 ${conversation}`;

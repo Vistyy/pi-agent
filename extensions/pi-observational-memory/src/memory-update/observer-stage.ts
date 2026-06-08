@@ -75,7 +75,7 @@ export async function runObserverStage(
 	if (!resolved) return "abort";
 
 	const observations = await runObserver({
-		...commonAgentArgs(runtime, resolved),
+		...commonAgentArgs(runtime, resolved, runtime.config.observerThinking),
 		priorReflections,
 		priorObservations,
 		chunk,
