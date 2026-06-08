@@ -71,7 +71,7 @@ export async function runDropperStage(
 		.map((observation) => observation.id);
 
 	const droppedIds = await runDropper({
-		...commonAgentArgs(runtime, resolved, runtime.config.dropperThinking),
+		...commonAgentArgs(pi, runtime, resolved, runtime.config.dropperThinking),
 		reflections: folded.reflections,
 		observations: folded.activeObservations,
 		maxDropsAllowed: metrics.maxDropsAllowed,

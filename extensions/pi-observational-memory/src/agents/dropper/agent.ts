@@ -3,7 +3,7 @@ import type { Model, ModelThinkingLevel } from "@earendil-works/pi-ai";
 import { Type } from "@earendil-works/pi-ai";
 import type { Static } from "typebox";
 import { debugLog } from "../../debug-log.js";
-import { joinOrEmpty, runMemoryAgentLoop } from "../common.js";
+import { joinOrEmpty, runMemoryAgentLoop, type MemoryAgentUsage } from "../common.js";
 import { observationTokenEstimate, observationTokenSum, reflectionToSummaryLine, type Observation, type Reflection } from "../../session-ledger/index.js";
 import { DROPPER_SYSTEM } from "./prompts.js";
 import {
@@ -26,6 +26,7 @@ interface RunDropperArgs {
 	agentLoop?: typeof agentLoop;
 	maxTurns?: number;
 	thinkingLevel?: ModelThinkingLevel;
+	onUsage?: (usage: MemoryAgentUsage) => void;
 }
 
 const MarkNoDropsSchema = Type.Object({});
@@ -220,6 +221,7 @@ export async function runDropper(args: RunDropperArgs): Promise<string[] | undef
 		userText,
 		tools: [dropObservations as AgentTool<any>, markNoDrops as AgentTool<any>],
 		agentName: "dropper",
+		onUsage: args.onUsage,
 	});
 	const droppedIds = selectDropCandidates(proposedDropIds, observations, maxDropsAllowed, reflections, protectedObservationIds);
 	const reason = droppedIds.length > 0

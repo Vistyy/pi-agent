@@ -54,7 +54,7 @@ export async function runReflectorStage(
 	if (!resolved) return "abort";
 
 	const reflections = await runReflector({
-		...commonAgentArgs(runtime, resolved, runtime.config.reflectorThinking),
+		...commonAgentArgs(pi, runtime, resolved, runtime.config.reflectorThinking),
 		reflections: folded.reflections,
 		observations: folded.activeObservations,
 	});

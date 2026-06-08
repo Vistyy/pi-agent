@@ -3,6 +3,7 @@ import { STRATEGY } from "../config.js";
 import { debugLog, withDebugLogContext } from "../debug-log.js";
 import { type ResolveResult, type Runtime } from "../runtime.js";
 import {
+	OM_AGENT_RUN_RECORDED,
 	OM_OBSERVATIONS_RECORDED,
 	entryIndexById,
 	foldLedger,
@@ -124,17 +125,36 @@ export async function ensureMemoryUpdatedBeforeCompaction(
 }
 
 async function runMemoryUpdateStage(
+	pi: ExtensionAPI,
 	runtime: Runtime,
 	ctx: MemoryUpdateCtx,
 	stage: "observer" | "reflector" | "dropper",
 	run: () => Promise<StageOutcome>,
 ): Promise<StageOutcome> {
 	runtime.memoryUpdatePhase = stage;
+	const started = Date.now();
+	const before = { ...runtime.memoryAgentUsage[stage] };
+	let outcome: StageOutcome = "abort";
+	let reason: string | undefined;
 	try {
-		return await run();
+		outcome = await run();
+		return outcome;
 	} catch (error) {
-		debugLog(`${stage}.error`, { errorMessage: runtime.recordMemoryUpdateStageError(ctx, stage, error) });
+		reason = runtime.recordMemoryUpdateStageError(ctx, stage, error);
+		debugLog(`${stage}.error`, { errorMessage: reason });
 		return "abort";
+	} finally {
+		const after = runtime.memoryAgentUsage[stage];
+		pi.appendEntry(OM_AGENT_RUN_RECORDED, {
+			schemaVersion: 1,
+			agent: stage,
+			status: outcome === "abort" ? "error" : "ok",
+			reason,
+			durationMs: Date.now() - started,
+			requestCount: after.requests - before.requests,
+			costTotal: after.cost - before.cost,
+			totalTokens: after.totalTokens - before.totalTokens,
+		});
 	}
 }
 
@@ -147,6 +167,7 @@ export async function runMemoryUpdate(
 	const resolveModel = makeModelResolver(runtime, ctx);
 
 	const observerOutcome = await runMemoryUpdateStage(
+		pi,
 		runtime,
 		ctx,
 		"observer",
@@ -155,6 +176,7 @@ export async function runMemoryUpdate(
 	if (observerOutcome === "abort") return;
 
 	const reflectorOutcome = await runMemoryUpdateStage(
+		pi,
 		runtime,
 		ctx,
 		"reflector",
@@ -163,6 +185,7 @@ export async function runMemoryUpdate(
 	if (reflectorOutcome === "abort") return;
 
 	await runMemoryUpdateStage(
+		pi,
 		runtime,
 		ctx,
 		"dropper",

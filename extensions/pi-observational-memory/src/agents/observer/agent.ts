@@ -3,7 +3,7 @@ import type { Model, ModelThinkingLevel } from "@earendil-works/pi-ai";
 import { Type } from "@earendil-works/pi-ai";
 import type { Static } from "typebox";
 import { hashId } from "../../memory/ids.js";
-import { joinOrEmpty, normalizeAllowedIdsStrict, runMemoryAgentLoop } from "../common.js";
+import { joinOrEmpty, normalizeAllowedIdsStrict, runMemoryAgentLoop, type MemoryAgentUsage } from "../common.js";
 import { OBSERVER_SYSTEM } from "./prompts.js";
 import { nowTimestamp, truncateRecordContent } from "../../memory/serialize.js";
 import type { Observation } from "../../session-ledger/index.js";
@@ -20,6 +20,7 @@ interface RunObserverArgs {
 	agentLoop?: typeof agentLoop;
 	maxTurns?: number;
 	thinkingLevel?: ModelThinkingLevel;
+	onUsage?: (usage: MemoryAgentUsage) => void;
 }
 
 export const OBSERVATION_TIMESTAMP_PATTERN = "^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$";
@@ -143,6 +144,7 @@ ${conversation}`;
 		userText,
 		tools: [recordObservations as AgentTool<any>, markObservedNoObservations as AgentTool<any>],
 		agentName: "observer",
+		onUsage: args.onUsage,
 	});
 
 	if (accumulated.size === 0) return reviewedNoObservations ? [] : undefined;

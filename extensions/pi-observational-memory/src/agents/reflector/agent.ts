@@ -4,7 +4,7 @@ import { Type } from "@earendil-works/pi-ai";
 import type { Static } from "typebox";
 import { debugLog } from "../../debug-log.js";
 import { hashId } from "../../memory/ids.js";
-import { joinOrEmpty, normalizeAllowedIdsStrict, runMemoryAgentLoop } from "../common.js";
+import { joinOrEmpty, normalizeAllowedIdsStrict, runMemoryAgentLoop, type MemoryAgentUsage } from "../common.js";
 import { truncateRecordContent } from "../../memory/serialize.js";
 import { REFLECTOR_SYSTEM } from "./prompts.js";
 import { estimateStringTokens } from "../../memory/token-estimate.js";
@@ -28,6 +28,7 @@ interface RunReflectorArgs {
 	agentLoop?: typeof agentLoop;
 	maxTurns?: number;
 	thinkingLevel?: ModelThinkingLevel;
+	onUsage?: (usage: MemoryAgentUsage) => void;
 }
 
 const MarkReviewedNoReflectionsSchema = Type.Object({});
@@ -177,6 +178,7 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 		userText,
 		tools: [recordReflections as AgentTool<any>, markReviewedNoReflections as AgentTool<any>],
 		agentName: "reflector",
+		onUsage: args.onUsage,
 	});
 	const acceptedReflections = Array.from(accumulated.values());
 	const afterCoverageById = reflectionCoverageMap(observations, [...reflections, ...acceptedReflections]);

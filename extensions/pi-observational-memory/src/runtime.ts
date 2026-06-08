@@ -1,4 +1,5 @@
 import { type Config, DEFAULTS, loadConfig } from "./config.js";
+import type { MemoryAgentName, MemoryAgentUsage } from "./agents/common.js";
 
 export type ResolveResult =
 	| { ok: true; model: unknown; apiKey: string; headers?: Record<string, string> }
@@ -20,6 +21,16 @@ export interface LaunchCtx {
 	ui?: { notify: Notify };
 }
 
+export type UsageTotals = {
+	input: number;
+	output: number;
+	cacheRead: number;
+	cacheWrite: number;
+	totalTokens: number;
+	cost: number;
+	requests: number;
+};
+
 export class Runtime {
 	config: Config = { ...DEFAULTS };
 	configLoaded = false;
@@ -33,11 +44,39 @@ export class Runtime {
 	lastDropperError: string | undefined;
 	transientCompactionObservations: import("./session-ledger/index.js").Observation[] = [];
 	transientCompactionReflections: import("./session-ledger/index.js").Reflection[] = [];
+	memoryAgentUsage: Record<MemoryAgentName | "unknown", UsageTotals> = {
+		observer: this.emptyUsageTotals(),
+		reflector: this.emptyUsageTotals(),
+		dropper: this.emptyUsageTotals(),
+		unknown: this.emptyUsageTotals(),
+	};
 
 	ensureConfig(cwd: string): void {
 		if (this.configLoaded) return;
 		this.config = loadConfig(cwd);
 		this.configLoaded = true;
+	}
+
+	recordMemoryAgentUsage(event: MemoryAgentUsage): void {
+		const key = event.agent ?? "unknown";
+		const totals = this.memoryAgentUsage[key];
+		const usage = event.usage as Record<string, unknown>;
+		totals.input += this.numberValue(usage.input);
+		totals.output += this.numberValue(usage.output);
+		totals.cacheRead += this.numberValue(usage.cacheRead);
+		totals.cacheWrite += this.numberValue(usage.cacheWrite);
+		totals.totalTokens += this.numberValue(usage.totalTokens);
+		const cost = usage.cost as Record<string, unknown> | undefined;
+		totals.cost += this.numberValue(cost?.total);
+		totals.requests++;
+	}
+
+	private emptyUsageTotals(): UsageTotals {
+		return { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: 0, requests: 0 };
+	}
+
+	private numberValue(value: unknown): number {
+		return typeof value === "number" && Number.isFinite(value) ? value : 0;
 	}
 
 	async resolveModel(ctx: ResolveCtx): Promise<ResolveResult> {

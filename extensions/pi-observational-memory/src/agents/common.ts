@@ -4,6 +4,18 @@ import { AGENT_LOOP_MAX_TOKENS, boundedMaxTokens } from "./model-budget.js";
 import { debugLog } from "../debug-log.js";
 import { estimateStringTokens } from "../memory/token-estimate.js";
 
+export type MemoryAgentName = "observer" | "reflector" | "dropper";
+
+export type MemoryAgentUsage = {
+	agent: MemoryAgentName | undefined;
+	requestIndex?: number;
+	model?: { provider?: string; id?: string };
+	thinkingLevel?: ModelThinkingLevel;
+	durationMs?: number;
+	stopReason?: string;
+	usage: unknown;
+};
+
 export type MemoryAgentLoopArgs = {
 	model: Model<any>;
 	apiKey: string;
@@ -15,7 +27,8 @@ export type MemoryAgentLoopArgs = {
 	systemPrompt: string;
 	userText: string;
 	tools: AgentTool<any>[];
-	agentName?: "observer" | "reflector" | "dropper";
+	agentName?: MemoryAgentName;
+	onUsage?: (usage: MemoryAgentUsage) => void;
 };
 
 export function joinOrEmpty(items: readonly string[]): string {
@@ -86,12 +99,24 @@ export async function runMemoryAgentLoop(args: MemoryAgentLoopArgs): Promise<voi
 		const originalResult = stream.result.bind(stream);
 		stream.result = async () => {
 			const result = await originalResult();
+			const usage = (result as { usage?: unknown }).usage;
+			const stopReason = (result as { stopReason?: unknown }).stopReason;
+			const durationMs = Date.now() - requestStarted;
+			if (usage) args.onUsage?.({
+				agent: args.agentName,
+				requestIndex: providerRequestCount,
+				model: { provider: (model as { provider?: string }).provider, id: (model as { id?: string }).id },
+				thinkingLevel,
+				durationMs,
+				stopReason: typeof stopReason === "string" ? stopReason : undefined,
+				usage,
+			});
 			debugLog("memory_agent.provider_result", {
 				agent: args.agentName,
 				requestIndex: providerRequestCount,
-				durationMs: Date.now() - requestStarted,
-				usage: (result as { usage?: unknown }).usage,
-				stopReason: (result as { stopReason?: unknown }).stopReason,
+				durationMs,
+				usage,
+				stopReason,
 			});
 			return result;
 		};

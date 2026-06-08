@@ -6,3 +6,4 @@ export * from "./recall.js";
 export * from "./render-summary.js";
 export * from "./render-patch.js";
 export * from "./memory-tokens.js";
+export * from "./agent-usage.js";

@@ -11,6 +11,8 @@ import {
 	latestCompactedProjection,
 	observationTokenSum,
 	reflectionTokenSum,
+	foldAgentUsage,
+	type AgentUsageTotals,
 	type Entry,
 } from "../session-ledger/index.js";
 
@@ -29,6 +31,14 @@ function removedSuffix(count: number): string | undefined {
 function appendSuffixes(line: string, suffixes: (string | undefined)[]): string {
 	const rendered = suffixes.filter((suffix): suffix is string => suffix !== undefined);
 	return rendered.length > 0 ? `${line} ${rendered.join(" ")}` : line;
+}
+
+function money(value: number): string {
+	return `$${value.toFixed(value < 1 ? 4 : 2)}`;
+}
+
+function usageLine(label: string, usage: AgentUsageTotals): string {
+	return `${label}: ${money(usage.cost)} / ${usage.requests.toLocaleString()} request${usage.requests === 1 ? "" : "s"} / ${usage.totalTokens.toLocaleString()} tokens`;
 }
 
 export function registerStatusCommand(pi: ExtensionAPI, runtime: Runtime): void {
@@ -59,6 +69,7 @@ export function registerStatusCommand(pi: ExtensionAPI, runtime: Runtime): void 
 			const obsProgress = sourceEntryCountSinceObservationCoverage(entries);
 			const reflectionProgress = observationsSinceReflectionCoverage(entries, folded.activeObservations).length;
 			const reflectionReviewLag = sourceEntryCountSinceReflectionReviewCoverage(entries);
+			const memoryUsage = foldAgentUsage(entries);
 
 			const modeLines = [
 				"── Config ──",
@@ -80,6 +91,13 @@ export function registerStatusCommand(pi: ExtensionAPI, runtime: Runtime): void 
 				`Drop protected recent:   ${(runtime.config.protectRecentObservations ?? 20).toLocaleString()} observations`,
 				`Reflection review lag:   ${reflectionReviewLag.toLocaleString()} source entries`,
 				`Reflection pool:         ~${visibleReflectionTokens.toLocaleString()} tokens`,
+				"",
+				"── OM agent cost ──",
+				usageLine("Total", memoryUsage.total),
+				usageLine("Observer", memoryUsage.observer),
+				usageLine("Reflector", memoryUsage.reflector),
+				usageLine("Dropper", memoryUsage.dropper),
+				...(memoryUsage.unknown.requests > 0 ? [usageLine("Unknown", memoryUsage.unknown)] : []),
 			];
 
 			if (runtime.memoryUpdateInFlight || runtime.compactHookInFlight) {
