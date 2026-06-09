@@ -12,8 +12,9 @@ vi.mock("../src/agents/reflector/agent.js", () => ({ runReflector: mockAgents.ru
 vi.mock("../src/agents/dropper/agent.js", () => ({ runDropper: mockAgents.runDropper }));
 
 import { ensureMemoryUpdatedBeforeCompaction, registerMemoryUpdateHook } from "../src/hooks/memory-update.js";
-import type { Runtime } from "../src/runtime.js";
+import { Runtime } from "../src/runtime.js";
 import {
+	OM_AGENT_RUN_RECORDED,
 	OM_OBSERVATIONS_DROPPED,
 	OM_OBSERVATIONS_RECORDED,
 	OM_REFLECTIONS_RECORDED,
@@ -59,6 +60,7 @@ function setup(args: {
 	});
 	const pi = memoryUpdateApi(handlers, appendEntry);
 	let launchedWork: (() => Promise<void>) | undefined;
+	const usageRuntime = new Runtime();
 	const runtime = {
 		config: {
 			strategy: args.strategy ?? "additive",
@@ -77,6 +79,8 @@ function setup(args: {
 		lastObserverError: undefined as string | undefined,
 		lastReflectorError: undefined as string | undefined,
 		lastDropperError: undefined as string | undefined,
+		memoryAgentUsage: usageRuntime.memoryAgentUsage,
+		recordMemoryAgentUsage: usageRuntime.recordMemoryAgentUsage.bind(usageRuntime),
 		ensureConfig: vi.fn(),
 		resolveModel: vi.fn(async () => ({ ok: true, model: { reasoning: true }, apiKey: "key", headers: { h: "v" } })),
 		launchMemoryUpdateTask: vi.fn((_ctx, work) => {
@@ -114,6 +118,9 @@ function setup(args: {
 		runLaunchedWork: async () => launchedWork?.(),
 		getEntries: () => entries,
 		getAppends: () => appendEntry.mock.calls.map(([customType, data]) => ({ customType, data })),
+		getMemoryAppends: () => appendEntry.mock.calls
+			.map(([customType, data]) => ({ customType, data }))
+			.filter((entry) => entry.customType !== OM_AGENT_RUN_RECORDED),
 	};
 }
 
@@ -124,14 +131,14 @@ describe("memory update hook", () => {
 		const obs = observation("bbbbbbbbbbbb", { sourceEntryIds: ["raw-1"] });
 		mockAgents.runObserver.mockResolvedValueOnce([obs]);
 		const entries = [textCustomMessage("raw-1", "aaaa"), textCustomMessage("raw-2", "bbbb")];
-		const { pi, runtime, ctx, getAppends } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 999 });
+		const { pi, runtime, ctx, getMemoryAppends } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 999 });
 
 		await ensureMemoryUpdatedBeforeCompaction(pi as never, runtime as Runtime, ctx as never, { firstKeptEntryId: "raw-2" });
 
 		expect(mockAgents.runObserver).toHaveBeenCalledOnce();
 		expect(mockAgents.runObserver.mock.calls[0][0].chunk).toContain("[Source entry id: raw-1]");
 		expect(mockAgents.runObserver.mock.calls[0][0].chunk).not.toContain("[Source entry id: raw-2]");
-		expect(getAppends()).toEqual([
+		expect(getMemoryAppends()).toEqual([
 			expect.objectContaining({ customType: OM_OBSERVATIONS_RECORDED }),
 		]);
 	});
@@ -222,13 +229,13 @@ describe("memory update hook", () => {
 
 	it("skips initial observer backfill when the existing session is too large", async () => {
 		const entries = [textCustomMessage("raw-1", "aaaaaaaa")];
-		const { fire, runLaunchedWork, getAppends, ctx } = setup({ entries, maxInitialObserveTokens: 1 });
+		const { fire, runLaunchedWork, getMemoryAppends, ctx } = setup({ entries, maxInitialObserveTokens: 1 });
 
 		fire();
 		await runLaunchedWork();
 
 		expect(mockAgents.runObserver).not.toHaveBeenCalled();
-		expect(getAppends()).toEqual([
+		expect(getMemoryAppends()).toEqual([
 			{ customType: OM_OBSERVATIONS_RECORDED, data: { observations: [], coversUpToId: "raw-1" } },
 		]);
 		expect(ctx.ui.notify).toHaveBeenCalledWith(
@@ -239,25 +246,25 @@ describe("memory update hook", () => {
 
 	it("observer no-output appends nothing and does not fake observation coverage", async () => {
 		const entries = [textCustomMessage("raw-1", "aaaaaaaa")];
-		const { fire, runLaunchedWork, getAppends } = setup({ entries });
+		const { fire, runLaunchedWork, getMemoryAppends } = setup({ entries });
 
 		fire();
 		await runLaunchedWork();
 
-		expect(getAppends()).toEqual([]);
+		expect(getMemoryAppends()).toEqual([]);
 		expect(mockAgents.runReflector).not.toHaveBeenCalled();
 		expect(mockAgents.runDropper).not.toHaveBeenCalled();
 	});
 
 	it("model resolution failure skips appending and notifies once", async () => {
 		const entries = [textCustomMessage("raw-1", "aaaaaaaa")];
-		const { fire, runLaunchedWork, pi, runtime, ctx } = setup({ entries });
+		const { fire, runLaunchedWork, getMemoryAppends, runtime, ctx } = setup({ entries });
 		runtime.resolveModel.mockResolvedValueOnce({ ok: false, reason: "no model" });
 
 		fire();
 		await runLaunchedWork();
 
-		expect(pi.appendEntry).not.toHaveBeenCalled();
+		expect(getMemoryAppends()).toEqual([]);
 		expect(ctx.ui.notify).toHaveBeenCalledWith("Observational memory: observer skipped — no model", "warning");
 	});
 
@@ -266,14 +273,14 @@ describe("memory update hook", () => {
 		const newRef = reflection("ffffffffffff", ["aaaaaaaaaaaa"]);
 		mockAgents.runReflector.mockResolvedValueOnce([newRef]);
 		const entries = [textCustomMessage("raw-1", "aaaaaaaa")];
-		const { fire, runLaunchedWork, getAppends } = setup({ entries });
+		const { fire, runLaunchedWork, getMemoryAppends } = setup({ entries });
 
 		fire();
 		await runLaunchedWork();
 
 		expect(mockAgents.runObserver).toHaveBeenCalled();
 		expect(mockAgents.runReflector).toHaveBeenCalledWith(expect.objectContaining({ observations: [obsA] }));
-		expect(getAppends()).toEqual([
+		expect(getMemoryAppends()).toEqual([
 			{ customType: OM_OBSERVATIONS_RECORDED, data: { observations: [obsA], coversUpToId: "raw-1" } },
 			{ customType: OM_REFLECTIONS_RECORDED, data: { reflections: [newRef], coversUpToId: "raw-1" } },
 		]);
@@ -307,14 +314,14 @@ describe("memory update hook", () => {
 			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
 			textCustomMessage("raw-2", "bbbbbbbb"),
 		];
-		const { fire, runLaunchedWork, getAppends } = setup({ entries, observeEveryMessages: 999, dropWhenActiveObservationsOver: 0 });
+		const { fire, runLaunchedWork, getMemoryAppends } = setup({ entries, observeEveryMessages: 999, dropWhenActiveObservationsOver: 0 });
 
 		fire();
 		await runLaunchedWork();
 
 		expect(mockAgents.runReflector).toHaveBeenCalled();
 		expect(mockAgents.runDropper).toHaveBeenCalledWith(expect.objectContaining({ reflections: [newRef], observations: [obsA] }));
-		expect(getAppends()).toEqual([
+		expect(getMemoryAppends()).toEqual([
 			{ customType: OM_REFLECTIONS_RECORDED, data: { reflections: [newRef], coversUpToId: "raw-1" } },
 			{ customType: OM_OBSERVATIONS_DROPPED, data: { observationIds: ["aaaaaaaaaaaa"], coversUpToId: "raw-1" } },
 		]);
@@ -347,13 +354,13 @@ describe("memory update hook", () => {
 			textCustomMessage("raw-2", "bbbbbbbb"),
 			observationsRecordedEntry("om-obs-b", { observations: [obsB], coversUpToId: "raw-2" }),
 		];
-		const { fire, runLaunchedWork, getAppends } = setup({ entries, observeEveryMessages: 999, dropWhenActiveObservationsOver: 0 });
+		const { fire, runLaunchedWork, getMemoryAppends } = setup({ entries, observeEveryMessages: 999, dropWhenActiveObservationsOver: 0 });
 
 		fire();
 		await runLaunchedWork();
 
 		expect(mockAgents.runDropper).toHaveBeenCalledWith(expect.objectContaining({ reflections: [newRef] }));
-		expect(getAppends()).toEqual([
+		expect(getMemoryAppends()).toEqual([
 			{ customType: OM_REFLECTIONS_RECORDED, data: { reflections: [newRef], coversUpToId: "raw-2" } },
 			{ customType: OM_OBSERVATIONS_DROPPED, data: { observationIds: ["bbbbbbbbbbbb"], coversUpToId: "raw-2" } },
 		]);
@@ -368,14 +375,14 @@ describe("memory update hook", () => {
 			reflectionsRecordedEntry("om-ref", { reflections: [ref], coversUpToId: "raw-1" }),
 			textCustomMessage("raw-2", "bbbbbbbb"),
 		];
-		const { fire, runLaunchedWork, getAppends } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 1, dropWhenActiveObservationsOver: 0 });
+		const { fire, runLaunchedWork, getMemoryAppends } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 1, dropWhenActiveObservationsOver: 0 });
 
 		fire();
 		await runLaunchedWork();
 
 		expect(mockAgents.runReflector).not.toHaveBeenCalled();
 		expect(mockAgents.runDropper).toHaveBeenCalledWith(expect.objectContaining({ reflections: [ref], observations: [obsA] }));
-		expect(getAppends()).toEqual([
+		expect(getMemoryAppends()).toEqual([
 			{ customType: OM_OBSERVATIONS_DROPPED, data: { observationIds: ["aaaaaaaaaaaa"], coversUpToId: "raw-1" } },
 		]);
 	});
@@ -411,7 +418,7 @@ describe("memory update hook", () => {
 		await reflectorFailure.runLaunchedWork();
 		expect(reflectorFailure.runtime.lastReflectorError).toBe("reflect failed");
 		expect(mockAgents.runDropper).not.toHaveBeenCalled();
-		expect(reflectorFailure.pi.appendEntry).not.toHaveBeenCalled();
+		expect(reflectorFailure.getMemoryAppends()).toEqual([]);
 
 		mockAgents.runReflector.mockReset();
 		const newRef = reflection("ffffffffffff", ["aaaaaaaaaaaa"]);
@@ -422,7 +429,8 @@ describe("memory update hook", () => {
 		dropperFailure.fire();
 		await dropperFailure.runLaunchedWork();
 		expect(dropperFailure.runtime.lastDropperError).toBe("drop failed");
-		expect(dropperFailure.pi.appendEntry).toHaveBeenCalledTimes(1);
-		expect(dropperFailure.pi.appendEntry).toHaveBeenCalledWith(OM_REFLECTIONS_RECORDED, { reflections: [newRef], coversUpToId: "raw-1" });
+		expect(dropperFailure.getMemoryAppends()).toEqual([
+			{ customType: OM_REFLECTIONS_RECORDED, data: { reflections: [newRef], coversUpToId: "raw-1" } },
+		]);
 	});
 });

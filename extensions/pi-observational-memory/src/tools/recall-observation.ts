@@ -450,6 +450,7 @@ export const recallObservationTool = defineTool({
 		"Do not use recall as semantic search or transcript browsing; you must already have a specific 12-character memory id.",
 		"Do not recall every id preemptively. Recall only when exact source context will materially improve the next action.",
 	],
+	executionMode: "parallel",
 	parameters: Type.Object({
 		id: Type.String({
 			pattern: "^[a-f0-9]{12}$",

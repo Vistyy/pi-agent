@@ -108,9 +108,9 @@ describe("compaction hook", () => {
 
 		expect(result.compaction?.details.fullFold).toBe(false);
 		expect(result.compaction?.details.observations.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa"]);
-		expect(result.compaction.details.reflections).toEqual([]);
+		expect(result.compaction.details.reflections.map((ref) => ref.id)).toEqual(["eeeeeeeeeeee"]);
+		expect(result.compaction?.summary).toContain("## Reflections\n[eeeeeeeeeeee]");
 		expect(result.compaction?.summary).toContain("## Observations");
-		expect(result.compaction?.summary).not.toContain("## Reflections");
 	});
 
 	it("writes a normal projection without applying new reflections or drops", async () => {
@@ -134,8 +134,9 @@ describe("compaction hook", () => {
 
 		expect(result.compaction?.details).toMatchObject({ type: "om.folded", fullFold: false });
 		expect(result.compaction?.details.observations.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa", "bbbbbbbbbbbb"]);
-		expect(result.compaction?.details.reflections.map((ref) => ref.id)).toEqual(["eeeeeeeeeeee"]);
+		expect(result.compaction?.details.reflections.map((ref) => ref.id)).toEqual(["eeeeeeeeeeee", "ffffffffffff"]);
 		expect(result.compaction?.summary).toContain("## Reflections\n[eeeeeeeeeeee]");
+		expect(result.compaction?.summary).toContain("[ffffffffffff]");
 		expect(result.compaction?.summary).toContain("## Observations");
 	});
 

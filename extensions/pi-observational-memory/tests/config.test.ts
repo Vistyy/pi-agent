@@ -38,7 +38,7 @@ describe("config", () => {
 		expect(DEFAULTS).toEqual({
 			strategy: STRATEGY.additive,
 			observeEveryMessages: 32,
-			reflectEveryObservations: 4,
+			reflectEveryObservations: 8,
 			maxInitialObserveTokens: 100000,
 			observationsPoolMaxTokens: 20000,
 			dropWhenActiveObservationsOver: 80,

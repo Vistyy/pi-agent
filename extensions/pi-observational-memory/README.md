@@ -48,8 +48,7 @@ OM does not schedule compaction. Pi/manual/eval compaction triggers still run; O
 
 `maxInitialObserveTokens` prevents expensive backfill when the extension starts on an already-large session. It marks old history covered and observes future turns.
 
-Reflection visibility is decoupled from the observation token pool: incremental compaction materializes recorded reflections, while full-fold compaction is reserved for deeper replay/drop reconciliation. 
-TODO: add a separate reflection-pool cap and consolidation behavior if visible reflections become too large in long sessions.
+Reflection visibility is decoupled from the observation token pool: incremental compaction materializes recorded reflections, while full-fold compaction is reserved for deeper replay/drop reconciliation.
 
 ## Commands
 
