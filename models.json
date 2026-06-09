@@ -1,164 +1,169 @@
 {
-  "providers": {
-    "openai": {
-      "modelOverrides": {
-        "gpt-5.5": {
-          "contextWindow": 200000,
-          "maxTokens": 64000
+    "providers": {
+        "openai-codex": {
+            "modelOverrides": {
+                "gpt-5.5": {
+                    "contextWindow": 200000,
+                    "maxTokens": 64000
+                },
+                "gpt-5.4": {
+                    "contextWindow": 200000,
+                    "maxTokens": 64000
+                },
+                "gpt-5.4-mini": {
+                    "contextWindow": 200000,
+                    "maxTokens": 64000
+                }
+            }
         },
-        "gpt-5.4": {
-          "contextWindow": 200000,
-          "maxTokens": 64000
+        "deepseek": {
+            "baseUrl": "https://api.deepseek.com",
+            "api": "openai-completions",
+            "apiKey": "$DEEPSEEK_API_KEY",
+            "authHeader": true,
+            "compat": {
+                "supportsDeveloperRole": false,
+                "supportsReasoningEffort": true,
+                "maxTokensField": "max_tokens",
+                "thinkingFormat": "deepseek"
+            },
+            "models": [
+                {
+                    "id": "deepseek-v4-flash",
+                    "name": "DeepSeek V4 Flash",
+                    "reasoning": true,
+                    "thinkingLevelMap": {
+                        "off": "disabled",
+                        "minimal": null,
+                        "low": null,
+                        "medium": null,
+                        "high": "high",
+                        "xhigh": "max"
+                    },
+                    "input": ["text"],
+                    "contextWindow": 200000,
+                    "maxTokens": 64000,
+                    "cost": {
+                        "input": 0.14,
+                        "output": 0.28,
+                        "cacheRead": 0.0028,
+                        "cacheWrite": 0.14
+                    }
+                },
+                {
+                    "id": "deepseek-v4-pro",
+                    "name": "DeepSeek V4 Pro",
+                    "reasoning": true,
+                    "thinkingLevelMap": {
+                        "off": "disabled",
+                        "minimal": null,
+                        "low": null,
+                        "medium": null,
+                        "high": "high",
+                        "xhigh": "max"
+                    },
+                    "input": ["text"],
+                    "contextWindow": 200000,
+                    "maxTokens": 64000,
+                    "cost": {
+                        "input": 0.435,
+                        "output": 0.87,
+                        "cacheRead": 0.003625,
+                        "cacheWrite": 0.435
+                    }
+                }
+            ]
         },
-        "gpt-5.4-mini": {
-          "contextWindow": 200000,
-          "maxTokens": 64000
+        "alibaba": {
+            "baseUrl": "https://ws-3fbjf16rgghk7mks.eu-central-1.maas.aliyuncs.com/compatible-mode/v1",
+            "api": "openai-completions",
+            "apiKey": "$DASHSCOPE_API_KEY",
+            "compat": {
+                "supportsDeveloperRole": false,
+                "supportsReasoningEffort": false,
+                "maxTokensField": "max_tokens",
+                "thinkingFormat": "qwen"
+            },
+            "models": [
+                {
+                    "id": "qwen3.7-plus",
+                    "name": "Qwen3.7 Plus",
+                    "reasoning": true,
+                    "thinkingLevelMap": {
+                        "off": "disabled",
+                        "minimal": null,
+                        "low": null,
+                        "medium": null,
+                        "high": null,
+                        "xhigh": "enabled"
+                    },
+                    "input": ["text", "image"],
+                    "contextWindow": 200000,
+                    "maxTokens": 32768,
+                    "cost": {
+                        "input": 0.276,
+                        "output": 1.101,
+                        "cacheRead": 0.028,
+                        "cacheWrite": 0.344
+                    }
+                },
+                {
+                    "id": "qwen3.7-max",
+                    "name": "Qwen3.7 Max",
+                    "reasoning": true,
+                    "thinkingLevelMap": {
+                        "off": "disabled",
+                        "minimal": null,
+                        "low": null,
+                        "medium": null,
+                        "high": null,
+                        "xhigh": "enabled"
+                    },
+                    "input": ["text"],
+                    "contextWindow": 200000,
+                    "maxTokens": 32768,
+                    "cost": {
+                        "input": 1.65,
+                        "output": 4.951,
+                        "cacheRead": 0.165,
+                        "cacheWrite": 2.063
+                    }
+                }
+            ]
+        },
+        "openrouter": {
+            "modelOverrides": {
+                "minimax/minimax-m3": {
+                    "name": "MiniMax M3",
+                    "reasoning": true,
+                    "input": ["text", "image"],
+                    "contextWindow": 200000,
+                    "maxTokens": 64000,
+                    "compat": {
+                        "openRouterRouting": {
+                            "only": ["Minimax"]
+                        }
+                    }
+                },
+                "mimo-v2.5": {
+                    "contextWindow": 200000,
+                    "maxTokens": 64000,
+                    "compat": {
+                        "openRouterRouting": {
+                            "only": ["Xiaomi"]
+                        }
+                    }
+                },
+                "mimo-v2.5-pro": {
+                    "contextWindow": 200000,
+                    "maxTokens": 64000,
+                    "compat": {
+                        "openRouterRouting": {
+                            "only": ["Xiaomi"]
+                        }
+                    }
+                }
+            }
         }
-      }
-    },
-    "openai-codex": {
-      "modelOverrides": {
-        "gpt-5.5": {
-          "contextWindow": 200000,
-          "maxTokens": 64000
-        },
-        "gpt-5.4": {
-          "contextWindow": 200000,
-          "maxTokens": 64000
-        },
-        "gpt-5.4-mini": {
-          "contextWindow": 200000,
-          "maxTokens": 64000
-        }
-      }
-    },
-    "xiaomi": {
-      "apiKey": "$XIAOMI_API_KEY",
-      "modelOverrides": {
-        "mimo-v2.5": {
-          "contextWindow": 200000,
-          "maxTokens": 64000
-        },
-        "mimo-v2.5-pro": {
-          "contextWindow": 200000,
-          "maxTokens": 64000
-        }
-      }
-    },
-    "deepseek": {
-      "baseUrl": "https://api.deepseek.com",
-      "api": "openai-completions",
-      "apiKey": "$DEEPSEEK_API_KEY",
-      "authHeader": true,
-      "compat": {
-        "supportsDeveloperRole": false,
-        "supportsReasoningEffort": true,
-        "maxTokensField": "max_tokens",
-        "thinkingFormat": "deepseek"
-      },
-      "models": [
-        {
-          "id": "deepseek-v4-flash",
-          "name": "DeepSeek V4 Flash",
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "off": "disabled",
-            "minimal": null,
-            "low": null,
-            "medium": null,
-            "high": "high",
-            "xhigh": "max"
-          },
-          "input": ["text"],
-          "contextWindow": 200000,
-          "maxTokens": 64000,
-          "cost": {
-            "input": 0.14,
-            "output": 0.28,
-            "cacheRead": 0.0028,
-            "cacheWrite": 0.14
-          }
-        },
-        {
-          "id": "deepseek-v4-pro",
-          "name": "DeepSeek V4 Pro",
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "off": "disabled",
-            "minimal": null,
-            "low": null,
-            "medium": null,
-            "high": "high",
-            "xhigh": "max"
-          },
-          "input": ["text"],
-          "contextWindow": 200000,
-          "maxTokens": 64000,
-          "cost": {
-            "input": 0.435,
-            "output": 0.87,
-            "cacheRead": 0.003625,
-            "cacheWrite": 0.435
-          }
-        }
-      ]
-    },
-    "alibaba": {
-      "baseUrl": "https://ws-3fbjf16rgghk7mks.eu-central-1.maas.aliyuncs.com/compatible-mode/v1",
-      "api": "openai-completions",
-      "apiKey": "$DASHSCOPE_API_KEY",
-      "compat": {
-        "supportsDeveloperRole": false,
-        "supportsReasoningEffort": false,
-        "maxTokensField": "max_tokens",
-        "thinkingFormat": "qwen"
-      },
-      "models": [
-        {
-          "id": "qwen3.7-plus",
-          "name": "Qwen3.7 Plus",
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "off": "disabled",
-            "minimal": null,
-            "low": null,
-            "medium": null,
-            "high": null,
-            "xhigh": "enabled"
-          },
-          "input": ["text", "image"],
-          "contextWindow": 200000,
-          "maxTokens": 32768,
-          "cost": {
-            "input": 0.276,
-            "output": 1.101,
-            "cacheRead": 0.028,
-            "cacheWrite": 0.344
-          }
-        },
-        {
-          "id": "qwen3.7-max",
-          "name": "Qwen3.7 Max",
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "off": "disabled",
-            "minimal": null,
-            "low": null,
-            "medium": null,
-            "high": null,
-            "xhigh": "enabled"
-          },
-          "input": ["text"],
-          "contextWindow": 200000,
-          "maxTokens": 32768,
-          "cost": {
-            "input": 1.65,
-            "output": 4.951,
-            "cacheRead": 0.165,
-            "cacheWrite": 2.063
-          }
-        }
-      ]
     }
-  }
 }
