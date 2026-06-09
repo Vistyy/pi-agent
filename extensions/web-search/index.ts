@@ -341,6 +341,7 @@ export default function webSearchExtension(pi: ExtensionAPI) {
     label: "Web Search",
     description: "Search the web. Tries native provider search when available, then Exa if EXA_API_KEY is configured, then DuckDuckGo fallback.",
     promptSnippet: "Search current web results; returns compact titles, URLs, and snippets/citations.",
+    executionMode: "parallel",
     parameters: Type.Object({
       query: Type.String({ description: "Search query" }),
       maxResults: Type.Optional(Type.Number({ description: "Maximum results, default 6, max 10" })),
@@ -377,6 +378,7 @@ export default function webSearchExtension(pi: ExtensionAPI) {
     label: "Web Fetch",
     description: "Fetch a URL and extract readable markdown locally with Mozilla Readability; optionally falls back to Jina Reader. Stores full content and returns a compact response plus content id.",
     promptSnippet: "Fetch readable page content. Use question for targeted excerpts and web_content_get to retrieve more by id.",
+    executionMode: "parallel",
     parameters: Type.Object({
       url: Type.String({ description: "URL to fetch" }),
       mode: Type.Optional(Type.Union([Type.Literal("markdown"), Type.Literal("summary"), Type.Literal("extract")], { description: "markdown=clean page text, summary/extract=compact targeted excerpts" })),
@@ -411,6 +413,7 @@ export default function webSearchExtension(pi: ExtensionAPI) {
     name: "web_content_get",
     label: "Get Web Content",
     description: "Retrieve stored full content from a previous web_fetch by content id, optionally targeted by query.",
+    executionMode: "parallel",
     parameters: Type.Object({
       id: Type.String({ description: "Content ID returned by web_fetch" }),
       query: Type.Optional(Type.String({ description: "Optional focus/query for relevant excerpts" })),
