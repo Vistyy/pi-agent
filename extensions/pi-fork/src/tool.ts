@@ -6,23 +6,15 @@ import { getResultSummaryText } from "./child-events/index.js";
 import { runFork } from "./runner/index.js";
 import { renderForkCall, renderForkResult } from "./ui/render.js";
 
-export const FORK_SYSTEM_PROMPT = `Fork policy:
-Use fork for discovery.
-If you do not already know the answer, and the needed investigation is bounded and separable, call fork first.
-Do not do a quick grep/read/bash first to see if fork is necessary. That discovery belongs in the fork.
-If the user names separate independent areas, use separate fork calls.
-Use parent tools only for known-local checks, edits, coordination, or non-separable work.
-Effort: fast = narrow lookup. balanced = investigation with judgment. deep = required for high-confidence risk review, especially process boundaries, command/env construction, safety/security, lifecycle, leakage, concurrency, or failure modes.`;
-
 export const FORK_TOOL_TEXT = {
   taskDescription:
     "Bounded child task. Include scope, expected output, and limits. The child reports findings; it does not decide outside the task.",
   effortDescription:
-    "Child work budget: fast for narrow lookup, balanced for investigation with judgment, deep for high-confidence risk review. Use deep, not balanced, for process boundaries, command/env construction, safety/security, lifecycle, leakage, concurrency, or failure modes.",
+    "Child work budget.\nfast: narrow lookup.\nbalanced: normal investigation.\ndeep: high-confidence risk review across interacting parts or failure modes.",
   description:
     "Delegate bounded discovery or review to a child Pi process on the current branch. The child investigates independently and returns a dense report.",
   promptSnippet:
-    "Use fork({ task, effort }) for bounded, separable discovery or review. If you do not already know the answer, fork first instead of probing with read/bash.",
+    "Use fork({ task, effort }) for bounded, separable discovery or review. If you do not already know the answer, fork first.",
   promptGuidelines: [
     "Use fork for discovery.",
     "Known answer → answer directly.",
@@ -30,8 +22,6 @@ export const FORK_TOOL_TEXT = {
     "Do not run read/bash/rg/find first to see whether fork is necessary. Put that search in the fork task.",
     "If the user names separate independent areas, use separate fork calls.",
     "Parent tools are for known-local checks, edits, coordination, or non-separable work.",
-    "Use fast for narrow lookup; balanced for investigation with judgment.",
-    "Use deep, not balanced, for high-confidence risk review: process boundaries, command/env construction, safety/security, lifecycle, leakage, concurrency, or failure modes.",
   ],
 } as const;
 

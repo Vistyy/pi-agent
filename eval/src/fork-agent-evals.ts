@@ -76,23 +76,15 @@ type ForkToolText = {
   promptGuidelines: string[];
 };
 
-type ForkSourceText = { toolText: ForkToolText; systemPrompt: string };
-
-function loadForkSourceText(): ForkSourceText {
+function loadForkToolText(): ForkToolText {
   const toolPath = path.join(repoRoot(), 'extensions/pi-fork/src/tool.ts');
   const source = fs.readFileSync(toolPath, 'utf8');
-  const toolMatch = source.match(/export const FORK_TOOL_TEXT = (\{[\s\S]*?\n\}) as const;/);
-  const promptMatch = source.match(/export const FORK_SYSTEM_PROMPT = `([\s\S]*?)`;/);
-  if (!toolMatch?.[1]) throw new Error(`failed to extract FORK_TOOL_TEXT from ${toolPath}`);
-  if (!promptMatch?.[1]) throw new Error(`failed to extract FORK_SYSTEM_PROMPT from ${toolPath}`);
-  return {
-    toolText: Function(`\"use strict\"; return (${toolMatch[1]});`)() as ForkToolText,
-    systemPrompt: promptMatch[1],
-  };
+  const match = source.match(/export const FORK_TOOL_TEXT = (\{[\s\S]*?\n\}) as const;/);
+  if (!match?.[1]) throw new Error(`failed to extract FORK_TOOL_TEXT from ${toolPath}`);
+  return Function(`\"use strict\"; return (${match[1]});`)() as ForkToolText;
 }
 
-const FORK_SOURCE_TEXT = loadForkSourceText();
-const FORK_TOOL_TEXT = FORK_SOURCE_TEXT.toolText;
+const FORK_TOOL_TEXT = loadForkToolText();
 
 function callArgs(call: ToolCallRecord): ForkCall {
   const args = call.args as { task?: unknown; effort?: unknown } | undefined;
@@ -409,7 +401,6 @@ async function runMockCase(testCase: ForkEvalCase, args: Args): Promise<ForkEval
     model: args.model,
     thinkingLevel: args.thinkingLevel,
     cwd: repoRoot(),
-    systemPrompt: FORK_SOURCE_TEXT.systemPrompt,
     customTools: [tool],
     allowedTools: ['read', 'bash', 'edit', 'write', 'fork'],
     seedMessages: testCase.seedMessages,

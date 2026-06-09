@@ -1,7 +1,7 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { aggregateInclusiveCost, formatForkCostStatus } from "./core/cost.js";
 import { loadConfig } from "./config.js";
-import { FORK_SYSTEM_PROMPT, registerForkTool } from "./tool.js";
+import { registerForkTool } from "./tool.js";
 
 const FORK_COST_STATUS_KEY = "fork-cost";
 
@@ -19,10 +19,6 @@ function updateForkCostStatus(ctx: ExtensionContext): void {
 export { resolveModelContextWindow } from "./tool.js";
 
 export default function (pi: ExtensionAPI) {
-  pi.on("before_agent_start", async (event) => {
-    return { systemPrompt: `${event.systemPrompt}\n\n${FORK_SYSTEM_PROMPT}` };
-  });
-
   pi.on("session_start", async (_event, ctx) => {
     updateForkCostStatus(ctx);
   });
