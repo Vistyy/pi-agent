@@ -8,6 +8,7 @@ import {
   getAgentDir,
   SessionManager,
   SettingsManager,
+  type ToolDefinition,
 } from '@earendil-works/pi-coding-agent';
 import type { TokenUsage } from './types.js';
 
@@ -35,7 +36,10 @@ function sumUsages(usages: TokenUsage[]): TokenUsage | undefined {
   return usages.length ? usages.reduce<TokenUsage>((acc, u) => addUsage(acc, u), {}) : undefined;
 }
 
-export type PiRunResult = { stdout: string; stderr: string; status: number; durationMs: number; usage?: TokenUsage; prepUsage?: TokenUsage; answerUsage?: TokenUsage; compactionUsage?: TokenUsage; compaction?: unknown };
+export type ToolCallRecord = { toolCallId: string; toolName: string; args: unknown; result?: unknown; isError?: boolean };
+export type MessageTraceRecord = { type: string; phase: 'prep' | 'answer' | 'compaction'; contentIndex?: number; delta?: string; content?: unknown; toolCall?: unknown; messageContent?: unknown; stopReason?: string };
+
+export type PiRunResult = { stdout: string; stderr: string; status: number; durationMs: number; usage?: TokenUsage; prepUsage?: TokenUsage; answerUsage?: TokenUsage; diagnosticUsage?: TokenUsage; compactionUsage?: TokenUsage; compaction?: unknown; toolCalls?: ToolCallRecord[]; messageTrace?: MessageTraceRecord[]; activeToolNames?: string[]; diagnosticAnswer?: string; diagnosticTrace?: MessageTraceRecord[] };
 
 type RunPiSdkOptions = {
   model?: string;
@@ -54,7 +58,20 @@ type RunPiSdkOptions = {
   memoryPrepareTurns?: number;
   waitAfterPromptMs?: number;
   thinkingLevel?: ModelThinkingLevel;
+  customTools?: ToolDefinition[];
+  seedMessages?: Array<{ role: 'user' | 'assistant'; content: string }>;
+  maxAgentTurns?: number;
+  timeoutMs?: number;
+  sameSessionDiagnostic?: (snapshot: { stdout: string; toolCalls: ToolCallRecord[]; messageTrace: MessageTraceRecord[]; activeToolNames?: string[] }) => string | undefined;
 };
+
+function appendSeedMessages(session: unknown, messages: Array<{ role: 'user' | 'assistant'; content: string }>): void {
+  const manager = (session as { sessionManager?: { appendMessage?: (message: unknown) => void; buildSessionContext?: () => { messages: unknown[] } } }).sessionManager;
+  if (!manager?.appendMessage) throw new Error('session manager does not support appendMessage');
+  for (const message of messages) manager.appendMessage({ role: message.role, content: [{ type: 'text', text: message.content }] });
+  const agent = (session as { agent?: { state?: { messages?: unknown[] } } }).agent;
+  if (agent?.state && manager.buildSessionContext) agent.state.messages = manager.buildSessionContext().messages;
+}
 
 function appendStageFile(session: unknown, stageFile: string): void {
   const manager = (session as { sessionManager?: { appendMessage?: (message: unknown) => void; buildSessionContext?: () => { messages: unknown[] } } }).sessionManager;
@@ -75,7 +92,12 @@ export async function runPiSdk(prompt: string, options: RunPiSdkOptions = {}): P
   let prepUsage: TokenUsage | undefined;
   let answerUsage: TokenUsage | undefined;
   let compactionUsage: TokenUsage | undefined;
-  let capturePhase: 'prep' | 'answer' | 'compaction' = 'answer';
+  let diagnosticUsage: TokenUsage | undefined;
+  const toolCalls: ToolCallRecord[] = [];
+  const messageTrace: MessageTraceRecord[] = [];
+  const diagnosticTrace: MessageTraceRecord[] = [];
+  let diagnosticAnswer = '';
+  let capturePhase: 'prep' | 'answer' | 'compaction' | 'diagnostic' = 'answer';
   try {
     const authStorage = AuthStorage.create();
     const modelRegistry = ModelRegistry.create(authStorage);
@@ -111,8 +133,9 @@ export async function runPiSdk(prompt: string, options: RunPiSdkOptions = {}): P
       sessionManager: options.sessionFile ? SessionManager.open(options.sessionFile) : SessionManager.inMemory(cwd),
       settingsManager,
       resourceLoader: loader,
-      noTools: options.allowedTools?.length ? undefined : 'all',
+      noTools: options.allowedTools?.length || options.customTools?.length ? undefined : 'all',
       tools: options.allowedTools,
+      customTools: options.customTools,
     });
 
     const agentWithStream = (session as unknown as { agent?: { streamFn?: (...args: unknown[]) => Promise<{ result: () => Promise<{ usage?: TokenUsage }> }> } }).agent;
@@ -131,22 +154,61 @@ export async function runPiSdk(prompt: string, options: RunPiSdkOptions = {}): P
       };
     }
 
+    let agentTurns = 0;
+    const timeout = options.timeoutMs ? setTimeout(() => { void session.abort(); }, options.timeoutMs) : undefined;
     const unsubscribe = session.subscribe((event) => {
-      if (event.type === 'message_update' && event.assistantMessageEvent.type === 'text_delta') {
-        stdout += event.assistantMessageEvent.delta;
+      if (event.type === 'tool_execution_start') {
+        toolCalls.push({ toolCallId: event.toolCallId, toolName: event.toolName, args: event.args });
+      }
+      if (event.type === 'tool_execution_end') {
+        const existing = toolCalls.find((call) => call.toolCallId === event.toolCallId);
+        if (existing) {
+          existing.result = event.result;
+          existing.isError = event.isError;
+        } else {
+          toolCalls.push({ toolCallId: event.toolCallId, toolName: event.toolName, args: undefined, result: event.result, isError: event.isError });
+        }
+      }
+      if (event.type === 'message_update') {
+        const assistantEvent = event.assistantMessageEvent as { type: string; contentIndex?: number; delta?: string; content?: unknown; toolCall?: unknown };
+        messageTrace.push({
+          type: assistantEvent.type,
+          phase: capturePhase === 'diagnostic' ? 'answer' : capturePhase,
+          contentIndex: assistantEvent.contentIndex,
+          delta: assistantEvent.delta,
+          content: assistantEvent.content,
+          toolCall: assistantEvent.toolCall,
+        });
+        if (capturePhase === 'diagnostic') diagnosticTrace.push({ type: assistantEvent.type, phase: 'answer', contentIndex: assistantEvent.contentIndex, delta: assistantEvent.delta, content: assistantEvent.content, toolCall: assistantEvent.toolCall });
+        if (assistantEvent.type === 'text_delta') {
+          if (capturePhase === 'diagnostic') diagnosticAnswer += assistantEvent.delta ?? '';
+          else stdout += assistantEvent.delta ?? '';
+        }
       }
       if (event.type === 'turn_end') {
-        const message = (event as unknown as { message?: { usage?: TokenUsage } }).message;
+        agentTurns += 1;
+        if (options.maxAgentTurns && agentTurns >= options.maxAgentTurns) {
+          void session.abort();
+        }
+        const message = (event as unknown as { message?: { usage?: TokenUsage; content?: unknown; stopReason?: string } }).message;
+        const turnTrace = { type: 'turn_end', phase: capturePhase === 'diagnostic' ? 'answer' as const : capturePhase, messageContent: message?.content, stopReason: message?.stopReason };
+        messageTrace.push(turnTrace);
+        if (capturePhase === 'diagnostic') diagnosticTrace.push(turnTrace);
         if (message?.usage && capturePhase === 'answer') answerUsage = addUsage(answerUsage ?? {}, message.usage);
+        if (message?.usage && capturePhase === 'diagnostic') diagnosticUsage = addUsage(diagnosticUsage ?? {}, message.usage);
       }
       if (event.type === 'agent_end') {
         const messages = (event as unknown as { messages?: Array<{ usage?: TokenUsage }> }).messages ?? [];
         const usages = messages.map((m) => m.usage).filter((u): u is TokenUsage => Boolean(u));
         if (usages.length) {
           if (capturePhase === 'answer') answerUsage = addUsage(answerUsage ?? {}, sumUsages(usages));
+          if (capturePhase === 'diagnostic') diagnosticUsage = addUsage(diagnosticUsage ?? {}, sumUsages(usages));
         }
       }
     });
+    const activeToolNames = typeof session.getActiveToolNames === 'function' ? session.getActiveToolNames() : undefined;
+    if (options.seedMessages?.length) appendSeedMessages(session, options.seedMessages);
+
     let compaction: unknown;
     if ((options.prepareMemoryBeforeCompact || options.memoryTriggerBeforeCompact) && options.compactBeforePrompt) {
       const turns = options.memoryTriggerBeforeCompact ? 1 : Math.max(1, options.memoryPrepareTurns ?? 1);
@@ -174,13 +236,20 @@ export async function runPiSdk(prompt: string, options: RunPiSdkOptions = {}): P
     }
     capturePhase = 'answer';
     await session.prompt(prompt, { expandPromptTemplates: false });
+    const diagnosticPrompt = options.sameSessionDiagnostic?.({ stdout, toolCalls, messageTrace, activeToolNames });
+    if (diagnosticPrompt) {
+      capturePhase = 'diagnostic';
+      await session.prompt(diagnosticPrompt, { expandPromptTemplates: false });
+      capturePhase = 'answer';
+    }
     if (options.waitAfterPromptMs) {
       await new Promise((resolve) => setTimeout(resolve, options.waitAfterPromptMs));
     }
+    if (timeout) clearTimeout(timeout);
     unsubscribe();
     session.dispose();
-    const usage = sumUsages([prepUsage, answerUsage, compactionUsage].filter((u): u is TokenUsage => Boolean(u)));
-    return { stdout, stderr, status: 0, durationMs: Date.now() - started, usage, prepUsage, answerUsage, compactionUsage, compaction };
+    const usage = sumUsages([prepUsage, answerUsage, diagnosticUsage, compactionUsage].filter((u): u is TokenUsage => Boolean(u)));
+    return { stdout, stderr, status: 0, durationMs: Date.now() - started, usage, prepUsage, answerUsage, diagnosticUsage, compactionUsage, compaction, toolCalls, messageTrace, activeToolNames, diagnosticAnswer: diagnosticAnswer.trim() || undefined, diagnosticTrace: diagnosticTrace.length ? diagnosticTrace : undefined };
   } catch (e) {
     stderr = e instanceof Error ? (e.stack ?? e.message) : String(e);
     return { stdout, stderr, status: 1, durationMs: Date.now() - started };

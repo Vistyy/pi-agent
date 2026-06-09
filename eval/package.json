@@ -7,6 +7,7 @@
     "eval": "tsx src/cli.ts",
     "session-memory": "tsx src/session-memory-variant.ts",
     "om-agent-evals": "tsx src/om-agent-evals.ts",
+    "fork-agent-evals": "tsx src/fork-agent-evals.ts",
     "mine-historical": "tsx src/historical-probe-miner.ts",
     "typecheck": "tsc --noEmit"
   },
