@@ -18,7 +18,9 @@
     "debugLog": true
   },
   "pi-fork": {
-    "extensions": ["./extensions/web-search"],
+    "extensions": [
+      "./extensions/web-search"
+    ],
     "offline": true,
     "costFooter": true,
     "defaultEffort": "balanced",
