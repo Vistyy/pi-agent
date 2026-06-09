@@ -9,9 +9,8 @@
  * and the requested task. It does not modify the system prompt.
  */
 
-import { StringEnum } from "@earendil-works/pi-ai";
+import { StringEnum, Type } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { Type } from "typebox";
 import { EFFORT_LEVELS, loadConfig, type ForkConfig } from "./config.js";
 import { aggregateInclusiveCost, formatForkCostStatus } from "./core/cost.js";
 import { type ForkDetails, type ForkEffort, type ForkEffortSource, type ForkEffortState, type ForkResult, emptyUsage, isResultError } from "./core/types.js";

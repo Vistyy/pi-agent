@@ -31,10 +31,10 @@ export default function (pi: ExtensionAPI) {
       clearStatus(ctx);
       return;
     }
-    // Show immediately, then fetch
+    // Show immediately. Refresh usage in background so startup/reload does not
+    // block on chatgpt.com.
     updateStatus(ctx);
-    await refreshAllUsage();
-    updateStatus(ctx);
+    void refreshAllUsage().then(() => updateStatus(ctx));
   });
 
   pi.on("session_shutdown", (_event, ctx) => {
