@@ -11,9 +11,25 @@ import {
 	sourceEntryCountSinceObservationCoverage,
 	type Entry,
 } from "../session-ledger/index.js";
-import { runDropperStage } from "./dropper-stage.js";
-import { runObserverStage } from "./observer-stage.js";
-import { runReflectorStage } from "./reflector-stage.js";
+type ObserverStageModule = typeof import("./observer-stage.js");
+type ReflectorStageModule = typeof import("./reflector-stage.js");
+type DropperStageModule = typeof import("./dropper-stage.js");
+
+let observerStageModule: Promise<ObserverStageModule> | undefined;
+let reflectorStageModule: Promise<ReflectorStageModule> | undefined;
+let dropperStageModule: Promise<DropperStageModule> | undefined;
+
+function loadObserverStage(): Promise<ObserverStageModule> {
+	return observerStageModule ??= import("./observer-stage.js");
+}
+
+function loadReflectorStage(): Promise<ReflectorStageModule> {
+	return reflectorStageModule ??= import("./reflector-stage.js");
+}
+
+function loadDropperStage(): Promise<DropperStageModule> {
+	return dropperStageModule ??= import("./dropper-stage.js");
+}
 import { sourceEntriesAfter } from "./source-entries.js";
 import { observationsSinceReflectionCoverage } from "./stage-utils.js";
 import type { MemoryUpdateCtx, ResolvedModel, StageOutcome } from "./types.js";
@@ -171,7 +187,10 @@ export async function runMemoryUpdate(
 		runtime,
 		ctx,
 		"observer",
-		() => runObserverStage(pi, runtime, ctx, resolveModel, options.forceObserveBeforeEntryId),
+		async () => {
+			const { runObserverStage } = await loadObserverStage();
+			return runObserverStage(pi, runtime, ctx, resolveModel, options.forceObserveBeforeEntryId);
+		},
 	);
 	if (observerOutcome === "abort") return;
 
@@ -180,7 +199,10 @@ export async function runMemoryUpdate(
 		runtime,
 		ctx,
 		"reflector",
-		() => runReflectorStage(pi, runtime, ctx, resolveModel),
+		async () => {
+			const { runReflectorStage } = await loadReflectorStage();
+			return runReflectorStage(pi, runtime, ctx, resolveModel);
+		},
 	);
 	if (reflectorOutcome === "abort") return;
 
@@ -189,6 +211,9 @@ export async function runMemoryUpdate(
 		runtime,
 		ctx,
 		"dropper",
-		() => runDropperStage(pi, runtime, ctx, resolveModel),
+		async () => {
+			const { runDropperStage } = await loadDropperStage();
+			return runDropperStage(pi, runtime, ctx, resolveModel);
+		},
 	);
 }
