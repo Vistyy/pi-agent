@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.79.0",
+  "lastChangelogVersion": "0.79.1",
   "defaultProvider": "openai-codex",
   "defaultModel": "gpt-5.5",
   "defaultThinkingLevel": "low",
@@ -27,19 +27,29 @@
     "effortProfiles": {
       "fast": {
         "provider": "openai-codex",
-        "id": "gpt-5.3-codex-spark",
-        "thinking": "medium"
+        "id": "gpt-5.4-mini",
+        "thinking": "low"
       },
       "balanced": {
-        "provider": "openai-codex",
-        "id": "gpt-5.4-mini",
-        "thinking": "xhigh"
-      },
-      "deep": {
         "provider": "deepseek",
         "id": "deepseek-v4-pro",
-        "thinking": "xhigh"
+        "thinking": "high"
+      },
+      "deep": {
+        "provider": "openrouter",
+        "id": "minimax/minimax-m3 ",
+        "thinking": "high"
       }
     }
-  }
+  },
+  "enabledModels": [
+    "openai-codex/gpt-5.5",
+    "deepseek/deepseek-v4-flash",
+    "deepseek/deepseek-v4-pro",
+    "openrouter/minimax/minimax-m3",
+    "alibaba/qwen3.7-plus",
+    "alibaba/qwen3.7-max",
+    "openrouter/xiaomi/mimo-v2.5",
+    "openrouter/xiaomi/mimo-v2.5-pro"
+  ]
 }
