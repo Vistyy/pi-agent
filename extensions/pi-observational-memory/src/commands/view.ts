@@ -33,27 +33,29 @@ function renderContentOnlyProjection(projection: Projection, emptyScope: "visibl
 	].join("\n");
 }
 
+export async function runViewCommand(args: unknown, ctx: any, runtime: Runtime): Promise<void> {
+	runtime.ensureConfig(ctx.cwd);
+	const entries = ctx.sessionManager.getBranch() as Entry[];
+	const mode = firstArg(args);
+
+	const notifyView = (output: string) => ctx.ui.notify(output, "info");
+
+	if (mode === "full") {
+		notifyView(renderContentOnlyProjection(fullProjection(entries), "recorded"));
+		return;
+	}
+
+	if (mode && mode !== "visible") {
+		ctx.ui.notify("Usage: /om:view [full]", "info");
+		return;
+	}
+
+	notifyView(renderContentOnlyProjection(latestCompactedProjection(entries), "visible"));
+}
+
 export function registerViewCommand(pi: ExtensionAPI, runtime: Runtime): void {
 	pi.registerCommand("om:view", {
 		description: "Print observational memory content (visible by default, full for recorded memory)",
-		handler: async (args, ctx) => {
-			runtime.ensureConfig(ctx.cwd);
-			const entries = ctx.sessionManager.getBranch() as Entry[];
-			const mode = firstArg(args);
-
-			const notifyView = (output: string) => ctx.ui.notify(output, "info");
-
-			if (mode === "full") {
-				notifyView(renderContentOnlyProjection(fullProjection(entries), "recorded"));
-				return;
-			}
-
-			if (mode && mode !== "visible") {
-				ctx.ui.notify("Usage: /om:view [full]", "info");
-				return;
-			}
-
-			notifyView(renderContentOnlyProjection(latestCompactedProjection(entries), "visible"));
-		},
+		handler: async (args, ctx) => runViewCommand(args, ctx, runtime),
 	});
 }

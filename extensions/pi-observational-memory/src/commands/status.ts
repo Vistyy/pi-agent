@@ -41,11 +41,8 @@ function usageLine(label: string, usage: AgentUsageTotals): string {
 	return `${label}: ${money(usage.cost)} / ${usage.requests.toLocaleString()} request${usage.requests === 1 ? "" : "s"} / ${usage.totalTokens.toLocaleString()} tokens`;
 }
 
-export function registerStatusCommand(pi: ExtensionAPI, runtime: Runtime): void {
-	pi.registerCommand("om:status", {
-		description: "Show observational memory status",
-		handler: async (_args, ctx) => {
-			runtime.ensureConfig(ctx.cwd);
+export async function runStatusCommand(ctx: any, runtime: Runtime): Promise<void> {
+	runtime.ensureConfig(ctx.cwd);
 			const entries = ctx.sessionManager.getBranch() as Entry[];
 			const folded = foldLedger(entries);
 			const visible = latestCompactedProjection(entries);
@@ -117,6 +114,11 @@ export function registerStatusCommand(pi: ExtensionAPI, runtime: Runtime): void 
 			}
 
 			ctx.ui.notify(lines.join("\n"), "info");
-		},
+}
+
+export function registerStatusCommand(pi: ExtensionAPI, runtime: Runtime): void {
+	pi.registerCommand("om:status", {
+		description: "Show observational memory status",
+		handler: async (_args, ctx) => runStatusCommand(ctx, runtime),
 	});
 }
