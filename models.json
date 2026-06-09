@@ -32,6 +32,19 @@
         }
       }
     },
+    "xiaomi": {
+      "apiKey": "$XIAOMI_API_KEY",
+      "modelOverrides": {
+        "mimo-v2.5": {
+          "contextWindow": 200000,
+          "maxTokens": 64000
+        },
+        "mimo-v2.5-pro": {
+          "contextWindow": 200000,
+          "maxTokens": 64000
+        }
+      }
+    },
     "deepseek": {
       "baseUrl": "https://api.deepseek.com",
       "api": "openai-completions",
