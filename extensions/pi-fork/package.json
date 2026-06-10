@@ -10,7 +10,7 @@
   },
   "files": [
     "index.ts",
-    "readonly.ts",
+    "sandbox.ts",
     "src/",
     "README.md"
   ],

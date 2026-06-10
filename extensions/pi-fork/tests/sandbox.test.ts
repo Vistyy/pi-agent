@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { buildSandboxedCommand } from "../src/readonly.js";
+import { buildSandboxedCommand } from "../src/sandbox.js";
 
-describe("readonly bash sandbox", () => {
+describe("sandbox command wrapper", () => {
   it("wraps bash commands in bwrap", () => {
     const wrapped = buildSandboxedCommand("pwd && rg foo");
 
@@ -16,6 +16,22 @@ describe("readonly bash sandbox", () => {
     expect(wrapped).toContain("--setenv HOME /tmp/home");
     expect(wrapped).toContain("--setenv PATH /etc/profiles/per-user/$USER/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin");
     expect(wrapped).toContain("bash -lc 'pwd && rg foo'");
+  });
+
+  it("clears inherited env and binds only minimal /etc files", () => {
+    const wrapped = buildSandboxedCommand("env");
+
+    expect(wrapped).toContain("--clearenv");
+    expect(wrapped).toContain("--setenv HOME /tmp/home");
+    expect(wrapped).toContain("--setenv TMPDIR /tmp");
+    expect(wrapped).toContain("--setenv TERM");
+    expect(wrapped).toContain("--setenv LANG");
+    expect(wrapped).toContain("--setenv LC_ALL");
+    expect(wrapped).toContain("--setenv PATH");
+    expect(wrapped).not.toContain("--ro-bind-try /etc /etc");
+    expect(wrapped).toContain("--ro-bind-try /etc/passwd /etc/passwd");
+    expect(wrapped).toContain("--ro-bind-try /etc/group /etc/group");
+    expect(wrapped).toContain("--ro-bind-try /etc/nsswitch.conf /etc/nsswitch.conf");
   });
 
   it("allows arbitrary shell syntax by relying on the sandbox, not regex filtering", () => {

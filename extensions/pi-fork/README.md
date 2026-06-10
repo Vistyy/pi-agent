@@ -60,7 +60,7 @@ If `pi-fork` is allowlisted, children can call `fork` recursively.
 
 ## Read-only fork children
 
-A practical read-only setup removes file-writing tools and loads the readonly hook:
+A practical read-only setup removes file-writing tools and loads the sandbox hook:
 
 ```json
 {
@@ -68,7 +68,7 @@ A practical read-only setup removes file-writing tools and loads the readonly ho
     "tools": "read,bash,grep,find,ls,web_search,web_fetch,web_content_get",
     "extensions": [
       "./extensions/web-search",
-      "./extensions/pi-fork/readonly.ts"
+      "./extensions/pi-fork/sandbox.ts"
     ]
   }
 }
@@ -77,11 +77,11 @@ A practical read-only setup removes file-writing tools and loads the readonly ho
 This does two things:
 
 - `--tools` removes `edit` and `write` from the child process.
-- `readonly.ts` blocks `edit` / `write` as defense-in-depth and restricts `bash` to read-only inspection commands.
+- `sandbox.ts` wraps `bash` with bwrap so the repo is mounted read-only, `/tmp` is writable, inherited environment variables are cleared, and shell network is disabled.
 
-The readonly hook must be present in `pi-fork.extensions`. If a project overrides `pi-fork.extensions`, include `./extensions/pi-fork/readonly.ts` there too or the bash hook will not load.
+The sandbox hook must be present in `pi-fork.extensions`. If a project overrides `pi-fork.extensions`, include `./extensions/pi-fork/sandbox.ts` there too or the bash hook will not load.
 
-`web_fetch` and `web_content_get` are text tools. They fetch/extract/store text; they do not execute page JavaScript or fetched scripts. A fetched script could only run if another tool executes it, which the readonly setup blocks through removed `edit` / `write` and the bash allowlist.
+`web_search`, `web_fetch`, and `web_content_get` are host-mediated text tools. They still work with shell network disabled because they are not run inside sandboxed `bash`. They fetch/extract/store text; they do not execute page JavaScript or fetched scripts.
 
 ## Config
 

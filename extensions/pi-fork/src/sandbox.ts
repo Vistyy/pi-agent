@@ -8,7 +8,7 @@ export function buildSandboxedCommand(command: string): string {
   const quotedCommand = shellQuote(command);
 
   return `if ! command -v bwrap >/dev/null 2>&1; then
-  echo "Fork agent: bwrap is required for readonly bash sandboxing but was not found." >&2
+  echo "Fork agent: bwrap is required for bash sandboxing but was not found." >&2
   exit 126
 fi
 
@@ -22,7 +22,9 @@ bwrap \\
   --ro-bind-try /bin /bin \\
   --ro-bind-try /lib /lib \\
   --ro-bind-try /lib64 /lib64 \\
-  --ro-bind-try /etc /etc \\
+  --ro-bind-try /etc/passwd /etc/passwd \\
+  --ro-bind-try /etc/group /etc/group \\
+  --ro-bind-try /etc/nsswitch.conf /etc/nsswitch.conf \\
   --ro-bind-try /run/current-system /run/current-system \\
   --proc /proc \\
   --dev /dev \\
@@ -31,8 +33,12 @@ bwrap \\
   --dir /tmp/home \\
   --ro-bind "$PWD" "$PWD" \\
   --chdir "$PWD" \\
+  --clearenv \\
   --setenv HOME /tmp/home \\
   --setenv TMPDIR /tmp \\
+  --setenv TERM "\${TERM:-xterm-256color}" \\
+  --setenv LANG "\${LANG:-C.UTF-8}" \\
+  --setenv LC_ALL "\${LC_ALL:-C.UTF-8}" \\
   --setenv PATH /etc/profiles/per-user/$USER/bin:/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin \\
   bash -lc ${quotedCommand}`;
 }
