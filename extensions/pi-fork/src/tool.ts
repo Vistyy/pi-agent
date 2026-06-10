@@ -10,7 +10,7 @@ export const FORK_TOOL_TEXT = {
   taskDescription:
     "Bounded child task. Include scope, expected output, and limits. The child reports findings; it does not decide outside the task.",
   effortDescription:
-    "Child work budget.\nfast: narrow lookup.\nbalanced: normal investigation.\ndeep: high-confidence risk review across interacting parts or failure modes.",
+    "Child work budget.\nfast: find a specific answer.\nbalanced: judge a bounded question.\ndeep: challenge a bounded area for missed problems, risks, failure modes, or hidden issues.",
   description:
     "Delegate bounded discovery or review to a child Pi process on the current branch. The child investigates independently and returns a dense report.",
   promptSnippet:
@@ -19,8 +19,9 @@ export const FORK_TOOL_TEXT = {
     "Use fork for discovery.",
     "Known answer → answer directly.",
     "Unknown + bounded/separable investigation → fork first.",
+    "Unknown command/path/file lookup is still discovery; use a fast fork if separable.",
     "Do not run read/bash/rg/find first to see whether fork is necessary. Put that search in the fork task.",
-    "If the user names separate independent areas, use separate fork calls.",
+    "Multiple independent areas → one fork per area. Use one fork only when the task needs comparison, interaction analysis, or a unified verdict.",
     "Parent tools are for known-local checks, edits, coordination, or non-separable work.",
   ],
 } as const;

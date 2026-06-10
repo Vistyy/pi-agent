@@ -103,9 +103,52 @@ function formatTraceForDiagnosis(trace: MessageTraceRecord[] | undefined): strin
 
 function makeFailureDiagnosisPrompt(testCase: ForkEvalCase, snapshot: { toolCalls: ToolCallRecord[]; messageTrace: MessageTraceRecord[]; activeToolNames?: string[] }): string | undefined {
   const forkCalls = snapshot.toolCalls.filter((call) => call.toolName === 'fork');
-  if (testCase.expectedEfforts.length === 0 || forkCalls.length > 0) return undefined;
+  const actualEfforts = forkCalls.map((call) => {
+    const args = call.args as { effort?: unknown } | undefined;
+    return typeof args?.effort === 'string' ? args.effort : 'omitted';
+  });
+  const expected = testCase.expectedEfforts;
+  const countMismatch = forkCalls.length !== expected.length;
+  const effortMismatch = !countMismatch && expected.some((effort, index) => actualEfforts[index] !== effort);
+  if (!countMismatch && !effortMismatch) return undefined;
+
   const calls = snapshot.toolCalls.map((call) => ({ toolName: call.toolName, args: call.args, isError: call.isError }));
-  return `We are debugging tool-selection behavior in an eval. This is not an accusation; treat it as an investigation into what instruction or context shaped your choice.\n\nOriginal user request:\n${testCase.prompt}\n\nActive tools:\n${JSON.stringify(snapshot.activeToolNames ?? [], null, 2)}\n\nFork guidance excerpt:\n- ${FORK_TOOL_TEXT.promptSnippet}\n${FORK_TOOL_TEXT.promptGuidelines.map((guideline) => `- ${guideline}`).join('\n')}\n\nTool calls you actually made before this diagnostic prompt:\n${JSON.stringify(calls, null, 2)}\n\nVisible thinking captured before this diagnostic prompt:\n${formatTraceForDiagnosis(snapshot.messageTrace)}\n\nPlease analyze the tool-selection decision. Why did direct read/bash work feel like the right first move instead of calling fork? Was fork inapplicable, less useful, unclear, insufficiently salient, or did you expect to use it after gathering context? What wording or placement would have made fork the natural first tool call here?\n\nAnswer as a concise debugging report, not as an apology.`;
+  const mismatch = countMismatch
+    ? `Expected ${expected.length} fork call(s), but you made ${forkCalls.length}.`
+    : `Expected fork effort(s) ${JSON.stringify(expected)}, but you chose ${JSON.stringify(actualEfforts)}.`;
+  const focus = forkCalls.length === 0
+    ? 'Why did direct parent tool work feel like the right first move instead of calling fork?'
+    : countMismatch
+      ? 'Why did you combine/split the work this way instead of matching the expected number of bounded fork subtasks?'
+      : 'Why did that effort level feel right? What instruction or wording would have made the expected effort more natural?';
+
+  return `We are debugging fork tool-selection behavior in an eval. This is not an accusation; treat it as an investigation into what instruction or context shaped your choice.
+
+Original user request:
+${testCase.prompt}
+
+Mismatch:
+${mismatch}
+
+Active tools:
+${JSON.stringify(snapshot.activeToolNames ?? [], null, 2)}
+
+Fork guidance excerpt:
+- ${FORK_TOOL_TEXT.promptSnippet}
+${FORK_TOOL_TEXT.promptGuidelines.map((guideline) => `- ${guideline}`).join('\n')}
+
+effort parameter description:
+${FORK_TOOL_TEXT.effortDescription}
+
+Tool calls you actually made before this diagnostic prompt:
+${JSON.stringify(calls, null, 2)}
+
+Visible thinking captured before this diagnostic prompt:
+${formatTraceForDiagnosis(snapshot.messageTrace)}
+
+Please analyze the decision. ${focus} Was fork inapplicable, less useful, unclear, insufficiently salient, or did the labels/guidance imply your choice?
+
+Answer as a concise debugging report, not as an apology.`;
 }
 
 function makeMockForkTool(results: string[], error = false): ToolDefinition {
@@ -349,7 +392,7 @@ const cases: ForkEvalCase[] = [
   },
   {
     id: 'parallel-config-ui-balanced',
-    prompt: 'is either config defaults or the child-events/ui stuff still sketchy, please check',
+    prompt: 'check config defaults and child-events/ui; are either still sketchy?',
     expectedEfforts: ['balanced', 'balanced'],
     mockResults: [
       'Config defaults look intentional: extensions [] prevents nested fork, offline true suppresses startup network, costFooter true is separate.',
@@ -359,6 +402,24 @@ const cases: ForkEvalCase[] = [
       'There are two fork calls or two clearly separate delegated checks, one for config defaults and one for child-events/ui.',
       'The final answer separately addresses config defaults and child-events/ui, then gives an overall sketchy/not-sketchy verdict.',
     ]),
+  },
+  {
+    id: 'parallel-unrelated-config-memory-balanced',
+    prompt: 'check pi-fork config defaults for sketchiness, and also check whether observational-memory compaction tests look stale',
+    expectedEfforts: ['balanced', 'balanced'],
+    mockResults: [
+      'pi-fork config defaults look intentional: child extensions default disabled, offline/cost settings are explicit, no obvious sketchiness.',
+      'observational-memory compaction tests have stale expectations around reflection materialization and should be updated.',
+    ],
+  },
+  {
+    id: 'parallel-mixed-risk-trace',
+    prompt: 'check whether pi-fork child command/env handling has risks, and also check whether the eval harness records thinking traces',
+    expectedEfforts: ['deep', 'balanced'],
+    mockResults: [
+      'Command/env risk review: spawning pi directly is safer; remaining concerns are env inheritance, override variables, cwd/PATH, and cross-platform behavior.',
+      'Eval harness trace check: it records message text/tool/turn events, but thinking trace capture is partial or absent depending event handling.',
+    ],
   },
   {
     id: 'failure-surfacing-balanced',
