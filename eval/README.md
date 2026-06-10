@@ -108,6 +108,30 @@ usage.total
 
 Use pass rate plus `usage.total.totalTokens` for cost/performance.
 
+## Failure modes
+
+The active memory suite targets compacted-session failure patterns:
+
+```text
+tentative_vs_decided
+  tentative idea later rejected must not become chosen direction
+
+rejected_path_resurrection
+  rejected approach must remain rejected after compaction
+
+subtle_constraint_once
+  one important user constraint must survive compaction
+
+exact_evidence_needed
+  answer should admit when exact evidence is absent and recall/source context is needed
+
+summary_drift
+  repeated compaction must not reverse or drop load-bearing decisions
+
+tool_noise_burial
+  important conclusion buried among noisy tool outputs must survive
+```
+
 ## Notes
 
 - `clean` loads no extensions.
