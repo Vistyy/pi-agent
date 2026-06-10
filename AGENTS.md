@@ -9,3 +9,5 @@ with known evidence, correct it first.
 
 For conceptual judgment, planning, or tradeoffs: answer directly, but label
 assumptions and unknowns.
+
+Use `pnpm` instead of `npm`.
