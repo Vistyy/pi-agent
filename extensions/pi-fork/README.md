@@ -15,7 +15,27 @@ A fork starts from a temporary snapshot of the current active session branch, ru
 
 `effort` is optional: `fast`, `balanced`, or `deep`.
 
-## Child extensions
+## Child tools and extensions
+
+Fork children inherit parent `--tools` / `--no-tools` behavior by default, unless `pi-fork.tools` is set.
+
+```json
+{
+  "pi-fork": {
+    "tools": "read,bash,grep,find,ls,web_search,web_fetch,web_content_get"
+  }
+}
+```
+
+`tools` is tri-state:
+
+| value | behavior |
+| --- | --- |
+| omitted / `null` | inherit parent Pi `--tools` / `--no-tools` behavior |
+| `""` | pass `--no-tools` |
+| `"read,bash"` | pass `--tools read,bash` |
+
+Tool names are comma-separated and normalized for whitespace. Malformed names are ignored.
 
 Fork children load no extensions by default.
 
@@ -37,6 +57,31 @@ Fork children load no extensions by default.
 | `["<source>"]` | only listed extension sources |
 
 If `pi-fork` is allowlisted, children can call `fork` recursively.
+
+## Read-only fork children
+
+A practical read-only setup removes file-writing tools and loads the readonly hook:
+
+```json
+{
+  "pi-fork": {
+    "tools": "read,bash,grep,find,ls,web_search,web_fetch,web_content_get",
+    "extensions": [
+      "./extensions/web-search",
+      "./extensions/pi-fork/readonly.ts"
+    ]
+  }
+}
+```
+
+This does two things:
+
+- `--tools` removes `edit` and `write` from the child process.
+- `readonly.ts` blocks `edit` / `write` as defense-in-depth and restricts `bash` to read-only inspection commands.
+
+The readonly hook must be present in `pi-fork.extensions`. If a project overrides `pi-fork.extensions`, include `./extensions/pi-fork/readonly.ts` there too or the bash hook will not load.
+
+`web_fetch` and `web_content_get` are text tools. They fetch/extract/store text; they do not execute page JavaScript or fetched scripts. A fetched script could only run if another tool executes it, which the readonly setup blocks through removed `edit` / `write` and the bash allowlist.
 
 ## Config
 
@@ -76,12 +121,13 @@ Defaults:
 
 ```text
 extensions: []
+tools: null
 offline: true
 costFooter: true
 environment: {}
 ```
 
-`offline: true` sets `PI_OFFLINE=1` for children. Set `offline: false` when child extension sources need network install behavior.
+`offline: true` sets `PI_OFFLINE=1` for children. This is Pi's internal offline mode; it skips version checks and tool binary downloads. It does not sandbox network access for `bash` or child extensions. Set `offline: false` when child extension sources need network install behavior.
 
 `costFooter: true` shows aggregate fork cost in the footer, for example:
 

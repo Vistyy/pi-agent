@@ -10,6 +10,7 @@
   },
   "files": [
     "index.ts",
+    "readonly.ts",
     "src/",
     "README.md"
   ],

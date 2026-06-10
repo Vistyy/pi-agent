@@ -164,6 +164,7 @@ export function registerForkTool(pi: ExtensionAPI): void {
         forkSessionSnapshotJsonl: snapshot,
         extensions: config.extensions,
         environment: config.environment,
+        tools: config.tools,
         offline: config.offline,
         signal,
         onUpdate,

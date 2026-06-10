@@ -23,6 +23,25 @@ describe("buildPiArgs", () => {
     expect(args).toEqual(expect.arrayContaining(["--no-extensions", "--extension", "/x/ext"]));
   });
 
+  it("uses configured child tools before inherited tools", () => {
+    const args = buildPiArgs("task", "/tmp/session.jsonl", [], undefined, {
+      ...inherited,
+      fallbackTools: "read,bash,edit,write",
+    }, undefined, "read,bash,grep,find,ls,web_search,web_fetch,web_content_get");
+
+    expect(args).toEqual(expect.arrayContaining([
+      "--tools", "read,bash,grep,find,ls,web_search,web_fetch,web_content_get",
+    ]));
+    expect(args).not.toEqual(expect.arrayContaining([
+      "--tools", "read,bash,edit,write",
+    ]));
+  });
+
+  it("supports configured no-tools", () => {
+    const args = buildPiArgs("task", "/tmp/session.jsonl", [], undefined, inherited, undefined, "");
+    expect(args).toContain("--no-tools");
+  });
+
   it("applies effort profile model flags", () => {
     const args = buildPiArgs("task", "/tmp/session.jsonl", [], {
       provider: "openai-codex",

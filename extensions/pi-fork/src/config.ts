@@ -20,6 +20,14 @@ export interface ForkConfig {
   /** Environment variables to overlay onto child fork processes. */
   environment: Record<string, string>;
 
+  /**
+   * Tool allowlist for child fork processes.
+   * - null: inherit parent Pi --tools/--no-tools behavior
+   * - "": pass --no-tools
+   * - non-empty: pass --tools <value>
+   */
+  tools: string | null;
+
   /** Whether child fork processes force Pi offline mode. */
   offline: boolean;
 
@@ -38,6 +46,7 @@ const SETTINGS_KEY = "pi-fork";
 export const DEFAULT_CONFIG: ForkConfig = {
   extensions: [],
   environment: {},
+  tools: null,
   offline: true,
   costFooter: true,
 };
@@ -107,6 +116,17 @@ function parseExtensions(raw: unknown, baseDir: string): string[] | null | undef
     extensions.push(resolveConfiguredPath(trimmed, baseDir));
   }
   return extensions;
+}
+
+function parseTools(raw: unknown): string | null | undefined {
+  if (raw === undefined) return undefined;
+  if (raw === null) return null;
+  if (typeof raw !== "string") return undefined;
+
+  const names = raw.split(",").map((name) => name.trim()).filter(Boolean);
+  if (names.length === 0) return "";
+  if (!names.every((name) => /^[a-zA-Z0-9_-]+$/.test(name))) return undefined;
+  return names.join(",");
 }
 
 function defineEnvironmentValue(
@@ -187,11 +207,13 @@ function readNamespacedConfig(settingsPath: string, baseDir: string): Partial<Fo
     const config = nested as Record<string, unknown>;
     const extensions = parseExtensions(config.extensions, baseDir);
     const environment = parseEnvironment(config.environment);
+    const tools = parseTools(config.tools);
     const parsed: Partial<ForkConfig> = {};
     const defaultEffort = parseDefaultEffort(config.defaultEffort);
     const effortProfiles = parseEffortProfiles(config.effortProfiles);
     if (extensions !== undefined) parsed.extensions = extensions;
     if (environment !== undefined) parsed.environment = environment;
+    if (tools !== undefined) parsed.tools = tools;
     if (typeof config.offline === "boolean") parsed.offline = config.offline;
     if (typeof config.costFooter === "boolean") parsed.costFooter = config.costFooter;
     if (defaultEffort !== undefined) parsed.defaultEffort = defaultEffort;

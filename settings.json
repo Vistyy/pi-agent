@@ -18,8 +18,10 @@
     "debugLog": true
   },
   "pi-fork": {
+    "tools": "read,bash,grep,find,ls,web_search,web_fetch,web_content_get",
     "extensions": [
-      "./extensions/web-search"
+      "./extensions/web-search",
+      "./extensions/pi-fork/readonly.ts"
     ],
     "offline": true,
     "costFooter": true,

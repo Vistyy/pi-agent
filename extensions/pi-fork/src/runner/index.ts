@@ -54,6 +54,7 @@ export function buildPiArgs(
   effortProfile?: ForkEffortProfile,
   inherited = inheritedCliArgs,
   effort?: ForkEffort,
+  tools?: string | null,
 ): string[] {
   const args: string[] = [
     "--mode",
@@ -82,7 +83,10 @@ export function buildPiArgs(
     args.push("--thinking", effortProfile.thinking);
   }
 
-  if (inherited.fallbackTools !== undefined) {
+  if (tools !== undefined && tools !== null) {
+    if (tools === "") args.push("--no-tools");
+    else args.push("--tools", tools);
+  } else if (inherited.fallbackTools !== undefined) {
     args.push("--tools", inherited.fallbackTools);
   } else if (inherited.fallbackNoTools) {
     args.push("--no-tools");
@@ -104,6 +108,7 @@ export interface RunForkOptions {
   forkSessionSnapshotJsonl: string;
   extensions?: string[] | null;
   environment?: Record<string, string>;
+  tools?: string | null;
   offline?: boolean;
   signal?: AbortSignal;
   onUpdate?: OnUpdateCallback;
@@ -119,6 +124,7 @@ export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
     forkSessionSnapshotJsonl,
     extensions = null,
     environment = {},
+    tools = null,
     offline = true,
     signal,
     onUpdate,
@@ -178,7 +184,7 @@ export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
   forkSessionTmpPath = tmp.filePath;
 
   try {
-    const piArgs = buildPiArgs(task, forkSessionTmpPath, extensions, effort?.profile, inheritedCliArgs, effort?.selected);
+    const piArgs = buildPiArgs(task, forkSessionTmpPath, extensions, effort?.profile, inheritedCliArgs, effort?.selected, tools);
     let wasAborted = false;
 
     const exitCode = await new Promise<number>((resolve) => {

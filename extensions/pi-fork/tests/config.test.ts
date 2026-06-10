@@ -29,6 +29,7 @@ describe("loadConfig", () => {
     process.env.PI_CODING_AGENT_DIR = agentDir;
 
     expect(loadConfig(cwd).extensions).toEqual([]);
+    expect(loadConfig(cwd).tools).toBeNull();
     expect(DEFAULT_CONFIG.extensions).toEqual([]);
   });
 
@@ -55,6 +56,39 @@ describe("loadConfig", () => {
       join(projectSettingsDir, "child-extension"),
       "npm:pkg",
     ]);
+  });
+
+  it("loads explicit child tool allowlist", () => {
+    const cwd = tempDir("cwd");
+    const agentDir = tempDir("agent");
+    process.env.PI_CODING_AGENT_DIR = agentDir;
+    writeJson(join(agentDir, "settings.json"), {
+      "pi-fork": { tools: "read,bash,grep,find,ls,web_search,web_fetch,web_content_get" },
+    });
+
+    expect(loadConfig(cwd).tools).toBe("read,bash,grep,find,ls,web_search,web_fetch,web_content_get");
+  });
+
+  it("normalizes child tool allowlist whitespace", () => {
+    const cwd = tempDir("cwd");
+    const agentDir = tempDir("agent");
+    process.env.PI_CODING_AGENT_DIR = agentDir;
+    writeJson(join(agentDir, "settings.json"), {
+      "pi-fork": { tools: " read, bash, web_fetch " },
+    });
+
+    expect(loadConfig(cwd).tools).toBe("read,bash,web_fetch");
+  });
+
+  it("ignores malformed child tool allowlists", () => {
+    const cwd = tempDir("cwd");
+    const agentDir = tempDir("agent");
+    process.env.PI_CODING_AGENT_DIR = agentDir;
+    writeJson(join(agentDir, "settings.json"), {
+      "pi-fork": { tools: "read,bash,../bad" },
+    });
+
+    expect(loadConfig(cwd).tools).toBeNull();
   });
 
   it("merges environment with project values overriding global values", () => {
