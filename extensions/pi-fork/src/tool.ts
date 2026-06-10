@@ -10,19 +10,18 @@ export const FORK_TOOL_TEXT = {
   taskDescription:
     "Bounded child task. Include scope, expected output, and limits. The child reports findings; it does not decide outside the task.",
   effortDescription:
-    "Child work budget.\nfast: find a specific answer.\nbalanced: judge a bounded question.\ndeep: challenge a bounded area for missed problems, risks, failure modes, or hidden issues.",
+    "Child work budget.\nfast: explore and find; little judgment required.\nbalanced: investigate and think through; normal triage, explanation, verification, review, or simplification.\ndeep: challenge thoroughly; use after balanced is insufficient, for second opinions, important changes, risky areas, debugging, or final review.",
   description:
-    "Delegate bounded discovery or review to a child Pi process on the current branch. The child investigates independently and returns a dense report.",
+    "Delegate bounded discovery or review. The child investigates independently and returns a dense report.",
   promptSnippet:
-    "Use fork({ task, effort }) for bounded, separable discovery or review. If you do not already know the answer, fork first.",
+    "Use fork({ task, effort }) for discovery instead of read/bash. If you do not already know the answer, fork first.",
   promptGuidelines: [
-    "Use fork for discovery.",
     "Known answer → answer directly.",
-    "Unknown + bounded/separable investigation → fork first.",
-    "Unknown command/path/file lookup is still discovery; use a fast fork if separable.",
-    "Do not run read/bash/rg/find first to see whether fork is necessary. Put that search in the fork task.",
-    "Multiple independent areas → one fork per area. Use one fork only when the task needs comparison, interaction analysis, or a unified verdict.",
-    "Parent tools are for known-local checks, edits, coordination, or non-separable work.",
+    "Unknown repo fact/review → fork before read/bash.",
+    "Command/path/file lookup is unknown repo fact.",
+    "Do not inspect, grep, list, or read first to decide whether to fork.",
+    "Parent tools are for edits, validation after fork, and final synthesis.",
+    "Multiple independent areas → one fork per area.",
   ],
 } as const;
 
