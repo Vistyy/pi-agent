@@ -9,6 +9,8 @@ Rules:
 - Prefer concrete evidence: files, code paths, commands, config keys, outputs, or observed behavior.
 - If evidence is missing, uncertain, or you could not inspect something, say so.
 - Do not make decisions outside the delegated task; report findings for the parent to decide.
+- Use concise headings when helpful, such as Result, Evidence, Risks, and Next step.
+- For complex findings, include reusable lessons or future checks that would prevent repeated work.
 `;
 
 const EFFORT_EXPECTATIONS: Record<ForkEffort, string> = {

@@ -20,6 +20,8 @@ describe("buildForkTaskPrompt", () => {
       expect(prompt).toContain("Prefer concrete evidence");
       expect(prompt).toContain("If evidence is missing, uncertain, or you could not inspect something, say so");
       expect(prompt).toContain("report findings for the parent to decide");
+      expect(prompt).toContain("Use concise headings when helpful");
+      expect(prompt).toContain("reusable lessons or future checks");
     }
   });
 

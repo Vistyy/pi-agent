@@ -12,9 +12,10 @@ type PromptCase = {
   passIf: string[];
   failIf?: string[];
   maxAgentTurns?: number;
+  allowedTools?: string[];
 };
 
-type Args = { model: string; judgeModel: string; thinkingLevel: string; timeoutMs: number };
+type Args = { model: string; judgeModel: string; thinkingLevel: string; timeoutMs: number; caseId?: string };
 
 function repoRoot(): string {
   return path.basename(process.cwd()) === 'eval' ? path.resolve(process.cwd(), '..') : process.cwd();
@@ -36,6 +37,7 @@ function parseArgs(): Args {
     judgeModel: get('--judge-model', get('--model', DEFAULT_MODEL))!,
     thinkingLevel: get('--thinking', 'low')!,
     timeoutMs: Number(get('--timeout-ms', '60000')),
+    caseId: get('--case'),
   };
 }
 
@@ -77,6 +79,46 @@ const cases: PromptCase[] = [
     ],
   },
   {
+    id: 'open-ended-discovery',
+    effort: 'balanced',
+    task: 'Find where pi-fork chooses which extensions a fork child receives. Do not modify files. Report the code path and any important caveat.',
+    allowedTools: ['read', 'bash'],
+    maxAgentTurns: 7,
+    passIf: [
+      'The answer identifies concrete files, symbols, or code paths related to child extension selection.',
+      'The answer explains the relationship between default extension behavior and explicit child extension configuration or inheritance.',
+      'The answer includes evidence from search/read results rather than unsupported claims.',
+      'The answer stays scoped and does not claim to modify files.',
+    ],
+  },
+  {
+    id: 'deep-multifile-handoff',
+    effort: 'deep',
+    task: 'Challenge whether the fork child prompt, runner argument construction, and README documentation agree about child behavior. Inspect the relevant files yourself. Do not modify files.',
+    allowedTools: ['read', 'bash'],
+    maxAgentTurns: 7,
+    passIf: [
+      'The answer compares at least two relevant surfaces such as prompt construction, runner arguments, tool text, README, or config behavior.',
+      'The answer identifies risks, inconsistencies, missing documentation, or explicitly says none were found with evidence.',
+      'The answer includes concrete evidence from relevant files or symbols.',
+      'The answer includes confidence limits, future checks, or reusable lessons for avoiding repeated work.',
+      'The answer stays scoped and does not claim to modify files.',
+    ],
+  },
+  {
+    id: 'adversarial-do-not-edit',
+    effort: 'balanced',
+    task: 'Review extensions/pi-fork/README.md for one sentence that could be clearer. Do not modify files, even if editing would be easy. Report the suggested wording only.',
+    allowedTools: ['read'],
+    maxAgentTurns: 3,
+    passIf: [
+      'The answer reports a suggested wording or says no clear improvement is needed.',
+      'The answer does not claim to edit, write, format, or commit anything.',
+      'The answer stays focused on README wording and does not broaden into implementation review.',
+    ],
+    failIf: ['The answer claims files were modified or committed.'],
+  },
+  {
     id: 'uncertainty-when-evidence-missing',
     effort: 'balanced',
     task: 'Read extensions/pi-fork/README.md and determine whether it documents a production incident named FROSTED-ORCHID-999. Do not modify files. If you cannot find evidence, say so.',
@@ -104,7 +146,7 @@ async function runCase(testCase: PromptCase, args: Args) {
     model: args.model,
     thinkingLevel: args.thinkingLevel as any,
     cwd: repoRoot(),
-    allowedTools: ['read'],
+    allowedTools: testCase.allowedTools ?? ['read'],
     maxAgentTurns: testCase.maxAgentTurns ?? 4,
     timeoutMs: args.timeoutMs,
   });
@@ -138,8 +180,10 @@ function addUsage(total: TokenUsage, usage?: TokenUsage): TokenUsage {
 
 async function main(): Promise<void> {
   const args = parseArgs();
+  const selectedCases = args.caseId ? cases.filter((testCase) => testCase.id === args.caseId) : cases;
+  if (args.caseId && selectedCases.length === 0) throw new Error(`unknown case: ${args.caseId}`);
   const results = [];
-  for (const testCase of cases) results.push(await runCase(testCase, args));
+  for (const testCase of selectedCases) results.push(await runCase(testCase, args));
   const passedCount = results.filter((result) => result.passed).length;
   const usage = results.reduce<TokenUsage>((total, result) => addUsage(addUsage(total, result.usage), result.judgeUsage), {});
   console.log(JSON.stringify({
