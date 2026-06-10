@@ -39,6 +39,21 @@ function sumUsages(usages: TokenUsage[]): TokenUsage | undefined {
 export type ToolCallRecord = { toolCallId: string; toolName: string; args: unknown; result?: unknown; isError?: boolean };
 export type MessageTraceRecord = { type: string; phase: 'prep' | 'answer' | 'compaction'; contentIndex?: number; delta?: string; content?: unknown; toolCall?: unknown; messageContent?: unknown; stopReason?: string };
 
+function extractTextContent(event: { content?: unknown }): string {
+  const content = event.content;
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    return content.map((block) => {
+      if (typeof block === 'object' && block !== null) {
+        const record = block as Record<string, unknown>;
+        if (record.type === 'text' || record.type === 'message_content') return String(record.text ?? '');
+      }
+      return '';
+    }).join('');
+  }
+  return '';
+}
+
 export type PiRunResult = { stdout: string; stderr: string; status: number; durationMs: number; usage?: TokenUsage; prepUsage?: TokenUsage; answerUsage?: TokenUsage; diagnosticUsage?: TokenUsage; compactionUsage?: TokenUsage; compaction?: unknown; toolCalls?: ToolCallRecord[]; messageTrace?: MessageTraceRecord[]; activeToolNames?: string[]; diagnosticAnswer?: string; diagnosticTrace?: MessageTraceRecord[] };
 
 type RunPiSdkOptions = {
@@ -184,6 +199,11 @@ export async function runPiSdk(prompt: string, options: RunPiSdkOptions = {}): P
           if (capturePhase === 'diagnostic') diagnosticAnswer += assistantEvent.delta ?? '';
           else stdout += assistantEvent.delta ?? '';
         }
+        if (assistantEvent.type === 'text' || assistantEvent.type === 'message_content') {
+          const textContent = extractTextContent(assistantEvent as { content?: unknown });
+          if (capturePhase === 'diagnostic') diagnosticAnswer += textContent;
+          else stdout += textContent;
+        }
       }
       if (event.type === 'turn_end') {
         agentTurns += 1;
@@ -198,11 +218,16 @@ export async function runPiSdk(prompt: string, options: RunPiSdkOptions = {}): P
         if (message?.usage && capturePhase === 'diagnostic') diagnosticUsage = addUsage(diagnosticUsage ?? {}, message.usage);
       }
       if (event.type === 'agent_end') {
-        const messages = (event as unknown as { messages?: Array<{ usage?: TokenUsage }> }).messages ?? [];
+        const messages = (event as unknown as { messages?: Array<{ role?: string; usage?: TokenUsage; content?: unknown }> }).messages ?? [];
         const usages = messages.map((m) => m.usage).filter((u): u is TokenUsage => Boolean(u));
         if (usages.length) {
           if (capturePhase === 'answer') answerUsage = addUsage(answerUsage ?? {}, sumUsages(usages));
           if (capturePhase === 'diagnostic') diagnosticUsage = addUsage(diagnosticUsage ?? {}, sumUsages(usages));
+        }
+        if (!stdout.trim() && capturePhase !== 'diagnostic') {
+          for (const message of messages) {
+            if (message.role === 'assistant') stdout = extractTextContent(message as { content?: unknown });
+          }
         }
       }
     });
