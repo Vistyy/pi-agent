@@ -162,6 +162,15 @@
                             "only": ["Xiaomi"]
                         }
                     }
+                },
+                "moonshotai/kimi-k2.6": {
+                    "contextWindow": 200000,
+                    "maxTokens": 64000,
+                    "compat": {
+                        "openRouterRouting": {
+                            "only": ["moonshotai"]
+                        }
+                    }
                 }
             }
         }
