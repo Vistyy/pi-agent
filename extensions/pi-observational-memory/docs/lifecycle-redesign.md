@@ -264,13 +264,17 @@ No behavior change required at first.
 ### Stage 3: Add pin and flag events
 
 - Curator can pin exact reviewed observations.
+- Curator can unpin reviewed observations once exact visibility is no longer needed.
 - Curator can flag reviewed observations for reflector follow-up.
+- Reviewed + unpinned is the default omitted/covered state; no `cover` event is needed yet.
+- Existing dropped tombstones remain the hard durability/suppression mechanism.
 - No cursor rewind.
 
-### Stage 4: Add suppression
+### Stage 4: Add curator agent behavior
 
-- Curator can suppress low-value observations.
-- Suppression hides noise without relying on reflection correctness.
+- Curator decides pin/unpin/flag/drop actions.
+- Model evals must cover the lifecycle before trusting automated curator decisions.
+- Defer a separate suppress event until a concrete need appears beyond `om.observations.dropped`.
 
 ### Stage 5: Rework triggers
 

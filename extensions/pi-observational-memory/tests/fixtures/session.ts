@@ -31,6 +31,8 @@ export const OM_REFLECTIONS_RECORDED = "om.reflections.recorded";
 export const OM_REFLECTIONS_REVIEWED = "om.reflections.reviewed";
 export const OM_OBSERVATIONS_DROPPED = "om.observations.dropped";
 export const OM_OBSERVATIONS_FLAGGED = "om.observations.flagged";
+export const OM_OBSERVATIONS_PINNED = "om.observations.pinned";
+export const OM_OBSERVATIONS_UNPINNED = "om.observations.unpinned";
 export const OM_FOLDED = "om.folded";
 
 const DEFAULT_TIMESTAMP = "2026-05-02T10:00:00.000Z";
@@ -221,6 +223,38 @@ export function observationsFlaggedEntry(
 		parentId: null,
 		timestamp: DEFAULT_TIMESTAMP,
 		customType: OM_OBSERVATIONS_FLAGGED,
+		data: args,
+		...overrides,
+	};
+}
+
+export function observationsPinnedEntry(
+	id: string,
+	args: { observationIds: string[]; reason: string },
+	overrides: Partial<TestEntry> = {},
+): TestEntry {
+	return {
+		type: "custom",
+		id,
+		parentId: null,
+		timestamp: DEFAULT_TIMESTAMP,
+		customType: OM_OBSERVATIONS_PINNED,
+		data: args,
+		...overrides,
+	};
+}
+
+export function observationsUnpinnedEntry(
+	id: string,
+	args: { observationIds: string[]; reason: string },
+	overrides: Partial<TestEntry> = {},
+): TestEntry {
+	return {
+		type: "custom",
+		id,
+		parentId: null,
+		timestamp: DEFAULT_TIMESTAMP,
+		customType: OM_OBSERVATIONS_UNPINNED,
 		data: args,
 		...overrides,
 	};

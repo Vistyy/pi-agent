@@ -1,12 +1,17 @@
 import {
 	isObservationsDroppedData,
 	isObservationsFlaggedData,
+	isObservationsPinnedData,
 	isObservationsRecordedData,
+	isObservationsUnpinnedData,
 	normalizeObservationFlagReason,
+	normalizeObservationPinReason,
 	isReflectionsRecordedData,
 	OM_OBSERVATIONS_DROPPED,
 	OM_OBSERVATIONS_FLAGGED,
+	OM_OBSERVATIONS_PINNED,
 	OM_OBSERVATIONS_RECORDED,
+	OM_OBSERVATIONS_UNPINNED,
 	OM_REFLECTIONS_RECORDED,
 	type Entry,
 	type Observation,
@@ -31,6 +36,10 @@ export type FoldedLedger = {
 	flaggedObservationIds: Set<string>;
 	/** Follow-up reasons by flagged observation id. Reasons are explanatory context, not deterministic routing. */
 	flaggedObservationReasonsById: Map<string, string[]>;
+	/** Observation ids currently forced into next context unless tombstoned by a drop. */
+	pinnedObservationIds: Set<string>;
+	/** Pin reasons by observation id. Reasons are explanatory context for audits/status. */
+	pinnedObservationReasonsById: Map<string, string[]>;
 	/** All first-valid reflection records encountered through the fold boundary. */
 	reflections: Reflection[];
 	/** All first-valid observation records by id, including dropped observations. */
@@ -62,6 +71,8 @@ export function foldLedger(entries: Entry[], options: FoldLedgerOptions = {}): F
 	const droppedObservationIds = new Set<string>();
 	const flaggedObservationIds = new Set<string>();
 	const flaggedObservationReasonsById = new Map<string, string[]>();
+	const pinnedObservationIds = new Set<string>();
+	const pinnedObservationReasonsById = new Map<string, string[]>();
 	const endIdx = foldEndIndex(entries, options.upToEntryId);
 
 	for (let i = 0; i <= endIdx; i++) {
@@ -107,7 +118,36 @@ export function foldLedger(entries: Entry[], options: FoldLedgerOptions = {}): F
 					reason,
 				].slice(-3));
 			}
+			continue;
 		}
+
+		if (isCustomEntry(entry, OM_OBSERVATIONS_PINNED)) {
+			if (!isObservationsPinnedData(entry.data)) continue;
+			const reason = normalizeObservationPinReason(entry.data.reason);
+			for (const observationId of entry.data.observationIds) {
+				pinnedObservationIds.add(observationId);
+				pinnedObservationReasonsById.set(observationId, [
+					...(pinnedObservationReasonsById.get(observationId) ?? []),
+					reason,
+				].slice(-3));
+			}
+			continue;
+		}
+
+		if (isCustomEntry(entry, OM_OBSERVATIONS_UNPINNED)) {
+			if (!isObservationsUnpinnedData(entry.data)) continue;
+			for (const observationId of entry.data.observationIds) {
+				pinnedObservationIds.delete(observationId);
+				pinnedObservationReasonsById.delete(observationId);
+			}
+		}
+	}
+
+	for (const observationId of droppedObservationIds) {
+		pinnedObservationIds.delete(observationId);
+		pinnedObservationReasonsById.delete(observationId);
+		flaggedObservationIds.delete(observationId);
+		flaggedObservationReasonsById.delete(observationId);
 	}
 
 	const observations = Array.from(observationsById.values());
@@ -120,6 +160,8 @@ export function foldLedger(entries: Entry[], options: FoldLedgerOptions = {}): F
 		droppedObservationIds,
 		flaggedObservationIds,
 		flaggedObservationReasonsById,
+		pinnedObservationIds,
+		pinnedObservationReasonsById,
 		reflections,
 		observationsById,
 		reflectionsById,

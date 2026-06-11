@@ -14,6 +14,7 @@ import {
 	memoryDetails,
 	observation,
 	observationsDroppedEntry,
+	observationsPinnedEntry,
 	observationsRecordedEntry,
 	reflection,
 	reflectionsRecordedEntry,
@@ -148,6 +149,24 @@ describe("session-ledger projections", () => {
 		expect(result.reviewed.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa"]);
 		expect(result.unreviewed.map((obs) => obs.id)).toEqual(["bbbbbbbbbbbb"]);
 		expect(result.reflections.map((ref) => ref.id)).toEqual(["eeeeeeeeeeee"]);
+	});
+
+	it("next context projection includes pinned reviewed observations", () => {
+		const reviewed = observation("aaaaaaaaaaaa", { sourceEntryIds: ["raw-1"] });
+		const pending = observation("bbbbbbbbbbbb", { sourceEntryIds: ["raw-2"] });
+		const entries = [
+			textCustomMessage("raw-1", "aaaa"),
+			textCustomMessage("raw-2", "bbbb"),
+			observationsRecordedEntry("om-observations", { observations: [reviewed, pending], coversUpToId: "raw-2" }),
+			reflectionsReviewedEntry("om-reviewed", { coversUpToId: "raw-1" }),
+			observationsPinnedEntry("om-pin", { observationIds: ["aaaaaaaaaaaa"], reason: "Keep exact path visible." }),
+		];
+
+		const result = nextContextProjection(entries, fullProjection(entries));
+
+		expect(result.observations.map((obs) => obs.id)).toEqual(["bbbbbbbbbbbb", "aaaaaaaaaaaa"]);
+		expect(result.reviewed.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa"]);
+		expect(result.unreviewed.map((obs) => obs.id)).toEqual(["bbbbbbbbbbbb"]);
 	});
 
 	it("normal compaction projection hides reviewed observations but keeps reflections", () => {

@@ -321,18 +321,22 @@ Existing `om.observations.dropped` tombstones remain respected. New context deci
 
 ### Stage 4: Evolve dropper into curator
 
-Curator actions:
+Curator action vocabulary:
 
 ```text
-pin reviewed observation
-cover reviewed observation
-suppress observation
-flag reviewed observation for re-review
+pin reviewed observation       → force exact observation into next context
+unpin reviewed observation     → stop forcing exact observation into next context
+flag reviewed observation      → request reflector follow-up
+drop reviewed observation      → tombstone low-value/noisy observation
 ```
+
+Do not add a `cover` event yet. Reviewed + unpinned is the default omitted/covered state.
+
+Do not add a separate `suppress` event yet. Existing `om.observations.dropped` is the hard durability tombstone.
 
 Do not rewind cursors.
 
-For follow-up:
+Implemented schema:
 
 ```text
 om.observations.flagged
@@ -340,6 +344,24 @@ om.observations.flagged
   observationIds: [...],
   reason: string // short one-line explanation for reflector follow-up, normalized/truncated, not deterministic routing
 }
+
+om.observations.pinned
+{
+  observationIds: [...],
+  reason: string // short one-line explanation for forcing reviewed observations into next context
+}
+
+om.observations.unpinned
+{
+  observationIds: [...],
+  reason: string // short one-line explanation for no longer forcing reviewed observations into next context
+}
+```
+
+Projection rule:
+
+```text
+next context observations = unreviewed observations + pinned reviewed observations - dropped observations
 ```
 
 Reflector receives pending flagged observations as follow-up input alongside normal unreviewed observations.

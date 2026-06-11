@@ -6,7 +6,9 @@ import {
 	observation,
 	observationsDroppedEntry,
 	observationsFlaggedEntry,
+	observationsPinnedEntry,
 	observationsRecordedEntry,
+	observationsUnpinnedEntry,
 	reflection,
 	reflectionsRecordedEntry,
 	reflectionsReviewedEntry,
@@ -104,6 +106,40 @@ describe("session-ledger folding", () => {
 		expect(folded.flaggedObservationIds.has("aaaaaaaaaaaa")).toBe(false);
 		expect(folded.flaggedObservationIds.has("bbbbbbbbbbbb")).toBe(true);
 		expect(folded.flaggedObservationReasonsById.get("bbbbbbbbbbbb")).toEqual(["new follow-up"]);
+	});
+
+	it("folds pinned and unpinned observation ids", () => {
+		const obs1 = observation("aaaaaaaaaaaa");
+		const obs2 = observation("bbbbbbbbbbbb");
+		const entries = [
+			textCustomMessage("raw-1", "aaaa"),
+			observationsRecordedEntry("om-obs", { observations: [obs1, obs2], coversUpToId: "raw-1" }),
+			observationsPinnedEntry("om-pin-1", { observationIds: ["aaaaaaaaaaaa", "bbbbbbbbbbbb"], reason: "Keep exact details visible." }),
+			observationsUnpinnedEntry("om-unpin-1", { observationIds: ["aaaaaaaaaaaa"], reason: "Reflection now captures it." }),
+		];
+
+		const folded = foldLedger(entries);
+
+		expect(folded.pinnedObservationIds.has("aaaaaaaaaaaa")).toBe(false);
+		expect(folded.pinnedObservationIds.has("bbbbbbbbbbbb")).toBe(true);
+		expect(folded.pinnedObservationReasonsById.get("bbbbbbbbbbbb")).toEqual(["Keep exact details visible."]);
+	});
+
+	it("drop wins over pin and flag", () => {
+		const obs1 = observation("aaaaaaaaaaaa");
+		const entries = [
+			textCustomMessage("raw-1", "aaaa"),
+			observationsRecordedEntry("om-obs", { observations: [obs1], coversUpToId: "raw-1" }),
+			observationsPinnedEntry("om-pin-1", { observationIds: ["aaaaaaaaaaaa"], reason: "Keep exact details visible." }),
+			observationsFlaggedEntry("om-flag-1", { observationIds: ["aaaaaaaaaaaa"], reason: "Needs follow-up." }),
+			observationsDroppedEntry("om-drop-1", { observationIds: ["aaaaaaaaaaaa"], coversUpToId: "raw-1" }),
+		];
+
+		const folded = foldLedger(entries);
+
+		expect(folded.activeObservations).toEqual([]);
+		expect(folded.pinnedObservationIds.has("aaaaaaaaaaaa")).toBe(false);
+		expect(folded.flaggedObservationIds.has("aaaaaaaaaaaa")).toBe(false);
 	});
 
 	it("normalizes and caps folded flag reasons", () => {

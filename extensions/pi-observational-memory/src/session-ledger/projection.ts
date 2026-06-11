@@ -1,3 +1,4 @@
+import { foldLedger } from "./fold.js";
 import { observationTokenSum } from "./memory-tokens.js";
 import { entryIndexById, latestReflectionReviewIndex } from "./progress.js";
 import {
@@ -165,9 +166,11 @@ export function classifyObservationsByReview(entries: Entry[], observations: Obs
 
 export function nextContextProjection(entries: Entry[], projection: Projection): NextContextProjection {
 	const classified = classifyObservationsByReview(entries, projection.observations);
+	const folded = foldLedger(entries);
+	const pinnedReviewed = classified.reviewed.filter((observation) => folded.pinnedObservationIds.has(observation.id));
 	return {
 		reflections: projection.reflections,
-		observations: classified.unreviewed,
+		observations: [...classified.unreviewed, ...pinnedReviewed],
 		...classified,
 	};
 }
