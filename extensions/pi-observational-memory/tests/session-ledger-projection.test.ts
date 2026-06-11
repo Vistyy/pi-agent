@@ -166,7 +166,7 @@ describe("session-ledger projections", () => {
 		expect(result.fullFold).toBe(false);
 		expect(result.observations.map((obs) => obs.id)).toEqual(["bbbbbbbbbbbb"]);
 		expect(result.reflections.map((ref) => ref.id)).toEqual(["eeeeeeeeeeee"]);
-		expect(result.details.observations.map((obs) => obs.id)).toEqual(["bbbbbbbbbbbb"]);
+		expect(result.details.observations.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa", "bbbbbbbbbbbb"]);
 	});
 
 	it("normal compaction projection includes current observations and reflections but keeps drops at latest full-fold boundary", () => {

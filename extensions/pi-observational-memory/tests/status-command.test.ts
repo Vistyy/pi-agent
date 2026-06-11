@@ -74,7 +74,7 @@ describe("/om:status", () => {
 
 		const output = await setup({ entries }).run();
 
-		expect(output).toContain("Context:      1 observations, 1 reflections");
+		expect(output).toContain("Context:      0 observations, 1 reflections");
 		expect(output).toContain("Next context: 0 observations, 1 reflections");
 		expect(output).toContain("Observe: 2 / 10 source entries");
 		expect(output).toContain("Reflect: 0 / 20 observations");

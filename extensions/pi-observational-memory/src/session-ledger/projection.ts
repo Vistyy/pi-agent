@@ -133,9 +133,14 @@ export function fullProjection(entries: Entry[], upToEntryId?: string): Projecti
 	});
 }
 
-export function contextProjection(entries: Entry[]): Projection {
+export function compactedProjection(entries: Entry[]): Projection {
 	const details = latestCompactionDetails(entries);
 	return details ? projectionFromMemoryDetails(details) : { observations: [], reflections: [] };
+}
+
+export function contextProjection(entries: Entry[]): Projection {
+	const context = nextContextProjection(entries, compactedProjection(entries));
+	return { observations: context.observations, reflections: context.reflections };
 }
 
 export function classifyObservationsByReview(entries: Entry[], observations: Observation[]): ReviewClassification {
@@ -210,18 +215,18 @@ function buildFullFoldCompactionProjection(entries: Entry[], firstKeptEntryId: s
 	return fullProjection(entries, firstKeptEntryId);
 }
 
-function withCompactionDetails(projection: Projection, fullFold: boolean): CompactionProjection {
+function withCompactionDetails(context: Projection, detailsProjection: Projection, fullFold: boolean): CompactionProjection {
 	const details: MemoryDetails = {
 		type: OM_FOLDED,
 		fullFold,
-		observations: projection.observations,
-		reflections: projection.reflections,
+		observations: detailsProjection.observations,
+		reflections: detailsProjection.reflections,
 	};
 
 	return {
 		fullFold,
-		observations: projection.observations,
-		reflections: projection.reflections,
+		observations: context.observations,
+		reflections: context.reflections,
 		details,
 	};
 }
@@ -232,9 +237,10 @@ export function buildNextCompactionProjection(
 	config: CompactionProjectionConfig,
 	seed: Projection = { observations: [], reflections: [] },
 ): CompactionProjection {
-	const incrementalProjection = buildIncrementalCompactionProjection(entries, mergeProjection(contextProjection(entries), seed));
-	if (!shouldFullFold(incrementalProjection, config)) return withCompactionDetails(nextContextProjection(entries, incrementalProjection), false);
-	return withCompactionDetails(nextContextProjection(entries, buildFullFoldCompactionProjection(entries, firstKeptEntryId)), true);
+	const incrementalProjection = buildIncrementalCompactionProjection(entries, mergeProjection(compactedProjection(entries), seed));
+	if (!shouldFullFold(incrementalProjection, config)) return withCompactionDetails(nextContextProjection(entries, incrementalProjection), incrementalProjection, false);
+	const fullFoldProjection = buildFullFoldCompactionProjection(entries, firstKeptEntryId);
+	return withCompactionDetails(nextContextProjection(entries, fullFoldProjection), fullFoldProjection, true);
 }
 
 export function diffContextProjection(context: Projection, nextContext: Projection): ContextProjectionDiff {
