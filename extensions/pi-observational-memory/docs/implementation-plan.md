@@ -386,6 +386,20 @@ Then add model evals for:
 
 Keep deterministic recall lookup covered by normal tests.
 
+Add evals from session `019eb6fe-2e4e-732f-b744-4b2cb3123d70` failure:
+
+- Observer eval: preserve exact durable schema/API/event names from implementation plans, not only high-level concepts.
+- Recall/tool-use eval: before implementing durable schema, re-read docs or recall exact evidence when memory lacks exact names.
+- Reasoning eval: distinguish agreed concept from proposed API.
+
+Concrete missed event names from that session:
+
+```text
+om.observations.flagged
+om.reflections.deprecated
+om.reflections.superseded
+```
+
 ### Stage 7: Reassess architecture findings
 
 After lifecycle/additive/compaction changes, update:
