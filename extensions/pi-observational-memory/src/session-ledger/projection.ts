@@ -1,4 +1,5 @@
 import { observationTokenSum } from "./memory-tokens.js";
+import { entryIndexById, latestReflectionReviewIndex } from "./progress.js";
 import {
 	OM_FOLDED,
 	isMemoryDetails,
@@ -22,6 +23,13 @@ export type ProjectionDiff = {
 	droppedOnlyInFull: Observation[];
 };
 
+export type ReviewClassification = {
+	reviewed: Observation[];
+	unreviewed: Observation[];
+};
+
+export type VisibilityProjection = Projection & ReviewClassification;
+
 export type CompactionProjectionConfig = {
 	observationsPoolMaxTokens: number;
 };
@@ -36,12 +44,6 @@ type FoldBoundaries = {
 	reflectionsThroughIndex: number;
 	dropsThroughIndex: number;
 };
-
-function entryIndexById(entries: Entry[]): Map<string, number> {
-	const indexes = new Map<string, number>();
-	for (let i = 0; i < entries.length; i++) indexes.set(entries[i].id, i);
-	return indexes;
-}
 
 function tipIndex(entries: Entry[]): number {
 	return entries.length - 1;
@@ -136,6 +138,35 @@ export function latestCompactedProjection(entries: Entry[]): Projection {
 	return details ? projectionFromMemoryDetails(details) : { observations: [], reflections: [] };
 }
 
+export function classifyObservationsByReview(entries: Entry[], observations: Observation[]): ReviewClassification {
+	const reviewIndex = latestReflectionReviewIndex(entries);
+	if (reviewIndex < 0) return { reviewed: [], unreviewed: [...observations] };
+
+	const indexes = entryIndexById(entries);
+	const reviewed: Observation[] = [];
+	const unreviewed: Observation[] = [];
+
+	for (const observation of observations) {
+		const isReviewed = observation.sourceEntryIds.length > 0 && observation.sourceEntryIds.every((sourceEntryId) => {
+			const sourceIndex = indexes.get(sourceEntryId);
+			return sourceIndex !== undefined && sourceIndex <= reviewIndex;
+		});
+		if (isReviewed) reviewed.push(observation);
+		else unreviewed.push(observation);
+	}
+
+	return { reviewed, unreviewed };
+}
+
+export function visibilityProjection(entries: Entry[], projection: Projection): VisibilityProjection {
+	const classified = classifyObservationsByReview(entries, projection.observations);
+	return {
+		reflections: projection.reflections,
+		observations: classified.unreviewed,
+		...classified,
+	};
+}
+
 export function latestFullFoldBoundaryId(entries: Entry[]): string | undefined {
 	const indexes = entryIndexById(entries);
 	for (let i = entries.length - 1; i >= 0; i--) {
@@ -202,8 +233,8 @@ export function buildNextCompactionProjection(
 	seed: Projection = { observations: [], reflections: [] },
 ): CompactionProjection {
 	const incrementalProjection = buildIncrementalCompactionProjection(entries, mergeProjection(latestCompactedProjection(entries), seed));
-	if (!shouldFullFold(incrementalProjection, config)) return withCompactionDetails(incrementalProjection, false);
-	return withCompactionDetails(buildFullFoldCompactionProjection(entries, firstKeptEntryId), true);
+	if (!shouldFullFold(incrementalProjection, config)) return withCompactionDetails(visibilityProjection(entries, incrementalProjection), false);
+	return withCompactionDetails(visibilityProjection(entries, buildFullFoldCompactionProjection(entries, firstKeptEntryId)), true);
 }
 
 export function diffProjection(latestCompacted: Projection, full: Projection): ProjectionDiff {

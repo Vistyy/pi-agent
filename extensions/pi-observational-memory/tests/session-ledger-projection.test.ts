@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import {
 	buildNextCompactionProjection,
+	classifyObservationsByReview,
 	diffProjection,
 	fullProjection,
 	latestFullFoldBoundaryId,
 	latestCompactedProjection,
+	visibilityProjection,
 } from "../src/session-ledger/index.js";
 import {
 	compactionEntry,
@@ -15,6 +17,7 @@ import {
 	observationsRecordedEntry,
 	reflection,
 	reflectionsRecordedEntry,
+	reflectionsReviewedEntry,
 	textCustomMessage,
 } from "./fixtures/session.js";
 
@@ -86,7 +89,7 @@ describe("session-ledger projections", () => {
 		const result = buildNextCompactionProjection(entries, "raw-2", { observationsPoolMaxTokens: 100 });
 
 		expect(result.fullFold).toBe(false);
-		expect(result.observations.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa"]);
+		expect(result.observations.map((obs) => obs.id)).toEqual([]);
 		expect(result.reflections.map((ref) => ref.id)).toEqual(["eeeeeeeeeeee"]);
 		expect(result.details).toMatchObject({ type: "om.folded", fullFold: false });
 	});
@@ -112,6 +115,60 @@ describe("session-ledger projections", () => {
 		expect(result.details.observations.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa"]);
 	});
 
+	it("classifies observations as reviewed only when all source entries are behind the reflection review cursor", () => {
+		const reviewed = observation("aaaaaaaaaaaa", { sourceEntryIds: ["raw-1"] });
+		const straddling = observation("bbbbbbbbbbbb", { sourceEntryIds: ["raw-1", "raw-2"] });
+		const unknown = observation("cccccccccccc", { sourceEntryIds: ["missing"] });
+		const entries = [
+			textCustomMessage("raw-1", "aaaa"),
+			textCustomMessage("raw-2", "bbbb"),
+			reflectionsReviewedEntry("om-reviewed", { coversUpToId: "raw-1" }),
+		];
+
+		const result = classifyObservationsByReview(entries, [reviewed, straddling, unknown]);
+
+		expect(result.reviewed.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa"]);
+		expect(result.unreviewed.map((obs) => obs.id)).toEqual(["bbbbbbbbbbbb", "cccccccccccc"]);
+	});
+
+	it("visibility projection shows unreviewed observations and hides reviewed observations", () => {
+		const reviewed = observation("aaaaaaaaaaaa", { sourceEntryIds: ["raw-1"] });
+		const pending = observation("bbbbbbbbbbbb", { sourceEntryIds: ["raw-2"] });
+		const ref1 = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
+		const entries = [
+			textCustomMessage("raw-1", "aaaa"),
+			textCustomMessage("raw-2", "bbbb"),
+			observationsRecordedEntry("om-observations", { observations: [reviewed, pending], coversUpToId: "raw-2" }),
+			reflectionsRecordedEntry("om-reflection", { reflections: [ref1], coversUpToId: "raw-1" }),
+		];
+
+		const result = visibilityProjection(entries, fullProjection(entries));
+
+		expect(result.observations.map((obs) => obs.id)).toEqual(["bbbbbbbbbbbb"]);
+		expect(result.reviewed.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa"]);
+		expect(result.unreviewed.map((obs) => obs.id)).toEqual(["bbbbbbbbbbbb"]);
+		expect(result.reflections.map((ref) => ref.id)).toEqual(["eeeeeeeeeeee"]);
+	});
+
+	it("normal compaction projection hides reviewed observations but keeps reflections", () => {
+		const reviewed = observation("aaaaaaaaaaaa", { sourceEntryIds: ["raw-1"] });
+		const pending = observation("bbbbbbbbbbbb", { sourceEntryIds: ["raw-2"] });
+		const ref1 = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
+		const entries = [
+			textCustomMessage("raw-1", "aaaa"),
+			textCustomMessage("raw-2", "bbbb"),
+			observationsRecordedEntry("om-observations", { observations: [reviewed, pending], coversUpToId: "raw-2" }),
+			reflectionsRecordedEntry("om-reflection", { reflections: [ref1], coversUpToId: "raw-1" }),
+		];
+
+		const result = buildNextCompactionProjection(entries, "raw-2", { observationsPoolMaxTokens: 100 });
+
+		expect(result.fullFold).toBe(false);
+		expect(result.observations.map((obs) => obs.id)).toEqual(["bbbbbbbbbbbb"]);
+		expect(result.reflections.map((ref) => ref.id)).toEqual(["eeeeeeeeeeee"]);
+		expect(result.details.observations.map((obs) => obs.id)).toEqual(["bbbbbbbbbbbb"]);
+	});
+
 	it("normal compaction projection includes current observations and reflections but keeps drops at latest full-fold boundary", () => {
 		const obs1 = observation("aaaaaaaaaaaa");
 		const obs2 = observation("bbbbbbbbbbbb");
@@ -131,7 +188,7 @@ describe("session-ledger projections", () => {
 		const result = buildNextCompactionProjection(entries, "raw-2", { observationsPoolMaxTokens: 100 });
 
 		expect(result.fullFold).toBe(false);
-		expect(result.observations.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa", "bbbbbbbbbbbb"]);
+		expect(result.observations.map((obs) => obs.id)).toEqual([]);
 		expect(result.reflections.map((ref) => ref.id)).toEqual(["eeeeeeeeeeee", "ffffffffffff"]);
 		expect(result.details).toMatchObject({ type: "om.folded", fullFold: false });
 	});
@@ -155,7 +212,7 @@ describe("session-ledger projections", () => {
 		const result = buildNextCompactionProjection(entries, "raw-2", { observationsPoolMaxTokens: 10 });
 
 		expect(result.fullFold).toBe(true);
-		expect(result.observations.map((obs) => obs.id)).toEqual(["bbbbbbbbbbbb"]);
+		expect(result.observations.map((obs) => obs.id)).toEqual([]);
 		expect(result.reflections.map((ref) => ref.id)).toEqual(["eeeeeeeeeeee", "ffffffffffff"]);
 		expect(result.details).toMatchObject({ type: "om.folded", fullFold: true });
 	});

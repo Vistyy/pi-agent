@@ -54,7 +54,7 @@ describe("/om:status", () => {
 		const output = await setup({ entries: [] }).run();
 
 		expect(output).toContain("── Memory ──");
-		expect(output).toContain("Observations: 0 recorded / 0 dropped / 0 active / 0 visible");
+		expect(output).toContain("Observations: 0 recorded / 0 dropped / 0 reviewed / 0 unreviewed / 0 visible");
 		expect(output).toContain("Reflections:  0 recorded / 0 visible");
 		expect(output).toContain("Next observation:");
 	});
@@ -77,7 +77,7 @@ describe("/om:status", () => {
 		expect(output).toContain("Next reflection:");
 		expect(output).toContain("/ 20 new observations");
 		expect(output).toContain("Visible observation pool: ~6 / 40 tokens (15%)");
-		expect(output).toContain("Active observation pool: 1 / 20 observations (5%)");
+		expect(output).toContain("Drop candidate pool:     1 active observations");
 		expect(output).toContain("Reflection pool:         ~6 tokens");
 	});
 
@@ -90,7 +90,7 @@ describe("/om:status", () => {
 
 		const output = await setup({ entries }).run();
 
-		expect(output).toContain("Active observation pool: 1 / 20 observations (5%)");
+		expect(output).toContain("Drop candidate pool:     1 active observations");
 	});
 
 	it("shows disabled config, memory update in flight, compaction hook in flight, and stage-specific last errors", async () => {

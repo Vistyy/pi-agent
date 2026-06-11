@@ -10,6 +10,7 @@ import {
 	sourceEntryCountSinceReflectionReviewCoverage,
 	latestCompactedProjection,
 	observationTokenSum,
+	visibilityProjection,
 	reflectionTokenSum,
 	foldAgentUsage,
 	type AgentUsageTotals,
@@ -47,13 +48,14 @@ export async function runStatusCommand(ctx: any, runtime: Runtime): Promise<void
 			const folded = foldLedger(entries);
 			const visible = latestCompactedProjection(entries);
 			const full = fullProjection(entries);
+			const reviewVisibility = visibilityProjection(entries, full);
 			const drift = diffProjection(visible, full);
 
 			const visibleObservationTokens = observationTokenSum(visible.observations);
 			const visibleReflectionTokens = reflectionTokenSum(visible.reflections);
 			const activeObservationPool = observationPoolMetrics(folded.activeObservations, runtime.config.dropWhenActiveObservationsOver);
 			const observationLine = appendSuffixes(
-				`Observations: ${folded.observations.length} recorded / ${folded.droppedObservationIds.size} dropped / ${folded.activeObservations.length} active / ${visible.observations.length} visible`,
+				`Observations: ${folded.observations.length} recorded / ${folded.droppedObservationIds.size} dropped / ${reviewVisibility.reviewed.length} reviewed / ${reviewVisibility.unreviewed.length} unreviewed / ${visible.observations.length} visible`,
 				[
 					addedSuffix(drift.observationsOnlyInFull.length),
 					removedSuffix(drift.droppedOnlyInFull.length),
@@ -84,7 +86,7 @@ export async function runStatusCommand(ctx: any, runtime: Runtime): Promise<void
 				`Next observation: ${obsProgress.toLocaleString()} / ${runtime.config.observeEveryMessages.toLocaleString()} source entries (${pct(obsProgress, runtime.config.observeEveryMessages)}%)`,
 				`Next reflection:  ${reflectionProgress.toLocaleString()} / ${runtime.config.reflectEveryObservations.toLocaleString()} new observations (${pct(reflectionProgress, runtime.config.reflectEveryObservations)}%)`,
 				`Visible observation pool: ~${visibleObservationTokens.toLocaleString()} / ${runtime.config.observationsPoolMaxTokens.toLocaleString()} tokens (${pct(visibleObservationTokens, runtime.config.observationsPoolMaxTokens)}%)`,
-				`Active observation pool: ${activeObservationPool.activeObservationCount.toLocaleString()} / ${runtime.config.dropWhenActiveObservationsOver.toLocaleString()} observations (${pct(activeObservationPool.activeObservationCount, runtime.config.dropWhenActiveObservationsOver)}%)`,
+				`Drop candidate pool:     ${activeObservationPool.activeObservationCount.toLocaleString()} active observations`,
 				`Drop protected recent:   ${(runtime.config.protectRecentObservations ?? 20).toLocaleString()} observations`,
 				`Reflection review lag:   ${reflectionReviewLag.toLocaleString()} source entries`,
 				`Reflection pool:         ~${visibleReflectionTokens.toLocaleString()} tokens`,
