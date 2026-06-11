@@ -277,7 +277,7 @@ No behavior change required at first.
 Replace pool-size-first behavior with cursor/review driven behavior:
 
 ```text
-reflector due when enough unreviewed observations or flagged follow-ups exist
+reflector due when unreviewed observations + pending flagged follow-ups reaches reflectEveryObservations
 curator due when enough newly reviewed observations or context pressure exists
 hard pool cap remains emergency only
 ```
@@ -298,7 +298,7 @@ hard pool cap remains emergency only
 
 1. Should curator be a renamed dropper or a new agent wrapper around the same model prompt?
 2. Should covered observations remain recallable after source entries are compacted?
-3. What exact prompt/context should reflector receive for flagged follow-up observations?
+3. Should pending follow-up flags ever need explicit resolution, or is implicit resolution by later reflector review enough?
 4. Should pinned observations have TTL/expiry or only explicit unpin?
 5. How much reflection deprecation should happen in reflector vs curator?
 6. How should current `om.observations.dropped` tombstones migrate into the new context model?

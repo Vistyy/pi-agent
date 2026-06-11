@@ -98,7 +98,7 @@ Quality work is deferred:
 ```text
 observed but unreviewed      → carried forward in next context/pending
 reviewed but uncurated       → carried forward covered/pending
-flagged follow-up observations  → carried forward pending follow-up
+pending flagged follow-ups   → carried forward until next reflector review covers the flag event
 ```
 
 ## Config direction
@@ -342,7 +342,39 @@ om.observations.flagged
 }
 ```
 
-Reflector receives flagged observations as follow-up input alongside normal unreviewed observations.
+Reflector receives pending flagged observations as follow-up input alongside normal unreviewed observations.
+
+Pending means the flag event was appended after the latest reflector recorded/reviewed entry. Once a later reflector run records reflections or marks reviewed, earlier flags are implicitly handled; no separate resolved event exists yet.
+
+### Stage 4a: Curator evals before pin/unpin
+
+Curator behavior is model judgment, not just ledger mechanics. Add eval coverage before trusting pin/unpin/drop/flag decisions.
+
+Deterministic tests cover mechanics:
+
+```text
+fold pin/unpin/drop/flag events
+projection includes unreviewed + pinned reviewed
+drop wins over pin/flag
+pending flags resolve after reflector review
+```
+
+Model evals cover judgment:
+
+```text
+exact path/error missing from reflection      → flag + maybe pin
+exact detail already captured in reflection   → no pin
+old pinned failure superseded by passing run   → unpin old
+user preference/current constraint            → do not drop
+noisy transient logs                          → drop
+reflection contradicts observation            → flag and keep visible
+important only for recall                     → neither pin nor drop
+many candidate pins                           → choose minimal pins
+flagged then dropped                          → do not keep spending reflector budget
+fork/compaction projection                    → no unsafe loss of context
+```
+
+Evals should run separately from `pnpm test` because they require live model calls. The same harness should later support recall evals.
 
 ### Stage 5: Rework triggers
 
@@ -361,7 +393,7 @@ visible observations > emergencyCurateWhenVisibleObservationsOver
 Other triggers:
 
 ```text
-flagged follow-up backlog exists → reflector due
+unreviewed observations + pending flagged follow-ups >= reflectEveryObservations → reflector due
 suppression/context backlog exists → curator due
 ```
 
