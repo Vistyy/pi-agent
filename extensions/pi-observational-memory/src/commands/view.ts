@@ -1,6 +1,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { Runtime } from "../runtime.js";
 import {
+	classifyObservationsByReview,
 	fullProjection,
 	observationToSummaryLine,
 	reflectionToSummaryLine,
@@ -23,7 +24,7 @@ function renderList<T>(items: T[], render: (item: T) => string, empty: string): 
 	return items.length > 0 ? items.map(render).join("\n") : empty;
 }
 
-function renderContentOnlyProjection(projection: Projection, emptyScope: "visible" | "recorded"): string {
+function renderContentOnlyProjection(projection: Projection, emptyScope: "visible" | "recorded" | "reviewed"): string {
 	return [
 		"── Reflections ──",
 		renderList(projection.reflections, reflectionToSummaryLine, `No ${emptyScope} reflections.`),
@@ -45,8 +46,15 @@ export async function runViewCommand(args: unknown, ctx: any, runtime: Runtime):
 		return;
 	}
 
+	if (mode === "reviewed") {
+		const full = fullProjection(entries);
+		const reviewed = classifyObservationsByReview(entries, full.observations).reviewed;
+		notifyView(renderContentOnlyProjection({ reflections: full.reflections, observations: reviewed }, "reviewed"));
+		return;
+	}
+
 	if (mode && mode !== "visible") {
-		ctx.ui.notify("Usage: /om:view [full]", "info");
+		ctx.ui.notify("Usage: /om:view [visible|full|reviewed]", "info");
 		return;
 	}
 
@@ -55,7 +63,7 @@ export async function runViewCommand(args: unknown, ctx: any, runtime: Runtime):
 
 export function registerViewCommand(pi: ExtensionAPI, runtime: Runtime): void {
 	pi.registerCommand("om:view", {
-		description: "Print observational memory content (visible by default, full for recorded memory)",
+		description: "Print observational memory content (visible by default, full/reviewed on request)",
 		handler: async (args, ctx) => runViewCommand(args, ctx, runtime),
 	});
 }
