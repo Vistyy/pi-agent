@@ -1,6 +1,6 @@
 # Architecture findings to revisit
 
-Context: notes from comparing four model reviews of `pi-observational-memory` on 2026-06-09. Not fixes yet. Use this as a triage list.
+Context: notes from comparing five model reviews of `pi-observational-memory` across repo revisions. Not fixes yet. Use this as a triage list.
 
 ## High-value findings
 
@@ -131,7 +131,40 @@ Potential direction:
 - teach reflector to emit replacement relationships;
 - render newer conflicting reflections preferentially.
 
+### 11. Observer may re-observe compaction summaries
+
+From session `019eb7fa`, Kimi K2.6.
+
+`isSourceEntry()` includes `"compaction"`, so observer source chunks can include prior compaction summaries. The observer already receives prior observations/reflections as memory context, so re-processing compaction entries may create redundant or meta-observations about already-compressed memory.
+
+Risk: feedback loop where memory summaries become new evidence, increasing duplication and drift.
+
+Potential direction:
+- exclude `compaction` from observer source entries;
+- or treat compaction entries as source only for recovery/full-fold paths, not normal observation;
+- add tests for post-compaction observation chunks.
+
 ## Medium/low-value findings
+
+### No per-run observer token cap after initial backfill
+
+From session `019eb7fa`.
+
+`maxInitialObserveTokens` protects only the first no-coverage backfill. Later observer chunks can still become very large if updates are delayed or the cursor gets stuck.
+
+Risk: unexpectedly large observer prompts/cost after the initial session phase.
+
+Potential direction: add `maxObserveTokensPerRun`, chunk large source ranges, or force smaller cursor advancement.
+
+### Reflector newline validation may drop otherwise good reflections
+
+From session `019eb7fa`.
+
+Reflections are required to be single-line. If model output includes newlines in reflection content, validation can reject the reflection. Need verify whether rejection is per-reflection or can poison the whole batch in the current agent implementation.
+
+Risk: useful reflections lost due to formatting rather than substance.
+
+Potential direction: normalize whitespace/newlines to spaces before validation, or report rejected reflection counts in debug/status.
 
 ### Dropper throughput cap may lag under load
 
