@@ -55,7 +55,7 @@ export type ObservationsDroppedEntryData = {
 
 export type ObservationsFlaggedEntryData = {
 	observationIds: string[];
-	/** Short one-line explanation for reflector repair. Used as context, not deterministic routing. */
+	/** Short one-line explanation for reflector follow-up. Used as context, not deterministic routing. */
 	reason: string;
 };
 
@@ -149,7 +149,7 @@ export function normalizeObservationFlagReason(value: string): string {
 }
 
 export function isObservationFlagReason(value: unknown): value is string {
-	return isNonEmptyString(value) && !/\r|\n/.test(value);
+	return typeof value === "string" && normalizeObservationFlagReason(value).length > 0;
 }
 
 export function isObservationsFlaggedData(value: unknown): value is ObservationsFlaggedEntryData {

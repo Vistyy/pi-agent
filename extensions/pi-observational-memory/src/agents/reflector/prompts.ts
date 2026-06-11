@@ -1,3 +1,5 @@
+export const REFLECTOR_FOLLOW_UP_INSTRUCTIONS = "These observations were flagged for reflection follow-up. Their full text is in CURRENT OBSERVATIONS. Use the reasons as context, not as fixed categories. Prioritize recording corrective/additional reflections that preserve their important details. This does not modify existing reflections.";
+
 export const REFLECTOR_SYSTEM = `Review active observations for durable memory.
 
 Call record_reflections for compact facts that should survive beyond raw observations:

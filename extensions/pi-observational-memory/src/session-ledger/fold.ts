@@ -2,6 +2,7 @@ import {
 	isObservationsDroppedData,
 	isObservationsFlaggedData,
 	isObservationsRecordedData,
+	normalizeObservationFlagReason,
 	isReflectionsRecordedData,
 	OM_OBSERVATIONS_DROPPED,
 	OM_OBSERVATIONS_FLAGGED,
@@ -24,8 +25,10 @@ export type FoldedLedger = {
 	activeObservations: Observation[];
 	/** Tombstoned observation ids, including ids that may not have a corresponding folded observation. */
 	droppedObservationIds: Set<string>;
-	/** Observation ids flagged for reflector repair, including ids that may not have a corresponding folded observation. */
+	/** Observation ids flagged for reflector follow-up, including ids that may not have a corresponding folded observation. */
 	flaggedObservationIds: Set<string>;
+	/** Follow-up reasons by flagged observation id. Reasons are explanatory context, not deterministic routing. */
+	flaggedObservationReasonsById: Map<string, string[]>;
 	/** All first-valid reflection records encountered through the fold boundary. */
 	reflections: Reflection[];
 	/** All first-valid observation records by id, including dropped observations. */
@@ -56,6 +59,7 @@ export function foldLedger(entries: Entry[], options: FoldLedgerOptions = {}): F
 	const reflectionsById = new Map<string, Reflection>();
 	const droppedObservationIds = new Set<string>();
 	const flaggedObservationIds = new Set<string>();
+	const flaggedObservationReasonsById = new Map<string, string[]>();
 	const endIdx = foldEndIndex(entries, options.upToEntryId);
 
 	for (let i = 0; i <= endIdx; i++) {
@@ -92,8 +96,13 @@ export function foldLedger(entries: Entry[], options: FoldLedgerOptions = {}): F
 
 		if (isCustomEntry(entry, OM_OBSERVATIONS_FLAGGED)) {
 			if (!isObservationsFlaggedData(entry.data)) continue;
+			const reason = normalizeObservationFlagReason(entry.data.reason);
 			for (const observationId of entry.data.observationIds) {
 				flaggedObservationIds.add(observationId);
+				flaggedObservationReasonsById.set(observationId, [
+					...(flaggedObservationReasonsById.get(observationId) ?? []),
+					reason,
+				].slice(-3));
 			}
 		}
 	}
@@ -107,6 +116,7 @@ export function foldLedger(entries: Entry[], options: FoldLedgerOptions = {}): F
 		activeObservations,
 		droppedObservationIds,
 		flaggedObservationIds,
+		flaggedObservationReasonsById,
 		reflections,
 		observationsById,
 		reflectionsById,

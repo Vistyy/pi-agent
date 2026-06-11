@@ -38,8 +38,10 @@ export function anyMemoryUpdateStageDue(entries: Entry[], runtime: Runtime): boo
 	const folded = foldLedger(entries);
 	const activeObservationCount = folded.activeObservations.length;
 	const unreflectedObservationCount = observationsSinceReflectionCoverage(entries, folded.activeObservations).length;
+	const flaggedActiveObservationCount = folded.activeObservations.filter((observation) => folded.flaggedObservationIds.has(observation.id)).length;
+	const reflectionWorkCount = unreflectedObservationCount + flaggedActiveObservationCount;
 	return sourceEntryCountSinceObservationCoverage(entries) >= runtime.config.observeEveryMessages
-		|| unreflectedObservationCount >= runtime.config.reflectEveryObservations
+		|| reflectionWorkCount >= runtime.config.reflectEveryObservations
 		|| activeObservationCount > runtime.config.dropWhenActiveObservationsOver;
 }
 

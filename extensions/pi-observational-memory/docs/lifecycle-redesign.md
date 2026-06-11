@@ -21,7 +21,7 @@ Separate three responsibilities:
 ```text
 observer  = extract raw observations
 reflector = synthesize meaning and advance semantic review
-curator   = manage context inclusion, safety, and repair requests
+curator   = manage context inclusion, safety, and follow-up requests
 recall    = recover source evidence when exact context matters
 ```
 
@@ -122,14 +122,14 @@ suppress observation
   hide low-value/noisy observation
 
 flag for re-review
-  request reflector repair because compression looks unsafe
+  request reflector follow-up because compression looks unsafe
 ```
 
 ## No cursor rewinds
 
 Do not move observations back in front of the review cursor.
 
-Cursors should stay append-only and monotonic. If the curator finds a reviewed observation that needs repair, append a separate flag event.
+Cursors should stay append-only and monotonic. If the curator finds a reviewed observation that needs follow-up, append a separate flag event.
 
 Example:
 
@@ -137,7 +137,7 @@ Example:
 om.observations.flagged
 {
   observationIds: [...],
-  reason: string // short one-line explanation for reflector repair, normalized/truncated, not deterministic routing
+  reason: string // short one-line explanation for reflector follow-up, normalized/truncated, not deterministic routing
 }
 ```
 
@@ -147,7 +147,7 @@ Reflector then has two inputs:
 normal input:
   observations after review cursor
 
-repair input:
+follow-up input:
   flagged reviewed observations
 ```
 
@@ -264,7 +264,7 @@ No behavior change required at first.
 ### Stage 3: Add pin and flag events
 
 - Curator can pin exact reviewed observations.
-- Curator can flag reviewed observations for reflector repair.
+- Curator can flag reviewed observations for reflector follow-up.
 - No cursor rewind.
 
 ### Stage 4: Add suppression
@@ -277,7 +277,7 @@ No behavior change required at first.
 Replace pool-size-first behavior with cursor/review driven behavior:
 
 ```text
-reflector due when enough unreviewed observations or flagged repairs exist
+reflector due when enough unreviewed observations or flagged follow-ups exist
 curator due when enough newly reviewed observations or context pressure exists
 hard pool cap remains emergency only
 ```
@@ -298,7 +298,7 @@ hard pool cap remains emergency only
 
 1. Should curator be a renamed dropper or a new agent wrapper around the same model prompt?
 2. Should covered observations remain recallable after source entries are compacted?
-3. What exact prompt/context should reflector receive for flagged repair observations?
+3. What exact prompt/context should reflector receive for flagged follow-up observations?
 4. Should pinned observations have TTL/expiry or only explicit unpin?
 5. How much reflection deprecation should happen in reflector vs curator?
 6. How should current `om.observations.dropped` tombstones migrate into the new context model?

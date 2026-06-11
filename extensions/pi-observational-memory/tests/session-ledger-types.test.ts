@@ -78,7 +78,7 @@ describe("session-ledger type guards and builders", () => {
 		expect(isObservationsDroppedData({ observationIds: [], coversUpToId: "raw-1" })).toBe(false);
 		expect(isObservationsFlaggedData({ observationIds: [], reason: "Reflection omitted exact error path." })).toBe(false);
 		expect(isObservationsFlaggedData({ observationIds: ["aaaaaaaaaaaa"], reason: "" })).toBe(false);
-		expect(isObservationsFlaggedData({ observationIds: ["aaaaaaaaaaaa"], reason: "line one\nline two" })).toBe(false);
+		expect(isObservationsFlaggedData({ observationIds: ["aaaaaaaaaaaa"], reason: "line one\nline two" })).toBe(true);
 	});
 
 	it("builders return marker data for empty observations and undefined for other empty arrays", () => {

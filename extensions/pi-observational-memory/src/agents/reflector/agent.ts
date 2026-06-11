@@ -6,7 +6,7 @@ import { debugLog } from "../../debug-log.js";
 import { hashId } from "../../memory/ids.js";
 import { joinOrEmpty, normalizeAllowedIdsStrict, runMemoryAgentLoop, type MemoryAgentUsage } from "../common.js";
 import { truncateRecordContent } from "../../memory/serialize.js";
-import { REFLECTOR_SYSTEM } from "./prompts.js";
+import { REFLECTOR_FOLLOW_UP_INSTRUCTIONS, REFLECTOR_SYSTEM } from "./prompts.js";
 import { estimateStringTokens } from "../../memory/token-estimate.js";
 import { reflectionToSummaryLine, type Observation, type Reflection } from "../../session-ledger/index.js";
 import {
@@ -18,12 +18,18 @@ import {
 } from "../coverage.js";
 export { observationToMemoryAgentLine } from "../coverage.js";
 
+export type FlaggedObservationForFollowUp = {
+	observation: Observation;
+	reasons: string[];
+};
+
 interface RunReflectorArgs {
 	model: Model<any>;
 	apiKey: string;
 	headers?: Record<string, string>;
 	reflections: Reflection[];
 	observations: Observation[];
+	flaggedObservations?: FlaggedObservationForFollowUp[];
 	signal?: AbortSignal;
 	agentLoop?: typeof agentLoop;
 	maxTurns?: number;
@@ -80,7 +86,7 @@ function normalizeReflectionContent(content: string): string | undefined {
 }
 
 export async function runReflector(args: RunReflectorArgs): Promise<Reflection[] | undefined> {
-	const { model, apiKey, headers, reflections, observations, signal } = args;
+	const { model, apiKey, headers, reflections, observations, flaggedObservations = [], signal } = args;
 	if (observations.length === 0) return undefined;
 
 	const coverageById = reflectionCoverageMap(observations, reflections);
@@ -160,10 +166,17 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 		},
 	};
 
-	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nCURRENT OBSERVATIONS:\n${joinOrEmpty(observations.map((observation) => observationToMemoryAgentLine(observation, coverageTierForObservation(observation, coverageById))))}\n\nReview these observations. Call record_reflections once with every durable new reflection, or mark_reviewed_no_reflections if none should be added.`;
+	const flaggedText = flaggedObservations.length > 0
+		? `\n\nFLAGGED FOR FOLLOW-UP:\n${joinOrEmpty(flaggedObservations.map(({ observation, reasons }) => {
+			const reasonText = reasons.length > 0 ? ` — ${reasons.join("; ")}` : "";
+			return `[${observation.id}]${reasonText}`;
+		}))}\n\n${REFLECTOR_FOLLOW_UP_INSTRUCTIONS}`
+		: "";
+	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nCURRENT OBSERVATIONS:\n${joinOrEmpty(observations.map((observation) => observationToMemoryAgentLine(observation, coverageTierForObservation(observation, coverageById))))}${flaggedText}\n\nReview these observations. Call record_reflections once with every durable new reflection, or mark_reviewed_no_reflections if none should be added.`;
 	debugLog("reflector.prompt", {
 		reflectionCount: reflections.length,
 		observationCount: observations.length,
+		flaggedObservationCount: flaggedObservations.length,
 		userTextTokenEstimate: estimateStringTokens(userText),
 	});
 	await runMemoryAgentLoop({

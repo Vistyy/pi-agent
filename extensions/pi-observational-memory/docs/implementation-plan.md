@@ -51,7 +51,7 @@ reviewed observations
   ↓
 curator/dropper
   audits reviewed observations
-  pins, suppresses, or flags repair work
+  pins, suppresses, or flags reflection follow-up work
 ```
 
 Prompt projection taxonomy:
@@ -98,7 +98,7 @@ Quality work is deferred:
 ```text
 observed but unreviewed      → carried forward in next context/pending
 reviewed but uncurated       → carried forward covered/pending
-flagged repair observations  → carried forward pending repair
+flagged follow-up observations  → carried forward pending follow-up
 ```
 
 ## Config direction
@@ -168,7 +168,7 @@ Model evals:
 
 ```text
 observer extraction quality
-reflector synthesis/repair quality
+reflector synthesis/follow-up quality
 curator context decisions
 recall tool-use decisions
 ```
@@ -272,7 +272,7 @@ If lag is large, carry it forward explicitly:
 
 ```text
 unreviewed observations → in next context/pending
-flagged repairs         → pending
+flagged follow-ups         → pending
 ```
 
 ### Stage 3: Introduce reviewed/context projection model
@@ -332,17 +332,17 @@ flag reviewed observation for re-review
 
 Do not rewind cursors.
 
-For repair:
+For follow-up:
 
 ```text
 om.observations.flagged
 {
   observationIds: [...],
-  reason: string // short one-line explanation for reflector repair, normalized/truncated, not deterministic routing
+  reason: string // short one-line explanation for reflector follow-up, normalized/truncated, not deterministic routing
 }
 ```
 
-Reflector receives flagged observations as repair input alongside normal unreviewed observations.
+Reflector receives flagged observations as follow-up input alongside normal unreviewed observations.
 
 ### Stage 5: Rework triggers
 
@@ -361,7 +361,7 @@ visible observations > emergencyCurateWhenVisibleObservationsOver
 Other triggers:
 
 ```text
-flagged repair backlog exists → reflector due
+flagged follow-up backlog exists → reflector due
 suppression/context backlog exists → curator due
 ```
 
@@ -444,7 +444,7 @@ Reason for low priority:
 ## Main risks
 
 1. Hiding reviewed observations by default may hide exact details too aggressively.
-   Mitigation: pins, recall, repair flags.
+   Mitigation: pins, recall, follow-up flags.
 
 2. Curator becomes too important.
    Mitigation: keep inputs bounded to reviewed backlog + current reflections + recent active observations.

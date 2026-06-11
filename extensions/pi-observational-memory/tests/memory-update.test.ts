@@ -23,6 +23,7 @@ import {
 import {
 	observation,
 	observationsDroppedEntry,
+	observationsFlaggedEntry,
 	observationsRecordedEntry,
 	reflection,
 	reflectionsRecordedEntry,
@@ -305,6 +306,40 @@ describe("memory update hook", () => {
 		expect(mockAgents.runReflector).toHaveBeenCalledWith(expect.objectContaining({ observations: [obsA], maxTurns: 9, thinkingLevel: "minimal" }));
 		expect(mockAgents.runDropper).not.toHaveBeenCalled();
 		expect(pi.appendEntry).toHaveBeenCalledWith(OM_REFLECTIONS_RECORDED, { reflections: [newRef], coversUpToId: "raw-1" });
+	});
+
+	it("counts follow-up flags toward the reflector threshold", async () => {
+		mockAgents.runReflector.mockResolvedValueOnce([]);
+		const entries = [
+			textCustomMessage("raw-1", "aaaaaaaa"),
+			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
+			reflectionsRecordedEntry("om-ref", { reflections: [reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"])], coversUpToId: "raw-1" }),
+			observationsFlaggedEntry("om-flag", { observationIds: ["aaaaaaaaaaaa"], reason: "Reflection omitted exact error path." }),
+		];
+		const { fire, runLaunchedWork } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 1 });
+
+		fire();
+		await runLaunchedWork();
+
+		expect(mockAgents.runReflector).toHaveBeenCalledWith(expect.objectContaining({
+			observations: [obsA],
+			flaggedObservations: [{ observation: obsA, reasons: ["Reflection omitted exact error path."] }],
+		}));
+	});
+
+	it("does not run reflector for follow-up flags below the reflector threshold", async () => {
+		const entries = [
+			textCustomMessage("raw-1", "aaaaaaaa"),
+			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
+			reflectionsRecordedEntry("om-ref", { reflections: [reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"])], coversUpToId: "raw-1" }),
+			observationsFlaggedEntry("om-flag", { observationIds: ["aaaaaaaaaaaa"], reason: "Reflection omitted exact error path." }),
+		];
+		const { fire, runLaunchedWork } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 2 });
+
+		fire();
+		await runLaunchedWork();
+
+		expect(mockAgents.runReflector).not.toHaveBeenCalled();
 	});
 
 	it("runs dropper after reflection output and appends non-empty drops", async () => {

@@ -45,6 +45,37 @@ describe("reflector agent", () => {
 		expect(userText).toContain("[coverage: strong] Strongly covered fact");
 	});
 
+	it("renders flagged follow-up observations with reasons", async () => {
+		let userText = "";
+		const loop = fakeAgentLoop((prompts) => {
+			userText = prompts[0].content[0].text;
+		});
+
+		await runReflector({
+			...baseArgs,
+			flaggedObservations: [{ observation: obsB, reasons: ["Reflection omitted exact error path."] }],
+			agentLoop: loop,
+		});
+
+		expect(userText).toContain("FLAGGED FOR FOLLOW-UP");
+		expect(userText).toContain("[bbbbbbbbbbbb]");
+		expect(userText).toContain("[bbbbbbbbbbbb] — Reflection omitted exact error path.");
+		expect(userText).toContain("Their full text is in CURRENT OBSERVATIONS.");
+		expect(userText).toContain("This does not modify existing reflections.");
+		expect(userText).toContain("Use the reasons as context, not as fixed categories.");
+	});
+
+	it("omits flagged follow-up section when there are no flagged observations", async () => {
+		let userText = "";
+		const loop = fakeAgentLoop((prompts) => {
+			userText = prompts[0].content[0].text;
+		});
+
+		await runReflector({ ...baseArgs, flaggedObservations: [], agentLoop: loop });
+
+		expect(userText).not.toContain("FLAGGED FOR FOLLOW-UP");
+	});
+
 	it("renders reflector observation lines with coverage evidence only", () => {
 		const line = observationToMemoryAgentLine(
 			observation("aaaaaaaaaaaa", { content: "Important reflected fact" }),

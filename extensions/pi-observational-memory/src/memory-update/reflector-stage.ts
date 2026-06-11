@@ -30,10 +30,19 @@ export async function runReflectorStage(
 
 	const folded = foldLedger(entries);
 	const unreflectedObservations = observationsSinceReflectionCoverage(entries, folded.activeObservations);
-	if (unreflectedObservations.length < runtime.config.reflectEveryObservations) {
+	const flaggedObservations = folded.activeObservations
+		.filter((observation) => folded.flaggedObservationIds.has(observation.id))
+		.map((observation) => ({
+			observation,
+			reasons: folded.flaggedObservationReasonsById.get(observation.id) ?? [],
+		}));
+	const reflectionWorkCount = unreflectedObservations.length + flaggedObservations.length;
+	if (reflectionWorkCount < runtime.config.reflectEveryObservations) {
 		debugLog("reflector.skip", {
 			reason: "below_observation_threshold",
 			unreflectedObservationCount: unreflectedObservations.length,
+			flaggedObservationCount: flaggedObservations.length,
+			reflectionWorkCount,
 			reflectEveryObservations: runtime.config.reflectEveryObservations,
 			activeObservationCount: folded.activeObservations.length,
 		});
@@ -42,12 +51,14 @@ export async function runReflectorStage(
 	debugLog("reflector.stage_run", {
 		unreflectedObservationCount: unreflectedObservations.length,
 		activeObservationCount: folded.activeObservations.length,
+		flaggedObservationCount: flaggedObservations.length,
+		reflectionWorkCount,
 		reflectionCount: folded.reflections.length,
 		observationCoverageId,
 	});
 
 	if (ctx.hasUI) ctx.ui?.notify(
-		`Observational memory: reflector running (${unreflectedObservations.length.toLocaleString()} observations since reflection)`,
+		`Observational memory: reflector running (${reflectionWorkCount.toLocaleString()} reflection work items: ${unreflectedObservations.length.toLocaleString()} unreviewed, ${flaggedObservations.length.toLocaleString()} flagged)`,
 		"info",
 	);
 	const resolved = await resolveModel("reflector");
@@ -57,6 +68,7 @@ export async function runReflectorStage(
 		...commonAgentArgs(pi, runtime, resolved, runtime.config.reflectorThinking),
 		reflections: folded.reflections,
 		observations: folded.activeObservations,
+		flaggedObservations,
 	});
 	if (!reflections) {
 		debugLog("reflector.no_tool_output", { observationCoverageId });

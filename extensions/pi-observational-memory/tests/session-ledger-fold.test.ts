@@ -71,7 +71,7 @@ describe("session-ledger folding", () => {
 		expect(folded.reflections).toHaveLength(1);
 	});
 
-	it("folds flagged observation ids for reflector repair", () => {
+	it("folds flagged observation ids for reflector follow-up", () => {
 		const obs1 = observation("aaaaaaaaaaaa");
 		const entries = [
 			textCustomMessage("raw-1", "aaaa"),
@@ -83,7 +83,24 @@ describe("session-ledger folding", () => {
 
 		expect(folded.flaggedObservationIds.has("aaaaaaaaaaaa")).toBe(true);
 		expect(folded.flaggedObservationIds.has("deadbeef0000")).toBe(true);
+		expect(folded.flaggedObservationReasonsById.get("aaaaaaaaaaaa")).toEqual(["Reflection omitted exact detail."]);
 		expect(folded.activeObservations.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa"]);
+	});
+
+	it("normalizes and caps folded flag reasons", () => {
+		const obs1 = observation("aaaaaaaaaaaa");
+		const entries = [
+			textCustomMessage("raw-1", "aaaa"),
+			observationsRecordedEntry("om-aaaaaaaaaaaa", { observations: [obs1], coversUpToId: "raw-1" }),
+			observationsFlaggedEntry("om-flag-1", { observationIds: ["aaaaaaaaaaaa"], reason: "first" }),
+			observationsFlaggedEntry("om-flag-2", { observationIds: ["aaaaaaaaaaaa"], reason: "second" }),
+			observationsFlaggedEntry("om-flag-3", { observationIds: ["aaaaaaaaaaaa"], reason: "third" }),
+			observationsFlaggedEntry("om-flag-4", { observationIds: ["aaaaaaaaaaaa"], reason: ` ${"a".repeat(300)}\nmore` }),
+		];
+
+		const folded = foldLedger(entries);
+
+		expect(folded.flaggedObservationReasonsById.get("aaaaaaaaaaaa")).toEqual(["second", "third", "a".repeat(240)]);
 	});
 
 	it("retains tombstones for unknown drop ids without throwing", () => {
