@@ -10,6 +10,7 @@ import {
 	buildReflectionsReviewedData,
 	foldLedger,
 	latestCoverageMarkerId,
+	latestReflectionReviewEntryIndex,
 	type Entry,
 } from "../session-ledger/index.js";
 import { commonAgentArgs, observationsSinceReflectionCoverage } from "./stage-utils.js";
@@ -28,7 +29,7 @@ export async function runReflectorStage(
 		return "continue";
 	}
 
-	const folded = foldLedger(entries);
+	const folded = foldLedger(entries, { pendingFlagsAfterIndex: latestReflectionReviewEntryIndex(entries) });
 	const unreflectedObservations = observationsSinceReflectionCoverage(entries, folded.activeObservations);
 	const flaggedObservations = folded.activeObservations
 		.filter((observation) => folded.flaggedObservationIds.has(observation.id))

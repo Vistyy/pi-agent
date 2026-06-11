@@ -27,6 +27,7 @@ import {
 	observationsRecordedEntry,
 	reflection,
 	reflectionsRecordedEntry,
+	reflectionsReviewedEntry,
 	textCustomMessage,
 	type TestEntry,
 } from "./fixtures/session.js";
@@ -325,6 +326,21 @@ describe("memory update hook", () => {
 			observations: [obsA],
 			flaggedObservations: [{ observation: obsA, reasons: ["Reflection omitted exact error path."] }],
 		}));
+	});
+
+	it("does not count follow-up flags already covered by reflector review", async () => {
+		const entries = [
+			textCustomMessage("raw-1", "aaaaaaaa"),
+			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
+			observationsFlaggedEntry("om-flag", { observationIds: ["aaaaaaaaaaaa"], reason: "Reflection omitted exact error path." }),
+			reflectionsReviewedEntry("om-reviewed", { coversUpToId: "raw-1" }),
+		];
+		const { fire, runLaunchedWork } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 1 });
+
+		fire();
+		await runLaunchedWork();
+
+		expect(mockAgents.runReflector).not.toHaveBeenCalled();
 	});
 
 	it("does not run reflector for follow-up flags below the reflector threshold", async () => {

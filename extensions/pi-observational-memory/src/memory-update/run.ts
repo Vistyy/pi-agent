@@ -8,6 +8,7 @@ import {
 	entryIndexById,
 	foldLedger,
 	latestCoverageIndex,
+	latestReflectionReviewEntryIndex,
 	sourceEntryCountSinceObservationCoverage,
 	type Entry,
 } from "../session-ledger/index.js";
@@ -35,7 +36,7 @@ import { observationsSinceReflectionCoverage } from "./stage-utils.js";
 import type { MemoryUpdateCtx, ResolvedModel, StageOutcome } from "./types.js";
 
 export function anyMemoryUpdateStageDue(entries: Entry[], runtime: Runtime): boolean {
-	const folded = foldLedger(entries);
+	const folded = foldLedger(entries, { pendingFlagsAfterIndex: latestReflectionReviewEntryIndex(entries) });
 	const activeObservationCount = folded.activeObservations.length;
 	const unreflectedObservationCount = observationsSinceReflectionCoverage(entries, folded.activeObservations).length;
 	const flaggedActiveObservationCount = folded.activeObservations.filter((observation) => folded.flaggedObservationIds.has(observation.id)).length;

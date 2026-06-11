@@ -16,6 +16,8 @@ import {
 export type FoldLedgerOptions = {
 	/** Fold entries from branch root through this entry id, inclusive. Omit to fold through branch tip. */
 	upToEntryId?: string;
+	/** Only include observation follow-up flags appended after this ledger index. Omit to include all flags. */
+	pendingFlagsAfterIndex?: number;
 };
 
 export type FoldedLedger = {
@@ -96,6 +98,7 @@ export function foldLedger(entries: Entry[], options: FoldLedgerOptions = {}): F
 
 		if (isCustomEntry(entry, OM_OBSERVATIONS_FLAGGED)) {
 			if (!isObservationsFlaggedData(entry.data)) continue;
+			if (options.pendingFlagsAfterIndex !== undefined && i <= options.pendingFlagsAfterIndex) continue;
 			const reason = normalizeObservationFlagReason(entry.data.reason);
 			for (const observationId of entry.data.observationIds) {
 				flaggedObservationIds.add(observationId);

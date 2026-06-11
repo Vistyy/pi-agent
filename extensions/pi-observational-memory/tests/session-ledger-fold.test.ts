@@ -9,6 +9,7 @@ import {
 	observationsRecordedEntry,
 	reflection,
 	reflectionsRecordedEntry,
+	reflectionsReviewedEntry,
 	textCustomMessage,
 } from "./fixtures/session.js";
 
@@ -85,6 +86,24 @@ describe("session-ledger folding", () => {
 		expect(folded.flaggedObservationIds.has("deadbeef0000")).toBe(true);
 		expect(folded.flaggedObservationReasonsById.get("aaaaaaaaaaaa")).toEqual(["Reflection omitted exact detail."]);
 		expect(folded.activeObservations.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa"]);
+	});
+
+	it("can fold only unresolved follow-up flags after a review cursor", () => {
+		const obs1 = observation("aaaaaaaaaaaa");
+		const obs2 = observation("bbbbbbbbbbbb");
+		const entries = [
+			textCustomMessage("raw-1", "aaaa"),
+			observationsRecordedEntry("om-obs", { observations: [obs1, obs2], coversUpToId: "raw-1" }),
+			observationsFlaggedEntry("om-flag-old", { observationIds: ["aaaaaaaaaaaa"], reason: "old follow-up" }),
+			reflectionsReviewedEntry("om-reviewed", { coversUpToId: "raw-1" }),
+			observationsFlaggedEntry("om-flag-new", { observationIds: ["bbbbbbbbbbbb"], reason: "new follow-up" }),
+		];
+
+		const folded = foldLedger(entries, { pendingFlagsAfterIndex: 3 });
+
+		expect(folded.flaggedObservationIds.has("aaaaaaaaaaaa")).toBe(false);
+		expect(folded.flaggedObservationIds.has("bbbbbbbbbbbb")).toBe(true);
+		expect(folded.flaggedObservationReasonsById.get("bbbbbbbbbbbb")).toEqual(["new follow-up"]);
 	});
 
 	it("normalizes and caps folded flag reasons", () => {

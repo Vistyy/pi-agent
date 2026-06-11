@@ -104,6 +104,15 @@ export function latestReflectionReviewIndex(entries: Entry[]): number {
 	return Math.max(latestCoverageIndex(entries, OM_REFLECTIONS_RECORDED), latestCoverageIndex(entries, OM_REFLECTIONS_REVIEWED));
 }
 
+export function latestReflectionReviewEntryIndex(entries: Entry[]): number {
+	let latest = -1;
+	for (let i = 0; i < entries.length; i++) {
+		const entry = entries[i];
+		if (isValidCoverageEntry(entry, OM_REFLECTIONS_RECORDED) || isValidCoverageEntry(entry, OM_REFLECTIONS_REVIEWED)) latest = i;
+	}
+	return latest;
+}
+
 export function latestReflectionReviewMarkerId(entries: Entry[]): string | undefined {
 	const index = latestReflectionReviewIndex(entries);
 	return index >= 0 ? entries[index]?.id : undefined;
