@@ -10,7 +10,6 @@ export interface ConfiguredModel {
 }
 
 export const STRATEGY = {
-	additive: "additive",
 	replacement: "replacement",
 	off: "off",
 } as const;
@@ -25,7 +24,6 @@ export interface Config {
 	maxInitialObserveTokens: number;
 	observationsPoolMaxTokens: number;
 	agentMaxTurns: number;
-	additivePatchMaxTokens: number;
 	model?: ConfiguredModel;
 	observerThinking?: ModelThinkingLevel;
 	reflectorThinking?: ModelThinkingLevel;
@@ -34,7 +32,7 @@ export interface Config {
 }
 
 export const DEFAULTS: Config = {
-	strategy: STRATEGY.additive,
+	strategy: STRATEGY.replacement,
 	observeEveryMessages: 32,
 	reflectEveryObservations: 8,
 	dropWhenActiveObservationsOver: 80,
@@ -42,7 +40,6 @@ export const DEFAULTS: Config = {
 	maxInitialObserveTokens: 100_000,
 	observationsPoolMaxTokens: 20_000,
 	agentMaxTurns: 16,
-	additivePatchMaxTokens: 2_000,
 	observerThinking: "low",
 	reflectorThinking: "xhigh",
 	dropperThinking: "low",
@@ -93,7 +90,6 @@ function normalizeSettingsConfig(value: Record<string, unknown>): Partial<Config
 		"maxInitialObserveTokens",
 		"observationsPoolMaxTokens",
 		"agentMaxTurns",
-		"additivePatchMaxTokens",
 	] as const;
 	for (const key of numberKeys) {
 		const normalizedValue = positiveIntegerOrUndefined(value[key]);

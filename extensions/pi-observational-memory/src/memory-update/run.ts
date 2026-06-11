@@ -123,21 +123,32 @@ export async function ensureMemoryUpdatedBeforeCompaction(
 	runtime.ensureConfig(ctx.cwd);
 	if (runtime.config.strategy === STRATEGY.off) return;
 	if (runtime.memoryUpdatePromise) await runtime.memoryUpdatePromise;
-	if (runtime.memoryUpdateInFlight) return;
 	const entries = ctx.sessionManager.getBranch() as Entry[];
 	const firstKeptIndex = entryIndexById(entries).get(options.firstKeptEntryId ?? "");
 	const lastCoverageIdx = latestCoverageIndex(entries, OM_OBSERVATIONS_RECORDED);
 	const hasUnobservedCompactedPrefix = firstKeptIndex !== undefined
 		&& sourceEntriesAfter(entries, lastCoverageIdx, firstKeptIndex).length > 0;
-	if (!hasUnobservedCompactedPrefix && !anyMemoryUpdateStageDue(entries, runtime)) return;
-	const runId = `compaction-memory-update-${Date.now().toString(36)}-${Math.random().toString(16).slice(2, 8)}`;
+	if (!hasUnobservedCompactedPrefix) return;
+	const runId = `compaction-observer-flush-${Date.now().toString(36)}-${Math.random().toString(16).slice(2, 8)}`;
 	const sessionMetadata = debugSessionMetadata(ctx);
 	await withDebugLogContext({
 		enabled: runtime.config.debugLog === true,
 		cwd: ctx.cwd,
 		...sessionMetadata,
 		runId,
-	}, async () => runMemoryUpdate(pi, runtime, ctx, { forceObserveBeforeEntryId: options.firstKeptEntryId }));
+	}, async () => {
+		const resolveModel = makeModelResolver(runtime, ctx);
+		await runMemoryUpdateStage(
+			pi,
+			runtime,
+			ctx,
+			"observer",
+			async () => {
+				const { runObserverStage } = await loadObserverStage();
+				return runObserverStage(pi, runtime, ctx, resolveModel, options.firstKeptEntryId);
+			},
+		);
+	});
 }
 
 async function runMemoryUpdateStage(

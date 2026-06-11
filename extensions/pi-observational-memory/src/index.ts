@@ -1,7 +1,6 @@
 import { Type } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
-import { registerAdditiveContext } from "./hooks/additive-context.js";
 import { registerCompactionHook } from "./hooks/compaction-hook.js";
 import { registerMemoryUpdateHook } from "./hooks/memory-update.js";
 import { Runtime } from "./runtime.js";
@@ -11,7 +10,6 @@ export default function observationalMemory(pi: ExtensionAPI) {
 
 	registerMemoryUpdateHook(pi, runtime);
 	registerCompactionHook(pi, runtime);
-	registerAdditiveContext(pi, runtime);
 
 	registerLazyStatusCommand(pi, runtime);
 	registerLazyViewCommand(pi, runtime);

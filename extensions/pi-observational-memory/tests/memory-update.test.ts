@@ -47,7 +47,7 @@ function setup(args: {
 	observationsPoolMaxTokens?: number;
 	dropWhenActiveObservationsOver?: number;
 	maxInitialObserveTokens?: number;
-	strategy?: "additive" | "replacement" | "off";
+	strategy?: "replacement" | "off";
 	memoryUpdateInFlight?: boolean;
 	appendEntryReturnsId?: boolean;
 }) {
@@ -63,7 +63,7 @@ function setup(args: {
 	const usageRuntime = new Runtime();
 	const runtime = {
 		config: {
-			strategy: args.strategy ?? "additive",
+			strategy: args.strategy ?? "replacement",
 			debugLog: false,
 			observeEveryMessages: args.observeEveryMessages ?? 1,
 			reflectEveryObservations: args.reflectEveryObservations ?? 1,
@@ -136,6 +136,8 @@ describe("memory update hook", () => {
 		await ensureMemoryUpdatedBeforeCompaction(pi as never, runtime as Runtime, ctx as never, { firstKeptEntryId: "raw-2" });
 
 		expect(mockAgents.runObserver).toHaveBeenCalledOnce();
+		expect(mockAgents.runReflector).not.toHaveBeenCalled();
+		expect(mockAgents.runDropper).not.toHaveBeenCalled();
 		expect(mockAgents.runObserver.mock.calls[0][0].chunk).toContain("[Source entry id: raw-1]");
 		expect(mockAgents.runObserver.mock.calls[0][0].chunk).not.toContain("[Source entry id: raw-2]");
 		expect(getMemoryAppends()).toEqual([

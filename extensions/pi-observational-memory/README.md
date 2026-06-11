@@ -11,31 +11,29 @@ Configure under `observational-memory` in Pi settings:
 ```json
 {
   "observational-memory": {
-    "strategy": "additive"
+    "strategy": "replacement"
   }
 }
 ```
 
 Strategies:
 
-- `additive` — default. Use Pi's normal compaction, then add a small exact-detail memory patch after compaction.
-- `replacement` — replace Pi compaction with an observational-memory summary.
+- `replacement` — default. Replace Pi compaction with an observational-memory summary.
 - `off` — disable memory workers and memory compaction behavior.
 
-OM does not schedule compaction. Pi/manual/eval compaction triggers still run; OM flushes memory at the compaction boundary and can replace or augment the resulting context depending on strategy.
+OM does not schedule compaction. Pi/manual/eval compaction triggers still run; OM flushes memory at the compaction boundary and can replace the resulting context depending on strategy.
 
 ## Useful options
 
 ```json
 {
   "observational-memory": {
-    "strategy": "additive",
+    "strategy": "replacement",
     "observeEveryMessages": 32,
     "reflectEveryObservations": 8,
     "dropWhenActiveObservationsOver": 80,
     "protectRecentObservations": 32,
     "maxInitialObserveTokens": 100000,
-    "additivePatchMaxTokens": 2000,
     "observerThinking": "low",
     "reflectorThinking": "xhigh",
     "dropperThinking": "low",

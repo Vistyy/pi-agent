@@ -36,7 +36,7 @@ describe("config", () => {
 
 	it("uses defaults", () => {
 		expect(DEFAULTS).toEqual({
-			strategy: STRATEGY.additive,
+			strategy: STRATEGY.replacement,
 			observeEveryMessages: 32,
 			reflectEveryObservations: 8,
 			maxInitialObserveTokens: 100000,
@@ -44,7 +44,6 @@ describe("config", () => {
 			dropWhenActiveObservationsOver: 80,
 			protectRecentObservations: 32,
 			agentMaxTurns: 16,
-			additivePatchMaxTokens: 2000,
 			observerThinking: "low",
 			reflectorThinking: "xhigh",
 			dropperThinking: "low",
@@ -63,7 +62,6 @@ describe("config", () => {
 				observationsPoolMaxTokens: 40,
 				dropWhenActiveObservationsOver: 15,
 				agentMaxTurns: 5,
-				additivePatchMaxTokens: 500,
 				model: { provider: "anthropic", id: "global", thinking: "medium" },
 				observerThinking: "low",
 				reflectorThinking: "high",
@@ -73,21 +71,20 @@ describe("config", () => {
 		});
 		writeJson(join(cwd, ".pi", "settings.json"), {
 			"observational-memory": {
-				strategy: "additive",
+				strategy: "replacement",
 				observeEveryMessages: 100,
 				model: { provider: "openai", id: "project", thinking: "low" },
 			},
 		});
 
 		expect(loadConfig(cwd)).toMatchObject({
-			strategy: "additive",
+			strategy: "replacement",
 			observeEveryMessages: 100,
 			reflectEveryObservations: 20,
 			maxInitialObserveTokens: 60,
 			observationsPoolMaxTokens: 40,
 			dropWhenActiveObservationsOver: 15,
 			agentMaxTurns: 5,
-			additivePatchMaxTokens: 500,
 			model: { provider: "openai", id: "project", thinking: "low" },
 			observerThinking: "low",
 			reflectorThinking: "high",
