@@ -48,6 +48,7 @@ export class Runtime {
 		observer: this.emptyUsageTotals(),
 		reflector: this.emptyUsageTotals(),
 		dropper: this.emptyUsageTotals(),
+		curator: this.emptyUsageTotals(),
 		unknown: this.emptyUsageTotals(),
 	};
 
