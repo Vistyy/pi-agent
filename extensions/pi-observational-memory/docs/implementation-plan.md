@@ -338,7 +338,7 @@ For repair:
 om.observations.flagged
 {
   observationIds: [...],
-  reason: "reflection_missing_exact_detail" | "possible_contradiction" | "important_exact_detail"
+  reason: string // short one-line explanation for reflector repair, normalized/truncated, not deterministic routing
 }
 ```
 

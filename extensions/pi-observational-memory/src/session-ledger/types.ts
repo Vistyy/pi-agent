@@ -2,6 +2,7 @@ export const OM_OBSERVATIONS_RECORDED = "om.observations.recorded";
 export const OM_REFLECTIONS_RECORDED = "om.reflections.recorded";
 export const OM_REFLECTIONS_REVIEWED = "om.reflections.reviewed";
 export const OM_OBSERVATIONS_DROPPED = "om.observations.dropped";
+export const OM_OBSERVATIONS_FLAGGED = "om.observations.flagged";
 export const OM_FOLDED = "om.folded";
 
 export const MEMORY_ID_PATTERN = /^[a-f0-9]{12}$/;
@@ -52,6 +53,14 @@ export type ObservationsDroppedEntryData = {
 	coversUpToId: string;
 };
 
+export type ObservationsFlaggedEntryData = {
+	observationIds: string[];
+	/** Short one-line explanation for reflector repair. Used as context, not deterministic routing. */
+	reason: string;
+};
+
+const OBSERVATION_FLAG_REASON_MAX_LENGTH = 240;
+
 export type MemoryDetails = {
 	type: typeof OM_FOLDED;
 	fullFold: boolean;
@@ -63,7 +72,8 @@ export type MemoryCustomType =
 	| typeof OM_OBSERVATIONS_RECORDED
 	| typeof OM_REFLECTIONS_RECORDED
 	| typeof OM_REFLECTIONS_REVIEWED
-	| typeof OM_OBSERVATIONS_DROPPED;
+	| typeof OM_OBSERVATIONS_DROPPED
+	| typeof OM_OBSERVATIONS_FLAGGED;
 
 export function isNonEmptyString(value: unknown): value is string {
 	return typeof value === "string" && value.length > 0;
@@ -134,6 +144,19 @@ export function isObservationsDroppedData(value: unknown): value is Observations
 	return isNonEmptyStringArray(value.observationIds) && isNonEmptyString(value.coversUpToId);
 }
 
+export function normalizeObservationFlagReason(value: string): string {
+	return value.replace(/[\r\n]+/g, " ").trim().slice(0, OBSERVATION_FLAG_REASON_MAX_LENGTH);
+}
+
+export function isObservationFlagReason(value: unknown): value is string {
+	return isNonEmptyString(value) && !/\r|\n/.test(value);
+}
+
+export function isObservationsFlaggedData(value: unknown): value is ObservationsFlaggedEntryData {
+	if (!isPlainRecord(value)) return false;
+	return isNonEmptyStringArray(value.observationIds) && isObservationFlagReason(value.reason);
+}
+
 export function isMemoryDetails(value: unknown): value is MemoryDetails {
 	if (!isPlainRecord(value)) return false;
 	return (
@@ -178,6 +201,14 @@ export function isObservationsDroppedEntry(entry: Entry): entry is Entry & {
 	return entry.type === "custom" && entry.customType === OM_OBSERVATIONS_DROPPED && isObservationsDroppedData(entry.data);
 }
 
+export function isObservationsFlaggedEntry(entry: Entry): entry is Entry & {
+	type: "custom";
+	customType: typeof OM_OBSERVATIONS_FLAGGED;
+	data: ObservationsFlaggedEntryData;
+} {
+	return entry.type === "custom" && entry.customType === OM_OBSERVATIONS_FLAGGED && isObservationsFlaggedData(entry.data);
+}
+
 export function buildObservationsRecordedData(
 	observations: Observation[],
 	coversUpToId: string,
@@ -205,4 +236,13 @@ export function buildObservationsDroppedData(
 ): ObservationsDroppedEntryData | undefined {
 	if (observationIds.length === 0 || !isNonEmptyString(coversUpToId)) return undefined;
 	return { observationIds, coversUpToId };
+}
+
+export function buildObservationsFlaggedData(
+	observationIds: string[],
+	reason: string,
+): ObservationsFlaggedEntryData | undefined {
+	const normalizedReason = normalizeObservationFlagReason(reason);
+	if (observationIds.length === 0 || !isObservationFlagReason(normalizedReason)) return undefined;
+	return { observationIds, reason: normalizedReason };
 }

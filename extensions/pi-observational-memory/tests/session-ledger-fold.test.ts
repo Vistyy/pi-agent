@@ -5,6 +5,7 @@ import {
 	branchSummary,
 	observation,
 	observationsDroppedEntry,
+	observationsFlaggedEntry,
 	observationsRecordedEntry,
 	reflection,
 	reflectionsRecordedEntry,
@@ -68,6 +69,21 @@ describe("session-ledger folding", () => {
 		expect(folded.reflectionsById.get("eeeeeeeeeeee")?.content).toBe("first reflection");
 		expect(folded.observations).toHaveLength(1);
 		expect(folded.reflections).toHaveLength(1);
+	});
+
+	it("folds flagged observation ids for reflector repair", () => {
+		const obs1 = observation("aaaaaaaaaaaa");
+		const entries = [
+			textCustomMessage("raw-1", "aaaa"),
+			observationsRecordedEntry("om-aaaaaaaaaaaa", { observations: [obs1], coversUpToId: "raw-1" }),
+			observationsFlaggedEntry("om-flag-1", { observationIds: ["aaaaaaaaaaaa", "deadbeef0000"], reason: "Reflection omitted exact detail." }),
+		];
+
+		const folded = foldLedger(entries);
+
+		expect(folded.flaggedObservationIds.has("aaaaaaaaaaaa")).toBe(true);
+		expect(folded.flaggedObservationIds.has("deadbeef0000")).toBe(true);
+		expect(folded.activeObservations.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa"]);
 	});
 
 	it("retains tombstones for unknown drop ids without throwing", () => {
