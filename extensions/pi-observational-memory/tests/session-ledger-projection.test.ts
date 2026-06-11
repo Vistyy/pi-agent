@@ -3,11 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
 	buildNextCompactionProjection,
 	classifyObservationsByReview,
-	diffProjection,
+	diffContextProjection,
 	fullProjection,
 	latestFullFoldBoundaryId,
-	latestCompactedProjection,
-	visibilityProjection,
+	contextProjection,
+	nextContextProjection,
 } from "../src/session-ledger/index.js";
 import {
 	compactionEntry,
@@ -39,16 +39,16 @@ describe("session-ledger projections", () => {
 		expect(projection.reflections.map((ref) => ref.id)).toEqual(["eeeeeeeeeeee"]);
 	});
 
-	it("visible projection is empty when there is no compaction", () => {
+	it("context projection is empty when there is no compaction", () => {
 		const entries = [
 			textCustomMessage("raw-1", "aaaa"),
 			observationsRecordedEntry("om-aaaaaaaaaaaa", { observations: [observation("aaaaaaaaaaaa")], coversUpToId: "raw-1" }),
 		];
 
-		expect(latestCompactedProjection(entries)).toEqual({ observations: [], reflections: [] });
+		expect(contextProjection(entries)).toEqual({ observations: [], reflections: [] });
 	});
 
-	it("visible projection uses the latest valid om.folded compaction details", () => {
+	it("context projection uses the latest valid om.folded compaction details", () => {
 		const obs1 = observation("aaaaaaaaaaaa");
 		const ref1 = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
 		const obs2 = observation("bbbbbbbbbbbb");
@@ -59,7 +59,7 @@ describe("session-ledger projections", () => {
 			compactionEntry("cmp-2", { firstKeptEntryId: "raw-2", details: memoryDetails({ fullFold: true, observations: [obs2], reflections: [ref1] }) }),
 		];
 
-		expect(latestCompactedProjection(entries)).toEqual({ observations: [obs2], reflections: [ref1] });
+		expect(contextProjection(entries)).toEqual({ observations: [obs2], reflections: [ref1] });
 	});
 
 	it("finds the latest full-fold boundary", () => {
@@ -131,7 +131,7 @@ describe("session-ledger projections", () => {
 		expect(result.unreviewed.map((obs) => obs.id)).toEqual(["bbbbbbbbbbbb", "cccccccccccc"]);
 	});
 
-	it("visibility projection shows unreviewed observations and hides reviewed observations", () => {
+	it("next context projection shows unreviewed observations and hides reviewed observations", () => {
 		const reviewed = observation("aaaaaaaaaaaa", { sourceEntryIds: ["raw-1"] });
 		const pending = observation("bbbbbbbbbbbb", { sourceEntryIds: ["raw-2"] });
 		const ref1 = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
@@ -142,7 +142,7 @@ describe("session-ledger projections", () => {
 			reflectionsRecordedEntry("om-reflection", { reflections: [ref1], coversUpToId: "raw-1" }),
 		];
 
-		const result = visibilityProjection(entries, fullProjection(entries));
+		const result = nextContextProjection(entries, fullProjection(entries));
 
 		expect(result.observations.map((obs) => obs.id)).toEqual(["bbbbbbbbbbbb"]);
 		expect(result.reviewed.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa"]);
@@ -260,16 +260,16 @@ describe("session-ledger projections", () => {
 		expect(buildNextCompactionProjection(entries, "raw-1", { observationsPoolMaxTokens: 1 }).fullFold).toBe(true);
 	});
 
-	it("reports visible/full drift", () => {
-		const visible = { observations: [observation("aaaaaaaaaaaa")], reflections: [] };
-		const full = {
+	it("reports context/next-context drift", () => {
+		const context = { observations: [observation("aaaaaaaaaaaa")], reflections: [] };
+		const nextContext = {
 			observations: [observation("aaaaaaaaaaaa"), observation("bbbbbbbbbbbb")],
 			reflections: [reflection("eeeeeeeeeeee", ["bbbbbbbbbbbb"])],
 		};
 
-		const diff = diffProjection(visible, full);
+		const diff = diffContextProjection(context, nextContext);
 
-		expect(diff.observationsOnlyInFull.map((obs) => obs.id)).toEqual(["bbbbbbbbbbbb"]);
-		expect(diff.reflectionsOnlyInFull.map((ref) => ref.id)).toEqual(["eeeeeeeeeeee"]);
+		expect(diff.observationsOnlyInNextContext.map((obs) => obs.id)).toEqual(["bbbbbbbbbbbb"]);
+		expect(diff.reflectionsOnlyInNextContext.map((ref) => ref.id)).toEqual(["eeeeeeeeeeee"]);
 	});
 });

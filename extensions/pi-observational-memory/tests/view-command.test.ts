@@ -35,20 +35,20 @@ function setup(entries: TestEntry[]) {
 }
 
 describe("/om:view", () => {
-	it("renders no-memory visible output as content-only sections", async () => {
+	it("renders no-memory context output as content-only sections", async () => {
 		const { output } = await setup([]).run();
 		const expected = [
 			"── Reflections ──",
-			"No visible reflections.",
+			"No context reflections.",
 			"",
 			"── Observations ──",
-			"No visible observations.",
+			"No context observations.",
 		].join("\n");
 
 		expect(output).toBe(expected);
 	});
 
-	it("default view renders latest visible om.folded memory content only", async () => {
+	it("default view renders latest context om.folded memory content only", async () => {
 		const obs = observation("aaaaaaaaaaaa");
 		const ref = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
 		const entries = [
@@ -66,7 +66,7 @@ describe("/om:view", () => {
 		expect(output).not.toContain("bbbbbbbbbbbb");
 	});
 
-	it("reviewed view renders reviewed observations hidden from visible memory", async () => {
+	it("reviewed view renders reviewed observations hidden from context memory", async () => {
 		const reviewed = observation("aaaaaaaaaaaa", { sourceEntryIds: ["raw-1"] });
 		const unreviewed = observation("bbbbbbbbbbbb", { sourceEntryIds: ["raw-2"] });
 		const ref = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
@@ -101,6 +101,6 @@ describe("/om:view", () => {
 	it("rejects unsupported view arguments", async () => {
 		const { output } = await setup([]).run("diff");
 
-		expect(output).toBe("Usage: /om:view [visible|full|reviewed]");
+		expect(output).toBe("Usage: /om:view [context|full|reviewed]");
 	});
 });

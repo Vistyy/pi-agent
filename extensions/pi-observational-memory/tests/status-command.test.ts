@@ -6,7 +6,6 @@ import {
 	compactionEntry,
 	memoryDetails,
 	observation,
-	observationsDroppedEntry,
 	observationsRecordedEntry,
 	reflection,
 	reflectionsRecordedEntry,
@@ -42,24 +41,27 @@ function setup(args: { entries: TestEntry[]; runtime?: Partial<Runtime> }) {
 	if (!handler) throw new Error("status handler not registered");
 	const notify = vi.fn();
 	const ctx = commandCtx({ cwd: "/tmp/project", ui: { notify }, sessionManager: { getBranch: () => args.entries } });
-	const run = async () => {
-		await handler("", ctx);
+	const run = async (commandArgs = "") => {
+		await handler(commandArgs, ctx);
 		return notify.mock.calls.at(-1)?.[0] as string;
 	};
 	return { run, notify };
 }
 
 describe("/om:status", () => {
-	it("renders concise no-memory status", async () => {
+	it("renders concise default status", async () => {
 		const output = await setup({ entries: [] }).run();
 
 		expect(output).toContain("── Memory ──");
-		expect(output).toContain("Observations: 0 recorded / 0 dropped / 0 reviewed / 0 unreviewed / 0 visible");
-		expect(output).toContain("Reflections:  0 recorded / 0 visible");
-		expect(output).toContain("Next observation:");
+		expect(output).toContain("Context:      0 observations, 0 reflections");
+		expect(output).toContain("Next context: 0 observations, 0 reflections");
+		expect(output).toContain("Size:         ~0 / 40 tokens");
+		expect(output).toContain("Observe: 0 / 10 source entries");
+		expect(output).toContain("Reflect: 0 / 20 observations");
+		expect(output).not.toContain("Strategy:");
 	});
 
-	it("shows separate progress clocks, visible pool, active observation pool, and reflection pool", async () => {
+	it("shows context, next context, progress clocks, and total cost", async () => {
 		const obs = observation("aaaaaaaaaaaa");
 		const ref = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
 		const entries = [
@@ -72,28 +74,37 @@ describe("/om:status", () => {
 
 		const output = await setup({ entries }).run();
 
-		expect(output).toContain("Next observation:");
-		expect(output).toContain("/ 10 source entries");
-		expect(output).toContain("Next reflection:");
-		expect(output).toContain("/ 20 new observations");
-		expect(output).toContain("Visible observation pool: ~6 / 40 tokens (15%)");
-		expect(output).toContain("Drop candidate pool:     1 active observations");
-		expect(output).toContain("Reflection pool:         ~6 tokens");
+		expect(output).toContain("Context:      1 observations, 1 reflections");
+		expect(output).toContain("Next context: 0 observations, 1 reflections");
+		expect(output).toContain("Observe: 2 / 10 source entries");
+		expect(output).toContain("Reflect: 0 / 20 observations");
+		expect(output).toContain("Total: $0.0000 / 0 requests / 0 tokens");
 	});
 
-	it("shows over-target active observation pool in the Activity section", async () => {
+	it("shows full details on request", async () => {
 		const obs = observation("aaaaaaaaaaaa");
 		const entries = [
 			textCustomMessage("raw-1", "aaaaaaaa"),
 			observationsRecordedEntry("om-obs", { observations: [obs], coversUpToId: "raw-1" }),
 		];
 
-		const output = await setup({ entries }).run();
+		const output = await setup({ entries }).run("full");
 
-		expect(output).toContain("Drop candidate pool:     1 active observations");
+		expect(output).toContain("── Details ──");
+		expect(output).toContain("Strategy: replacement");
+		expect(output).toContain("Ledger observations: 1 recorded / 0 dropped / 1 active");
+		expect(output).toContain("Review state: 0 reviewed / 1 unreviewed");
+		expect(output).toContain("Context drift: +1 observations, +0 reflections, -0 stale observations");
+		expect(output).toContain("Source entries since review cursor: 1");
 	});
 
-	it("shows disabled config, memory update in flight, compaction hook in flight, and stage-specific last errors", async () => {
+	it("rejects unsupported status arguments", async () => {
+		const output = await setup({ entries: [] }).run("debug");
+
+		expect(output).toBe("Usage: /om:status [full]");
+	});
+
+	it("shows disabled config in full mode, memory update in flight, compaction hook in flight, and stage-specific last errors", async () => {
 		const output = await setup({
 			entries: [],
 			runtime: {
@@ -105,7 +116,7 @@ describe("/om:status", () => {
 				lastReflectorError: "reflect failed",
 				lastDropperError: "drop failed",
 			},
-		}).run();
+		}).run("full");
 
 		expect(output).toContain("Strategy: off");
 		expect(output).toContain("Memory update: running (reflector)");

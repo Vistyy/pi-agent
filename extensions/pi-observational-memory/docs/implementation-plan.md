@@ -8,7 +8,7 @@ Priorities:
 
 1. Compaction must not block on full OM catchup.
 2. Additive mode should be removed.
-3. Active memory should be driven by review/visibility state, not pool pressure.
+3. Prompt context should be driven by review/context state, not pool pressure.
 4. Dropper should evolve into a curator.
 5. Recall should get model evals and UX review.
 6. Reflection deprecation/supersede is low priority and last.
@@ -29,7 +29,7 @@ Rejected/reverted transitional work:
 - Default `reflectorThinking` downgrade from `xhigh` to `high`.
 - Dropper-after-abort and stuck-cursor force-advance changes.
 
-Those ideas should be reconsidered only if they still fit the reviewed/visible lifecycle.
+Those ideas should be reconsidered only if they still fit the reviewed/context lifecycle.
 
 ## Target lifecycle
 
@@ -40,7 +40,7 @@ observer
   records raw observations
   ↓
 unreviewed observations
-  visible by default
+  included in next context by default
   ↓
 reflector
   synthesizes meaning
@@ -54,12 +54,20 @@ curator/dropper
   pins, suppresses, or flags repair work
 ```
 
-Prompt projection should become:
+Prompt projection taxonomy:
 
 ```text
-visible memory = current reflections
-               + unreviewed observations
-               + pinned reviewed observations
+Context      = latest compacted OM memory currently injected after compaction
+Next context = projection OM would write if compaction ran now
+Ledger       = raw recorded OM events / full history
+```
+
+Next context should become:
+
+```text
+next context = current reflections
+             + unreviewed observations
+             + pinned reviewed observations
 ```
 
 Reviewed non-pinned observations should be hidden by default but remain recoverable through ledger/provenance/recall.
@@ -88,7 +96,7 @@ No source entry is compacted away unless its information is represented somewher
 Quality work is deferred:
 
 ```text
-observed but unreviewed      → carried forward visible/pending
+observed but unreviewed      → carried forward in next context/pending
 reviewed but uncurated       → carried forward covered/pending
 flagged repair observations  → carried forward pending repair
 ```
@@ -149,7 +157,7 @@ Normal tests:
 
 ```text
 ledger folding
-projection visibility
+projection/context
 compaction safety
 cursor math
 config/status
@@ -161,7 +169,7 @@ Model evals:
 ```text
 observer extraction quality
 reflector synthesis/repair quality
-curator visibility decisions
+curator context decisions
 recall tool-use decisions
 ```
 
@@ -176,7 +184,7 @@ model eval: assistant chooses recall when exact evidence is needed
 
 ### Stage 0: Remove additive mode
 
-User does not use additive mode. Remove it before deeper compaction/visibility work to reduce projection surface area.
+User does not use additive mode. Remove it before deeper compaction/context work to reduce projection surface area.
 
 Known surface:
 
@@ -263,20 +271,20 @@ fork agents consume the current warm projection
 If lag is large, carry it forward explicitly:
 
 ```text
-unreviewed observations → visible/pending
+unreviewed observations → in next context/pending
 flagged repairs         → pending
 ```
 
-### Stage 3: Introduce reviewed/visible projection model
+### Stage 3: Introduce reviewed/context projection model
 
 Add ledger/projection support for reviewed observations being hidden by default.
 
 Minimal model:
 
 ```text
-active   = unreviewed + visible
+active   = unreviewed + in context
 covered  = reviewed + hidden by default
-pinned   = reviewed + visible
+pinned   = reviewed + in context
 ```
 
 Prompt projection:
@@ -302,14 +310,14 @@ om.reflections.reviewed
 
 Do not add `om.observations.reviewed` until proven necessary.
 
-Projection rule:
+Next-context rule:
 
 ```text
-visible observations = unreviewed active observations + pinned reviewed observations
-hidden observations  = reviewed non-pinned observations + suppressed observations
+context observations to write = unreviewed active observations + pinned reviewed observations
+hidden observations           = reviewed non-pinned observations + suppressed observations
 ```
 
-Existing `om.observations.dropped` tombstones remain respected. New visibility decisions layer on top for mixed old/new sessions.
+Existing `om.observations.dropped` tombstones remain respected. New context decisions layer on top for mixed old/new sessions.
 
 ### Stage 4: Evolve dropper into curator
 
@@ -354,7 +362,7 @@ Other triggers:
 
 ```text
 flagged repair backlog exists → reflector due
-suppression/visibility backlog exists → curator due
+suppression/context backlog exists → curator due
 ```
 
 The current soft drop threshold should disappear here.
@@ -430,5 +438,5 @@ Reason for low priority:
 3. Compaction observer-only flush may miss unobserved data if observer fails.
    Mitigation: preserve source excerpts/details or fail safely when required observer flush cannot complete.
 
-4. Migration from `dropped` tombstones to visibility decisions may be messy.
+4. Migration from `dropped` tombstones to context decisions may be messy.
    Mitigation: maintain backward compatibility in fold/projection while adding new events.

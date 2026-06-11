@@ -3,35 +3,22 @@ import { observationPoolMetrics } from "../agents/dropper/pool.js";
 import { observationsSinceReflectionCoverage } from "../memory-update/stage-utils.js";
 import type { Runtime } from "../runtime.js";
 import {
-	diffProjection,
+	contextProjection,
+	diffContextProjection,
+	foldAgentUsage,
 	foldLedger,
 	fullProjection,
+	nextContextProjection,
+	observationTokenSum,
+	reflectionTokenSum,
 	sourceEntryCountSinceObservationCoverage,
 	sourceEntryCountSinceReflectionReviewCoverage,
-	latestCompactedProjection,
-	observationTokenSum,
-	visibilityProjection,
-	reflectionTokenSum,
-	foldAgentUsage,
 	type AgentUsageTotals,
 	type Entry,
 } from "../session-ledger/index.js";
 
 function pct(current: number, total: number): number {
 	return total > 0 ? Math.round((current / total) * 100) : 0;
-}
-
-function addedSuffix(count: number): string | undefined {
-	return count > 0 ? `+${count.toLocaleString()}` : undefined;
-}
-
-function removedSuffix(count: number): string | undefined {
-	return count > 0 ? `-${count.toLocaleString()}` : undefined;
-}
-
-function appendSuffixes(line: string, suffixes: (string | undefined)[]): string {
-	const rendered = suffixes.filter((suffix): suffix is string => suffix !== undefined);
-	return rendered.length > 0 ? `${line} ${rendered.join(" ")}` : line;
 }
 
 function money(value: number): string {
@@ -42,85 +29,94 @@ function usageLine(label: string, usage: AgentUsageTotals): string {
 	return `${label}: ${money(usage.cost)} / ${usage.requests.toLocaleString()} request${usage.requests === 1 ? "" : "s"} / ${usage.totalTokens.toLocaleString()} tokens`;
 }
 
-export async function runStatusCommand(ctx: any, runtime: Runtime): Promise<void> {
+function firstArg(args: unknown): string | undefined {
+	if (Array.isArray(args)) return typeof args[0] === "string" ? args[0] : undefined;
+	if (typeof args === "string") return args.trim().split(/\s+/)[0] || undefined;
+	if (args && typeof args === "object" && "mode" in args) {
+		const mode = (args as { mode?: unknown }).mode;
+		return typeof mode === "string" ? mode : undefined;
+	}
+	return undefined;
+}
+
+export async function runStatusCommand(args: unknown, ctx: any, runtime: Runtime): Promise<void> {
 	runtime.ensureConfig(ctx.cwd);
-			const entries = ctx.sessionManager.getBranch() as Entry[];
-			const folded = foldLedger(entries);
-			const visible = latestCompactedProjection(entries);
-			const full = fullProjection(entries);
-			const reviewVisibility = visibilityProjection(entries, full);
-			const drift = diffProjection(visible, full);
+	const mode = firstArg(args);
+	if (mode && mode !== "full") {
+		ctx.ui.notify("Usage: /om:status [full]", "info");
+		return;
+	}
 
-			const visibleObservationTokens = observationTokenSum(visible.observations);
-			const visibleReflectionTokens = reflectionTokenSum(visible.reflections);
-			const activeObservationPool = observationPoolMetrics(folded.activeObservations, runtime.config.dropWhenActiveObservationsOver);
-			const observationLine = appendSuffixes(
-				`Observations: ${folded.observations.length} recorded / ${folded.droppedObservationIds.size} dropped / ${reviewVisibility.reviewed.length} reviewed / ${reviewVisibility.unreviewed.length} unreviewed / ${visible.observations.length} visible`,
-				[
-					addedSuffix(drift.observationsOnlyInFull.length),
-					removedSuffix(drift.droppedOnlyInFull.length),
-				],
-			);
-			const reflectionLine = appendSuffixes(
-				`Reflections:  ${folded.reflections.length} recorded / ${visible.reflections.length} visible`,
-				[addedSuffix(drift.reflectionsOnlyInFull.length)],
-			);
-			const obsProgress = sourceEntryCountSinceObservationCoverage(entries);
-			const reflectionProgress = observationsSinceReflectionCoverage(entries, folded.activeObservations).length;
-			const reflectionReviewLag = sourceEntryCountSinceReflectionReviewCoverage(entries);
-			const memoryUsage = foldAgentUsage(entries);
+	const entries = ctx.sessionManager.getBranch() as Entry[];
+	const folded = foldLedger(entries);
+	const context = contextProjection(entries);
+	const full = fullProjection(entries);
+	const nextContext = nextContextProjection(entries, full);
+	const drift = diffContextProjection(context, nextContext);
+	const memoryUsage = foldAgentUsage(entries);
 
-			const modeLines = [
-				"── Config ──",
-				`Strategy: ${runtime.config.strategy}`,
-				"",
-			];
+	const contextTokens = observationTokenSum(context.observations) + reflectionTokenSum(context.reflections);
+	const obsProgress = sourceEntryCountSinceObservationCoverage(entries);
+	const reflectionProgress = observationsSinceReflectionCoverage(entries, folded.activeObservations).length;
 
-			const lines = [
-				...modeLines,
-				"── Memory ──",
-				observationLine,
-				reflectionLine,
-				"",
-				"── Activity ──",
-				`Next observation: ${obsProgress.toLocaleString()} / ${runtime.config.observeEveryMessages.toLocaleString()} source entries (${pct(obsProgress, runtime.config.observeEveryMessages)}%)`,
-				`Next reflection:  ${reflectionProgress.toLocaleString()} / ${runtime.config.reflectEveryObservations.toLocaleString()} new observations (${pct(reflectionProgress, runtime.config.reflectEveryObservations)}%)`,
-				`Visible observation pool: ~${visibleObservationTokens.toLocaleString()} / ${runtime.config.observationsPoolMaxTokens.toLocaleString()} tokens (${pct(visibleObservationTokens, runtime.config.observationsPoolMaxTokens)}%)`,
-				`Drop candidate pool:     ${activeObservationPool.activeObservationCount.toLocaleString()} active observations`,
-				`Drop protected recent:   ${(runtime.config.protectRecentObservations ?? 20).toLocaleString()} observations`,
-				`Reflection review lag:   ${reflectionReviewLag.toLocaleString()} source entries`,
-				`Reflection pool:         ~${visibleReflectionTokens.toLocaleString()} tokens`,
-				"",
-				"── OM agent cost ──",
-				usageLine("Total", memoryUsage.total),
-				usageLine("Observer", memoryUsage.observer),
-				usageLine("Reflector", memoryUsage.reflector),
-				usageLine("Dropper", memoryUsage.dropper),
-				...(memoryUsage.unknown.requests > 0 ? [usageLine("Unknown", memoryUsage.unknown)] : []),
-			];
+	const lines = [
+		"── Memory ──",
+		`Context:      ${context.observations.length.toLocaleString()} observations, ${context.reflections.length.toLocaleString()} reflections`,
+		`Next context: ${nextContext.observations.length.toLocaleString()} observations, ${nextContext.reflections.length.toLocaleString()} reflections`,
+		`Size:         ~${contextTokens.toLocaleString()} / ${runtime.config.observationsPoolMaxTokens.toLocaleString()} tokens`,
+		"",
+		"── Next work ──",
+		`Observe: ${obsProgress.toLocaleString()} / ${runtime.config.observeEveryMessages.toLocaleString()} source entries`,
+		`Reflect: ${reflectionProgress.toLocaleString()} / ${runtime.config.reflectEveryObservations.toLocaleString()} observations`,
+		"",
+		"── Cost ──",
+		usageLine("Total", memoryUsage.total),
+	];
 
-			if (runtime.memoryUpdateInFlight || runtime.compactHookInFlight) {
-				lines.push("", "── In flight ──");
-				if (runtime.memoryUpdateInFlight) {
-					const phase = runtime.memoryUpdatePhase ? ` (${runtime.memoryUpdatePhase})` : "";
-					lines.push(`Memory update: running${phase}`);
-				}
-				if (runtime.compactHookInFlight) lines.push("Compaction hook: running");
-			}
+	if (mode === "full") {
+		const activeObservationPool = observationPoolMetrics(folded.activeObservations, runtime.config.dropWhenActiveObservationsOver);
+		const reflectionReviewDistance = sourceEntryCountSinceReflectionReviewCoverage(entries);
+		lines.push(
+			"",
+			"── Details ──",
+			`Strategy: ${runtime.config.strategy}`,
+			`Ledger observations: ${folded.observations.length.toLocaleString()} recorded / ${folded.droppedObservationIds.size.toLocaleString()} dropped / ${folded.activeObservations.length.toLocaleString()} active`,
+			`Review state: ${nextContext.reviewed.length.toLocaleString()} reviewed / ${nextContext.unreviewed.length.toLocaleString()} unreviewed`,
+			`Context drift: +${drift.observationsOnlyInNextContext.length.toLocaleString()} observations, +${drift.reflectionsOnlyInNextContext.length.toLocaleString()} reflections, -${drift.observationsOnlyInContext.length.toLocaleString()} stale observations`,
+			`Observation pool: ${activeObservationPool.activeObservationCount.toLocaleString()} / ${runtime.config.dropWhenActiveObservationsOver.toLocaleString()} active observations (${pct(activeObservationPool.activeObservationCount, runtime.config.dropWhenActiveObservationsOver)}%)`,
+			`Drop protected recent: ${(runtime.config.protectRecentObservations ?? 20).toLocaleString()} observations`,
+			`Source entries since review cursor: ${reflectionReviewDistance.toLocaleString()}`,
+			"",
+			"── Agent cost ──",
+			usageLine("Observer", memoryUsage.observer),
+			usageLine("Reflector", memoryUsage.reflector),
+			usageLine("Dropper", memoryUsage.dropper),
+			...(memoryUsage.unknown.requests > 0 ? [usageLine("Unknown", memoryUsage.unknown)] : []),
+		);
+	}
 
-			if (runtime.lastObserverError || runtime.lastReflectorError || runtime.lastDropperError) {
-				lines.push("", "── Last error ──");
-				if (runtime.lastObserverError) lines.push(`Observer: ${runtime.lastObserverError}`);
-				if (runtime.lastReflectorError) lines.push(`Reflector: ${runtime.lastReflectorError}`);
-				if (runtime.lastDropperError) lines.push(`Dropper: ${runtime.lastDropperError}`);
-			}
+	if (runtime.memoryUpdateInFlight || runtime.compactHookInFlight) {
+		lines.push("", "── In flight ──");
+		if (runtime.memoryUpdateInFlight) {
+			const phase = runtime.memoryUpdatePhase ? ` (${runtime.memoryUpdatePhase})` : "";
+			lines.push(`Memory update: running${phase}`);
+		}
+		if (runtime.compactHookInFlight) lines.push("Compaction hook: running");
+	}
 
-			ctx.ui.notify(lines.join("\n"), "info");
+	if (runtime.lastObserverError || runtime.lastReflectorError || runtime.lastDropperError) {
+		lines.push("", "── Last error ──");
+		if (runtime.lastObserverError) lines.push(`Observer: ${runtime.lastObserverError}`);
+		if (runtime.lastReflectorError) lines.push(`Reflector: ${runtime.lastReflectorError}`);
+		if (runtime.lastDropperError) lines.push(`Dropper: ${runtime.lastDropperError}`);
+	}
+
+	ctx.ui.notify(lines.join("\n"), "info");
 }
 
 export function registerStatusCommand(pi: ExtensionAPI, runtime: Runtime): void {
 	pi.registerCommand("om:status", {
 		description: "Show observational memory status",
-		handler: async (_args, ctx) => runStatusCommand(ctx, runtime),
+		handler: async (args, ctx) => runStatusCommand(args, ctx, runtime),
 	});
 }

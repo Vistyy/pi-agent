@@ -12,7 +12,7 @@ Observed in real sessions:
 - Recall has not been used in audited sessions.
 - Reflections are useful, but unbounded and not deprecated.
 
-The core issue is that the system lacks a clean lifecycle between raw observation, semantic review, visibility, compaction, and recall.
+The core issue is that the system lacks a clean lifecycle between raw observation, semantic review, context inclusion, compaction, and recall.
 
 ## Desired model
 
@@ -21,7 +21,7 @@ Separate three responsibilities:
 ```text
 observer  = extract raw observations
 reflector = synthesize meaning and advance semantic review
-curator   = manage visibility, safety, and repair requests
+curator   = manage context inclusion, safety, and repair requests
 recall    = recover source evidence when exact context matters
 ```
 
@@ -38,7 +38,7 @@ Avoid many item states. Use two axes:
 
 Resulting mental states:
 
-| State | Reviewed? | Visible? | Meaning |
+| State | Reviewed? | In context? | Meaning |
 |---|---:|---:|---|
 | active | no | yes | raw recent observation, not yet semantically reviewed |
 | pinned | yes | yes | reviewed but still useful/important to show exactly |
@@ -50,8 +50,8 @@ Resulting mental states:
 ## Pinned vs active
 
 ```text
-active = visible because not reviewed yet
-pinned = visible despite being reviewed
+active = included in context because not reviewed yet
+pinned = included in context despite being reviewed
 ```
 
 Examples:
@@ -63,7 +63,7 @@ active:
 
 pinned:
   "User wants pnpm, not npm."
-  Already reflected, but exact preference should stay visible.
+  Already reflected, but exact preference should stay in context.
 ```
 
 ## Covered vs suppressed
@@ -94,7 +94,7 @@ observer
   records raw observations
   ↓
 active observations
-  visible by default
+  included in next context by default
   ↓
 reflector
   reviews active observations
@@ -106,14 +106,14 @@ reviewed observations
   ↓
 curator/dropper
   audits reviewed observations
-  emits visibility/safety actions
+  emits context/safety actions
 ```
 
 Curator actions:
 
 ```text
 pin reviewed observation
-  keep exact reviewed observation visible
+  keep exact reviewed observation in context
 
 cover reviewed observation
   keep hidden because reflection represents it
@@ -167,7 +167,7 @@ flag is resolved by later review/coverage
 
 ## Prompt assembly goal
 
-Visible memory should be:
+Next context should be:
 
 ```text
 current reflections
@@ -189,7 +189,7 @@ The compacted context should be maintained from:
 reflections
 + pinned reviewed observations
 + active unreviewed observations
-+ compact visibility metadata
++ compact context metadata
 ```
 
 Compaction should become a checkpoint, not a large maintenance event.
@@ -200,7 +200,7 @@ Desired flow:
 normal lifecycle:
   observer captures recent source entries
   reflector reviews in small batches
-  curator updates visibility decisions
+  curator updates context decisions
   projection stays warm
 
 before compaction:
@@ -243,7 +243,7 @@ Goal:
 current reflections = non-deprecated reflections + latest merged/superseding reflections
 ```
 
-This is separate from observation visibility, but related because covered observations depend on reflection quality.
+This is separate from observation context inclusion, but related because covered observations depend on reflection quality.
 
 ## Staged implementation plan
 
@@ -252,13 +252,13 @@ This is separate from observation visibility, but related because covered observ
 No behavior change required at first.
 
 - Keep current tombstone compatibility.
-- Introduce docs/types around visibility decisions.
+- Introduce docs/types around context decisions.
 - Preserve old `om.observations.dropped` until migration is clear.
 
 ### Stage 2: Add reviewed/covered-by-default projection
 
 - Reflected/reviewed observations stop appearing in active prompt by default.
-- Visible observations become unreviewed + pinned.
+- Context observations become unreviewed + pinned.
 - This is the biggest noise reduction.
 
 ### Stage 3: Add pin and flag events
@@ -278,7 +278,7 @@ Replace pool-size-first behavior with cursor/review driven behavior:
 
 ```text
 reflector due when enough unreviewed observations or flagged repairs exist
-curator due when enough newly reviewed observations or visibility pressure exists
+curator due when enough newly reviewed observations or context pressure exists
 hard pool cap remains emergency only
 ```
 
@@ -301,4 +301,4 @@ hard pool cap remains emergency only
 3. What exact prompt/context should reflector receive for flagged repair observations?
 4. Should pinned observations have TTL/expiry or only explicit unpin?
 5. How much reflection deprecation should happen in reflector vs curator?
-6. How should current `om.observations.dropped` tombstones migrate into the new visibility model?
+6. How should current `om.observations.dropped` tombstones migrate into the new context model?

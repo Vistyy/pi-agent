@@ -19,16 +19,16 @@ export default function observationalMemory(pi: ExtensionAPI) {
 function registerLazyStatusCommand(pi: ExtensionAPI, runtime: Runtime): void {
 	pi.registerCommand("om:status", {
 		description: "Show observational memory status",
-		handler: async (_args, ctx) => {
+		handler: async (args, ctx) => {
 			const { runStatusCommand } = await import("./commands/status.js");
-			return runStatusCommand(ctx, runtime);
+			return runStatusCommand(args, ctx, runtime);
 		},
 	});
 }
 
 function registerLazyViewCommand(pi: ExtensionAPI, runtime: Runtime): void {
 	pi.registerCommand("om:view", {
-		description: "Print observational memory content (visible by default, full for recorded memory)",
+		description: "Print observational memory context (context by default, full for recorded memory)",
 		handler: async (args, ctx) => {
 			const { runViewCommand } = await import("./commands/view.js");
 			return runViewCommand(args, ctx, runtime);

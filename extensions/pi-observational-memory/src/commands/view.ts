@@ -5,7 +5,7 @@ import {
 	fullProjection,
 	observationToSummaryLine,
 	reflectionToSummaryLine,
-	latestCompactedProjection,
+	contextProjection,
 	type Entry,
 	type Projection,
 } from "../session-ledger/index.js";
@@ -24,7 +24,7 @@ function renderList<T>(items: T[], render: (item: T) => string, empty: string): 
 	return items.length > 0 ? items.map(render).join("\n") : empty;
 }
 
-function renderContentOnlyProjection(projection: Projection, emptyScope: "visible" | "recorded" | "reviewed"): string {
+function renderContentOnlyProjection(projection: Projection, emptyScope: "context" | "recorded" | "reviewed"): string {
 	return [
 		"── Reflections ──",
 		renderList(projection.reflections, reflectionToSummaryLine, `No ${emptyScope} reflections.`),
@@ -53,17 +53,17 @@ export async function runViewCommand(args: unknown, ctx: any, runtime: Runtime):
 		return;
 	}
 
-	if (mode && mode !== "visible") {
-		ctx.ui.notify("Usage: /om:view [visible|full|reviewed]", "info");
+	if (mode && mode !== "context") {
+		ctx.ui.notify("Usage: /om:view [context|full|reviewed]", "info");
 		return;
 	}
 
-	notifyView(renderContentOnlyProjection(latestCompactedProjection(entries), "visible"));
+	notifyView(renderContentOnlyProjection(contextProjection(entries), "context"));
 }
 
 export function registerViewCommand(pi: ExtensionAPI, runtime: Runtime): void {
 	pi.registerCommand("om:view", {
-		description: "Print observational memory content (visible by default, full/reviewed on request)",
+		description: "Print observational memory context (context by default, full/reviewed on request)",
 		handler: async (args, ctx) => runViewCommand(args, ctx, runtime),
 	});
 }

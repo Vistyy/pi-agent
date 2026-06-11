@@ -17,10 +17,10 @@ export type Projection = {
 	reflections: Reflection[];
 };
 
-export type ProjectionDiff = {
-	observationsOnlyInFull: Observation[];
-	reflectionsOnlyInFull: Reflection[];
-	droppedOnlyInFull: Observation[];
+export type ContextProjectionDiff = {
+	observationsOnlyInNextContext: Observation[];
+	reflectionsOnlyInNextContext: Reflection[];
+	observationsOnlyInContext: Observation[];
 };
 
 export type ReviewClassification = {
@@ -28,7 +28,7 @@ export type ReviewClassification = {
 	unreviewed: Observation[];
 };
 
-export type VisibilityProjection = Projection & ReviewClassification;
+export type NextContextProjection = Projection & ReviewClassification;
 
 export type CompactionProjectionConfig = {
 	observationsPoolMaxTokens: number;
@@ -133,7 +133,7 @@ export function fullProjection(entries: Entry[], upToEntryId?: string): Projecti
 	});
 }
 
-export function latestCompactedProjection(entries: Entry[]): Projection {
+export function contextProjection(entries: Entry[]): Projection {
 	const details = latestCompactionDetails(entries);
 	return details ? projectionFromMemoryDetails(details) : { observations: [], reflections: [] };
 }
@@ -158,7 +158,7 @@ export function classifyObservationsByReview(entries: Entry[], observations: Obs
 	return { reviewed, unreviewed };
 }
 
-export function visibilityProjection(entries: Entry[], projection: Projection): VisibilityProjection {
+export function nextContextProjection(entries: Entry[], projection: Projection): NextContextProjection {
 	const classified = classifyObservationsByReview(entries, projection.observations);
 	return {
 		reflections: projection.reflections,
@@ -232,19 +232,19 @@ export function buildNextCompactionProjection(
 	config: CompactionProjectionConfig,
 	seed: Projection = { observations: [], reflections: [] },
 ): CompactionProjection {
-	const incrementalProjection = buildIncrementalCompactionProjection(entries, mergeProjection(latestCompactedProjection(entries), seed));
-	if (!shouldFullFold(incrementalProjection, config)) return withCompactionDetails(visibilityProjection(entries, incrementalProjection), false);
-	return withCompactionDetails(visibilityProjection(entries, buildFullFoldCompactionProjection(entries, firstKeptEntryId)), true);
+	const incrementalProjection = buildIncrementalCompactionProjection(entries, mergeProjection(contextProjection(entries), seed));
+	if (!shouldFullFold(incrementalProjection, config)) return withCompactionDetails(nextContextProjection(entries, incrementalProjection), false);
+	return withCompactionDetails(nextContextProjection(entries, buildFullFoldCompactionProjection(entries, firstKeptEntryId)), true);
 }
 
-export function diffProjection(latestCompacted: Projection, full: Projection): ProjectionDiff {
-	const latestCompactedObservationIds = new Set(latestCompacted.observations.map((observation) => observation.id));
-	const fullObservationIds = new Set(full.observations.map((observation) => observation.id));
-	const latestCompactedReflectionIds = new Set(latestCompacted.reflections.map((reflection) => reflection.id));
+export function diffContextProjection(context: Projection, nextContext: Projection): ContextProjectionDiff {
+	const contextObservationIds = new Set(context.observations.map((observation) => observation.id));
+	const nextContextObservationIds = new Set(nextContext.observations.map((observation) => observation.id));
+	const contextReflectionIds = new Set(context.reflections.map((reflection) => reflection.id));
 
 	return {
-		observationsOnlyInFull: full.observations.filter((observation) => !latestCompactedObservationIds.has(observation.id)),
-		reflectionsOnlyInFull: full.reflections.filter((reflection) => !latestCompactedReflectionIds.has(reflection.id)),
-		droppedOnlyInFull: latestCompacted.observations.filter((observation) => !fullObservationIds.has(observation.id)),
+		observationsOnlyInNextContext: nextContext.observations.filter((observation) => !contextObservationIds.has(observation.id)),
+		reflectionsOnlyInNextContext: nextContext.reflections.filter((reflection) => !contextReflectionIds.has(reflection.id)),
+		observationsOnlyInContext: context.observations.filter((observation) => !nextContextObservationIds.has(observation.id)),
 	};
 }

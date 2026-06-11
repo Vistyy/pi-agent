@@ -46,12 +46,12 @@ OM does not schedule compaction. Pi/manual/eval compaction triggers still run; O
 
 `maxInitialObserveTokens` prevents expensive backfill when the extension starts on an already-large session. It marks old history covered and observes future turns.
 
-Reflection visibility is decoupled from the observation token pool: incremental compaction materializes recorded reflections, while full-fold compaction is reserved for deeper replay/drop reconciliation.
+Context projection is decoupled from the observation token pool: incremental compaction materializes recorded reflections, while full-fold compaction is reserved for deeper replay/drop reconciliation.
 
 ## Commands
 
-- `/om:status` — show memory state.
-- `/om:view` — show visible/full memory projection.
+- `/om:status` — show memory state. Use `/om:status full` for ledger/debug details.
+- `/om:view` — show context/full/reviewed memory projection.
 
 ## Recall
 
