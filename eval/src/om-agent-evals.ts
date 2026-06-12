@@ -96,6 +96,50 @@ async function judged(id: string, agent: AgentEvalRecord['agent'], output: unkno
   return { id, agent, output, judge, passed: run.status === 0 && judge.passed, durationMs: Date.now() - started, judgeUsage: run.usage };
 }
 
+function curatorIds(output: CuratorActionResult | undefined, key: keyof CuratorActionResult): string[] {
+  const value = output?.[key];
+  if (!value) return [];
+  if (key === 'dropped') return value as string[];
+  return (value as Array<{ observationIds: string[] }>).flatMap((batch) => batch.observationIds);
+}
+
+function deterministicCuratorFailure(output: CuratorActionResult | undefined, checks: Array<{ label: string; pass: (output: CuratorActionResult | undefined) => boolean }>): string | undefined {
+  const failed = checks.filter((check) => !check.pass(output)).map((check) => check.label);
+  return failed.length ? failed.join('; ') : undefined;
+}
+
+function deterministicCuratorRecord(
+  id: string,
+  output: CuratorActionResult | undefined,
+  started: number,
+  checks: Array<{ label: string; pass: (output: CuratorActionResult | undefined) => boolean }>,
+): AgentEvalRecord {
+  const deterministicFailure = deterministicCuratorFailure(output, checks);
+  return {
+    id,
+    agent: 'curator',
+    output: output ?? {},
+    judge: deterministicFailure
+      ? { passed: false, reason: `Deterministic invariant failed: ${deterministicFailure}` }
+      : { passed: true, reason: 'Deterministic invariants passed.' },
+    passed: !deterministicFailure,
+    durationMs: Date.now() - started,
+  };
+}
+
+async function judgedCurator(
+  id: string,
+  output: CuratorActionResult | undefined,
+  probe: Probe,
+  judgeModel: string,
+  started: number,
+  checks: Array<{ label: string; pass: (output: CuratorActionResult | undefined) => boolean }>,
+): Promise<AgentEvalRecord> {
+  const deterministic = deterministicCuratorRecord(id, output, started, checks);
+  if (!deterministic.passed) return deterministic;
+  return judged(id, 'curator', output ?? {}, probe, judgeModel, started);
+}
+
 async function observerHardCurrentStale(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   const started = Date.now();
   const auth = await resolveModel(modelSpec);
@@ -325,18 +369,21 @@ async function curatorFlagsMissingExactDetail(modelSpec: string, judgeModel: str
   const reflections = [ref('cccccccccccc', 'Migration dry run failed with a database lock; WAL should stay enabled.', ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'])];
   const { runCurator } = await loadOmAgents();
   const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 1, thinkingLevel, maxTurns: 4 });
-  return judged('curator-flags-missing-exact-detail', 'curator', output ?? {}, {
+  return judgedCurator('curator-flags-missing-exact-detail', output, {
     id: 'curator-flags-missing-exact-detail',
     question: 'Did the curator avoid dropping evidence and request reflector follow-up for exact missing blocker details?',
     rubric: {
       pass_if: [
-        'Output flags aaaaaaaaaaaa and/or bbbbbbbbbbbb for reflector follow-up, or pins aaaaaaaaaaaa to preserve exact detail.',
-        'Output does not drop aaaaaaaaaaaa or bbbbbbbbbbbb.',
-        'If a reason is present, it mentions missing exact detail, the exact path, SQLITE_BUSY, WAL, or reflection coverage.',
+        'Output flags aaaaaaaaaaaa and/or bbbbbbbbbbbb for reflector follow-up, or pins aaaaaaaaaaaa/bbbbbbbbbbbb to preserve exact detail.',
+        'The dropped array does not contain aaaaaaaaaaaa or bbbbbbbbbbbb.',
+        'A reason mentions missing exact detail, exact command/error, SQLITE_BUSY, WAL, or reflection coverage; it does not need to repeat every exact string if the flagged/pinned observation id contains that evidence.',
       ],
-      fail_if: ['Output drops aaaaaaaaaaaa or bbbbbbbbbbbb.', 'Output takes no action despite reflection omitting src/db/migrate.ts:88 and PRAGMA journal_mode=WAL.', 'Output only unpins observations.'],
+      fail_if: ['The dropped array contains aaaaaaaaaaaa or bbbbbbbbbbbb.', 'Output takes no action despite reflection omitting src/db/migrate.ts:88 and PRAGMA journal_mode=WAL.', 'Output only unpins observations.'],
     },
-  }, judgeModel, started);
+  }, judgeModel, started, [
+    { label: 'must not drop exact blocker observations', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'].includes(id)) },
+    { label: 'must pin or flag at least one exact blocker observation', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'].includes(id)) },
+  ]);
 }
 
 async function curatorUnpinsStalePinnedFailure(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -349,7 +396,7 @@ async function curatorUnpinsStalePinnedFailure(modelSpec: string, judgeModel: st
   const reflections = [ref('cccccccccccc', 'The CRLF offset failure is fixed; later pnpm test and typecheck passed.', ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'])];
   const { runCurator } = await loadOmAgents();
   const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['aaaaaaaaaaaa'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 1, thinkingLevel, maxTurns: 4 });
-  return judged('curator-unpins-stale-pinned-failure', 'curator', output ?? {}, {
+  return judgedCurator('curator-unpins-stale-pinned-failure', output, {
     id: 'curator-unpins-stale-pinned-failure',
     question: 'Did the curator unpin an old pinned failure after later reflection records that validation passed?',
     rubric: {
@@ -360,7 +407,10 @@ async function curatorUnpinsStalePinnedFailure(modelSpec: string, judgeModel: st
       ],
       fail_if: ['Output keeps only pinning/flagging aaaaaaaaaaaa as if the failure is current.', 'Output drops bbbbbbbbbbbb.', 'Output takes no action while a stale pinned failure remains pinned.'],
     },
-  }, judgeModel, started);
+  }, judgeModel, started, [
+    { label: 'must unpin stale pinned failure', pass: (o) => curatorIds(o, 'unpinned').includes('aaaaaaaaaaaa') },
+    { label: 'must not drop passing validation evidence', pass: (o) => !curatorIds(o, 'dropped').includes('bbbbbbbbbbbb') },
+  ]);
 }
 
 async function curatorDropsNoiseKeepsPreference(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -374,18 +424,10 @@ async function curatorDropsNoiseKeepsPreference(modelSpec: string, judgeModel: s
   const reflections = [ref('dddddddddddd', 'User prefers pnpm instead of npm for this repo.', ['cccccccccccc'])];
   const { runCurator } = await loadOmAgents();
   const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4 });
-  return judged('curator-drops-noise-keeps-preference', 'curator', output ?? {}, {
-    id: 'curator-drops-noise-keeps-preference',
-    question: 'Did the curator drop only transient noise while preserving the durable user preference?',
-    rubric: {
-      pass_if: [
-        'Output drops aaaaaaaaaaaa and/or bbbbbbbbbbbb as transient noise.',
-        'Output does not drop cccccccccccc because it carries a user preference/current constraint.',
-        'Output includes no more than two dropped ids.',
-      ],
-      fail_if: ['Output drops cccccccccccc.', 'Output includes more than two dropped ids.', 'Output flags or pins transient webpack progress logs instead of dropping them.'],
-    },
-  }, judgeModel, started);
+  return deterministicCuratorRecord('curator-drops-noise-keeps-preference', output, started, [
+    { label: 'must not drop durable user preference', pass: (o) => !curatorIds(o, 'dropped').includes('cccccccccccc') },
+    { label: 'must drop only transient noise ids', pass: (o) => curatorIds(o, 'dropped').every((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'].includes(id)) },
+  ]);
 }
 
 async function curatorKeepsStaleTrapEvidence(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -400,18 +442,21 @@ async function curatorKeepsStaleTrapEvidence(modelSpec: string, judgeModel: stri
   const reflections = [ref('eeeeeeeeeeee', 'Approved feature flag is fast_sync_v2_enabled.', ['aaaaaaaaaaaa'])];
   const { runCurator } = await loadOmAgents();
   const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4 });
-  return judged('curator-keeps-stale-trap-evidence', 'curator', output ?? {}, {
+  return judgedCurator('curator-keeps-stale-trap-evidence', output, {
     id: 'curator-keeps-stale-trap-evidence',
-    question: 'Did the curator protect stale/current trap evidence omitted from reflection instead of dropping it as redundant?',
+    question: 'Did the curator recognize that the reflection omitted important stale/current trap semantics?',
     rubric: {
       pass_if: [
-        'Output does not drop aaaaaaaaaaaa, bbbbbbbbbbbb, or dddddddddddd.',
-        'Output flags and/or pins bbbbbbbbbbbb or dddddddddddd because the reflection omits the rejected near-match relationship.',
-        'Output may drop cccccccccccc as transient noise.',
+        'The curator recognizes the rejected/stale near-match or stale/current relationship as important evidence.',
+        'The curator uses pin or flag semantics to keep or repair that omitted relationship.',
+        'Any cleanup is limited to semantically transient noise.',
       ],
-      fail_if: ['Output drops bbbbbbbbbbbb.', 'Output drops dddddddddddd.', 'Output treats the reflection as sufficient even though enableFastSync stale/rejected relation is absent.'],
+      fail_if: ['The curator treats the stale/current trap as redundant because the reflection names only the current value.', 'The curator only performs noise cleanup and ignores the omitted rejected near-match relation.'],
     },
-  }, judgeModel, started);
+  }, judgeModel, started, [
+    { label: 'must not drop stale/current trap evidence', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb', 'dddddddddddd'].includes(id)) },
+    { label: 'must pin or flag stale/current trap evidence', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb', 'dddddddddddd'].includes(id)) }, 
+  ]);
 }
 
 async function curatorMixedReviewedPool(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -435,18 +480,12 @@ async function curatorMixedReviewedPool(modelSpec: string, judgeModel: string, t
   ];
   const { runCurator } = await loadOmAgents();
   const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['aaaaaaaaaaaa'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 3, thinkingLevel, maxTurns: 4 });
-  return judged('curator-mixed-reviewed-pool', 'curator', output ?? {}, {
-    id: 'curator-mixed-reviewed-pool',
-    question: 'In a realistic mixed reviewed pool, did the curator choose a conservative high-value action without hiding durable constraints or blockers?',
-    rubric: {
-      pass_if: [
-        'Output does not drop cccccccccccc, dddddddddddd, 222222222222, or 333333333333.',
-        'Output either unpins aaaaaaaaaaaa as stale/fixed, flags/pins dddddddddddd or 222222222222 as unresolved blocker evidence missing from reflection, or drops only noisy ids among eeeeeeeeeeee, ffffffffffff, 111111111111, 444444444444.',
-        'Output drops no more than three ids.',
-      ],
-      fail_if: ['Output drops current preference/constraint or unresolved blocker evidence.', 'Output pins noisy rebuild/heartbeat logs.', 'Output takes a broad cleanup action that hides multiple durable facts.'],
-    },
-  }, judgeModel, started);
+  return deterministicCuratorRecord('curator-mixed-reviewed-pool', output, started, [
+    { label: 'must not drop durable constraints or blockers', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['cccccccccccc', 'dddddddddddd', '222222222222', '333333333333'].includes(id)) },
+    { label: 'dropped ids must stay within cap', pass: (o) => curatorIds(o, 'dropped').length <= 3 },
+    { label: 'must unpin stale fixed failure', pass: (o) => curatorIds(o, 'unpinned').includes('aaaaaaaaaaaa') },
+    { label: 'must pin or flag unresolved blocker evidence missing from reflections', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['dddddddddddd', '222222222222'].includes(id)) },
+  ]);
 }
 
 async function curatorMinimalPin(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -460,22 +499,14 @@ async function curatorMinimalPin(modelSpec: string, judgeModel: string, thinking
   ];
   const reflections = [
     ref('eeeeeeeeeeee', 'Approved memory config path is /etc/pi/agent/memory.toml; /etc/pi/memory.toml is rejected stale.', ['aaaaaaaaaaaa', 'bbbbbbbbbbbb']),
-    ref('ffffffffffff', 'Validation passed with pnpm test and typecheck.', ['cccccccccccc']),
+    ref('ffffffffffff', 'Validation passed with exact command `pnpm test && pnpm run typecheck`.', ['cccccccccccc']),
   ];
   const { runCurator } = await loadOmAgents();
   const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 1, thinkingLevel, maxTurns: 4 });
-  return judged('curator-minimal-pin-pressure', 'curator', output ?? {}, {
-    id: 'curator-minimal-pin-pressure',
-    question: 'Did the curator avoid over-pinning exact details already well preserved by reflections?',
-    rubric: {
-      pass_if: [
-        'Output does not pin aaaaaaaaaaaa, bbbbbbbbbbbb, or cccccccccccc because exact details are already reflected.',
-        'Output may drop dddddddddddd or mark no actions.',
-        'If it pins anything, it pins at most one id and gives a strong reason tied to missing reflection detail.',
-      ],
-      fail_if: ['Output pins multiple observations merely because they contain exact paths/commands.', 'Output drops aaaaaaaaaaaa, bbbbbbbbbbbb, or cccccccccccc.', 'Output flags reflected details as missing despite reflections containing the exact values.'],
-    },
-  }, judgeModel, started);
+  return deterministicCuratorRecord('curator-minimal-pin-pressure', output, started, [
+    { label: 'must not pin already-reflected exact details', pass: (o) => !curatorIds(o, 'pinned').some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb', 'cccccccccccc'].includes(id)) },
+    { label: 'must not drop reflected durable details', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb', 'cccccccccccc'].includes(id)) },
+  ]);
 }
 
 async function curatorContradictoryReflection(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -489,7 +520,7 @@ async function curatorContradictoryReflection(modelSpec: string, judgeModel: str
   const reflections = [ref('dddddddddddd', 'Auth refresh token expiry is fixed.', ['aaaaaaaaaaaa'])];
   const { runCurator } = await loadOmAgents();
   const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4 });
-  return judged('curator-contradictory-reflection', 'curator', output ?? {}, {
+  return judgedCurator('curator-contradictory-reflection', output, {
     id: 'curator-contradictory-reflection',
     question: 'Did the curator detect contradiction between reflection and observations and preserve evidence for repair?',
     rubric: {
@@ -500,7 +531,10 @@ async function curatorContradictoryReflection(modelSpec: string, judgeModel: str
       ],
       fail_if: ['Output drops failing or user unresolved evidence.', 'Output marks no actions despite reflection contradicting observations.', 'Output only drops cccccccccccc while ignoring the contradiction.'],
     },
-  }, judgeModel, started);
+  }, judgeModel, started, [
+    { label: 'must not drop contradictory unresolved evidence', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'].includes(id)) },
+    { label: 'must pin or flag contradictory unresolved evidence', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'].includes(id)) },
+  ]);
 }
 
 async function curatorOneShotPriority(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -517,18 +551,21 @@ async function curatorOneShotPriority(modelSpec: string, judgeModel: string, thi
   const reflections = [ref('999999999999', 'Deploy now passes after port cleanup.', ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'])];
   const { runCurator } = await loadOmAgents();
   const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['aaaaaaaaaaaa'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4 });
-  return judged('curator-one-shot-priority', 'curator', output ?? {}, {
+  return judgedCurator('curator-one-shot-priority', output, {
     id: 'curator-one-shot-priority',
-    question: 'With multiple possible actions but one tool call, did the curator choose a safe high-priority batch instead of unsafe cleanup?',
+    question: 'With multiple possible actions in one curator pass, did the curator choose safe high-priority actions instead of unsafe cleanup?',
     rubric: {
       pass_if: [
         'Output does not drop cccccccccccc or dddddddddddd because the secret replacement relation is unreflected.',
-        'Output chooses one coherent high-priority action: unpin aaaaaaaaaaaa, flag/pin cccccccccccc and/or dddddddddddd, or drop only noisy eeeeeeeeeeee/ffffffffffff.',
-        'Output does not mix action types in a way that violates one-shot tool behavior.',
+        'Output chooses coherent high-priority action(s): unpin aaaaaaaaaaaa, flag/pin cccccccccccc and/or dddddddddddd, and/or drop only noisy eeeeeeeeeeee/ffffffffffff.',
+        'Multiple action types are allowed in one curator pass when each action is safe.'
       ],
-      fail_if: ['Output drops unreflected secret-name/stale-near-match evidence.', 'Output drops bbbbbbbbbbbb while old failure remains pinned.', 'Output prioritizes noisy cleanup while also losing unreflected critical relation evidence.'],
+      fail_if: ['The dropped array contains cccccccccccc or dddddddddddd.', 'The dropped array contains bbbbbbbbbbbb while old failure remains pinned.', 'Output prioritizes noisy cleanup while also losing unreflected critical relation evidence.'],
     },
-  }, judgeModel, started);
+  }, judgeModel, started, [
+    { label: 'must not drop unreflected secret relation evidence', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['cccccccccccc', 'dddddddddddd'].includes(id)) },
+    { label: 'must take a high-priority safe action', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged'), ...curatorIds(o, 'unpinned'), ...curatorIds(o, 'dropped')].length > 0 },
+  ]);
 }
 
 async function main() {
