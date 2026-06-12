@@ -56,19 +56,51 @@ type RecordObservationsArgs = Static<typeof RecordObservationsSchema>;
 
 export const normalizeSourceEntryIds = normalizeAllowedIdsStrict;
 
-type RejectedSourceEntry = { id: string; reason: "missing_source_entry_ids" | "invalid_source_entry_id" };
+type RejectedSourceEntry = {
+	id?: string;
+	reason: "missing_source_entry_ids" | "invalid_source_entry_id";
+};
 
-function rejectedSourceEntries(ids: readonly string[] | undefined, allowedSourceEntryIds: readonly string[]): RejectedSourceEntry[] {
-	if (!ids || ids.length === 0) return [{ id: "", reason: "missing_source_entry_ids" }];
-	const allowed = new Set(allowedSourceEntryIds);
-	const rejected: RejectedSourceEntry[] = [];
+type SourceEntryIdPartition = {
+	accepted: string[];
+	rejected: RejectedSourceEntry[];
+};
+
+function partitionSourceEntryIds(ids: readonly string[] | undefined, allowedSourceEntryIds: readonly string[]): SourceEntryIdPartition {
+	if (!ids || ids.length === 0) return { accepted: [], rejected: [{ reason: "missing_source_entry_ids" }] };
+
+	const allowedOrder = new Map<string, number>();
+	for (let i = 0; i < allowedSourceEntryIds.length; i++) {
+		if (!allowedOrder.has(allowedSourceEntryIds[i])) allowedOrder.set(allowedSourceEntryIds[i], i);
+	}
+
+	const accepted = new Set<string>();
 	const seen = new Set<string>();
+	const rejected: RejectedSourceEntry[] = [];
 	for (const id of ids) {
 		if (seen.has(id)) continue;
 		seen.add(id);
-		if (!allowed.has(id)) rejected.push({ id, reason: "invalid_source_entry_id" });
+		if (!allowedOrder.has(id)) {
+			rejected.push({ id, reason: "invalid_source_entry_id" });
+			continue;
+		}
+		accepted.add(id);
 	}
-	return rejected;
+
+	return {
+		accepted: Array.from(accepted).sort((a, b) => (allowedOrder.get(a) ?? 0) - (allowedOrder.get(b) ?? 0)),
+		rejected,
+	};
+}
+
+function rejectedSourceEntrySummary(rejectedDetails: Array<{ sourceEntryIds: RejectedSourceEntry[] }>): string {
+	const parts: string[] = [];
+	for (const detail of rejectedDetails) {
+		for (const source of detail.sourceEntryIds) {
+			parts.push(source.id ? `${source.id}: ${source.reason}` : source.reason);
+		}
+	}
+	return parts.join(", ");
 }
 
 export async function runObserver(args: RunObserverArgs): Promise<Observation[] | undefined> {
@@ -103,10 +135,10 @@ export async function runObserver(args: RunObserverArgs): Promise<Observation[] 
 			let rejected = 0;
 			const rejectedDetails: Array<{ content: string; sourceEntryIds: RejectedSourceEntry[] }> = [];
 			for (const obs of params.observations) {
-				const sourceEntryIds = normalizeSourceEntryIds(obs.sourceEntryIds, allowedSourceEntryIds);
-				if (!sourceEntryIds) {
+				const sourceEntryIds = partitionSourceEntryIds(obs.sourceEntryIds, allowedSourceEntryIds);
+				if (sourceEntryIds.rejected.length > 0 || sourceEntryIds.accepted.length === 0) {
 					rejected++;
-					rejectedDetails.push({ content: truncateRecordContent(obs.content), sourceEntryIds: rejectedSourceEntries(obs.sourceEntryIds, allowedSourceEntryIds) });
+					rejectedDetails.push({ content: truncateRecordContent(obs.content), sourceEntryIds: sourceEntryIds.rejected });
 					continue;
 				}
 				const content = truncateRecordContent(obs.content);
@@ -119,11 +151,11 @@ export async function runObserver(args: RunObserverArgs): Promise<Observation[] 
 					id,
 					content,
 					timestamp: obs.timestamp,
-					sourceEntryIds,
+					sourceEntryIds: sourceEntryIds.accepted,
 				});
 				added++;
 			}
-			const rejectedSummary = rejectedDetails.flatMap((detail) => detail.sourceEntryIds.map((source) => source.id ? `${source.id}: ${source.reason}` : source.reason)).join(", ");
+			const rejectedSummary = rejectedSourceEntrySummary(rejectedDetails);
 			const rejectedPart = rejected > 0
 				? ` ${rejected} observation${rejected === 1 ? "" : "s"} rejected for missing or invalid sourceEntryIds${rejectedSummary ? ` (${rejectedSummary})` : ""}.`
 				: "";

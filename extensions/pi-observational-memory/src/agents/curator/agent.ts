@@ -91,11 +91,10 @@ function batchIds(batches: readonly CuratorBatch[]): Set<string> {
 }
 
 function actionSummaryLine(observation: Observation, pinnedIds: ReadonlySet<string>, flaggedIds: ReadonlySet<string>, coverageById: ReadonlyMap<string, ReflectionCoverageTier>): string {
-	const labels = [
-		pinnedIds.has(observation.id) ? "pinned" : undefined,
-		flaggedIds.has(observation.id) ? "flagged" : undefined,
-	].filter(Boolean).join(", ");
-	const suffix = labels ? ` [state: ${labels}]` : "";
+	const labels: string[] = [];
+	if (pinnedIds.has(observation.id)) labels.push("pinned");
+	if (flaggedIds.has(observation.id)) labels.push("flagged");
+	const suffix = labels.length > 0 ? ` [state: ${labels.join(", ")}]` : "";
 	return `${observationToMemoryAgentLine(observation, coverageTierForObservation(observation, coverageById))}${suffix}`;
 }
 
