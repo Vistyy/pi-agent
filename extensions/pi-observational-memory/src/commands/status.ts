@@ -1,5 +1,4 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { observationPoolMetrics } from "../agents/dropper/pool.js";
 import { observationsSinceReflectionCoverage } from "../memory-update/stage-utils.js";
 import type { Runtime } from "../runtime.js";
 import {
@@ -16,10 +15,6 @@ import {
 	type AgentUsageTotals,
 	type Entry,
 } from "../session-ledger/index.js";
-
-function pct(current: number, total: number): number {
-	return total > 0 ? Math.round((current / total) * 100) : 0;
-}
 
 function money(value: number): string {
 	return `$${value.toFixed(value < 1 ? 4 : 2)}`;
@@ -74,7 +69,6 @@ export async function runStatusCommand(args: unknown, ctx: any, runtime: Runtime
 	];
 
 	if (mode === "full") {
-		const activeObservationPool = observationPoolMetrics(folded.activeObservations, runtime.config.dropWhenActiveObservationsOver);
 		const reflectionReviewDistance = sourceEntryCountSinceReflectionReviewCoverage(entries);
 		lines.push(
 			"",
@@ -83,14 +77,14 @@ export async function runStatusCommand(args: unknown, ctx: any, runtime: Runtime
 			`Ledger observations: ${folded.observations.length.toLocaleString()} recorded / ${folded.droppedObservationIds.size.toLocaleString()} dropped / ${folded.activeObservations.length.toLocaleString()} active`,
 			`Review state: ${nextContext.reviewed.length.toLocaleString()} reviewed / ${nextContext.unreviewed.length.toLocaleString()} unreviewed`,
 			`Context drift: +${drift.observationsOnlyInNextContext.length.toLocaleString()} observations, +${drift.reflectionsOnlyInNextContext.length.toLocaleString()} reflections, -${drift.observationsOnlyInContext.length.toLocaleString()} stale observations`,
-			`Observation pool: ${activeObservationPool.activeObservationCount.toLocaleString()} / ${runtime.config.dropWhenActiveObservationsOver.toLocaleString()} active observations (${pct(activeObservationPool.activeObservationCount, runtime.config.dropWhenActiveObservationsOver)}%)`,
-			`Drop protected recent: ${(runtime.config.protectRecentObservations ?? 20).toLocaleString()} observations`,
+			`Pinned reviewed observations: ${folded.pinnedObservationIds.size.toLocaleString()}`,
+			`Protected recent: ${(runtime.config.protectRecentObservations ?? 20).toLocaleString()} observations`,
 			`Source entries since review cursor: ${reflectionReviewDistance.toLocaleString()}`,
 			"",
 			"── Agent cost ──",
 			usageLine("Observer", memoryUsage.observer),
 			usageLine("Reflector", memoryUsage.reflector),
-			usageLine("Dropper", memoryUsage.dropper),
+			usageLine("Curator", memoryUsage.curator),
 			...(memoryUsage.unknown.requests > 0 ? [usageLine("Unknown", memoryUsage.unknown)] : []),
 		);
 	}
@@ -104,11 +98,11 @@ export async function runStatusCommand(args: unknown, ctx: any, runtime: Runtime
 		if (runtime.compactHookInFlight) lines.push("Compaction hook: running");
 	}
 
-	if (runtime.lastObserverError || runtime.lastReflectorError || runtime.lastDropperError) {
+	if (runtime.lastObserverError || runtime.lastReflectorError || runtime.lastCuratorError) {
 		lines.push("", "── Last error ──");
 		if (runtime.lastObserverError) lines.push(`Observer: ${runtime.lastObserverError}`);
 		if (runtime.lastReflectorError) lines.push(`Reflector: ${runtime.lastReflectorError}`);
-		if (runtime.lastDropperError) lines.push(`Dropper: ${runtime.lastDropperError}`);
+		if (runtime.lastCuratorError) lines.push(`Curator: ${runtime.lastCuratorError}`);
 	}
 
 	ctx.ui.notify(lines.join("\n"), "info");

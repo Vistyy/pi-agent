@@ -31,22 +31,22 @@ OM does not schedule compaction. Pi/manual/eval compaction triggers still run; O
     "strategy": "replacement",
     "observeEveryMessages": 32,
     "reflectEveryObservations": 8,
-    "dropWhenActiveObservationsOver": 80,
+    "emergencyCurateWhenVisibleObservationsOver": 120,
     "protectRecentObservations": 32,
     "maxInitialObserveTokens": 100000,
     "observerThinking": "low",
     "reflectorThinking": "xhigh",
-    "dropperThinking": "low",
+    "curatorThinking": "high",
     "debugLog": false
   }
 }
 ```
 
-`protectRecentObservations` keeps the newest active observations out of the dropper candidate set. Older observations become drop-eligible only after reflection review has covered their source range. Reviewed observations may be dropped when redundant, superseded, duplicate, routine, or otherwise low-value; they do not need to be preserved by a reflection when the review intentionally found no durable fact to keep.
+`protectRecentObservations` keeps the newest active observations out of the curator drop candidate set. Older reviewed observations may be dropped when redundant, superseded, duplicate, routine, or otherwise low-value; pins and follow-up flags keep exact evidence visible when needed.
 
 `maxInitialObserveTokens` prevents expensive backfill when the extension starts on an already-large session. It marks old history covered and observes future turns.
 
-Context projection is decoupled from the observation token pool: incremental compaction materializes recorded reflections, while full-fold compaction is reserved for deeper replay/drop reconciliation.
+Context projection is decoupled from the observation token pool: incremental compaction materializes recorded reflections and currently visible observations, while full-fold compaction is reserved for deeper replay/drop reconciliation.
 
 ## Commands
 
@@ -63,18 +63,18 @@ Memory entries include 12-character ids. Use `recall(id)` when exact source cont
 source entries
   -> observer: source-backed evidence
   -> reflector: checkpoint facts backed by observations
-  -> dropper: tombstones reviewed evidence that is safe to remove
-  -> projection/rendering: reflections + active observations
+  -> curator: pins, unpins, flags follow-up work, or tombstones reviewed evidence
+  -> projection/rendering: reflections + unreviewed/pinned observations
 ```
 
 Terms:
 
 - Observation = source-backed evidence.
 - Reflection = checkpoint fact backed by observations.
-- Drop = tombstone for reviewed evidence that is safe to remove.
+- Curator action = pin, unpin, follow-up flag, or drop reviewed evidence.
 
 Safety rules:
 
 - Never compact away unobserved source.
-- Never drop an observation unless reflection review has covered it and the dropper judges it safe to remove.
+- Never drop an observation unless reflection review has covered it and the curator judges it safe to remove.
 - No-tool worker response must not count as reviewed.

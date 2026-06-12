@@ -9,7 +9,7 @@ Priorities:
 1. Compaction must not block on full OM catchup.
 2. Additive mode should be removed.
 3. Prompt context should be driven by review/context state, not pool pressure.
-4. Dropper should be replaced by a curator with a clean scheduler cutover.
+4. Curator should own cleanup, visibility, and follow-up after reflector review.
 5. Recall should get model evals and UX review.
 6. Reflection deprecation/supersede is low priority and last.
 
@@ -31,7 +31,7 @@ Implemented in the current plan branch:
 
 Superseded transitional work:
 
-- Progressive dropper soft threshold. It was useful as an intermediate cleanup trigger, but normal cleanup should now move to curator cursor thresholds.
+- Progressive soft cleanup thresholds. They were useful as an intermediate cleanup trigger, but normal cleanup now moves through curator continuation after reflector review.
 
 Deferred/reconsider later:
 
@@ -89,7 +89,7 @@ Synchronous compaction work:
 flush observer only for source entries about to disappear
 ```
 
-Do not synchronously run reflector/dropper/curator unless an explicit emergency path is added later.
+Do not synchronously run reflector/curator unless an explicit emergency path is added later.
 
 Safety invariant:
 
@@ -122,13 +122,7 @@ observerThinking
 reflectorThinking
 ```
 
-Replace/remove transitional pool trigger:
-
-```ts
-dropSoftActiveObservationsOver // remove
-```
-
-Replace normal dropper trigger with a continuation rule:
+Replace normal cleanup triggers with a continuation rule:
 
 ```text
 reflector records reflections or marks observations reviewed
@@ -138,7 +132,7 @@ reflector records reflections or marks observations reviewed
 Clean cutover rule:
 
 ```text
-when curator lifecycle is wired, remove normal dropper scheduling instead of running both agents in parallel
+curator runs after reflector; do not run a separate cleanup agent in parallel
 ```
 
 Make pool pressure emergency-only:
@@ -160,7 +154,7 @@ Add curator model setting:
 curatorThinking
 ```
 
-Remove dropper config once curator cleanup is scheduler-ready.
+Remove old cleanup config once curator cleanup is scheduler-ready.
 
 ## Test/eval doctrine
 
@@ -237,7 +231,7 @@ Change `ensureMemoryUpdatedBeforeCompaction()` so it does only the required obse
 Split into:
 
 ```text
-1a: stop running reflector/dropper in compaction path
+1a: stop running reflector/curator in compaction path
 1b: run observer only when compacted prefix has unobserved source entries
 ```
 
@@ -248,7 +242,7 @@ ensureMemoryUpdatedBeforeCompaction()
   → runMemoryUpdate()
   → observer
   → reflector
-  → dropper
+  → curator
 ```
 
 Target path:
@@ -335,7 +329,7 @@ hidden observations           = reviewed non-pinned observations + suppressed ob
 
 Existing `om.observations.dropped` tombstones remain respected. New context decisions layer on top for mixed old/new sessions.
 
-### Stage 4: Replace dropper with curator
+### Stage 4: Curator cleanup and visibility lifecycle
 
 Curator action vocabulary:
 
@@ -416,7 +410,7 @@ Evals run separately from `pnpm test` because they require live model calls. The
 
 ### Stage 5: Clean curator lifecycle cutover — next
 
-Remove normal dropper lifecycle scheduling and make curator the single cleanup/visibility agent.
+Curator is the single cleanup/visibility agent.
 
 Normal curator trigger:
 
@@ -488,7 +482,7 @@ flag requests reflector follow-up through normal reflector threshold
 pinned reviewed observations stay in next context
 ```
 
-The current soft drop threshold and normal dropper trigger should disappear here.
+The old soft cleanup threshold and normal pool trigger should disappear here.
 
 ### Stage 6: Recall verification, evals, and UX
 
@@ -575,7 +569,7 @@ Reason for low priority:
 3. Compaction observer-only flush may miss unobserved data if observer fails.
    Mitigation: preserve source excerpts/details or fail safely when required observer flush cannot complete.
 
-4. Replacing dropper with curator may regress cleanup conservatism.
+4. Curator cleanup may regress cleanup conservatism.
    Mitigation: deterministic lifecycle tests, curator eval baselines, and emergency visible-pressure trigger.
 
 5. Read-only curator context may tempt the model to act on non-candidate ids.

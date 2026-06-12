@@ -44,7 +44,7 @@ export function anyMemoryUpdateStageDue(entries: Entry[], runtime: Runtime): boo
 		|| reflectionWorkCount >= runtime.config.reflectEveryObservations;
 }
 
-function makeModelResolver(runtime: Runtime, ctx: MemoryUpdateCtx): (stage: "observer" | "reflector" | "curator" | "dropper") => Promise<ResolvedModel | undefined> {
+function makeModelResolver(runtime: Runtime, ctx: MemoryUpdateCtx): (stage: "observer" | "reflector" | "curator") => Promise<ResolvedModel | undefined> {
 	let cached: ResolveResult | undefined;
 	return async (stage) => {
 		cached ??= await runtime.resolveModel({
@@ -156,7 +156,7 @@ async function runMemoryUpdateStage(
 	pi: ExtensionAPI,
 	runtime: Runtime,
 	ctx: MemoryUpdateCtx,
-	stage: "observer" | "reflector" | "curator" | "dropper",
+	stage: "observer" | "reflector" | "curator",
 	run: () => Promise<StageOutcome>,
 ): Promise<StageOutcome> {
 	runtime.memoryUpdatePhase = stage;

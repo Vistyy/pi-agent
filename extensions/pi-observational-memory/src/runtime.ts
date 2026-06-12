@@ -7,7 +7,7 @@ export type ResolveResult =
 
 type NotifyLevel = "warning" | "info" | "error";
 type Notify = (message: string, type?: NotifyLevel) => void;
-export type MemoryUpdatePhase = "observer" | "reflector" | "curator" | "dropper";
+export type MemoryUpdatePhase = "observer" | "reflector" | "curator";
 
 export interface ResolveCtx {
 	model: unknown;
@@ -42,13 +42,11 @@ export class Runtime {
 	lastObserverError: string | undefined;
 	lastReflectorError: string | undefined;
 	lastCuratorError: string | undefined;
-	lastDropperError: string | undefined;
 	transientCompactionObservations: import("./session-ledger/index.js").Observation[] = [];
 	transientCompactionReflections: import("./session-ledger/index.js").Reflection[] = [];
 	memoryAgentUsage: Record<MemoryAgentName | "unknown", UsageTotals> = {
 		observer: this.emptyUsageTotals(),
 		reflector: this.emptyUsageTotals(),
-		dropper: this.emptyUsageTotals(),
 		curator: this.emptyUsageTotals(),
 		unknown: this.emptyUsageTotals(),
 	};
@@ -109,7 +107,6 @@ export class Runtime {
 		this.lastObserverError = undefined;
 		this.lastReflectorError = undefined;
 		this.lastCuratorError = undefined;
-		this.lastDropperError = undefined;
 		const promise = this.launchTrackedTask(ctx, "memory update", work, () => {
 			this.memoryUpdateInFlight = false;
 			this.memoryUpdatePhase = undefined;
@@ -124,7 +121,6 @@ export class Runtime {
 		if (phase === "observer") this.lastObserverError = message;
 		if (phase === "reflector") this.lastReflectorError = message;
 		if (phase === "curator") this.lastCuratorError = message;
-		if (phase === "dropper") this.lastDropperError = message;
 		if (ctx.hasUI && ctx.ui) ctx.ui.notify(`Observational memory: ${phase} failed: ${message}`, "warning");
 		return message;
 	}

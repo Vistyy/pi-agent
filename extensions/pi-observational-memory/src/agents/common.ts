@@ -4,7 +4,7 @@ import { AGENT_LOOP_MAX_TOKENS, boundedMaxTokens } from "./model-budget.js";
 import { debugLog } from "../debug-log.js";
 import { estimateStringTokens } from "../memory/token-estimate.js";
 
-export type MemoryAgentName = "observer" | "reflector" | "dropper" | "curator";
+export type MemoryAgentName = "observer" | "reflector" | "curator";
 
 export type MemoryAgentUsage = {
 	agent: MemoryAgentName | undefined;

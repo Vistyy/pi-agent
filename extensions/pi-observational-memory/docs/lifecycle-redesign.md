@@ -4,13 +4,12 @@
 
 Current OM behavior is too close to a rolling FIFO window.
 
-Observed in real sessions:
+Observed in earlier sessions:
 
-- Dropper runs mostly under pool pressure.
-- It drops near its max cap when it runs.
-- Older unprotected observations are more likely to disappear than lower-value observations.
-- Recall has not been used in audited sessions.
-- Reflections are useful, but unbounded and not deprecated.
+- Pool-pressure cleanup dropped near its max cap when it ran.
+- Older unprotected observations were more likely to disappear than lower-value observations.
+- Recall had not been used in audited sessions.
+- Reflections were useful, but unbounded and not deprecated.
 
 The core issue is that the system lacks a clean lifecycle between raw observation, semantic review, context inclusion, compaction, and recall.
 
@@ -25,7 +24,7 @@ curator   = manage context inclusion, safety, and follow-up requests
 recall    = recover source evidence when exact context matters
 ```
 
-The current "dropper" should evolve into a curator. It should not simply drop old observations under pool pressure.
+The cleanup lifecycle should be curator-driven. It should not simply drop old observations under pool pressure.
 
 ## Minimal state model
 
@@ -104,7 +103,7 @@ reflector
 reviewed observations
   hidden by default as covered
   ↓
-curator/dropper
+curator
   audits reviewed observations
   emits context/safety actions
 ```
@@ -115,13 +114,13 @@ Curator actions:
 pin reviewed observation
   keep exact reviewed observation in context
 
-cover reviewed observation
-  keep hidden because reflection represents it
+unpin reviewed observation
+  stop forcing exact reviewed observation into context
 
-suppress observation
-  hide low-value/noisy observation
+drop reviewed observation
+  tombstone low-value/noisy observation
 
-flag for re-review
+flag for follow-up
   request reflector follow-up because compression looks unsafe
 ```
 
@@ -247,13 +246,11 @@ This is separate from observation context inclusion, but related because covered
 
 ## Staged implementation plan
 
-### Stage 1: Rename/reframe dropper as curator internally
+### Stage 1: Add curator lifecycle
 
-No behavior change required at first.
-
-- Keep current tombstone compatibility.
+- Keep `om.observations.dropped` as the tombstone event.
 - Introduce docs/types around context decisions.
-- Preserve old `om.observations.dropped` until migration is clear.
+- Remove the old cleanup agent once curator scheduling is wired.
 
 ### Stage 2: Add reviewed/covered-by-default projection
 
@@ -278,12 +275,12 @@ No behavior change required at first.
 
 ### Stage 5: Rework triggers
 
-Replace pool-size-first behavior with cursor/review driven behavior:
+Replace pool-size-first behavior with reflector-continuation behavior:
 
 ```text
 reflector due when unreviewed observations + pending flagged follow-ups reaches reflectEveryObservations
-curator due when enough newly reviewed observations or context pressure exists
-hard pool cap remains emergency only
+curator runs after successful reflector review on newly reviewed candidates
+visible context pressure remains emergency only
 ```
 
 ### Stage 6: Reflection lifecycle
@@ -300,9 +297,8 @@ hard pool cap remains emergency only
 
 ## Open questions
 
-1. Should curator be a renamed dropper or a new agent wrapper around the same model prompt?
-2. Should covered observations remain recallable after source entries are compacted?
-3. Should pending follow-up flags ever need explicit resolution, or is implicit resolution by later reflector review enough?
-4. Should pinned observations have TTL/expiry or only explicit unpin?
-5. How much reflection deprecation should happen in reflector vs curator?
-6. How should current `om.observations.dropped` tombstones migrate into the new context model?
+1. Should covered observations remain recallable after source entries are compacted?
+2. Should pending follow-up flags ever need explicit resolution, or is implicit resolution by later reflector review enough?
+3. Should pinned observations have TTL/expiry or only explicit unpin?
+4. How much reflection deprecation should happen in reflector vs curator?
+5. Should `om.observations.dropped` remain sufficient as the hard suppression/tombstone event?

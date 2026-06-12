@@ -5,13 +5,11 @@ const mockAgents = vi.hoisted(() => ({
 	runObserver: vi.fn(),
 	runReflector: vi.fn(),
 	runCurator: vi.fn(),
-	runDropper: vi.fn(),
 }));
 
 vi.mock("../src/agents/observer/agent.js", () => ({ runObserver: mockAgents.runObserver }));
 vi.mock("../src/agents/reflector/agent.js", () => ({ runReflector: mockAgents.runReflector }));
 vi.mock("../src/agents/curator/agent.js", () => ({ runCurator: mockAgents.runCurator }));
-vi.mock("../src/agents/dropper/agent.js", () => ({ runDropper: mockAgents.runDropper }));
 
 import { ensureMemoryUpdatedBeforeCompaction, registerMemoryUpdateHook } from "../src/hooks/memory-update.js";
 import { Runtime } from "../src/runtime.js";
@@ -40,11 +38,9 @@ beforeEach(() => {
 	mockAgents.runObserver.mockReset();
 	mockAgents.runReflector.mockReset();
 	mockAgents.runCurator.mockReset();
-	mockAgents.runDropper.mockReset();
 	mockAgents.runObserver.mockResolvedValue(undefined);
 	mockAgents.runReflector.mockResolvedValue(undefined);
 	mockAgents.runCurator.mockResolvedValue(undefined);
-	mockAgents.runDropper.mockResolvedValue(undefined);
 });
 
 function setup(args: {
@@ -52,7 +48,6 @@ function setup(args: {
 	observeEveryMessages?: number;
 	reflectEveryObservations?: number;
 	observationsPoolMaxTokens?: number;
-	dropWhenActiveObservationsOver?: number;
 	maxInitialObserveTokens?: number;
 	strategy?: "replacement" | "off";
 	memoryUpdateInFlight?: boolean;
@@ -77,18 +72,16 @@ function setup(args: {
 			maxInitialObserveTokens: args.maxInitialObserveTokens ?? 100_000,
 			observationsPoolMaxTokens: args.observationsPoolMaxTokens ?? 100,
 			emergencyCurateWhenVisibleObservationsOver: 120,
-			dropWhenActiveObservationsOver: args.dropWhenActiveObservationsOver ?? Math.floor((args.observationsPoolMaxTokens ?? 100) / 2),
 			protectRecentObservations: 32,
 			agentMaxTurns: 9,
 			model: { provider: "anthropic", id: "memory", thinking: "minimal" },
 		},
 		memoryUpdateInFlight: args.memoryUpdateInFlight ?? false,
-		memoryUpdatePhase: undefined as "observer" | "reflector" | "curator" | "dropper" | undefined,
+		memoryUpdatePhase: undefined as "observer" | "reflector" | "curator" | undefined,
 		resolveFailureNotified: false,
 		lastObserverError: undefined as string | undefined,
 		lastReflectorError: undefined as string | undefined,
 		lastCuratorError: undefined as string | undefined,
-		lastDropperError: undefined as string | undefined,
 		memoryAgentUsage: usageRuntime.memoryAgentUsage,
 		recordMemoryAgentUsage: usageRuntime.recordMemoryAgentUsage.bind(usageRuntime),
 		ensureConfig: vi.fn(),
@@ -98,12 +91,11 @@ function setup(args: {
 			launchedWork = work;
 			return Promise.resolve();
 		}),
-		recordMemoryUpdateStageError: vi.fn((ctx, phase: "observer" | "reflector" | "curator" | "dropper", error: unknown) => {
+		recordMemoryUpdateStageError: vi.fn((ctx, phase: "observer" | "reflector" | "curator", error: unknown) => {
 			const message = error instanceof Error ? error.message : String(error);
 			if (phase === "observer") runtime.lastObserverError = message;
 			if (phase === "reflector") runtime.lastReflectorError = message;
 			if (phase === "curator") runtime.lastCuratorError = message;
-			if (phase === "dropper") runtime.lastDropperError = message;
 			ctx.ui?.notify(`Observational memory: ${phase} failed: ${message}`, "warning");
 			return message;
 		}),
@@ -149,7 +141,6 @@ describe("memory update hook", () => {
 		expect(mockAgents.runObserver).toHaveBeenCalledOnce();
 		expect(mockAgents.runReflector).not.toHaveBeenCalled();
 		expect(mockAgents.runCurator).not.toHaveBeenCalled();
-		expect(mockAgents.runDropper).not.toHaveBeenCalled();
 		expect(mockAgents.runObserver.mock.calls[0][0].chunk).toContain("[Source entry id: raw-1]");
 		expect(mockAgents.runObserver.mock.calls[0][0].chunk).not.toContain("[Source entry id: raw-2]");
 		expect(getMemoryAppends()).toEqual([
@@ -268,7 +259,6 @@ describe("memory update hook", () => {
 		expect(getMemoryAppends()).toEqual([]);
 		expect(mockAgents.runReflector).not.toHaveBeenCalled();
 		expect(mockAgents.runCurator).not.toHaveBeenCalled();
-		expect(mockAgents.runDropper).not.toHaveBeenCalled();
 	});
 
 	it("model resolution failure skips appending and notifies once", async () => {
@@ -316,7 +306,6 @@ describe("memory update hook", () => {
 		await runLaunchedWork();
 
 		expect(mockAgents.runReflector).toHaveBeenCalledWith(expect.objectContaining({ observations: [obsA], maxTurns: 9, thinkingLevel: "minimal" }));
-		expect(mockAgents.runDropper).not.toHaveBeenCalled();
 		expect(pi.appendEntry).toHaveBeenCalledWith(OM_REFLECTIONS_RECORDED, { reflections: [newRef], coversUpToId: "raw-1" });
 	});
 
@@ -385,7 +374,6 @@ describe("memory update hook", () => {
 
 		expect(mockAgents.runReflector).toHaveBeenCalled();
 		expect(mockAgents.runCurator).toHaveBeenCalledWith(expect.objectContaining({ reflections: [newRef], observations: [obsA], candidateObservationIds: ["aaaaaaaaaaaa"] }));
-		expect(mockAgents.runDropper).not.toHaveBeenCalled();
 		expect(getMemoryAppends()).toEqual([
 			{ customType: OM_REFLECTIONS_RECORDED, data: { reflections: [newRef], coversUpToId: "raw-1" } },
 			{ customType: OM_OBSERVATIONS_CURATED, data: { coversUpToId: "raw-1" } },
@@ -398,14 +386,13 @@ describe("memory update hook", () => {
 			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
 			reflectionsReviewedEntry("om-reviewed", { coversUpToId: "raw-1" }),
 		];
-		const { fire, runLaunchedWork, runtime } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 999, dropWhenActiveObservationsOver: 0 });
+		const { fire, runLaunchedWork, runtime } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 999 });
 
 		fire();
 		await runLaunchedWork();
 
 		expect(runtime.launchMemoryUpdateTask).not.toHaveBeenCalled();
 		expect(mockAgents.runCurator).not.toHaveBeenCalled();
-		expect(mockAgents.runDropper).not.toHaveBeenCalled();
 	});
 
 	it("runs reflector before curator and appends curator drops through reflection coverage", async () => {
@@ -424,7 +411,6 @@ describe("memory update hook", () => {
 		await runLaunchedWork();
 
 		expect(mockAgents.runCurator).toHaveBeenCalledWith(expect.objectContaining({ reflections: [newRef], candidateObservationIds: ["aaaaaaaaaaaa", "bbbbbbbbbbbb"] }));
-		expect(mockAgents.runDropper).not.toHaveBeenCalled();
 		expect(getMemoryAppends()).toEqual([
 			{ customType: OM_REFLECTIONS_RECORDED, data: { reflections: [newRef], coversUpToId: "raw-2" } },
 			{ customType: OM_OBSERVATIONS_DROPPED, data: { observationIds: ["bbbbbbbbbbbb"], coversUpToId: "raw-2" } },
@@ -440,14 +426,13 @@ describe("memory update hook", () => {
 			reflectionsRecordedEntry("om-ref", { reflections: [ref], coversUpToId: "raw-1" }),
 			textCustomMessage("raw-2", "bbbbbbbb"),
 		];
-		const { fire, runLaunchedWork, getMemoryAppends } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 1, dropWhenActiveObservationsOver: 0 });
+		const { fire, runLaunchedWork, getMemoryAppends } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 1 });
 
 		fire();
 		await runLaunchedWork();
 
 		expect(mockAgents.runReflector).not.toHaveBeenCalled();
 		expect(mockAgents.runCurator).not.toHaveBeenCalled();
-		expect(mockAgents.runDropper).not.toHaveBeenCalled();
 		expect(getMemoryAppends()).toEqual([]);
 	});
 
@@ -461,8 +446,6 @@ describe("memory update hook", () => {
 
 		expect(pi.appendEntry).toHaveBeenCalledWith(OM_REFLECTIONS_REVIEWED, { coversUpToId: "raw-1" });
 		expect(mockAgents.runCurator).toHaveBeenCalledWith(expect.objectContaining({ candidateObservationIds: ["aaaaaaaaaaaa"] }));
-		expect(mockAgents.runDropper).not.toHaveBeenCalled();
-		expect(ctx.ui.notify).not.toHaveBeenCalledWith(expect.stringContaining("dropper running"), "info");
 	});
 
 	it("preserves stage failure boundaries", async () => {
@@ -472,7 +455,6 @@ describe("memory update hook", () => {
 		await observerFailure.runLaunchedWork();
 		expect(observerFailure.runtime.lastObserverError).toBe("observe failed");
 		expect(mockAgents.runReflector).not.toHaveBeenCalled();
-		expect(mockAgents.runDropper).not.toHaveBeenCalled();
 
 		mockAgents.runObserver.mockReset();
 		mockAgents.runObserver.mockResolvedValue(undefined);
@@ -483,7 +465,6 @@ describe("memory update hook", () => {
 		await reflectorFailure.runLaunchedWork();
 		expect(reflectorFailure.runtime.lastReflectorError).toBe("reflect failed");
 		expect(mockAgents.runCurator).not.toHaveBeenCalled();
-		expect(mockAgents.runDropper).not.toHaveBeenCalled();
 		expect(reflectorFailure.getMemoryAppends()).toEqual([]);
 
 		mockAgents.runReflector.mockReset();

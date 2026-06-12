@@ -20,7 +20,6 @@ export interface Config {
 	observeEveryMessages: number;
 	reflectEveryObservations: number;
 	emergencyCurateWhenVisibleObservationsOver: number;
-	dropWhenActiveObservationsOver: number;
 	protectRecentObservations: number;
 	maxInitialObserveTokens: number;
 	observationsPoolMaxTokens: number;
@@ -29,7 +28,6 @@ export interface Config {
 	observerThinking?: ModelThinkingLevel;
 	reflectorThinking?: ModelThinkingLevel;
 	curatorThinking?: ModelThinkingLevel;
-	dropperThinking?: ModelThinkingLevel;
 	debugLog: boolean;
 }
 
@@ -38,7 +36,6 @@ export const DEFAULTS: Config = {
 	observeEveryMessages: 32,
 	reflectEveryObservations: 8,
 	emergencyCurateWhenVisibleObservationsOver: 120,
-	dropWhenActiveObservationsOver: 80,
 	protectRecentObservations: 32,
 	maxInitialObserveTokens: 100_000,
 	observationsPoolMaxTokens: 20_000,
@@ -46,7 +43,6 @@ export const DEFAULTS: Config = {
 	observerThinking: "low",
 	reflectorThinking: "xhigh",
 	curatorThinking: "high",
-	dropperThinking: "low",
 	debugLog: false,
 };
 
@@ -90,7 +86,6 @@ function normalizeSettingsConfig(value: Record<string, unknown>): Partial<Config
 		"observeEveryMessages",
 		"reflectEveryObservations",
 		"emergencyCurateWhenVisibleObservationsOver",
-		"dropWhenActiveObservationsOver",
 		"protectRecentObservations",
 		"maxInitialObserveTokens",
 		"observationsPoolMaxTokens",
@@ -105,7 +100,6 @@ function normalizeSettingsConfig(value: Record<string, unknown>): Partial<Config
 	if (isThinkingLevel(value.observerThinking)) normalized.observerThinking = value.observerThinking;
 	if (isThinkingLevel(value.reflectorThinking)) normalized.reflectorThinking = value.reflectorThinking;
 	if (isThinkingLevel(value.curatorThinking)) normalized.curatorThinking = value.curatorThinking;
-	if (isThinkingLevel(value.dropperThinking)) normalized.dropperThinking = value.dropperThinking;
 	const model = normalizeModel(value.model);
 	if (model) normalized.model = model;
 	return normalized;

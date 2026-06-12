@@ -14,13 +14,13 @@ import {
 } from "../../session-ledger/index.js";
 import { joinOrEmpty, runMemoryAgentLoop, type MemoryAgentUsage } from "../common.js";
 import {
+	REFLECTION_COVERAGE_DROP_RANK,
 	coverageTierForObservation,
 	observationToMemoryAgentLine,
 	reflectionCoverageMap,
 	summarizeCoverage,
 	type ReflectionCoverageTier,
 } from "../coverage.js";
-import { selectDropCandidates } from "../dropper/agent.js";
 import { CURATOR_SYSTEM } from "./prompts.js";
 
 export type CuratorActionResult = {
@@ -59,6 +59,43 @@ type CuratorBatch = { observationIds: string[]; reason: string };
 
 type MarkNoActionsArgs = Static<typeof MarkNoActionsSchema>;
 type CuratorIdsWithReasonArgs = Static<typeof CuratorIdsWithReasonSchema>;
+
+function timestampRank(timestamp: string): number {
+	const parsed = Date.parse(timestamp);
+	return Number.isFinite(parsed) ? parsed : Number.POSITIVE_INFINITY;
+}
+
+function selectDropCandidates(
+	ids: readonly string[],
+	observations: readonly Observation[],
+	maxDrops: number,
+	reflections: readonly Reflection[] = [],
+	protectedObservationIds: readonly string[] = [],
+): string[] {
+	if (maxDrops <= 0 || ids.length === 0) return [];
+
+	const byId = new Map(observations.map((observation) => [observation.id, observation]));
+	const coverageById = reflectionCoverageMap(observations, reflections);
+	const protectedIds = new Set(protectedObservationIds);
+	const firstProposalIndex = new Map<string, number>();
+	for (let i = 0; i < ids.length; i++) {
+		if (!firstProposalIndex.has(ids[i])) firstProposalIndex.set(ids[i], i);
+	}
+
+	return Array.from(firstProposalIndex.entries())
+		.map(([id, index]) => ({ id, index, observation: byId.get(id) }))
+		.filter((candidate): candidate is { id: string; index: number; observation: Observation } =>
+			candidate.observation !== undefined && !protectedIds.has(candidate.id)
+		)
+		.sort((a, b) => {
+			const coverageDelta = REFLECTION_COVERAGE_DROP_RANK[coverageTierForObservation(a.observation, coverageById)]
+				- REFLECTION_COVERAGE_DROP_RANK[coverageTierForObservation(b.observation, coverageById)];
+			const ageDelta = timestampRank(a.observation.timestamp) - timestampRank(b.observation.timestamp);
+			return coverageDelta || ageDelta || a.index - b.index;
+		})
+		.slice(0, maxDrops)
+		.map((candidate) => candidate.id);
+}
 
 function partitionObservationIds(ids: readonly string[] | undefined, allowedIds: ReadonlySet<string>): { accepted: string[]; rejected: Array<{ id: string; reason: string }> } {
 	if (!ids || ids.length === 0) return { accepted: [], rejected: [] };
