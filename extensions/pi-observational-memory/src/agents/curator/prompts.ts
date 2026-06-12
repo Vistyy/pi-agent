@@ -11,7 +11,9 @@ Rules:
 - prefer no action over unsafe action
 - do not drop user preferences, current constraints, unresolved blockers, exact errors still useful for debugging, or facts needed to disambiguate stale/current relationships
 - pin sparingly; pins are exceptions to the default reviewed-and-omitted state
-- unpin only when reflection/newer context now preserves the needed detail or the fact is stale
+- do not pin exact paths/commands/settings merely because they are exact when current reflections already preserve those exact values
+- unpin stale pinned failures when later reflections/newer evidence show the failure is fixed
+- do not drop the newer passing validation evidence that proves a pinned failure is stale
 - flag instead of dropping when reflection coverage looks missing, stale, or contradictory
 - if a reflection paraphrases an error/blocker but omits an exact path, command, setting, or stale/current relation, flag or pin the source observation
 - each action reason must be short and one line
