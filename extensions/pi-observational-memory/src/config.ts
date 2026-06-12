@@ -19,7 +19,6 @@ export interface Config {
 	strategy: MemoryStrategy;
 	observeEveryMessages: number;
 	reflectEveryObservations: number;
-	curateEveryReviewedObservations: number;
 	emergencyCurateWhenVisibleObservationsOver: number;
 	dropWhenActiveObservationsOver: number;
 	protectRecentObservations: number;
@@ -38,7 +37,6 @@ export const DEFAULTS: Config = {
 	strategy: STRATEGY.replacement,
 	observeEveryMessages: 32,
 	reflectEveryObservations: 8,
-	curateEveryReviewedObservations: 8,
 	emergencyCurateWhenVisibleObservationsOver: 120,
 	dropWhenActiveObservationsOver: 80,
 	protectRecentObservations: 32,
@@ -91,7 +89,6 @@ function normalizeSettingsConfig(value: Record<string, unknown>): Partial<Config
 	const numberKeys = [
 		"observeEveryMessages",
 		"reflectEveryObservations",
-		"curateEveryReviewedObservations",
 		"emergencyCurateWhenVisibleObservationsOver",
 		"dropWhenActiveObservationsOver",
 		"protectRecentObservations",

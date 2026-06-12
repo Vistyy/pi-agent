@@ -128,10 +128,11 @@ Replace/remove transitional pool trigger:
 dropSoftActiveObservationsOver // remove
 ```
 
-Replace normal dropper trigger with:
+Replace normal dropper trigger with a continuation rule:
 
-```ts
-curateEveryReviewedObservations
+```text
+reflector records reflections or marks observations reviewed
+  → curator audits the observations newly reviewed by that reflector run
 ```
 
 Clean cutover rule:
@@ -420,7 +421,8 @@ Remove normal dropper lifecycle scheduling and make curator the single cleanup/v
 Normal curator trigger:
 
 ```text
-newly reviewed observations since curator cursor >= curateEveryReviewedObservations
+reflector records reflections or marks observations reviewed
+  → curator audits the observations newly reviewed by that reflector run
 ```
 
 Emergency trigger:
@@ -433,14 +435,7 @@ Other triggers:
 
 ```text
 unreviewed observations + pending flagged follow-ups >= reflectEveryObservations → reflector due
-curator cursor backlog exists → curator due
-```
-
-Curator should run as a continuation of successful reflector work, not after a large separate reviewed-observation threshold:
-
-```text
-reflector records reflections or marks observations reviewed
-  → curator audits the observations newly reviewed by that reflector run
+curator cursor backlog exists → curator due only as emergency/backlog repair, not normal threshold scheduling
 ```
 
 Emergency trigger:
