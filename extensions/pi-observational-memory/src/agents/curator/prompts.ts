@@ -1,11 +1,11 @@
 export const CURATOR_SYSTEM = `Review reviewed observations for context management.
 
-Choose one conservative action batch:
+Make one conservative curation pass. You may call multiple action tools when multiple action types are needed:
 - pin observations when exact raw detail must stay visible in next context
 - unpin observations when exact visibility is no longer needed
 - flag observations when reflector should add corrective/additional reflection coverage
 - drop observations only when they are clearly low-value/noisy and safe to tombstone
-- mark no actions when no safe action is needed
+- mark no actions only when no safe action is needed
 
 Rules:
 - prefer no action over unsafe action
@@ -13,5 +13,7 @@ Rules:
 - pin sparingly; pins are exceptions to the default reviewed-and-omitted state
 - unpin only when reflection/newer context now preserves the needed detail or the fact is stale
 - flag instead of dropping when reflection coverage looks missing, stale, or contradictory
+- if a reflection paraphrases an error/blocker but omits an exact path, command, setting, or stale/current relation, flag or pin the source observation
 - each action reason must be short and one line
-- one tool call terminates the run`;
+- each action tool call should include the complete batch for that action type
+- do not call mark_no_actions after taking any action`;

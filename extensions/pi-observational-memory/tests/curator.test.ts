@@ -67,6 +67,57 @@ describe("curator agent", () => {
 		expect(result?.dropped).not.toContain("cccccccccccc");
 	});
 
+	it("aggregates multiple action tool calls in one curator pass", async () => {
+		const loop = fakeAgentLoop(async (_prompts, context) => {
+			await context.tools.find((candidate: any) => candidate.name === "pin_observations")!.execute("tool-1", { ids: ["aaaaaaaaaaaa"], reason: "Keep exact path visible." });
+			await context.tools.find((candidate: any) => candidate.name === "flag_observations")!.execute("tool-2", { ids: ["aaaaaaaaaaaa"], reason: "Reflection omitted the path." });
+			await context.tools.find((candidate: any) => candidate.name === "drop_observations")!.execute("tool-3", { ids: ["bbbbbbbbbbbb"], reason: "Noisy log." });
+		});
+
+		const result = await runCurator({ ...baseArgs, maxDropsAllowed: 1, agentLoop: loop });
+
+		expect(result?.pinned).toEqual([{ observationIds: ["aaaaaaaaaaaa"], reason: "Keep exact path visible." }]);
+		expect(result?.flagged).toEqual([{ observationIds: ["aaaaaaaaaaaa"], reason: "Reflection omitted the path." }]);
+		expect(result?.dropped).toEqual(["bbbbbbbbbbbb"]);
+	});
+
+	it("ignores mark_no_actions after actions already exist", async () => {
+		const loop = fakeAgentLoop(async (_prompts, context) => {
+			await context.tools.find((candidate: any) => candidate.name === "pin_observations")!.execute("tool-1", { ids: ["aaaaaaaaaaaa"], reason: "Keep exact path visible." });
+			await context.tools.find((candidate: any) => candidate.name === "mark_no_actions")!.execute("tool-2", {});
+		});
+
+		const result = await runCurator({ ...baseArgs, agentLoop: loop });
+
+		expect(result?.pinned).toEqual([{ observationIds: ["aaaaaaaaaaaa"], reason: "Keep exact path visible." }]);
+	});
+
+	it("rejects same-run pin/unpin conflicts", async () => {
+		const loop = fakeAgentLoop(async (_prompts, context) => {
+			await context.tools.find((candidate: any) => candidate.name === "pin_observations")!.execute("tool-1", { ids: ["aaaaaaaaaaaa"], reason: "Keep exact path visible." });
+			await context.tools.find((candidate: any) => candidate.name === "unpin_observations")!.execute("tool-2", { ids: ["aaaaaaaaaaaa"], reason: "No longer needed." });
+		});
+
+		const result = await runCurator({ ...baseArgs, pinnedObservationIds: ["aaaaaaaaaaaa"], agentLoop: loop });
+
+		expect(result?.pinned).toEqual([{ observationIds: ["aaaaaaaaaaaa"], reason: "Keep exact path visible." }]);
+		expect(result?.unpinned).toEqual([]);
+	});
+
+	it("drop conflicts remove prior pin and flag actions for the same id", async () => {
+		const loop = fakeAgentLoop(async (_prompts, context) => {
+			await context.tools.find((candidate: any) => candidate.name === "pin_observations")!.execute("tool-1", { ids: ["bbbbbbbbbbbb"], reason: "Maybe keep." });
+			await context.tools.find((candidate: any) => candidate.name === "flag_observations")!.execute("tool-2", { ids: ["bbbbbbbbbbbb"], reason: "Maybe follow up." });
+			await context.tools.find((candidate: any) => candidate.name === "drop_observations")!.execute("tool-3", { ids: ["bbbbbbbbbbbb"], reason: "Actually noise." });
+		});
+
+		const result = await runCurator({ ...baseArgs, maxDropsAllowed: 1, agentLoop: loop });
+
+		expect(result?.pinned).toEqual([]);
+		expect(result?.flagged).toEqual([]);
+		expect(result?.dropped).toEqual(["bbbbbbbbbbbb"]);
+	});
+
 	it("returns undefined when the model marks no actions", async () => {
 		const loop = fakeAgentLoop(async (_prompts, context) => {
 			const tool = context.tools.find((candidate: any) => candidate.name === "mark_no_actions")!;

@@ -53,6 +53,8 @@ const CuratorIdsWithReasonSchema = Type.Object({
 	reason: Type.String({ minLength: 1 }),
 });
 
+type CuratorBatch = { observationIds: string[]; reason: string };
+
 type MarkNoActionsArgs = Static<typeof MarkNoActionsSchema>;
 type CuratorIdsWithReasonArgs = Static<typeof CuratorIdsWithReasonSchema>;
 
@@ -67,6 +69,16 @@ function normalizeObservationIds(ids: readonly string[] | undefined, allowedIds:
 		result.push(id);
 	}
 	return result;
+}
+
+function removeIdsFromBatches(batches: CuratorBatch[], ids: ReadonlySet<string>): CuratorBatch[] {
+	return batches
+		.map((batch) => ({ ...batch, observationIds: batch.observationIds.filter((id) => !ids.has(id)) }))
+		.filter((batch) => batch.observationIds.length > 0);
+}
+
+function batchIds(batches: readonly CuratorBatch[]): Set<string> {
+	return new Set(batches.flatMap((batch) => batch.observationIds));
 }
 
 function actionSummaryLine(observation: Observation, pinnedIds: ReadonlySet<string>, flaggedIds: ReadonlySet<string>, coverageById: ReadonlyMap<string, ReflectionCoverageTier>): string {
@@ -114,9 +126,9 @@ export async function runCurator(args: RunCuratorArgs): Promise<CuratorActionRes
 				if (ids.length > 0) accept(ids, params.reason);
 				debugLog("curator.tool_call", { name, requested: params.ids.length, accepted: ids.length, rejected });
 				return {
-					content: [{ type: "text", text: `${label}: accepted ${ids.length}, rejected ${rejected}.` }],
+					content: [{ type: "text", text: `${label}: accepted ${ids.length}, rejected ${rejected}. You may continue with other action tools if another action type is needed.` }],
 					details: { accepted: ids.length, rejected },
-					terminate: true,
+					terminate: false,
 				};
 			},
 		};
@@ -125,51 +137,58 @@ export async function runCurator(args: RunCuratorArgs): Promise<CuratorActionRes
 	const markNoActions: AgentTool<typeof MarkNoActionsSchema> = {
 		name: "mark_no_actions",
 		label: "Mark no actions",
-		description: "Mark that no curator action is safe or needed. This tool call terminates the run.",
+		description: "Mark that no curator action is safe or needed. Use only if you have not taken any other curator action. This tool call terminates the run.",
 		parameters: MarkNoActionsSchema,
 		execute: async (_id, _params: MarkNoActionsArgs) => {
 			noActionCallCount++;
-			return { content: [{ type: "text", text: "Marked no curator actions." }], details: { reviewed: true }, terminate: true };
+			const hasActions = result.pinned.length > 0 || result.unpinned.length > 0 || result.flagged.length > 0 || result.dropped.length > 0;
+			return { content: [{ type: "text", text: hasActions ? "Ignored no-action marker because curator actions already exist." : "Marked no curator actions." }], details: { reviewed: !hasActions, ignored: hasActions }, terminate: true };
 		},
 	};
 
 	const pinObservations = makeActionTool(
 		"pin_observations",
 		"Pin observations",
-		"Pin every reviewed observation whose exact raw details must remain visible in next context. Include every observation to pin in this single complete batch. This tool call terminates the run.",
+		"Pin every reviewed observation whose exact raw details must remain visible in next context. Include every observation to pin in this complete batch for the pin action type. You may call other action tools afterward if needed.",
 		allowedIds,
 		(ids, reason) => {
-			const data = buildObservationsPinnedData(ids, reason);
+			const blocked = new Set([...result.dropped, ...batchIds(result.unpinned)]);
+			const data = buildObservationsPinnedData(ids.filter((id) => !blocked.has(id)), reason);
 			if (data) result.pinned.push(data);
 		},
 	);
 	const unpinObservations = makeActionTool(
 		"unpin_observations",
 		"Unpin observations",
-		"Unpin every currently pinned observation whose exact raw details no longer need forced visibility. Include every observation to unpin in this single complete batch. This tool call terminates the run.",
+		"Unpin every currently pinned observation whose exact raw details no longer need forced visibility. Include every observation to unpin in this complete batch for the unpin action type. You may call other action tools afterward if needed.",
 		pinnedAllowedIds,
 		(ids, reason) => {
-			const data = buildObservationsUnpinnedData(ids, reason);
+			const blocked = new Set([...result.dropped, ...batchIds(result.pinned)]);
+			const data = buildObservationsUnpinnedData(ids.filter((id) => !blocked.has(id)), reason);
 			if (data) result.unpinned.push(data);
 		},
 	);
 	const flagObservations = makeActionTool(
 		"flag_observations",
 		"Flag observations",
-		"Flag every reviewed observation needing reflector follow-up when reflection coverage is missing, stale, or contradictory. Include every observation to flag in this single complete batch. This tool call terminates the run.",
+		"Flag every reviewed observation needing reflector follow-up when reflection coverage is missing, stale, contradictory, or missing exact paths/commands/settings/stale-current relations. Include every observation to flag in this complete batch for the flag action type. You may call other action tools afterward if needed.",
 		allowedIds,
 		(ids, reason) => {
-			const data = buildObservationsFlaggedData(ids, reason);
+			const data = buildObservationsFlaggedData(ids.filter((id) => !result.dropped.includes(id)), reason);
 			if (data) result.flagged.push(data);
 		},
 	);
 	const dropObservations = makeActionTool(
 		"drop_observations",
 		"Drop observations",
-		"Drop every low-value reviewed observation that is clearly safe to tombstone. Include every observation to drop in this single complete batch. This tool call terminates the run.",
+		"Drop every low-value reviewed observation that is clearly safe to tombstone. Include every observation to drop in this complete batch for the drop action type. You may call other action tools afterward if needed, but dropped ids cannot also be pinned, unpinned, or flagged.",
 		droppableIds,
 		(ids, _reason) => {
-			result.dropped = selectDropCandidates(ids, observations, maxDropsAllowed, reflections, protectedObservationIds);
+			result.dropped = selectDropCandidates([...result.dropped, ...ids], observations, maxDropsAllowed, reflections, protectedObservationIds);
+			const dropped = new Set(result.dropped);
+			result.pinned = removeIdsFromBatches(result.pinned, dropped);
+			result.unpinned = removeIdsFromBatches(result.unpinned, dropped);
+			result.flagged = removeIdsFromBatches(result.flagged, dropped);
 		},
 	);
 
@@ -184,7 +203,7 @@ export async function runCurator(args: RunCuratorArgs): Promise<CuratorActionRes
 		coverageSummary: summarizeCoverage(observations, coverageById),
 	});
 
-	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nREVIEWED OBSERVATIONS:\n${joinOrEmpty(observations.map((observation) => actionSummaryLine(observation, pinnedIds, flaggedIds, coverageById)))}\n\nReviewed observations: ${observations.length.toLocaleString()} (~${observationTokens.toLocaleString()} tokens). Maximum drops allowed this run: ${maxDropsAllowed.toLocaleString()}. Protected observations cannot be dropped. Choose exactly one conservative action batch, or mark_no_actions.`;
+	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nREVIEWED OBSERVATIONS:\n${joinOrEmpty(observations.map((observation) => actionSummaryLine(observation, pinnedIds, flaggedIds, coverageById)))}\n\nReviewed observations: ${observations.length.toLocaleString()} (~${observationTokens.toLocaleString()} tokens). Maximum drops allowed this run: ${maxDropsAllowed.toLocaleString()}. Protected observations cannot be dropped. Make one conservative curation pass. You may call multiple action tools if multiple action types are needed; each tool call should contain the complete batch for that action type. Call mark_no_actions only when no action is safe or needed.`;
 
 	await runMemoryAgentLoop({
 		model,
