@@ -56,6 +56,21 @@ type RecordObservationsArgs = Static<typeof RecordObservationsSchema>;
 
 export const normalizeSourceEntryIds = normalizeAllowedIdsStrict;
 
+type RejectedSourceEntry = { id: string; reason: "missing_source_entry_ids" | "invalid_source_entry_id" };
+
+function rejectedSourceEntries(ids: readonly string[] | undefined, allowedSourceEntryIds: readonly string[]): RejectedSourceEntry[] {
+	if (!ids || ids.length === 0) return [{ id: "", reason: "missing_source_entry_ids" }];
+	const allowed = new Set(allowedSourceEntryIds);
+	const rejected: RejectedSourceEntry[] = [];
+	const seen = new Set<string>();
+	for (const id of ids) {
+		if (seen.has(id)) continue;
+		seen.add(id);
+		if (!allowed.has(id)) rejected.push({ id, reason: "invalid_source_entry_id" });
+	}
+	return rejected;
+}
+
 export async function runObserver(args: RunObserverArgs): Promise<Observation[] | undefined> {
 	const { model, apiKey, headers, priorReflections, priorObservations, chunk, allowedSourceEntryIds, signal } = args;
 	const conversation = chunk.trim();
@@ -86,10 +101,12 @@ export async function runObserver(args: RunObserverArgs): Promise<Observation[] 
 			let added = 0;
 			let duplicates = 0;
 			let rejected = 0;
+			const rejectedDetails: Array<{ content: string; sourceEntryIds: RejectedSourceEntry[] }> = [];
 			for (const obs of params.observations) {
 				const sourceEntryIds = normalizeSourceEntryIds(obs.sourceEntryIds, allowedSourceEntryIds);
 				if (!sourceEntryIds) {
 					rejected++;
+					rejectedDetails.push({ content: truncateRecordContent(obs.content), sourceEntryIds: rejectedSourceEntries(obs.sourceEntryIds, allowedSourceEntryIds) });
 					continue;
 				}
 				const content = truncateRecordContent(obs.content);
@@ -106,15 +123,16 @@ export async function runObserver(args: RunObserverArgs): Promise<Observation[] 
 				});
 				added++;
 			}
+			const rejectedSummary = rejectedDetails.flatMap((detail) => detail.sourceEntryIds.map((source) => source.id ? `${source.id}: ${source.reason}` : source.reason)).join(", ");
 			const rejectedPart = rejected > 0
-				? ` ${rejected} observation${rejected === 1 ? "" : "s"} rejected for missing or invalid sourceEntryIds.`
+				? ` ${rejected} observation${rejected === 1 ? "" : "s"} rejected for missing or invalid sourceEntryIds${rejectedSummary ? ` (${rejectedSummary})` : ""}.`
 				: "";
 			const ack =
 				`Recorded ${added} new observation${added === 1 ? "" : "s"} ` +
 				(duplicates > 0 ? `(${duplicates} duplicate${duplicates === 1 ? "" : "s"} skipped).` : ".") +
 				rejectedPart +
 				` Total this run: ${accumulated.size}.`;
-			return { content: [{ type: "text", text: ack }], details: { added, duplicates, rejected, total: accumulated.size }, terminate: true };
+			return { content: [{ type: "text", text: ack }], details: { added, duplicates, rejected, rejectedDetails, total: accumulated.size }, terminate: true };
 		},
 	};
 

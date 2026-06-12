@@ -465,6 +465,16 @@ rejection feedback should include exact rejected ids and reasons
 curator tools remain multi-turn so the model can recover after a rejected call
 ```
 
+Observer coverage safety follow-up:
+
+```text
+observer tool rejection feedback lists exact rejected sourceEntryIds and reasons
+invalid observations do not advance observer coverage
+source entries remain uncovered unless a valid observation records them or observer explicitly marks no observations
+same-run observer retry is deferred; coverage safety and debuggable loss are first
+status/debug should surface repeated observer failures later
+```
+
 Avoid `maxCuratorActionsPerRun` initially. Bound prompt/input size with a candidate window instead. Add a mutation cap later only if dogfood/evals show over-action.
 
 Overflow rule:

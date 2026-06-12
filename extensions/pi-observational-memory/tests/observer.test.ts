@@ -47,14 +47,17 @@ describe("runObserver", () => {
 		expect(observations?.[0].id).toMatch(/^[a-f0-9]{12}$/);
 	});
 
-	it("rejects invented source ids and returns no observations", async () => {
+	it("rejects invented source ids with exact feedback and returns no observations", async () => {
+		let response: any;
 		const loop = fakeAgentLoop(async (_prompts, context) => {
-			await context.tools[0].execute("tool-1", {
-				observations: [{ timestamp: "2026-05-02 10:30", content: "Bad source", sourceEntryIds: ["missing"] }],
+			response = await context.tools[0].execute("tool-1", {
+				observations: [{ timestamp: "2026-05-02 10:30", content: "Bad source", sourceEntryIds: ["entry-a", "missing"] }],
 			});
 		});
 
 		await expect(runObserver({ ...baseArgs, agentLoop: loop })).resolves.toBeUndefined();
+		expect(response.content[0].text).toContain("missing: invalid_source_entry_id");
+		expect(response.details.rejectedDetails).toEqual([{ content: "Bad source", sourceEntryIds: [{ id: "missing", reason: "invalid_source_entry_id" }] }]);
 	});
 
 	it("dedupes deterministic ids", async () => {
