@@ -8,10 +8,18 @@ import type { Probe, TokenUsage } from './lib/types.js';
 
 type Observation = { id: string; content: string; timestamp: string; sourceEntryIds: string[]; tokenCount: number };
 type Reflection = { id: string; content: string; supportingObservationIds: string[]; tokenCount: number };
+type CuratorActionResult = {
+  pinned: Array<{ observationIds: string[]; reason: string }>;
+  unpinned: Array<{ observationIds: string[]; reason: string }>;
+  flagged: Array<{ observationIds: string[]; reason: string }>;
+  dropped: string[];
+};
+
 type OmAgents = {
   runObserver: (args: Record<string, unknown>) => Promise<Observation[] | undefined>;
   runReflector: (args: Record<string, unknown>) => Promise<Reflection[] | undefined>;
   runDropper: (args: Record<string, unknown>) => Promise<string[] | undefined>;
+  runCurator: (args: Record<string, unknown>) => Promise<CuratorActionResult | undefined>;
 };
 
 let omAgents: OmAgents | undefined;
@@ -22,13 +30,14 @@ async function loadOmAgents(): Promise<OmAgents> {
   const observer = await import(new URL('observer/agent.ts', base).href) as { runObserver: OmAgents['runObserver'] };
   const reflector = await import(new URL('reflector/agent.ts', base).href) as { runReflector: OmAgents['runReflector'] };
   const dropper = await import(new URL('dropper/agent.ts', base).href) as { runDropper: OmAgents['runDropper'] };
-  omAgents = { runObserver: observer.runObserver, runReflector: reflector.runReflector, runDropper: dropper.runDropper };
+  const curator = await import(new URL('curator/agent.ts', base).href) as { runCurator: OmAgents['runCurator'] };
+  omAgents = { runObserver: observer.runObserver, runReflector: reflector.runReflector, runDropper: dropper.runDropper, runCurator: curator.runCurator };
   return omAgents;
 }
 
 type AgentEvalRecord = {
   id: string;
-  agent: 'observer' | 'reflector' | 'dropper';
+  agent: 'observer' | 'reflector' | 'dropper' | 'curator';
   output: unknown;
   judge?: unknown;
   passed: boolean;
@@ -305,15 +314,88 @@ async function dropperDropsRepeatedNoise(modelSpec: string, judgeModel: string, 
   }, judgeModel, started);
 }
 
+async function curatorFlagsMissingExactDetail(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const started = Date.now();
+  const auth = await resolveModel(modelSpec);
+  const observations = [
+    obs('aaaaaaaaaaaa', 'Migration dry run command `pnpm migrate -- --dry-run` failed with exact error `Error: SQLITE_BUSY at src/db/migrate.ts:88`.', '2026-06-07T09:00:00.000Z'),
+    obs('bbbbbbbbbbbb', 'User says the SQLITE_BUSY failure remains the current blocker and WAL must stay enabled via `PRAGMA journal_mode=WAL`.', '2026-06-07T09:01:00.000Z'),
+  ];
+  const reflections = [ref('cccccccccccc', 'Migration dry run failed with a database lock; WAL should stay enabled.', ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'])];
+  const { runCurator } = await loadOmAgents();
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 1, thinkingLevel, maxTurns: 4 });
+  return judged('curator-flags-missing-exact-detail', 'curator', output ?? {}, {
+    id: 'curator-flags-missing-exact-detail',
+    question: 'Did the curator avoid dropping evidence and request reflector follow-up for exact missing blocker details?',
+    rubric: {
+      pass_if: [
+        'Output flags aaaaaaaaaaaa and/or bbbbbbbbbbbb for reflector follow-up, or pins aaaaaaaaaaaa to preserve exact detail.',
+        'Output does not drop aaaaaaaaaaaa or bbbbbbbbbbbb.',
+        'If a reason is present, it mentions missing exact detail, the exact path, SQLITE_BUSY, WAL, or reflection coverage.',
+      ],
+      fail_if: ['Output drops aaaaaaaaaaaa or bbbbbbbbbbbb.', 'Output takes no action despite reflection omitting src/db/migrate.ts:88 and PRAGMA journal_mode=WAL.', 'Output only unpins observations.'],
+    },
+  }, judgeModel, started);
+}
+
+async function curatorUnpinsStalePinnedFailure(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const started = Date.now();
+  const auth = await resolveModel(modelSpec);
+  const observations = [
+    obs('aaaaaaaaaaaa', 'Old pinned failure: `pnpm test` failed in tests/parser.test.ts with CRLF offset mismatch.', '2026-06-07T09:00:00.000Z'),
+    obs('bbbbbbbbbbbb', 'Later validation passed: `pnpm test && pnpm run typecheck` completed successfully after the CRLF fix.', '2026-06-07T10:00:00.000Z'),
+  ];
+  const reflections = [ref('cccccccccccc', 'The CRLF offset failure is fixed; later pnpm test and typecheck passed.', ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'])];
+  const { runCurator } = await loadOmAgents();
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['aaaaaaaaaaaa'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 1, thinkingLevel, maxTurns: 4 });
+  return judged('curator-unpins-stale-pinned-failure', 'curator', output ?? {}, {
+    id: 'curator-unpins-stale-pinned-failure',
+    question: 'Did the curator unpin an old pinned failure after later reflection records that validation passed?',
+    rubric: {
+      pass_if: [
+        'Output unpins aaaaaaaaaaaa, or otherwise clearly stops forcing the old failure into next context.',
+        'Output does not drop bbbbbbbbbbbb, which carries the passing validation evidence.',
+        'Output does not flag the old failure as unresolved.',
+      ],
+      fail_if: ['Output keeps only pinning/flagging aaaaaaaaaaaa as if the failure is current.', 'Output drops bbbbbbbbbbbb.', 'Output takes no action while a stale pinned failure remains pinned.'],
+    },
+  }, judgeModel, started);
+}
+
+async function curatorDropsNoiseKeepsPreference(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const started = Date.now();
+  const auth = await resolveModel(modelSpec);
+  const observations = [
+    obs('aaaaaaaaaaaa', 'Noisy transient log: webpack progress 17% module build 142/900.', '2026-06-07T09:00:00.000Z'),
+    obs('bbbbbbbbbbbb', 'Noisy transient log: webpack progress 18% module build 151/900.', '2026-06-07T09:01:00.000Z'),
+    obs('cccccccccccc', 'Current user preference: use pnpm instead of npm for this repo.', '2026-06-07T09:02:00.000Z'),
+  ];
+  const reflections = [ref('dddddddddddd', 'User prefers pnpm instead of npm for this repo.', ['cccccccccccc'])];
+  const { runCurator } = await loadOmAgents();
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4 });
+  return judged('curator-drops-noise-keeps-preference', 'curator', output ?? {}, {
+    id: 'curator-drops-noise-keeps-preference',
+    question: 'Did the curator drop only transient noise while preserving the durable user preference?',
+    rubric: {
+      pass_if: [
+        'Output drops aaaaaaaaaaaa and/or bbbbbbbbbbbb as transient noise.',
+        'Output does not drop cccccccccccc because it carries a user preference/current constraint.',
+        'Output includes no more than two dropped ids.',
+      ],
+      fail_if: ['Output drops cccccccccccc.', 'Output includes more than two dropped ids.', 'Output flags or pins transient webpack progress logs instead of dropping them.'],
+    },
+  }, judgeModel, started);
+}
+
 async function main() {
   const args = parseArgs();
   fs.mkdirSync(args.outDir, { recursive: true });
-  const cases = [observerHardCurrentStale, observerHardAssistantOnly, reflectorHardCompression, reflectorSupersessionRelation, reflectorReviewedZero, dropperHardSafety, dropperKeepsUnreflectedTrap, dropperDropsRepeatedNoise];
+  const cases = [observerHardCurrentStale, observerHardAssistantOnly, reflectorHardCompression, reflectorSupersessionRelation, reflectorReviewedZero, dropperHardSafety, dropperKeepsUnreflectedTrap, dropperDropsRepeatedNoise, curatorFlagsMissingExactDetail, curatorUnpinsStalePinnedFailure, curatorDropsNoiseKeepsPreference];
   const records: AgentEvalRecord[] = [];
   for (const c of cases) {
     try { records.push(await c(args.model, args.judgeModel, args.thinkingLevel)); }
     catch (error) {
-      records.push({ id: c.name, agent: c.name.startsWith('observer') ? 'observer' : c.name.startsWith('reflector') ? 'reflector' : 'dropper', output: undefined, passed: false, durationMs: 0, error: error instanceof Error ? (error.stack ?? error.message) : String(error) });
+      records.push({ id: c.name, agent: c.name.startsWith('observer') ? 'observer' : c.name.startsWith('reflector') ? 'reflector' : c.name.startsWith('curator') ? 'curator' : 'dropper', output: undefined, passed: false, durationMs: 0, error: error instanceof Error ? (error.stack ?? error.message) : String(error) });
     }
   }
   const summary = {
