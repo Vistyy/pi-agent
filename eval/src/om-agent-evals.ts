@@ -564,12 +564,156 @@ async function curatorOneShotPriority(modelSpec: string, judgeModel: string, thi
 }
 
 
+
+async function observerHardSchemaMess(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const started = Date.now();
+  const auth = await resolveModel(modelSpec);
+  const chunk = [
+    '[Source entry id: user-schema-a] User: For the durable ledger we agreed on the custom event `om.observations.flagged`. It has `observationIds` and a bounded one-line `reason`; do not turn this into a generic follow-up marker.',
+    '[Source entry id: assistant-schema-b] Assistant: I will update docs to say flagged observations request corrective/additional reflections, not mutation of old reflections.',
+    '[Source entry id: user-schema-c] User: Also keep the future reflection lifecycle names exact: `om.reflections.deprecated` and `om.reflections.superseded`. They are proposed future events, not implemented yet.',
+    '[Source entry id: tool-schema-d] Tool result: grep also shows stale older notes mentioning dropper soft threshold, additive mode, and reflectorThinking xhigh; those are not the current schema names.',
+    '[Source entry id: user-schema-e] User: The important part is not just "there are flags". The exact API/event names are the memory: om.observations.flagged, reason, om.reflections.deprecated, om.reflections.superseded.',
+    '[Source entry id: assistant-schema-f] Assistant: Okay, noted.'
+  ].join('\n');
+  const { runObserver } = await loadOmAgents();
+  const usage = createUsageCollector();
+  const agentStarted = Date.now();
+  const output = await runObserver({
+    ...auth,
+    priorReflections: ['[rrrrrrrrrrrr] Memory lifecycle has curator follow-up flags and future reflection deprecation/supersession work.'],
+    priorObservations: [],
+    chunk,
+    allowedSourceEntryIds: ['user-schema-a', 'assistant-schema-b', 'user-schema-c', 'tool-schema-d', 'user-schema-e', 'assistant-schema-f'],
+    thinkingLevel,
+    maxTurns: 6,
+    onUsage: usage.onUsage,
+  });
+  const agentDurationMs = Date.now() - agentStarted;
+  return judged('observer-hard-schema-mess', 'observer', output ?? [], {
+    id: 'observer-hard-schema-mess',
+    question: 'Did the observer preserve exact durable schema/API/event names from a messy source chunk while avoiding stale cleanup distractions?',
+    rubric: {
+      pass_if: [
+        'Output preserves the exact event name om.observations.flagged.',
+        'Output preserves that om.observations.flagged has observationIds and a bounded one-line reason field.',
+        'Output preserves exact future event names om.reflections.deprecated and om.reflections.superseded and marks them as proposed/future, not implemented current behavior.',
+        'Output does not elevate stale cleanup details like additive mode, dropper soft threshold, or reflectorThinking xhigh as the main current schema facts.',
+        'Output cites only valid source ids and excludes assistant-schema-f acknowledgement noise.'
+      ],
+      fail_if: [
+        'Output paraphrases the schema as generic flags without exact event names.',
+        'Output omits reason or either reflection lifecycle event name.',
+        'Output treats deprecated/superseded reflection events as already implemented current behavior.',
+        'Output invents source ids or records the final acknowledgement as a durable observation.'
+      ],
+    },
+  }, judgeModel, started, usage.total, agentDurationMs);
+}
+
+async function reflectorHardRepairFlag(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const started = Date.now();
+  const auth = await resolveModel(modelSpec);
+  const observations = [
+    obs('aaaaaaaaaaaa', 'Exact implemented event is `om.observations.flagged`; it stores observationIds plus a bounded one-line `reason` for reflector follow-up.', '2026-06-11T20:00:00.000Z'),
+    obs('bbbbbbbbbbbb', 'Future reflection lifecycle names under discussion are `om.reflections.deprecated` and `om.reflections.superseded`; they are not implemented yet.', '2026-06-11T20:01:00.000Z'),
+    obs('cccccccccccc', 'Stale cleanup notes mention dropper, additive mode, and xhigh reflector thinking; these should not override the current event names.', '2026-06-11T20:02:00.000Z'),
+  ];
+  const reflections = [ref('dddddddddddd', 'Observation follow-up flags exist and reflection lifecycle deprecation/supersession is planned.', ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'])];
+  const { runReflector } = await loadOmAgents();
+  const usage = createUsageCollector();
+  const agentStarted = Date.now();
+  const output = await runReflector({
+    ...auth,
+    reflections,
+    observations: [observations[0]],
+    flaggedObservations: [{ observation: observations[0], reasons: ['Existing reflection omitted exact event name om.observations.flagged and its reason field shape.'] }],
+    thinkingLevel,
+    maxTurns: 6,
+    onUsage: usage.onUsage,
+  });
+  const agentDurationMs = Date.now() - agentStarted;
+  return judged('reflector-hard-repair-flag', 'reflector', output ?? [], {
+    id: 'reflector-hard-repair-flag',
+    question: 'Did the reflector use a flagged follow-up to add a corrective exact-detail reflection instead of doing nothing or repeating the generic prior reflection?',
+    rubric: {
+      pass_if: [
+        'Output adds a new reflection that names om.observations.flagged exactly.',
+        'Output includes the reason field shape or bounded one-line reason requirement.',
+        'Output cites supporting observation id aaaaaaaaaaaa.',
+        'Output does not claim to modify/delete the old reflection and does not merely repeat generic follow-up wording.'
+      ],
+      fail_if: [
+        'Output is empty or marks no new reflections despite the flagged omission.',
+        'Output omits om.observations.flagged or reason.',
+        'Output cites unsupported ids.',
+        'Output focuses on stale dropper/additive/xhigh notes instead of the flagged exact detail.'
+      ],
+    },
+  }, judgeModel, started, usage.total, agentDurationMs);
+}
+
+async function curatorHardSchemaStaleNoise(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const started = Date.now();
+  const auth = await resolveModel(modelSpec);
+  const observations = [
+    obs('aaaaaaaaaaaa', 'Exact implemented event: `om.observations.flagged` records observationIds plus a bounded one-line `reason` for reflector follow-up.', '2026-06-11T20:00:00.000Z'),
+    obs('bbbbbbbbbbbb', 'Future reflection lifecycle names discussed: `om.reflections.deprecated` and `om.reflections.superseded`; not implemented yet.', '2026-06-11T20:01:00.000Z'),
+    obs('cccccccccccc', 'Stale old plan: use additive context mode for memory projection.', '2026-06-11T20:02:00.000Z'),
+    obs('dddddddddddd', 'Stale old cleanup: dropper soft threshold should manage active observation pressure.', '2026-06-11T20:03:00.000Z'),
+    obs('eeeeeeeeeeee', 'Stale config note: reflectorThinking should remain xhigh.', '2026-06-11T20:04:00.000Z'),
+    obs('ffffffffffff', 'Stale pool cap note: 80 active observations is the normal cleanup trigger.', '2026-06-11T20:05:00.000Z'),
+    obs('111111111111', 'Current blocker: recall tool-use evals are missing; exact evidence should be recovered instead of trusting compressed near-matches.', '2026-06-11T20:06:00.000Z'),
+    obs('222222222222', 'Current blocker: hard historical evals must not be weakened just to preserve pass rates; failures are signal.', '2026-06-11T20:07:00.000Z'),
+    obs('333333333333', 'Noisy log: typecheck started.', '2026-06-11T20:08:00.000Z'),
+    obs('444444444444', 'Noisy log: typecheck completed in 1.2s.', '2026-06-11T20:09:00.000Z'),
+    obs('555555555555', 'Pinned validation: pnpm test && pnpm run typecheck passed after curator scheduler wiring.', '2026-06-11T20:10:00.000Z'),
+    obs('666666666666', 'Current default: emergencyCurateWhenVisibleObservationsOver was lowered to 60.', '2026-06-11T20:11:00.000Z'),
+  ];
+  const reflections = [
+    ref('999999999999', 'Memory lifecycle now uses curator follow-up flags, future reflection lifecycle work, hard evals, and curator emergency scheduling.', ['aaaaaaaaaaaa', 'bbbbbbbbbbbb', '111111111111', '222222222222', '666666666666']),
+  ];
+  const { runCurator } = await loadOmAgents();
+  const usage = createUsageCollector();
+  const agentStarted = Date.now();
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['555555555555'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 4, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
+  const agentDurationMs = Date.now() - agentStarted;
+  return judgedCurator('curator-hard-schema-stale-noise', output, {
+    id: 'curator-hard-schema-stale-noise',
+    question: 'Did the curator preserve exact schema/blocker evidence while cleaning only stale/noisy observations from a mixed historical pool? Judge only the explicit action arrays in the JSON output: an id is preserved if it is absent from dropped and absent from unpinned.',
+    rubric: {
+      pass_if: [
+        'The dropped array contains none of these protected ids: aaaaaaaaaaaa, bbbbbbbbbbbb, 111111111111, 222222222222, 555555555555, 666666666666.',
+        'The unpinned arrays contain none of these protected ids: aaaaaaaaaaaa, bbbbbbbbbbbb, 111111111111, 222222222222, 555555555555, 666666666666.',
+        'The pinned or flagged arrays include at least one exact schema id: aaaaaaaaaaaa or bbbbbbbbbbbb.',
+        'The pinned or flagged arrays include at least one current eval/recall blocker id: 111111111111 or 222222222222.',
+        'Every dropped id is one of these allowed stale/noise ids: cccccccccccc, dddddddddddd, eeeeeeeeeeee, ffffffffffff, 333333333333, 444444444444.'
+      ],
+      fail_if: [
+        'The dropped array contains any protected id listed above.',
+        'The unpinned arrays contain any protected id listed above.',
+        'Neither exact schema id is pinned or flagged.',
+        'Neither current eval/recall blocker id is pinned or flagged.',
+        'The dropped array contains an id outside the allowed stale/noise set.'
+      ],
+    },
+  }, judgeModel, started, [
+    { label: 'must not drop exact schema/current blocker/validation/current config evidence', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb', '111111111111', '222222222222', '555555555555', '666666666666'].includes(id)) },
+    { label: 'must pin or flag exact schema names', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'].includes(id)) },
+    { label: 'must pin or flag current eval/recall blockers', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['111111111111', '222222222222'].includes(id)) },
+    { label: 'drops must be limited to stale/noise ids', pass: (o) => curatorIds(o, 'dropped').every((id) => ['cccccccccccc', 'dddddddddddd', 'eeeeeeeeeeee', 'ffffffffffff', '333333333333', '444444444444'].includes(id)) },
+  ], usage.total, agentDurationMs);
+}
+
+
 const allCases = [
   observerHardCurrentStale,
   observerHardAssistantOnly,
+  observerHardSchemaMess,
   reflectorHardCompression,
   reflectorSupersessionRelation,
   reflectorReviewedZero,
+  reflectorHardRepairFlag,
   curatorFlagsMissingExactDetail,
   curatorUnpinsStalePinnedFailure,
   curatorDropsNoiseKeepsPreference,
@@ -578,6 +722,7 @@ const allCases = [
   curatorMinimalPin,
   curatorContradictoryReflection,
   curatorOneShotPriority,
+  curatorHardSchemaStaleNoise,
 ];
 
 async function main() {
