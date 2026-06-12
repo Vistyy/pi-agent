@@ -6,6 +6,8 @@ import {
 	isSourceEntry,
 	latestCoverageIndex,
 	latestCoverageMarkerId,
+	latestCuratorCursorIndex,
+	latestCuratorCursorMarkerId,
 	latestReflectionReviewIndex,
 	latestReflectionReviewMarkerId,
 	sourceEntryCountSinceReflectionReviewCoverage,
@@ -15,12 +17,14 @@ import {
 	sourceTokensSinceReflectionCoverage,
 } from "../src/session-ledger/index.js";
 import {
+	OM_OBSERVATIONS_CURATED,
 	OM_OBSERVATIONS_DROPPED,
 	OM_OBSERVATIONS_RECORDED,
 	OM_REFLECTIONS_RECORDED,
 	branchSummary,
 	compactionEntry,
 	observation,
+	observationsCuratedEntry,
 	observationsDroppedEntry,
 	observationsRecordedEntry,
 	reflection,
@@ -117,6 +121,20 @@ describe("session-ledger progress helpers", () => {
 		expect(earlierCoverageMarkerId(entries, "raw-1", undefined)).toBe("raw-1");
 		expect(earlierCoverageMarkerId(entries, "missing", "raw-2")).toBe("raw-2");
 		expect(earlierCoverageMarkerId(entries, "missing-a", "missing-b")).toBeUndefined();
+	});
+
+	it("tracks curator cursor coverage independently", () => {
+		const entries = [
+			textCustomMessage("raw-1", "aaaa"),
+			textCustomMessage("raw-2", "bbbbbbbb"),
+			observationsCuratedEntry("om-curated-1", { coversUpToId: "raw-1" }),
+			textCustomMessage("raw-3", "cccccccccccc"),
+			observationsCuratedEntry("om-curated-2", { coversUpToId: "raw-3" }),
+		];
+
+		expect(latestCoverageIndex(entries, OM_OBSERVATIONS_CURATED)).toBe(3);
+		expect(latestCuratorCursorIndex(entries)).toBe(3);
+		expect(latestCuratorCursorMarkerId(entries)).toBe("raw-3");
 	});
 
 	it("uses recorded reflections and reviewed-zero markers for reflection review coverage", () => {

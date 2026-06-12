@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
 	OM_FOLDED,
+	OM_OBSERVATIONS_CURATED,
 	OM_OBSERVATIONS_DROPPED,
 	OM_OBSERVATIONS_FLAGGED,
 	OM_OBSERVATIONS_PINNED,
@@ -9,6 +10,7 @@ import {
 	OM_OBSERVATIONS_UNPINNED,
 	OM_REFLECTIONS_RECORDED,
 	OM_REFLECTIONS_REVIEWED,
+	buildObservationsCuratedData,
 	buildObservationsDroppedData,
 	buildObservationsFlaggedData,
 	buildObservationsPinnedData,
@@ -17,6 +19,8 @@ import {
 	buildReflectionsRecordedData,
 	buildReflectionsReviewedData,
 	isMemoryDetails,
+	isObservationsCuratedData,
+	isObservationsCuratedEntry,
 	isObservationsDroppedData,
 	isObservationsDroppedEntry,
 	isObservationsFlaggedData,
@@ -37,6 +41,7 @@ import {
 import {
 	memoryDetails,
 	observation,
+	observationsCuratedEntry,
 	observationsDroppedEntry,
 	observationsFlaggedEntry,
 	observationsPinnedEntry,
@@ -56,6 +61,7 @@ describe("session-ledger type guards and builders", () => {
 		expect(OM_OBSERVATIONS_FLAGGED).toBe("om.observations.flagged");
 		expect(OM_OBSERVATIONS_PINNED).toBe("om.observations.pinned");
 		expect(OM_OBSERVATIONS_UNPINNED).toBe("om.observations.unpinned");
+		expect(OM_OBSERVATIONS_CURATED).toBe("om.observations.curated");
 		expect(OM_FOLDED).toBe("om.folded");
 	});
 
@@ -78,6 +84,7 @@ describe("session-ledger type guards and builders", () => {
 		const flaggedData = { observationIds: ["aaaaaaaaaaaa"], reason: "Reflection omitted exact error path." };
 		const pinnedData = { observationIds: ["aaaaaaaaaaaa"], reason: "Exact path should stay visible." };
 		const unpinnedData = { observationIds: ["aaaaaaaaaaaa"], reason: "Reflection now captures exact path." };
+		const curatedData = { coversUpToId: "raw-2" };
 
 		expect(isObservationsRecordedData(obsData)).toBe(true);
 		expect(isReflectionsRecordedData(refData)).toBe(true);
@@ -86,6 +93,7 @@ describe("session-ledger type guards and builders", () => {
 		expect(isObservationsFlaggedData(flaggedData)).toBe(true);
 		expect(isObservationsPinnedData(pinnedData)).toBe(true);
 		expect(isObservationsUnpinnedData(unpinnedData)).toBe(true);
+		expect(isObservationsCuratedData(curatedData)).toBe(true);
 	});
 
 	it("rejects empty ledger entry data so no empty progress entries can be appended", () => {
@@ -107,6 +115,7 @@ describe("session-ledger type guards and builders", () => {
 		expect(buildObservationsFlaggedData([], "Reflection omitted exact error path.")).toBeUndefined();
 		expect(buildObservationsPinnedData([], "Exact path should stay visible.")).toBeUndefined();
 		expect(buildObservationsUnpinnedData([], "Reflection now captures exact path.")).toBeUndefined();
+		expect(buildObservationsCuratedData("")).toBeUndefined();
 
 		expect(buildObservationsRecordedData([observation("aaaaaaaaaaaa")], "raw-1")).toEqual({
 			observations: [observation("aaaaaaaaaaaa")],
@@ -136,6 +145,7 @@ describe("session-ledger type guards and builders", () => {
 			observationIds: ["aaaaaaaaaaaa"],
 			reason: "Reflection now captures exact path.",
 		});
+		expect(buildObservationsCuratedData("raw-2")).toEqual({ coversUpToId: "raw-2" });
 	});
 
 	it("recognizes memory entries", () => {
@@ -164,6 +174,7 @@ describe("session-ledger type guards and builders", () => {
 			observationIds: ["aaaaaaaaaaaa"],
 			reason: "Reflection now captures it.",
 		}))).toBe(true);
+		expect(isObservationsCuratedEntry(observationsCuratedEntry("om-curated-1", { coversUpToId: "raw-1" }))).toBe(true);
 	});
 
 	it("accepts flat folded memory details", () => {

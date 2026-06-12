@@ -5,6 +5,7 @@ export const OM_OBSERVATIONS_DROPPED = "om.observations.dropped";
 export const OM_OBSERVATIONS_FLAGGED = "om.observations.flagged";
 export const OM_OBSERVATIONS_PINNED = "om.observations.pinned";
 export const OM_OBSERVATIONS_UNPINNED = "om.observations.unpinned";
+export const OM_OBSERVATIONS_CURATED = "om.observations.curated";
 export const OM_FOLDED = "om.folded";
 
 export const MEMORY_ID_PATTERN = /^[a-f0-9]{12}$/;
@@ -73,6 +74,10 @@ export type ObservationsUnpinnedEntryData = {
 	reason: string;
 };
 
+export type ObservationsCuratedEntryData = {
+	coversUpToId: string;
+};
+
 const OBSERVATION_FLAG_REASON_MAX_LENGTH = 240;
 const OBSERVATION_PIN_REASON_MAX_LENGTH = 240;
 
@@ -90,7 +95,8 @@ export type MemoryCustomType =
 	| typeof OM_OBSERVATIONS_DROPPED
 	| typeof OM_OBSERVATIONS_FLAGGED
 	| typeof OM_OBSERVATIONS_PINNED
-	| typeof OM_OBSERVATIONS_UNPINNED;
+	| typeof OM_OBSERVATIONS_UNPINNED
+	| typeof OM_OBSERVATIONS_CURATED;
 
 export function isNonEmptyString(value: unknown): value is string {
 	return typeof value === "string" && value.length > 0;
@@ -192,6 +198,11 @@ export function isObservationsUnpinnedData(value: unknown): value is Observation
 	return isNonEmptyStringArray(value.observationIds) && isObservationPinReason(value.reason);
 }
 
+export function isObservationsCuratedData(value: unknown): value is ObservationsCuratedEntryData {
+	if (!isPlainRecord(value)) return false;
+	return isNonEmptyString(value.coversUpToId);
+}
+
 export function isMemoryDetails(value: unknown): value is MemoryDetails {
 	if (!isPlainRecord(value)) return false;
 	return (
@@ -260,6 +271,14 @@ export function isObservationsUnpinnedEntry(entry: Entry): entry is Entry & {
 	return entry.type === "custom" && entry.customType === OM_OBSERVATIONS_UNPINNED && isObservationsUnpinnedData(entry.data);
 }
 
+export function isObservationsCuratedEntry(entry: Entry): entry is Entry & {
+	type: "custom";
+	customType: typeof OM_OBSERVATIONS_CURATED;
+	data: ObservationsCuratedEntryData;
+} {
+	return entry.type === "custom" && entry.customType === OM_OBSERVATIONS_CURATED && isObservationsCuratedData(entry.data);
+}
+
 export function buildObservationsRecordedData(
 	observations: Observation[],
 	coversUpToId: string,
@@ -314,4 +333,9 @@ export function buildObservationsUnpinnedData(
 	const normalizedReason = normalizeObservationPinReason(reason);
 	if (observationIds.length === 0 || !isObservationPinReason(normalizedReason)) return undefined;
 	return { observationIds, reason: normalizedReason };
+}
+
+export function buildObservationsCuratedData(coversUpToId: string): ObservationsCuratedEntryData | undefined {
+	if (!isNonEmptyString(coversUpToId)) return undefined;
+	return { coversUpToId };
 }
