@@ -36,6 +36,8 @@ interface RunCuratorArgs {
 	headers?: Record<string, string>;
 	reflections: Reflection[];
 	observations: Observation[];
+	candidateObservationIds?: readonly string[];
+	contextObservations?: Observation[];
 	pinnedObservationIds?: readonly string[];
 	flaggedObservationIds?: readonly string[];
 	maxDropsAllowed: number;
@@ -58,17 +60,24 @@ type CuratorBatch = { observationIds: string[]; reason: string };
 type MarkNoActionsArgs = Static<typeof MarkNoActionsSchema>;
 type CuratorIdsWithReasonArgs = Static<typeof CuratorIdsWithReasonSchema>;
 
-function normalizeObservationIds(ids: readonly string[] | undefined, allowedIds: ReadonlySet<string>): string[] {
-	if (!ids || ids.length === 0) return [];
-	const result: string[] = [];
+function partitionObservationIds(ids: readonly string[] | undefined, allowedIds: ReadonlySet<string>): { accepted: string[]; rejected: Array<{ id: string; reason: string }> } {
+	if (!ids || ids.length === 0) return { accepted: [], rejected: [] };
+	const accepted: string[] = [];
+	const rejected: Array<{ id: string; reason: string }> = [];
 	const seen = new Set<string>();
 	for (const id of ids) {
-		if (!allowedIds.has(id)) continue;
-		if (seen.has(id)) continue;
+		if (seen.has(id)) {
+			rejected.push({ id, reason: "duplicate" });
+			continue;
+		}
 		seen.add(id);
-		result.push(id);
+		if (!allowedIds.has(id)) {
+			rejected.push({ id, reason: "not_action_candidate" });
+			continue;
+		}
+		accepted.push(id);
 	}
-	return result;
+	return { accepted, rejected };
 }
 
 function removeIdsFromBatches(batches: CuratorBatch[], ids: ReadonlySet<string>): CuratorBatch[] {
@@ -92,16 +101,20 @@ function actionSummaryLine(observation: Observation, pinnedIds: ReadonlySet<stri
 
 export async function runCurator(args: RunCuratorArgs): Promise<CuratorActionResult | undefined> {
 	const { model, apiKey, headers, reflections, observations, maxDropsAllowed, protectedObservationIds = [], signal } = args;
-	if (observations.length === 0) return undefined;
+	const candidateIds = new Set(args.candidateObservationIds ?? observations.map((observation) => observation.id));
+	const candidateObservations = observations.filter((observation) => candidateIds.has(observation.id));
+	if (candidateObservations.length === 0) return undefined;
+	const contextObservations = (args.contextObservations ?? []).filter((observation) => !candidateIds.has(observation.id));
+	const promptObservations = [...candidateObservations, ...contextObservations];
 
 	const pinnedIds = new Set(args.pinnedObservationIds ?? []);
 	const flaggedIds = new Set(args.flaggedObservationIds ?? []);
 	const protectedIds = new Set(protectedObservationIds);
-	const allowedIds = new Set(observations.map((observation) => observation.id));
-	const pinnedAllowedIds = new Set(observations.filter((observation) => pinnedIds.has(observation.id)).map((observation) => observation.id));
-	const droppableIds = new Set(observations.filter((observation) => !protectedIds.has(observation.id)).map((observation) => observation.id));
-	const coverageById = reflectionCoverageMap(observations, reflections);
-	const observationTokens = observationTokenSum(observations);
+	const allowedIds = new Set(candidateObservations.map((observation) => observation.id));
+	const pinnedAllowedIds = new Set(candidateObservations.filter((observation) => pinnedIds.has(observation.id)).map((observation) => observation.id));
+	const droppableIds = new Set(candidateObservations.filter((observation) => !protectedIds.has(observation.id)).map((observation) => observation.id));
+	const coverageById = reflectionCoverageMap(promptObservations, reflections);
+	const observationTokens = observationTokenSum(promptObservations);
 
 	const result: CuratorActionResult = { pinned: [], unpinned: [], flagged: [], dropped: [] };
 	let toolCallCount = 0;
@@ -121,13 +134,12 @@ export async function runCurator(args: RunCuratorArgs): Promise<CuratorActionRes
 			parameters: CuratorIdsWithReasonSchema,
 			execute: async (_id, params: CuratorIdsWithReasonArgs) => {
 				toolCallCount++;
-				const ids = normalizeObservationIds(params.ids, allowed);
-				const rejected = params.ids.length - ids.length;
+				const { accepted: ids, rejected } = partitionObservationIds(params.ids, allowed);
 				if (ids.length > 0) accept(ids, params.reason);
-				debugLog("curator.tool_call", { name, requested: params.ids.length, accepted: ids.length, rejected });
+				debugLog("curator.tool_call", { name, requested: params.ids.length, accepted: ids.length, rejected: rejected.length, rejectedIds: rejected.map((item) => item.id) });
 				return {
-					content: [{ type: "text", text: `${label}: accepted ${ids.length}, rejected ${rejected}. You may continue with other action tools if another action type is needed.` }],
-					details: { accepted: ids.length, rejected },
+					content: [{ type: "text", text: `${label}: accepted ${ids.length}, rejected ${rejected.length}${rejected.length ? ` (${rejected.map((item) => `${item.id}: ${item.reason}`).join(", ")})` : ""}. You may continue with other action tools if another action type is needed.` }],
+					details: { accepted: ids, rejected },
 					terminate: false,
 				};
 			},
@@ -184,7 +196,7 @@ export async function runCurator(args: RunCuratorArgs): Promise<CuratorActionRes
 		"Drop every low-value reviewed observation that is clearly safe to tombstone. Include every observation to drop in this complete batch for the drop action type. You may call other action tools afterward if needed, but dropped ids cannot also be pinned, unpinned, or flagged.",
 		droppableIds,
 		(ids, _reason) => {
-			result.dropped = selectDropCandidates([...result.dropped, ...ids], observations, maxDropsAllowed, reflections, protectedObservationIds);
+			result.dropped = selectDropCandidates([...result.dropped, ...ids], candidateObservations, maxDropsAllowed, reflections, protectedObservationIds);
 			const dropped = new Set(result.dropped);
 			result.pinned = removeIdsFromBatches(result.pinned, dropped);
 			result.unpinned = removeIdsFromBatches(result.unpinned, dropped);
@@ -193,17 +205,21 @@ export async function runCurator(args: RunCuratorArgs): Promise<CuratorActionRes
 	);
 
 	debugLog("curator.agent_start", {
-		observationCount: observations.length,
+		candidateObservationCount: candidateObservations.length,
+		contextObservationCount: contextObservations.length,
 		reflectionCount: reflections.length,
 		pinnedObservationCount: pinnedIds.size,
 		flaggedObservationCount: flaggedIds.size,
 		protectedObservationCount: protectedIds.size,
 		observationTokens,
 		maxDropsAllowed,
-		coverageSummary: summarizeCoverage(observations, coverageById),
+		coverageSummary: summarizeCoverage(promptObservations, coverageById),
 	});
 
-	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nREVIEWED OBSERVATIONS:\n${joinOrEmpty(observations.map((observation) => actionSummaryLine(observation, pinnedIds, flaggedIds, coverageById)))}\n\nReviewed observations: ${observations.length.toLocaleString()} (~${observationTokens.toLocaleString()} tokens). Maximum drops allowed this run: ${maxDropsAllowed.toLocaleString()}. Protected observations cannot be dropped. Make one conservative curation pass. You may call multiple action tools if multiple action types are needed; each tool call should contain the complete batch for that action type. Call mark_no_actions only when no action is safe or needed.`;
+	const contextSection = contextObservations.length
+		? `\n\nREAD-ONLY CONTEXT OBSERVATIONS:\n${joinOrEmpty(contextObservations.map((observation) => actionSummaryLine(observation, pinnedIds, flaggedIds, coverageById)))}`
+		: "";
+	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nACTION CANDIDATES — you may pin, unpin, flag, or drop only these observation ids:\n${joinOrEmpty(candidateObservations.map((observation) => actionSummaryLine(observation, pinnedIds, flaggedIds, coverageById)))}${contextSection}\n\nAction candidates: ${candidateObservations.length.toLocaleString()}. Context observations: ${contextObservations.length.toLocaleString()}. Prompt observations: ${promptObservations.length.toLocaleString()} (~${observationTokens.toLocaleString()} tokens). Maximum drops allowed this run: ${maxDropsAllowed.toLocaleString()}. Protected observations cannot be dropped. Make one conservative curation pass. You may call multiple action tools if multiple action types are needed; each tool call should contain the complete batch for that action type. Call mark_no_actions only when no action is safe or needed.`;
 
 	await runMemoryAgentLoop({
 		model,

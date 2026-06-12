@@ -8,6 +8,8 @@ Make one conservative curation pass. You may call multiple action tools when mul
 - mark no actions only when no safe action is needed
 
 Rules:
+- action tools may only mutate ids listed under ACTION CANDIDATES; READ-ONLY CONTEXT OBSERVATIONS are evidence for judgment, not action targets
+- if a tool rejects an id, inspect the rejection reason and recover with a valid candidate id when appropriate
 - prefer no action over unsafe action
 - do not drop user preferences, current constraints, unresolved blockers, exact errors still useful for debugging, or facts needed to disambiguate stale/current relationships
 - pin sparingly; pins are exceptions to the default reviewed-and-omitted state

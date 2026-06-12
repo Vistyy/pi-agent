@@ -127,6 +127,31 @@ describe("curator agent", () => {
 		await expect(runCurator({ ...baseArgs, agentLoop: loop })).resolves.toBeUndefined();
 	});
 
+	it("rejects context-only observation ids with exact feedback", async () => {
+		const contextOnly = observation("dddddddddddd", { content: "Related context only" });
+		let details: any;
+		let text = "";
+		const loop = fakeAgentLoop(async (_prompts, context) => {
+			const tool = context.tools.find((candidate: any) => candidate.name === "pin_observations")!;
+			const response = await tool.execute("tool-1", { ids: ["aaaaaaaaaaaa", "dddddddddddd", "missing", "aaaaaaaaaaaa"], reason: "Keep exact path visible." });
+			details = response.details;
+			text = response.content[0].text;
+		});
+
+		const result = await runCurator({ ...baseArgs, observations: [obsA], contextObservations: [contextOnly], candidateObservationIds: ["aaaaaaaaaaaa"], agentLoop: loop });
+
+		expect(result?.pinned).toEqual([{ observationIds: ["aaaaaaaaaaaa"], reason: "Keep exact path visible." }]);
+		expect(details).toEqual({
+			accepted: ["aaaaaaaaaaaa"],
+			rejected: [
+				{ id: "dddddddddddd", reason: "not_action_candidate" },
+				{ id: "missing", reason: "not_action_candidate" },
+				{ id: "aaaaaaaaaaaa", reason: "duplicate" },
+			],
+		});
+		expect(text).toContain("dddddddddddd: not_action_candidate");
+	});
+
 	it("renders pinned and flagged state in the prompt", async () => {
 		let userText = "";
 		const loop = fakeAgentLoop(async (prompts, context) => {
@@ -137,7 +162,7 @@ describe("curator agent", () => {
 
 		await runCurator({ ...baseArgs, pinnedObservationIds: ["aaaaaaaaaaaa"], flaggedObservationIds: ["bbbbbbbbbbbb"], agentLoop: loop });
 
-		expect(userText).toContain("REVIEWED OBSERVATIONS");
+		expect(userText).toContain("ACTION CANDIDATES");
 		expect(userText).toContain("[aaaaaaaaaaaa]");
 		expect(userText).toContain("[state: pinned]");
 		expect(userText).toContain("[state: flagged]");
