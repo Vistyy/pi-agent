@@ -181,7 +181,23 @@ observer extraction quality
 reflector synthesis/follow-up quality
 curator context decisions
 recall tool-use decisions
+end-to-end replay behavior
 ```
+
+Eval quality doctrine:
+
+```text
+hard evals are allowed and expected to fail
+failures are signal, not regressions by default
+do not weaken prompts, rubrics, or fixtures just to make a model pass
+prefer real historical/session-derived slices over clean synthetic toy inputs
+compact easy synthetic evals to smoke coverage only
+make timing, evaluated-model token usage, judge usage, and failure reasons visible in run output
+use an LLM judge when semantic judgment matters
+use deterministic invariants only for hard safety/cap/membership constraints
+```
+
+For unclear failures, add a diagnostic follow-up prompt after the failed agent output. This should ask the model to explain why the desired behavior was not achieved and what evidence/prompt/context made the failure likely. This mirrors the pi-fork eval diagnostic pattern and is for improvement guidance, not pass/fail laundering.
 
 Recall split:
 
@@ -378,9 +394,9 @@ Reflector receives pending flagged observations as follow-up input alongside nor
 
 Pending means the flag event was appended after the latest reflector recorded/reviewed entry. Once a later reflector run records reflections or marks reviewed, earlier flags are implicitly handled; no separate resolved event exists yet.
 
-### Stage 4a: Curator evals before lifecycle cutover — done
+### Stage 4a: Curator evals before lifecycle cutover — done, now needs hardening
 
-Curator behavior is model judgment, not just ledger mechanics. Add eval coverage before trusting pin/unpin/drop/flag decisions.
+Curator behavior is model judgment, not just ledger mechanics. Initial eval coverage exists before trusting pin/unpin/drop/flag decisions.
 
 Deterministic tests cover mechanics:
 
@@ -406,9 +422,11 @@ many candidate pins                           → choose minimal pins
 one-shot priority                             → prefer high-value safe actions over pure cleanup
 ```
 
-Evals run separately from `pnpm test` because they require live model calls. The harness lives in `/home/syzom/.pi/agent/eval`; latest curator baseline passed 8/8 with deterministic invariants plus semantic judging.
+Evals run separately from `pnpm test` because they require live model calls. The harness lives in `/home/syzom/.pi/agent/eval`; the latest synthetic curator baseline passed 8/8 with deterministic invariants plus semantic judging.
 
-### Stage 5: Clean curator lifecycle cutover — next
+This passing result is not enough. The current agent-level evals are mostly clean synthetic probes. Keep at most one or two easy smoke evals per agent, then add hard historical/session-derived evals that may mostly fail on smaller models. A low pass rate on hard evals is acceptable and useful.
+
+### Stage 5: Clean curator lifecycle cutover — done
 
 Curator is the single cleanup/visibility agent.
 
@@ -484,7 +502,7 @@ pinned reviewed observations stay in next context
 
 The old soft cleanup threshold and normal pool trigger should disappear here.
 
-### Stage 6: Recall verification, evals, and UX
+### Stage 6: Hard historical evals, recall verification, and UX — next
 
 Audited sessions show:
 
@@ -494,14 +512,37 @@ Audited sessions show:
 
 First verify whether Pi compaction `details` makes recall redundant in practice.
 
-Then add model evals for:
+Then harden evals across OM:
+
+- prune easy observer/reflector/curator evals to smoke coverage
+- add hard historical curator evals from real reviewed observation pools, reflections, pins, flags, drops, and stale context
+- add hard reflector evals for repair/follow-up synthesis under noisy historical observations
+- add hard observer evals for exact schema/API/event extraction from messy source turns
+- add recall/tool-use evals where the correct behavior is to recover exact evidence instead of trusting compressed near-matches
+- add end-to-end replay evals from real session slices through observer → reflector → curator → projected context
+
+Recall model evals:
 
 - call recall when exact source evidence is required
 - avoid recall when inline memory is enough
 - recall after compaction
 - recall with compacted/covered observations
+- distinguish exact current detail from stale near-match in compressed memory
 
 Keep deterministic recall lookup covered by normal tests.
+
+Eval observability requirements:
+
+```text
+record evaluated-model token usage per case and summary
+record evaluated-agent duration per case and summary
+record judge token usage and judge duration when used
+record deterministic failure reasons
+record semantic judge failure reasons
+preserve failed outputs for inspection
+```
+
+When a failure is hard to interpret from captured output, run a diagnostic prompt after the failed case. The diagnostic should explain likely causes of failure using the prompt, inputs, output, and expected behavior. It should not change the pass/fail result.
 
 Add evals from session `019eb6fe-2e4e-732f-b744-4b2cb3123d70` failure:
 
@@ -570,7 +611,7 @@ Reason for low priority:
    Mitigation: preserve source excerpts/details or fail safely when required observer flush cannot complete.
 
 4. Curator cleanup may regress cleanup conservatism.
-   Mitigation: deterministic lifecycle tests, curator eval baselines, and emergency visible-pressure trigger.
+   Mitigation: deterministic lifecycle tests, emergency visible-pressure trigger, and hard curator evals from real sessions. Do not make evals easier to preserve pass rates.
 
 5. Read-only curator context may tempt the model to act on non-candidate ids.
    Mitigation: curator tools must mechanically reject ids outside `candidateObservationIds`, return exact rejected ids/reasons, and allow same-run recovery.
