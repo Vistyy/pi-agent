@@ -436,13 +436,43 @@ unreviewed observations + pending flagged follow-ups >= reflectEveryObservations
 curator cursor backlog exists → curator due
 ```
 
-Curator budget:
+Curator should run as a continuation of successful reflector work, not after a large separate reviewed-observation threshold:
 
 ```text
-pinned ids + unpinned ids + flagged ids + dropped ids <= maxCuratorActionsPerRun
+reflector records reflections or marks observations reviewed
+  → curator audits the observations newly reviewed by that reflector run
 ```
 
-If more actions are useful than the per-run budget allows, unprocessed reviewed observations must remain behind the curator cursor or otherwise remain eligible for the next curator run. The budget must not make skipped candidates permanently forgotten.
+Emergency trigger:
+
+```text
+visible observations > emergencyCurateWhenVisibleObservationsOver
+```
+
+Curator inputs must separate action authority from read-only judgment context:
+
+```text
+action candidates = reviewed observations the curator may pin/unpin/flag/drop
+read-only context = current reflections + current pinned/flagged state + related/recent observations
+```
+
+Mechanical enforcement:
+
+```text
+curator tools accept only ids in candidateObservationIds
+context-only observation ids are rejected by tools, not merely discouraged by prompt prose
+rejection feedback should include exact rejected ids and reasons
+curator tools remain multi-turn so the model can recover after a rejected call
+```
+
+Avoid `maxCuratorActionsPerRun` initially. Bound prompt/input size with a candidate window instead. Add a mutation cap later only if dogfood/evals show over-action.
+
+Overflow rule:
+
+```text
+if more reviewed candidates exist than the curator candidate window,
+remaining candidates stay eligible for the next curator run
+```
 
 Action application rules:
 
@@ -543,5 +573,8 @@ Reason for low priority:
 4. Replacing dropper with curator may regress cleanup conservatism.
    Mitigation: deterministic lifecycle tests, curator eval baselines, and emergency visible-pressure trigger.
 
-5. Action budget may accidentally starve lower-priority candidates.
-   Mitigation: curator cursor must only advance over processed candidates, or skipped candidates must remain eligible next run.
+5. Read-only curator context may tempt the model to act on non-candidate ids.
+   Mitigation: curator tools must mechanically reject ids outside `candidateObservationIds`, return exact rejected ids/reasons, and allow same-run recovery.
+
+6. Curator backlog may lag if candidate windows are too small.
+   Mitigation: run curator after successful reflector work, keep overflow candidates eligible, and use emergency visible-pressure trigger.
