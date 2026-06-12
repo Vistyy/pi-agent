@@ -14,11 +14,11 @@ import {
 } from "../session-ledger/index.js";
 type ObserverStageModule = typeof import("./observer-stage.js");
 type ReflectorStageModule = typeof import("./reflector-stage.js");
-type DropperStageModule = typeof import("./dropper-stage.js");
+type CuratorStageModule = typeof import("./curator-stage.js");
 
 let observerStageModule: Promise<ObserverStageModule> | undefined;
 let reflectorStageModule: Promise<ReflectorStageModule> | undefined;
-let dropperStageModule: Promise<DropperStageModule> | undefined;
+let curatorStageModule: Promise<CuratorStageModule> | undefined;
 
 function loadObserverStage(): Promise<ObserverStageModule> {
 	return observerStageModule ??= import("./observer-stage.js");
@@ -28,8 +28,8 @@ function loadReflectorStage(): Promise<ReflectorStageModule> {
 	return reflectorStageModule ??= import("./reflector-stage.js");
 }
 
-function loadDropperStage(): Promise<DropperStageModule> {
-	return dropperStageModule ??= import("./dropper-stage.js");
+function loadCuratorStage(): Promise<CuratorStageModule> {
+	return curatorStageModule ??= import("./curator-stage.js");
 }
 import { sourceEntriesAfter } from "./source-entries.js";
 import { observationsSinceReflectionCoverage } from "./stage-utils.js";
@@ -37,13 +37,11 @@ import type { MemoryUpdateCtx, ResolvedModel, StageOutcome } from "./types.js";
 
 export function anyMemoryUpdateStageDue(entries: Entry[], runtime: Runtime): boolean {
 	const folded = foldLedger(entries, { pendingFlagsAfterIndex: latestReflectionReviewEntryIndex(entries) });
-	const activeObservationCount = folded.activeObservations.length;
 	const unreflectedObservationCount = observationsSinceReflectionCoverage(entries, folded.activeObservations).length;
 	const flaggedActiveObservationCount = folded.activeObservations.filter((observation) => folded.flaggedObservationIds.has(observation.id)).length;
 	const reflectionWorkCount = unreflectedObservationCount + flaggedActiveObservationCount;
 	return sourceEntryCountSinceObservationCoverage(entries) >= runtime.config.observeEveryMessages
-		|| reflectionWorkCount >= runtime.config.reflectEveryObservations
-		|| activeObservationCount > runtime.config.dropWhenActiveObservationsOver;
+		|| reflectionWorkCount >= runtime.config.reflectEveryObservations;
 }
 
 function makeModelResolver(runtime: Runtime, ctx: MemoryUpdateCtx): (stage: "observer" | "reflector" | "curator" | "dropper") => Promise<ResolvedModel | undefined> {
@@ -158,7 +156,7 @@ async function runMemoryUpdateStage(
 	pi: ExtensionAPI,
 	runtime: Runtime,
 	ctx: MemoryUpdateCtx,
-	stage: "observer" | "reflector" | "dropper",
+	stage: "observer" | "reflector" | "curator" | "dropper",
 	run: () => Promise<StageOutcome>,
 ): Promise<StageOutcome> {
 	runtime.memoryUpdatePhase = stage;
@@ -224,10 +222,10 @@ export async function runMemoryUpdate(
 		pi,
 		runtime,
 		ctx,
-		"dropper",
+		"curator",
 		async () => {
-			const { runDropperStage } = await loadDropperStage();
-			return runDropperStage(pi, runtime, ctx, resolveModel);
+			const { runCuratorStage } = await loadCuratorStage();
+			return runCuratorStage(pi, runtime, ctx, resolveModel);
 		},
 	);
 }

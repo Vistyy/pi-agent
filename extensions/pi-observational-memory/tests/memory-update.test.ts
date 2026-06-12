@@ -4,17 +4,20 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mockAgents = vi.hoisted(() => ({
 	runObserver: vi.fn(),
 	runReflector: vi.fn(),
+	runCurator: vi.fn(),
 	runDropper: vi.fn(),
 }));
 
 vi.mock("../src/agents/observer/agent.js", () => ({ runObserver: mockAgents.runObserver }));
 vi.mock("../src/agents/reflector/agent.js", () => ({ runReflector: mockAgents.runReflector }));
+vi.mock("../src/agents/curator/agent.js", () => ({ runCurator: mockAgents.runCurator }));
 vi.mock("../src/agents/dropper/agent.js", () => ({ runDropper: mockAgents.runDropper }));
 
 import { ensureMemoryUpdatedBeforeCompaction, registerMemoryUpdateHook } from "../src/hooks/memory-update.js";
 import { Runtime } from "../src/runtime.js";
 import {
 	OM_AGENT_RUN_RECORDED,
+	OM_OBSERVATIONS_CURATED,
 	OM_OBSERVATIONS_DROPPED,
 	OM_OBSERVATIONS_RECORDED,
 	OM_REFLECTIONS_RECORDED,
@@ -36,9 +39,11 @@ import { memoryUpdateApi, type AgentStartHandler, type TurnEndHandler } from "./
 beforeEach(() => {
 	mockAgents.runObserver.mockReset();
 	mockAgents.runReflector.mockReset();
+	mockAgents.runCurator.mockReset();
 	mockAgents.runDropper.mockReset();
 	mockAgents.runObserver.mockResolvedValue(undefined);
 	mockAgents.runReflector.mockResolvedValue(undefined);
+	mockAgents.runCurator.mockResolvedValue(undefined);
 	mockAgents.runDropper.mockResolvedValue(undefined);
 });
 
@@ -71,15 +76,18 @@ function setup(args: {
 			reflectEveryObservations: args.reflectEveryObservations ?? 1,
 			maxInitialObserveTokens: args.maxInitialObserveTokens ?? 100_000,
 			observationsPoolMaxTokens: args.observationsPoolMaxTokens ?? 100,
+			emergencyCurateWhenVisibleObservationsOver: 120,
 			dropWhenActiveObservationsOver: args.dropWhenActiveObservationsOver ?? Math.floor((args.observationsPoolMaxTokens ?? 100) / 2),
+			protectRecentObservations: 32,
 			agentMaxTurns: 9,
 			model: { provider: "anthropic", id: "memory", thinking: "minimal" },
 		},
 		memoryUpdateInFlight: args.memoryUpdateInFlight ?? false,
-		memoryUpdatePhase: undefined as "observer" | "reflector" | "dropper" | undefined,
+		memoryUpdatePhase: undefined as "observer" | "reflector" | "curator" | "dropper" | undefined,
 		resolveFailureNotified: false,
 		lastObserverError: undefined as string | undefined,
 		lastReflectorError: undefined as string | undefined,
+		lastCuratorError: undefined as string | undefined,
 		lastDropperError: undefined as string | undefined,
 		memoryAgentUsage: usageRuntime.memoryAgentUsage,
 		recordMemoryAgentUsage: usageRuntime.recordMemoryAgentUsage.bind(usageRuntime),
@@ -90,10 +98,11 @@ function setup(args: {
 			launchedWork = work;
 			return Promise.resolve();
 		}),
-		recordMemoryUpdateStageError: vi.fn((ctx, phase: "observer" | "reflector" | "dropper", error: unknown) => {
+		recordMemoryUpdateStageError: vi.fn((ctx, phase: "observer" | "reflector" | "curator" | "dropper", error: unknown) => {
 			const message = error instanceof Error ? error.message : String(error);
 			if (phase === "observer") runtime.lastObserverError = message;
 			if (phase === "reflector") runtime.lastReflectorError = message;
+			if (phase === "curator") runtime.lastCuratorError = message;
 			if (phase === "dropper") runtime.lastDropperError = message;
 			ctx.ui?.notify(`Observational memory: ${phase} failed: ${message}`, "warning");
 			return message;
@@ -139,6 +148,7 @@ describe("memory update hook", () => {
 
 		expect(mockAgents.runObserver).toHaveBeenCalledOnce();
 		expect(mockAgents.runReflector).not.toHaveBeenCalled();
+		expect(mockAgents.runCurator).not.toHaveBeenCalled();
 		expect(mockAgents.runDropper).not.toHaveBeenCalled();
 		expect(mockAgents.runObserver.mock.calls[0][0].chunk).toContain("[Source entry id: raw-1]");
 		expect(mockAgents.runObserver.mock.calls[0][0].chunk).not.toContain("[Source entry id: raw-2]");
@@ -257,6 +267,7 @@ describe("memory update hook", () => {
 
 		expect(getMemoryAppends()).toEqual([]);
 		expect(mockAgents.runReflector).not.toHaveBeenCalled();
+		expect(mockAgents.runCurator).not.toHaveBeenCalled();
 		expect(mockAgents.runDropper).not.toHaveBeenCalled();
 	});
 
@@ -358,70 +369,71 @@ describe("memory update hook", () => {
 		expect(mockAgents.runReflector).not.toHaveBeenCalled();
 	});
 
-	it("runs dropper after reflection output and appends non-empty drops", async () => {
+	it("runs curator after reflection output and advances the curator cursor", async () => {
 		const newRef = reflection("ffffffffffff", ["aaaaaaaaaaaa"]);
 		mockAgents.runReflector.mockResolvedValueOnce([newRef]);
-		mockAgents.runDropper.mockResolvedValueOnce(["aaaaaaaaaaaa"]);
+		mockAgents.runCurator.mockResolvedValueOnce({ pinned: [], unpinned: [], flagged: [], dropped: [] });
 		const entries = [
 			textCustomMessage("raw-1", "aaaaaaaa"),
 			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
 			textCustomMessage("raw-2", "bbbbbbbb"),
 		];
-		const { fire, runLaunchedWork, getMemoryAppends } = setup({ entries, observeEveryMessages: 999, dropWhenActiveObservationsOver: 0 });
+		const { fire, runLaunchedWork, getMemoryAppends } = setup({ entries, observeEveryMessages: 999 });
 
 		fire();
 		await runLaunchedWork();
 
 		expect(mockAgents.runReflector).toHaveBeenCalled();
-		expect(mockAgents.runDropper).toHaveBeenCalledWith(expect.objectContaining({ reflections: [newRef], observations: [obsA] }));
+		expect(mockAgents.runCurator).toHaveBeenCalledWith(expect.objectContaining({ reflections: [newRef], observations: [obsA], candidateObservationIds: ["aaaaaaaaaaaa"] }));
+		expect(mockAgents.runDropper).not.toHaveBeenCalled();
 		expect(getMemoryAppends()).toEqual([
 			{ customType: OM_REFLECTIONS_RECORDED, data: { reflections: [newRef], coversUpToId: "raw-1" } },
-			{ customType: OM_OBSERVATIONS_DROPPED, data: { observationIds: ["aaaaaaaaaaaa"], coversUpToId: "raw-1" } },
+			{ customType: OM_OBSERVATIONS_CURATED, data: { coversUpToId: "raw-1" } },
 		]);
 	});
 
-	it("waits for reflection coverage even when active observation pool is over target", async () => {
-		mockAgents.runReflector.mockResolvedValueOnce([]);
+	it("does not launch only because the old active observation pool threshold is exceeded", async () => {
 		const entries = [
 			textCustomMessage("raw-1", "aaaaaaaa"),
 			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
-			textCustomMessage("raw-2", "bbbbbbbb"),
+			reflectionsReviewedEntry("om-reviewed", { coversUpToId: "raw-1" }),
 		];
-		const { fire, runLaunchedWork, runtime } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 1, dropWhenActiveObservationsOver: 0 });
+		const { fire, runLaunchedWork, runtime } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 999, dropWhenActiveObservationsOver: 0 });
 
 		fire();
 		await runLaunchedWork();
 
-		expect(runtime.launchMemoryUpdateTask).toHaveBeenCalledTimes(1);
-		expect(mockAgents.runReflector).toHaveBeenCalled();
-		expect(mockAgents.runDropper).toHaveBeenCalledWith(expect.objectContaining({ protectedObservationIds: ["aaaaaaaaaaaa"] }));
+		expect(runtime.launchMemoryUpdateTask).not.toHaveBeenCalled();
+		expect(mockAgents.runCurator).not.toHaveBeenCalled();
+		expect(mockAgents.runDropper).not.toHaveBeenCalled();
 	});
 
-	it("runs reflector before dropper and covers drops through reflection coverage", async () => {
+	it("runs reflector before curator and appends curator drops through reflection coverage", async () => {
 		const newRef = reflection("ffffffffffff", ["bbbbbbbbbbbb"]);
 		mockAgents.runReflector.mockResolvedValueOnce([newRef]);
-		mockAgents.runDropper.mockResolvedValueOnce(["bbbbbbbbbbbb"]);
+		mockAgents.runCurator.mockResolvedValueOnce({ pinned: [], unpinned: [], flagged: [], dropped: ["bbbbbbbbbbbb"] });
 		const entries = [
 			textCustomMessage("raw-1", "aaaaaaaa"),
 			observationsRecordedEntry("om-obs-a", { observations: [obsA], coversUpToId: "raw-1" }),
 			textCustomMessage("raw-2", "bbbbbbbb"),
 			observationsRecordedEntry("om-obs-b", { observations: [obsB], coversUpToId: "raw-2" }),
 		];
-		const { fire, runLaunchedWork, getMemoryAppends } = setup({ entries, observeEveryMessages: 999, dropWhenActiveObservationsOver: 0 });
+		const { fire, runLaunchedWork, getMemoryAppends } = setup({ entries, observeEveryMessages: 999 });
 
 		fire();
 		await runLaunchedWork();
 
-		expect(mockAgents.runDropper).toHaveBeenCalledWith(expect.objectContaining({ reflections: [newRef] }));
+		expect(mockAgents.runCurator).toHaveBeenCalledWith(expect.objectContaining({ reflections: [newRef], candidateObservationIds: ["aaaaaaaaaaaa", "bbbbbbbbbbbb"] }));
+		expect(mockAgents.runDropper).not.toHaveBeenCalled();
 		expect(getMemoryAppends()).toEqual([
 			{ customType: OM_REFLECTIONS_RECORDED, data: { reflections: [newRef], coversUpToId: "raw-2" } },
 			{ customType: OM_OBSERVATIONS_DROPPED, data: { observationIds: ["bbbbbbbbbbbb"], coversUpToId: "raw-2" } },
+			{ customType: OM_OBSERVATIONS_CURATED, data: { coversUpToId: "raw-2" } },
 		]);
 	});
 
-	it("runs dropper from existing reflections without same-run reflection output", async () => {
+	it("does not run curator from existing reflections without same-run reflection work", async () => {
 		const ref = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
-		mockAgents.runDropper.mockResolvedValueOnce(["aaaaaaaaaaaa"]);
 		const entries = [
 			textCustomMessage("raw-1", "aaaaaaaa"),
 			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
@@ -434,13 +446,12 @@ describe("memory update hook", () => {
 		await runLaunchedWork();
 
 		expect(mockAgents.runReflector).not.toHaveBeenCalled();
-		expect(mockAgents.runDropper).toHaveBeenCalledWith(expect.objectContaining({ reflections: [ref], observations: [obsA] }));
-		expect(getMemoryAppends()).toEqual([
-			{ customType: OM_OBSERVATIONS_DROPPED, data: { observationIds: ["aaaaaaaaaaaa"], coversUpToId: "raw-1" } },
-		]);
+		expect(mockAgents.runCurator).not.toHaveBeenCalled();
+		expect(mockAgents.runDropper).not.toHaveBeenCalled();
+		expect(getMemoryAppends()).toEqual([]);
 	});
 
-	it("appends reflection review marker and no empty drop entries", async () => {
+	it("appends reflection review marker and runs curator without empty drop entries", async () => {
 		mockAgents.runReflector.mockResolvedValueOnce([]);
 		const entries = [textCustomMessage("raw-1", "aaaaaaaa"), observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" })];
 		const { fire, runLaunchedWork, pi, ctx } = setup({ entries, observeEveryMessages: 999 });
@@ -449,6 +460,7 @@ describe("memory update hook", () => {
 		await runLaunchedWork();
 
 		expect(pi.appendEntry).toHaveBeenCalledWith(OM_REFLECTIONS_REVIEWED, { coversUpToId: "raw-1" });
+		expect(mockAgents.runCurator).toHaveBeenCalledWith(expect.objectContaining({ candidateObservationIds: ["aaaaaaaaaaaa"] }));
 		expect(mockAgents.runDropper).not.toHaveBeenCalled();
 		expect(ctx.ui.notify).not.toHaveBeenCalledWith(expect.stringContaining("dropper running"), "info");
 	});
@@ -470,19 +482,20 @@ describe("memory update hook", () => {
 		reflectorFailure.fire();
 		await reflectorFailure.runLaunchedWork();
 		expect(reflectorFailure.runtime.lastReflectorError).toBe("reflect failed");
+		expect(mockAgents.runCurator).not.toHaveBeenCalled();
 		expect(mockAgents.runDropper).not.toHaveBeenCalled();
 		expect(reflectorFailure.getMemoryAppends()).toEqual([]);
 
 		mockAgents.runReflector.mockReset();
 		const newRef = reflection("ffffffffffff", ["aaaaaaaaaaaa"]);
 		mockAgents.runReflector.mockResolvedValueOnce([newRef]);
-		mockAgents.runDropper.mockReset();
-		mockAgents.runDropper.mockRejectedValueOnce(new Error("drop failed"));
-		const dropperFailure = setup({ entries: [textCustomMessage("raw-1", "aaaaaaaa"), observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" })], observeEveryMessages: 999, dropWhenActiveObservationsOver: 0 });
-		dropperFailure.fire();
-		await dropperFailure.runLaunchedWork();
-		expect(dropperFailure.runtime.lastDropperError).toBe("drop failed");
-		expect(dropperFailure.getMemoryAppends()).toEqual([
+		mockAgents.runCurator.mockReset();
+		mockAgents.runCurator.mockRejectedValueOnce(new Error("curate failed"));
+		const curatorFailure = setup({ entries: [textCustomMessage("raw-1", "aaaaaaaa"), observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" })], observeEveryMessages: 999 });
+		curatorFailure.fire();
+		await curatorFailure.runLaunchedWork();
+		expect(curatorFailure.runtime.lastCuratorError).toBe("curate failed");
+		expect(curatorFailure.getMemoryAppends()).toEqual([
 			{ customType: OM_REFLECTIONS_RECORDED, data: { reflections: [newRef], coversUpToId: "raw-1" } },
 		]);
 	});
