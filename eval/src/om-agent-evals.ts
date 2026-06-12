@@ -47,7 +47,7 @@ type AgentEvalRecord = {
   error?: string;
 };
 
-type Args = { model: string; judgeModel: string; outDir: string; thinkingLevel: ModelThinkingLevel };
+type Args = { model: string; judgeModel: string; outDir: string; thinkingLevel: ModelThinkingLevel; only?: string };
 
 function parseArgs(): Args {
   const args = process.argv.slice(2);
@@ -60,6 +60,7 @@ function parseArgs(): Args {
     judgeModel: get('--judge-model', get('--model', DEFAULT_MODEL))!,
     outDir: get('--out', path.join('runs', `om-agent-evals-${Date.now()}`))!,
     thinkingLevel: (get('--thinking', 'xhigh') ?? 'xhigh') as ModelThinkingLevel,
+    only: get('--only'),
   };
 }
 
@@ -387,16 +388,161 @@ async function curatorDropsNoiseKeepsPreference(modelSpec: string, judgeModel: s
   }, judgeModel, started);
 }
 
+async function curatorKeepsStaleTrapEvidence(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const started = Date.now();
+  const auth = await resolveModel(modelSpec);
+  const observations = [
+    obs('aaaaaaaaaaaa', 'Canonical approved feature flag is `fast_sync_v2_enabled`, which supersedes rejected near-match `enableFastSync`.', '2026-06-07T09:00:00.000Z'),
+    obs('bbbbbbbbbbbb', 'Stale trap: `enableFastSync` appears in old docs and must not be used for the final implementation.', '2026-06-07T09:01:00.000Z'),
+    obs('cccccccccccc', 'Transient log: feature scan completed in 122ms.', '2026-06-07T09:02:00.000Z'),
+    obs('dddddddddddd', 'User asks to preserve exact current-vs-stale relationship when compacting.', '2026-06-07T09:03:00.000Z'),
+  ];
+  const reflections = [ref('eeeeeeeeeeee', 'Approved feature flag is fast_sync_v2_enabled.', ['aaaaaaaaaaaa'])];
+  const { runCurator } = await loadOmAgents();
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4 });
+  return judged('curator-keeps-stale-trap-evidence', 'curator', output ?? {}, {
+    id: 'curator-keeps-stale-trap-evidence',
+    question: 'Did the curator protect stale/current trap evidence omitted from reflection instead of dropping it as redundant?',
+    rubric: {
+      pass_if: [
+        'Output does not drop aaaaaaaaaaaa, bbbbbbbbbbbb, or dddddddddddd.',
+        'Output flags and/or pins bbbbbbbbbbbb or dddddddddddd because the reflection omits the rejected near-match relationship.',
+        'Output may drop cccccccccccc as transient noise.',
+      ],
+      fail_if: ['Output drops bbbbbbbbbbbb.', 'Output drops dddddddddddd.', 'Output treats the reflection as sufficient even though enableFastSync stale/rejected relation is absent.'],
+    },
+  }, judgeModel, started);
+}
+
+async function curatorMixedReviewedPool(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const started = Date.now();
+  const auth = await resolveModel(modelSpec);
+  const observations = [
+    obs('aaaaaaaaaaaa', 'Old failure: `pnpm test` failed in tests/parser.test.ts with CRLF offset mismatch.', '2026-06-07T08:00:00.000Z'),
+    obs('bbbbbbbbbbbb', 'Later validation passed: `pnpm test && pnpm run typecheck` passed after CRLF fix.', '2026-06-07T09:00:00.000Z'),
+    obs('cccccccccccc', 'Current constraint: use pnpm, never npm, in this repo.', '2026-06-07T09:01:00.000Z'),
+    obs('dddddddddddd', 'Exact unresolved blocker: `Error: ECONNRESET at src/api/client.ts:42` remains open.', '2026-06-07T09:02:00.000Z'),
+    obs('eeeeeeeeeeee', 'Noisy log: dev server rebuilt chunk vendor in 181ms.', '2026-06-07T09:03:00.000Z'),
+    obs('ffffffffffff', 'Noisy log: dev server rebuilt chunk app in 190ms.', '2026-06-07T09:04:00.000Z'),
+    obs('111111111111', 'Assistant noted no source changes were needed for README typo.', '2026-06-07T09:05:00.000Z'),
+    obs('222222222222', 'User says the ECONNRESET blocker should be treated as current until a passing retry is shown.', '2026-06-07T09:06:00.000Z'),
+    obs('333333333333', 'Old plan to use yarn was rejected when pnpm rule was approved.', '2026-06-07T09:07:00.000Z'),
+    obs('444444444444', 'Noisy log: heartbeat ok.', '2026-06-07T09:08:00.000Z'),
+  ];
+  const reflections = [
+    ref('999999999999', 'CRLF parser failure was fixed; pnpm test and typecheck passed.', ['aaaaaaaaaaaa', 'bbbbbbbbbbbb']),
+    ref('888888888888', 'Use pnpm instead of npm/yarn in this repo.', ['cccccccccccc', '333333333333']),
+  ];
+  const { runCurator } = await loadOmAgents();
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['aaaaaaaaaaaa'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 3, thinkingLevel, maxTurns: 4 });
+  return judged('curator-mixed-reviewed-pool', 'curator', output ?? {}, {
+    id: 'curator-mixed-reviewed-pool',
+    question: 'In a realistic mixed reviewed pool, did the curator choose a conservative high-value action without hiding durable constraints or blockers?',
+    rubric: {
+      pass_if: [
+        'Output does not drop cccccccccccc, dddddddddddd, 222222222222, or 333333333333.',
+        'Output either unpins aaaaaaaaaaaa as stale/fixed, flags/pins dddddddddddd or 222222222222 as unresolved blocker evidence missing from reflection, or drops only noisy ids among eeeeeeeeeeee, ffffffffffff, 111111111111, 444444444444.',
+        'Output drops no more than three ids.',
+      ],
+      fail_if: ['Output drops current preference/constraint or unresolved blocker evidence.', 'Output pins noisy rebuild/heartbeat logs.', 'Output takes a broad cleanup action that hides multiple durable facts.'],
+    },
+  }, judgeModel, started);
+}
+
+async function curatorMinimalPin(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const started = Date.now();
+  const auth = await resolveModel(modelSpec);
+  const observations = [
+    obs('aaaaaaaaaaaa', 'Exact approved config path: `/etc/pi/agent/memory.toml`.', '2026-06-07T09:00:00.000Z'),
+    obs('bbbbbbbbbbbb', 'Exact rejected config path: `/etc/pi/memory.toml` is stale and should not be used.', '2026-06-07T09:01:00.000Z'),
+    obs('cccccccccccc', 'Exact command `pnpm test && pnpm run typecheck` passed.', '2026-06-07T09:02:00.000Z'),
+    obs('dddddddddddd', 'Exact harmless log: cache warmed in 15ms.', '2026-06-07T09:03:00.000Z'),
+  ];
+  const reflections = [
+    ref('eeeeeeeeeeee', 'Approved memory config path is /etc/pi/agent/memory.toml; /etc/pi/memory.toml is rejected stale.', ['aaaaaaaaaaaa', 'bbbbbbbbbbbb']),
+    ref('ffffffffffff', 'Validation passed with pnpm test and typecheck.', ['cccccccccccc']),
+  ];
+  const { runCurator } = await loadOmAgents();
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 1, thinkingLevel, maxTurns: 4 });
+  return judged('curator-minimal-pin-pressure', 'curator', output ?? {}, {
+    id: 'curator-minimal-pin-pressure',
+    question: 'Did the curator avoid over-pinning exact details already well preserved by reflections?',
+    rubric: {
+      pass_if: [
+        'Output does not pin aaaaaaaaaaaa, bbbbbbbbbbbb, or cccccccccccc because exact details are already reflected.',
+        'Output may drop dddddddddddd or mark no actions.',
+        'If it pins anything, it pins at most one id and gives a strong reason tied to missing reflection detail.',
+      ],
+      fail_if: ['Output pins multiple observations merely because they contain exact paths/commands.', 'Output drops aaaaaaaaaaaa, bbbbbbbbbbbb, or cccccccccccc.', 'Output flags reflected details as missing despite reflections containing the exact values.'],
+    },
+  }, judgeModel, started);
+}
+
+async function curatorContradictoryReflection(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const started = Date.now();
+  const auth = await resolveModel(modelSpec);
+  const observations = [
+    obs('aaaaaaaaaaaa', 'Tool still fails: `pnpm test` reports FAIL tests/auth.test.ts > refresh token expiry.', '2026-06-07T09:00:00.000Z'),
+    obs('bbbbbbbbbbbb', 'User says do not mark auth fixed; refresh token expiry is still unresolved.', '2026-06-07T09:01:00.000Z'),
+    obs('cccccccccccc', 'Assistant mistakenly summarized the auth issue as fixed without a passing run.', '2026-06-07T09:02:00.000Z'),
+  ];
+  const reflections = [ref('dddddddddddd', 'Auth refresh token expiry is fixed.', ['aaaaaaaaaaaa'])];
+  const { runCurator } = await loadOmAgents();
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4 });
+  return judged('curator-contradictory-reflection', 'curator', output ?? {}, {
+    id: 'curator-contradictory-reflection',
+    question: 'Did the curator detect contradiction between reflection and observations and preserve evidence for repair?',
+    rubric: {
+      pass_if: [
+        'Output flags and/or pins aaaaaaaaaaaa or bbbbbbbbbbbb for follow-up/visibility.',
+        'Output does not drop aaaaaaaaaaaa or bbbbbbbbbbbb.',
+        'Output reason indicates unresolved/failing/contradiction/fixed-without-passing-run concern.',
+      ],
+      fail_if: ['Output drops failing or user unresolved evidence.', 'Output marks no actions despite reflection contradicting observations.', 'Output only drops cccccccccccc while ignoring the contradiction.'],
+    },
+  }, judgeModel, started);
+}
+
+async function curatorOneShotPriority(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const started = Date.now();
+  const auth = await resolveModel(modelSpec);
+  const observations = [
+    obs('aaaaaaaaaaaa', 'Pinned old failure: deploy failed with `Error: EADDRINUSE` before port cleanup.', '2026-06-07T08:00:00.000Z'),
+    obs('bbbbbbbbbbbb', 'Later deploy passed after port cleanup; `pnpm deploy --dry-run` succeeded.', '2026-06-07T09:00:00.000Z'),
+    obs('cccccccccccc', 'Unreflected exact current secret name: `PI_AGENT_SESSION_KEY`, replacing stale `SESSION_SECRET`.', '2026-06-07T09:01:00.000Z'),
+    obs('dddddddddddd', 'Stale near-match `SESSION_SECRET` appears in old examples and must not be used.', '2026-06-07T09:02:00.000Z'),
+    obs('eeeeeeeeeeee', 'Noisy log: retry timer tick 1.', '2026-06-07T09:03:00.000Z'),
+    obs('ffffffffffff', 'Noisy log: retry timer tick 2.', '2026-06-07T09:04:00.000Z'),
+  ];
+  const reflections = [ref('999999999999', 'Deploy now passes after port cleanup.', ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'])];
+  const { runCurator } = await loadOmAgents();
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['aaaaaaaaaaaa'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4 });
+  return judged('curator-one-shot-priority', 'curator', output ?? {}, {
+    id: 'curator-one-shot-priority',
+    question: 'With multiple possible actions but one tool call, did the curator choose a safe high-priority batch instead of unsafe cleanup?',
+    rubric: {
+      pass_if: [
+        'Output does not drop cccccccccccc or dddddddddddd because the secret replacement relation is unreflected.',
+        'Output chooses one coherent high-priority action: unpin aaaaaaaaaaaa, flag/pin cccccccccccc and/or dddddddddddd, or drop only noisy eeeeeeeeeeee/ffffffffffff.',
+        'Output does not mix action types in a way that violates one-shot tool behavior.',
+      ],
+      fail_if: ['Output drops unreflected secret-name/stale-near-match evidence.', 'Output drops bbbbbbbbbbbb while old failure remains pinned.', 'Output prioritizes noisy cleanup while also losing unreflected critical relation evidence.'],
+    },
+  }, judgeModel, started);
+}
+
 async function main() {
   const args = parseArgs();
   fs.mkdirSync(args.outDir, { recursive: true });
-  const cases = [observerHardCurrentStale, observerHardAssistantOnly, reflectorHardCompression, reflectorSupersessionRelation, reflectorReviewedZero, dropperHardSafety, dropperKeepsUnreflectedTrap, dropperDropsRepeatedNoise, curatorFlagsMissingExactDetail, curatorUnpinsStalePinnedFailure, curatorDropsNoiseKeepsPreference];
+  const allCases = [observerHardCurrentStale, observerHardAssistantOnly, reflectorHardCompression, reflectorSupersessionRelation, reflectorReviewedZero, dropperHardSafety, dropperKeepsUnreflectedTrap, dropperDropsRepeatedNoise, curatorFlagsMissingExactDetail, curatorUnpinsStalePinnedFailure, curatorDropsNoiseKeepsPreference, curatorKeepsStaleTrapEvidence, curatorMixedReviewedPool, curatorMinimalPin, curatorContradictoryReflection, curatorOneShotPriority];
+  const cases = args.only ? allCases.filter((c) => c.name.includes(args.only!)) : allCases;
   const records: AgentEvalRecord[] = [];
   for (const c of cases) {
     try { records.push(await c(args.model, args.judgeModel, args.thinkingLevel)); }
     catch (error) {
       records.push({ id: c.name, agent: c.name.startsWith('observer') ? 'observer' : c.name.startsWith('reflector') ? 'reflector' : c.name.startsWith('curator') ? 'curator' : 'dropper', output: undefined, passed: false, durationMs: 0, error: error instanceof Error ? (error.stack ?? error.message) : String(error) });
     }
+    fs.writeFileSync(path.join(args.outDir, 'results.partial.json'), JSON.stringify(records, null, 2));
   }
   const summary = {
     passed: records.filter((r) => r.passed).length,
