@@ -136,7 +136,7 @@ export async function runCurator(args: RunCuratorArgs): Promise<CuratorActionRes
 	const pinObservations = makeActionTool(
 		"pin_observations",
 		"Pin observations",
-		"Pin reviewed observations whose exact raw details must remain visible in next context. This tool call terminates the run.",
+		"Pin every reviewed observation whose exact raw details must remain visible in next context. Include every observation to pin in this single complete batch. This tool call terminates the run.",
 		allowedIds,
 		(ids, reason) => {
 			const data = buildObservationsPinnedData(ids, reason);
@@ -146,7 +146,7 @@ export async function runCurator(args: RunCuratorArgs): Promise<CuratorActionRes
 	const unpinObservations = makeActionTool(
 		"unpin_observations",
 		"Unpin observations",
-		"Unpin currently pinned observations whose exact raw details no longer need forced visibility. This tool call terminates the run.",
+		"Unpin every currently pinned observation whose exact raw details no longer need forced visibility. Include every observation to unpin in this single complete batch. This tool call terminates the run.",
 		pinnedAllowedIds,
 		(ids, reason) => {
 			const data = buildObservationsUnpinnedData(ids, reason);
@@ -156,7 +156,7 @@ export async function runCurator(args: RunCuratorArgs): Promise<CuratorActionRes
 	const flagObservations = makeActionTool(
 		"flag_observations",
 		"Flag observations",
-		"Flag reviewed observations for reflector follow-up when reflection coverage is missing, stale, or contradictory. This tool call terminates the run.",
+		"Flag every reviewed observation needing reflector follow-up when reflection coverage is missing, stale, or contradictory. Include every observation to flag in this single complete batch. This tool call terminates the run.",
 		allowedIds,
 		(ids, reason) => {
 			const data = buildObservationsFlaggedData(ids, reason);
@@ -166,7 +166,7 @@ export async function runCurator(args: RunCuratorArgs): Promise<CuratorActionRes
 	const dropObservations = makeActionTool(
 		"drop_observations",
 		"Drop observations",
-		"Drop low-value reviewed observations that are clearly safe to tombstone. This tool call terminates the run.",
+		"Drop every low-value reviewed observation that is clearly safe to tombstone. Include every observation to drop in this single complete batch. This tool call terminates the run.",
 		droppableIds,
 		(ids, _reason) => {
 			result.dropped = selectDropCandidates(ids, observations, maxDropsAllowed, reflections, protectedObservationIds);
