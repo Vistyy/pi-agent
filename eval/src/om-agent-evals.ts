@@ -18,7 +18,6 @@ type CuratorActionResult = {
 type OmAgents = {
   runObserver: (args: Record<string, unknown>) => Promise<Observation[] | undefined>;
   runReflector: (args: Record<string, unknown>) => Promise<Reflection[] | undefined>;
-  runDropper: (args: Record<string, unknown>) => Promise<string[] | undefined>;
   runCurator: (args: Record<string, unknown>) => Promise<CuratorActionResult | undefined>;
 };
 
@@ -29,15 +28,14 @@ async function loadOmAgents(): Promise<OmAgents> {
   const base = new URL('../../extensions/pi-observational-memory/src/agents/', import.meta.url);
   const observer = await import(new URL('observer/agent.ts', base).href) as { runObserver: OmAgents['runObserver'] };
   const reflector = await import(new URL('reflector/agent.ts', base).href) as { runReflector: OmAgents['runReflector'] };
-  const dropper = await import(new URL('dropper/agent.ts', base).href) as { runDropper: OmAgents['runDropper'] };
   const curator = await import(new URL('curator/agent.ts', base).href) as { runCurator: OmAgents['runCurator'] };
-  omAgents = { runObserver: observer.runObserver, runReflector: reflector.runReflector, runDropper: dropper.runDropper, runCurator: curator.runCurator };
+  omAgents = { runObserver: observer.runObserver, runReflector: reflector.runReflector, runCurator: curator.runCurator };
   return omAgents;
 }
 
 type AgentEvalRecord = {
   id: string;
-  agent: 'observer' | 'reflector' | 'dropper' | 'curator';
+  agent: 'observer' | 'reflector' | 'curator';
   output: unknown;
   judge?: unknown;
   passed: boolean;
@@ -280,85 +278,6 @@ async function reflectorReviewedZero(modelSpec: string, judgeModel: string, thin
   }, judgeModel, started);
 }
 
-async function dropperHardSafety(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
-  const started = Date.now();
-  const auth = await resolveModel(modelSpec);
-  const observations = [
-    obs('aaaaaaaaaaaa', 'Redundant older note: use SQLite for job state.', '2026-06-07T09:00:00.000Z'),
-    obs('bbbbbbbbbbbb', 'Unique exact unresolved blocker: SQLITE_BUSY at src/db/migrate.ts:88.', '2026-06-07T09:05:00.000Z'),
-    obs('cccccccccccc', 'Recent protected note: user says do not call CRLF offset fixed.', '2026-06-07T09:10:00.000Z'),
-    obs('dddddddddddd', 'Superseded older note: Redis job-state plan.', '2026-06-07T08:00:00.000Z'),
-  ];
-  const reflections = [
-    ref('eeeeeeeeeeee', 'Current job-state decision is SQLite; Redis plan is rejected stale.', ['aaaaaaaaaaaa', 'dddddddddddd']),
-  ];
-  const { runDropper } = await loadOmAgents();
-  const output = await runDropper({ ...auth, reflections, observations, protectedObservationIds: ['cccccccccccc'], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4 });
-  return judged('dropper-safe-redundant-only', 'dropper', output ?? [], {
-    id: 'dropper-safe-redundant-only',
-    question: 'Did the dropper choose only safe older reviewed redundant/superseded observations and avoid unique/protected details?',
-    rubric: {
-      pass_if: [
-        'Output includes aaaaaaaaaaaa and/or dddddddddddd as safe drops.',
-        'Output does not include bbbbbbbbbbbb because it uniquely carries exact unresolved SQLITE_BUSY blocker detail.',
-        'Output does not include cccccccccccc because it is protected/recent and should not have been eligible.',
-        'Output includes no more than two ids.',
-      ],
-      fail_if: ['Output drops bbbbbbbbbbbb.', 'Output drops cccccccccccc.', 'Output includes more than two ids.'],
-    },
-  }, judgeModel, started);
-}
-
-async function dropperKeepsUnreflectedTrap(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
-  const started = Date.now();
-  const auth = await resolveModel(modelSpec);
-  const observations = [
-    obs('aaaaaaaaaaaa', 'Approved feature flag is fast_sync_v2_enabled, which supersedes enableFastSync.', '2026-06-07T09:00:00.000Z'),
-    obs('bbbbbbbbbbbb', 'enableFastSync is a stale near-match trap and explicitly not current.', '2026-06-07T09:01:00.000Z'),
-    obs('cccccccccccc', 'Background reminder: unrelated batch log line 42.', '2026-06-07T09:02:00.000Z'),
-  ];
-  const reflections = [ref('dddddddddddd', 'Approved feature flag is fast_sync_v2_enabled.', ['aaaaaaaaaaaa'])];
-  const { runDropper } = await loadOmAgents();
-  const output = await runDropper({ ...auth, reflections, observations, protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4 });
-  return judged('dropper-keeps-unreflected-stale-trap', 'dropper', output ?? [], {
-    id: 'dropper-keeps-unreflected-stale-trap',
-    question: 'Did the dropper avoid dropping stale-trap evidence that is not covered by a reflection, while allowing irrelevant background to be dropped?',
-    rubric: {
-      pass_if: [
-        'Output is a drop-id list and does not include bbbbbbbbbbbb because the stale near-match trap enableFastSync is not preserved in the reflection.',
-        'Output may include aaaaaaaaaaaa because its current-value detail is covered by the reflection, and may include cccccccccccc as irrelevant background/noise.',
-        'Output includes no more than two ids.',
-      ],
-      fail_if: ['Output includes bbbbbbbbbbbb.', 'Output includes more than two ids.', 'Output includes ids other than aaaaaaaaaaaa, bbbbbbbbbbbb, or cccccccccccc.'],
-    },
-  }, judgeModel, started);
-}
-
-async function dropperDropsRepeatedNoise(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
-  const started = Date.now();
-  const auth = await resolveModel(modelSpec);
-  const observations = [
-    obs('aaaaaaaaaaaa', 'Repeated red-herring records batch 1 all say enableFastSync is stale and not current.', '2026-06-07T09:00:00.000Z'),
-    obs('bbbbbbbbbbbb', 'Repeated red-herring records batch 2 all say enableFastSync is stale and not current.', '2026-06-07T09:01:00.000Z'),
-    obs('cccccccccccc', 'Canonical approved feature flag is fast_sync_v2_enabled, superseding enableFastSync.', '2026-06-07T09:02:00.000Z'),
-  ];
-  const reflections = [ref('dddddddddddd', 'fast_sync_v2_enabled supersedes enableFastSync; enableFastSync is stale/not current.', ['aaaaaaaaaaaa', 'bbbbbbbbbbbb', 'cccccccccccc'])];
-  const { runDropper } = await loadOmAgents();
-  const output = await runDropper({ ...auth, reflections, observations, protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4 });
-  return judged('dropper-drops-reflected-repeated-noise', 'dropper', output ?? [], {
-    id: 'dropper-drops-reflected-repeated-noise',
-    question: 'Did the dropper drop redundant repeated red-herring observations once their durable meaning is covered by a reflection, while keeping the canonical source detail?',
-    rubric: {
-      pass_if: [
-        'Output is a drop-id list and includes at least one of aaaaaaaaaaaa or bbbbbbbbbbbb as safe redundant repeated noise covered by the reflection.',
-        'Output does not include cccccccccccc, which means the canonical source detail for the current value and supersession relation is kept.',
-        'Output includes no more than two ids.',
-      ],
-      fail_if: ['Output includes cccccccccccc.', 'Output includes neither aaaaaaaaaaaa nor bbbbbbbbbbbb.', 'Output includes more than two ids.', 'Output includes ids other than aaaaaaaaaaaa, bbbbbbbbbbbb, or cccccccccccc.'],
-    },
-  }, judgeModel, started);
-}
-
 async function curatorFlagsMissingExactDetail(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   const started = Date.now();
   const auth = await resolveModel(modelSpec);
@@ -568,16 +487,32 @@ async function curatorOneShotPriority(modelSpec: string, judgeModel: string, thi
   ]);
 }
 
+
+const allCases = [
+  observerHardCurrentStale,
+  observerHardAssistantOnly,
+  reflectorHardCompression,
+  reflectorSupersessionRelation,
+  reflectorReviewedZero,
+  curatorFlagsMissingExactDetail,
+  curatorUnpinsStalePinnedFailure,
+  curatorDropsNoiseKeepsPreference,
+  curatorKeepsStaleTrapEvidence,
+  curatorMixedReviewedPool,
+  curatorMinimalPin,
+  curatorContradictoryReflection,
+  curatorOneShotPriority,
+];
+
 async function main() {
   const args = parseArgs();
   fs.mkdirSync(args.outDir, { recursive: true });
-  const allCases = [observerHardCurrentStale, observerHardAssistantOnly, reflectorHardCompression, reflectorSupersessionRelation, reflectorReviewedZero, dropperHardSafety, dropperKeepsUnreflectedTrap, dropperDropsRepeatedNoise, curatorFlagsMissingExactDetail, curatorUnpinsStalePinnedFailure, curatorDropsNoiseKeepsPreference, curatorKeepsStaleTrapEvidence, curatorMixedReviewedPool, curatorMinimalPin, curatorContradictoryReflection, curatorOneShotPriority];
   const cases = args.only ? allCases.filter((c) => c.name.includes(args.only!)) : allCases;
   const records: AgentEvalRecord[] = [];
   for (const c of cases) {
     try { records.push(await c(args.model, args.judgeModel, args.thinkingLevel)); }
     catch (error) {
-      records.push({ id: c.name, agent: c.name.startsWith('observer') ? 'observer' : c.name.startsWith('reflector') ? 'reflector' : c.name.startsWith('curator') ? 'curator' : 'dropper', output: undefined, passed: false, durationMs: 0, error: error instanceof Error ? (error.stack ?? error.message) : String(error) });
+      records.push({ id: c.name, agent: c.name.startsWith('observer') ? 'observer' : c.name.startsWith('reflector') ? 'reflector' : 'curator', output: undefined, passed: false, durationMs: 0, error: error instanceof Error ? (error.stack ?? error.message) : String(error) });
     }
     fs.writeFileSync(path.join(args.outDir, 'results.partial.json'), JSON.stringify(records, null, 2));
   }

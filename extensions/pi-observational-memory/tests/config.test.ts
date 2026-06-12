@@ -39,7 +39,7 @@ describe("config", () => {
 			strategy: STRATEGY.replacement,
 			observeEveryMessages: 32,
 			reflectEveryObservations: 8,
-			emergencyCurateWhenVisibleObservationsOver: 120,
+			emergencyCurateWhenVisibleObservationsOver: 60,
 			maxInitialObserveTokens: 100000,
 			observationsPoolMaxTokens: 20000,
 			protectRecentObservations: 32,

@@ -31,7 +31,7 @@ OM does not schedule compaction. Pi/manual/eval compaction triggers still run; O
     "strategy": "replacement",
     "observeEveryMessages": 32,
     "reflectEveryObservations": 8,
-    "emergencyCurateWhenVisibleObservationsOver": 120,
+    "emergencyCurateWhenVisibleObservationsOver": 60,
     "protectRecentObservations": 32,
     "maxInitialObserveTokens": 100000,
     "observerThinking": "low",

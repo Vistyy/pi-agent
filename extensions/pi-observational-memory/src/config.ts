@@ -35,7 +35,7 @@ export const DEFAULTS: Config = {
 	strategy: STRATEGY.replacement,
 	observeEveryMessages: 32,
 	reflectEveryObservations: 8,
-	emergencyCurateWhenVisibleObservationsOver: 120,
+	emergencyCurateWhenVisibleObservationsOver: 60,
 	protectRecentObservations: 32,
 	maxInitialObserveTokens: 100_000,
 	observationsPoolMaxTokens: 20_000,
