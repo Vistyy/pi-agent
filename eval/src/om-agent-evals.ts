@@ -40,6 +40,8 @@ type AgentEvalRecord = {
   judge?: unknown;
   passed: boolean;
   durationMs: number;
+  agentDurationMs?: number;
+  judgeDurationMs?: number;
   usage?: TokenUsage;
   judgeUsage?: TokenUsage;
   error?: string;
@@ -88,10 +90,37 @@ function ref(id: string, content: string, supportingObservationIds: string[]): R
   return { id, content, supportingObservationIds, tokenCount: Math.ceil(content.length / 4) };
 }
 
-async function judged(id: string, agent: AgentEvalRecord['agent'], output: unknown, probe: Probe, judgeModel: string, started: number): Promise<AgentEvalRecord> {
+function addUsage(total: TokenUsage, usage: TokenUsage): void {
+  total.input = (total.input ?? 0) + (usage.input ?? 0);
+  total.output = (total.output ?? 0) + (usage.output ?? 0);
+  total.cacheRead = (total.cacheRead ?? 0) + (usage.cacheRead ?? 0);
+  total.cacheWrite = (total.cacheWrite ?? 0) + (usage.cacheWrite ?? 0);
+  total.totalTokens = (total.totalTokens ?? 0) + (usage.totalTokens ?? 0);
+}
+
+function createUsageCollector(): { onUsage: (event: { usage?: unknown }) => void; total: TokenUsage } {
+  const total: TokenUsage = {};
+  return {
+    total,
+    onUsage: (event) => addUsage(total, (event.usage ?? {}) as TokenUsage),
+  };
+}
+
+function sumUsage(records: AgentEvalRecord[], key: 'usage' | 'judgeUsage'): TokenUsage {
+  const total: TokenUsage = {};
+  for (const record of records) addUsage(total, record[key] ?? {});
+  return total;
+}
+
+function sumDuration(records: AgentEvalRecord[], key: 'durationMs' | 'agentDurationMs' | 'judgeDurationMs'): number {
+  return records.reduce((sum, record) => sum + (record[key] ?? 0), 0);
+}
+
+async function judged(id: string, agent: AgentEvalRecord['agent'], output: unknown, probe: Probe, judgeModel: string, started: number, usage?: TokenUsage, agentDurationMs?: number): Promise<AgentEvalRecord> {
   const answer = JSON.stringify(output, null, 2);
+  const judgeStarted = Date.now();
   const { run, judge } = await runJudge(probe, answer, judgeModel);
-  return { id, agent, output, judge, passed: run.status === 0 && judge.passed, durationMs: Date.now() - started, judgeUsage: run.usage };
+  return { id, agent, output, judge, passed: run.status === 0 && judge.passed, durationMs: Date.now() - started, agentDurationMs, judgeDurationMs: Date.now() - judgeStarted, usage, judgeUsage: run.usage };
 }
 
 function curatorIds(output: CuratorActionResult | undefined, key: keyof CuratorActionResult): string[] {
@@ -111,6 +140,8 @@ function deterministicCuratorRecord(
   output: CuratorActionResult | undefined,
   started: number,
   checks: Array<{ label: string; pass: (output: CuratorActionResult | undefined) => boolean }>,
+  usage?: TokenUsage,
+  agentDurationMs?: number,
 ): AgentEvalRecord {
   const deterministicFailure = deterministicCuratorFailure(output, checks);
   return {
@@ -122,6 +153,8 @@ function deterministicCuratorRecord(
       : { passed: true, reason: 'Deterministic invariants passed.' },
     passed: !deterministicFailure,
     durationMs: Date.now() - started,
+    agentDurationMs,
+    usage,
   };
 }
 
@@ -132,10 +165,12 @@ async function judgedCurator(
   judgeModel: string,
   started: number,
   checks: Array<{ label: string; pass: (output: CuratorActionResult | undefined) => boolean }>,
+  usage?: TokenUsage,
+  agentDurationMs?: number,
 ): Promise<AgentEvalRecord> {
-  const deterministic = deterministicCuratorRecord(id, output, started, checks);
+  const deterministic = deterministicCuratorRecord(id, output, started, checks, usage, agentDurationMs);
   if (!deterministic.passed) return deterministic;
-  return judged(id, 'curator', output ?? {}, probe, judgeModel, started);
+  return judged(id, 'curator', output ?? {}, probe, judgeModel, started, usage, agentDurationMs);
 }
 
 async function observerHardCurrentStale(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -148,6 +183,8 @@ async function observerHardCurrentStale(modelSpec: string, judgeModel: string, t
     '[Source entry id: assistant-d] 2026-06-07 10:05 Assistant: Okay.',
   ].join('\n');
   const { runObserver } = await loadOmAgents();
+  const usage = createUsageCollector();
+  const agentStarted = Date.now();
   const output = await runObserver({
     ...auth,
     priorReflections: ['[rrrrrrrrrrrr] User requires exact current-vs-stale relationships.'],
@@ -156,7 +193,9 @@ async function observerHardCurrentStale(modelSpec: string, judgeModel: string, t
     allowedSourceEntryIds: ['user-a', 'assistant-b', 'user-c', 'assistant-d'],
     thinkingLevel,
     maxTurns: 6,
+    onUsage: usage.onUsage,
   });
+  const agentDurationMs = Date.now() - agentStarted;
   return judged('observer-current-stale-sqlite', 'observer', output ?? [], {
     id: 'observer-current-stale-sqlite',
     question: 'Did the observer extract the hard durable evidence from the chunk while omitting only the final assistant acknowledgement?',
@@ -176,7 +215,7 @@ async function observerHardCurrentStale(modelSpec: string, judgeModel: string, t
         'Output includes source id assistant-d or a standalone observation for the final assistant acknowledgement.',
       ],
     },
-  }, judgeModel, started);
+  }, judgeModel, started, usage.total, agentDurationMs);
 }
 
 async function observerHardAssistantOnly(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -188,7 +227,10 @@ async function observerHardAssistantOnly(modelSpec: string, judgeModel: string, 
     '[Source entry id: user-c] 2026-06-07 11:02 User: Do not call that fixed. The CRLF offset failure is still unresolved.',
   ].join('\n');
   const { runObserver } = await loadOmAgents();
-  const output = await runObserver({ ...auth, priorReflections: [], priorObservations: [], chunk, allowedSourceEntryIds: ['assistant-a', 'tool-b', 'user-c'], thinkingLevel, maxTurns: 6 });
+  const usage = createUsageCollector();
+  const agentStarted = Date.now();
+  const output = await runObserver({ ...auth, priorReflections: [], priorObservations: [], chunk, allowedSourceEntryIds: ['assistant-a', 'tool-b', 'user-c'], thinkingLevel, maxTurns: 6, onUsage: usage.onUsage });
+  const agentDurationMs = Date.now() - agentStarted;
   return judged('observer-assistant-tool-evidence', 'observer', output ?? [], {
     id: 'observer-assistant-tool-evidence',
     question: 'Did the observer preserve assistant/tool-result evidence plus the user-stated unresolved status?',
@@ -201,7 +243,7 @@ async function observerHardAssistantOnly(modelSpec: string, judgeModel: string, 
       ],
       fail_if: ['Output ignores assistant/tool result evidence because it was not user-authored.', 'Output says or implies the CRLF offset issue is fixed.', 'Output invents source ids.'],
     },
-  }, judgeModel, started);
+  }, judgeModel, started, usage.total, agentDurationMs);
 }
 
 async function reflectorHardCompression(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -214,7 +256,10 @@ async function reflectorHardCompression(modelSpec: string, judgeModel: string, t
     obs('dddddddddddd', 'Assistant acknowledged the instruction.', '2026-06-07T10:05:00.000Z'),
   ];
   const { runReflector } = await loadOmAgents();
-  const output = await runReflector({ ...auth, reflections: [], observations, thinkingLevel, maxTurns: 6 });
+  const usage = createUsageCollector();
+  const agentStarted = Date.now();
+  const output = await runReflector({ ...auth, reflections: [], observations, thinkingLevel, maxTurns: 6, onUsage: usage.onUsage });
+  const agentDurationMs = Date.now() - agentStarted;
   return judged('reflector-current-stale-blocker', 'reflector', output ?? [], {
     id: 'reflector-current-stale-blocker',
     question: 'Did the reflector create durable one-line reflections for current/stale decision and unresolved blocker, without reflecting acknowledgement noise?',
@@ -227,7 +272,7 @@ async function reflectorHardCompression(modelSpec: string, judgeModel: string, t
       ],
       fail_if: ['Output omits current-vs-stale relationship.', 'Output omits exact error/file or WAL requirement.', 'Any supportingObservationIds value is not one of: aaaaaaaaaaaa, bbbbbbbbbbbb, cccccccccccc, dddddddddddd.'],
     },
-  }, judgeModel, started);
+  }, judgeModel, started, usage.total, agentDurationMs);
 }
 
 async function reflectorSupersessionRelation(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -239,7 +284,10 @@ async function reflectorSupersessionRelation(modelSpec: string, judgeModel: stri
     obs('cccccccccccc', 'Final meta-note: answer approved feature flag from the canonical record and rejected near-match already recorded.', '2026-06-07T10:02:00.000Z'),
   ];
   const { runReflector } = await loadOmAgents();
-  const output = await runReflector({ ...auth, reflections: [], observations, thinkingLevel, maxTurns: 6 });
+  const usage = createUsageCollector();
+  const agentStarted = Date.now();
+  const output = await runReflector({ ...auth, reflections: [], observations, thinkingLevel, maxTurns: 6, onUsage: usage.onUsage });
+  const agentDurationMs = Date.now() - agentStarted;
   return judged('reflector-supersession-relation', 'reflector', output ?? [], {
     id: 'reflector-supersession-relation',
     question: 'Did the reflector preserve the durable replacement/supersession relation instead of compressing it into only current-vs-stale labels?',
@@ -256,7 +304,7 @@ async function reflectorSupersessionRelation(modelSpec: string, judgeModel: stri
         'Output invents support ids.',
       ],
     },
-  }, judgeModel, started);
+  }, judgeModel, started, usage.total, agentDurationMs);
 }
 
 async function reflectorReviewedZero(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -267,7 +315,10 @@ async function reflectorReviewedZero(modelSpec: string, judgeModel: string, thin
     obs('bbbbbbbbbbbb', 'User said thanks.', '2026-06-07T10:01:00.000Z'),
   ];
   const { runReflector } = await loadOmAgents();
-  const output = await runReflector({ ...auth, reflections: [ref('eeeeeeeeeeee', 'User prefers concise memory updates.', ['aaaaaaaaaaaa'])], observations, thinkingLevel, maxTurns: 4 });
+  const usage = createUsageCollector();
+  const agentStarted = Date.now();
+  const output = await runReflector({ ...auth, reflections: [ref('eeeeeeeeeeee', 'User prefers concise memory updates.', ['aaaaaaaaaaaa'])], observations, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
+  const agentDurationMs = Date.now() - agentStarted;
   return judged('reflector-reviewed-zero-noise', 'reflector', output ?? [], {
     id: 'reflector-reviewed-zero-noise',
     question: 'Did the reflector correctly add no durable reflections for acknowledgement-only observations?',
@@ -275,7 +326,7 @@ async function reflectorReviewedZero(modelSpec: string, judgeModel: string, thin
       pass_if: ['Output is empty or otherwise indicates no new durable reflection was recorded.'],
       fail_if: ['Output records a durable reflection for thanks/okay acknowledgement noise.'],
     },
-  }, judgeModel, started);
+  }, judgeModel, started, usage.total, agentDurationMs);
 }
 
 async function curatorFlagsMissingExactDetail(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -287,7 +338,10 @@ async function curatorFlagsMissingExactDetail(modelSpec: string, judgeModel: str
   ];
   const reflections = [ref('cccccccccccc', 'Migration dry run failed with a database lock; WAL should stay enabled.', ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'])];
   const { runCurator } = await loadOmAgents();
-  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 1, thinkingLevel, maxTurns: 4 });
+  const usage = createUsageCollector();
+  const agentStarted = Date.now();
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 1, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
+  const agentDurationMs = Date.now() - agentStarted;
   return judgedCurator('curator-flags-missing-exact-detail', output, {
     id: 'curator-flags-missing-exact-detail',
     question: 'Did the curator avoid dropping evidence and preserve or request follow-up for exact missing blocker details?',
@@ -303,7 +357,7 @@ async function curatorFlagsMissingExactDetail(modelSpec: string, judgeModel: str
   }, judgeModel, started, [
     { label: 'must not drop exact blocker observations', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'].includes(id)) },
     { label: 'must pin or flag at least one exact blocker observation', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'].includes(id)) },
-  ]);
+  ], usage.total, agentDurationMs);
 }
 
 async function curatorUnpinsStalePinnedFailure(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -315,7 +369,10 @@ async function curatorUnpinsStalePinnedFailure(modelSpec: string, judgeModel: st
   ];
   const reflections = [ref('cccccccccccc', 'The CRLF offset failure is fixed; later pnpm test and typecheck passed.', ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'])];
   const { runCurator } = await loadOmAgents();
-  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['aaaaaaaaaaaa'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 1, thinkingLevel, maxTurns: 4 });
+  const usage = createUsageCollector();
+  const agentStarted = Date.now();
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['aaaaaaaaaaaa'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 1, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
+  const agentDurationMs = Date.now() - agentStarted;
   return judgedCurator('curator-unpins-stale-pinned-failure', output, {
     id: 'curator-unpins-stale-pinned-failure',
     question: 'Did the curator unpin an old pinned failure after later reflection records that validation passed?',
@@ -330,7 +387,7 @@ async function curatorUnpinsStalePinnedFailure(modelSpec: string, judgeModel: st
   }, judgeModel, started, [
     { label: 'must unpin stale pinned failure', pass: (o) => curatorIds(o, 'unpinned').includes('aaaaaaaaaaaa') },
     { label: 'must not drop passing validation evidence', pass: (o) => !curatorIds(o, 'dropped').includes('bbbbbbbbbbbb') },
-  ]);
+  ], usage.total, agentDurationMs);
 }
 
 async function curatorDropsNoiseKeepsPreference(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -343,11 +400,14 @@ async function curatorDropsNoiseKeepsPreference(modelSpec: string, judgeModel: s
   ];
   const reflections = [ref('dddddddddddd', 'User prefers pnpm instead of npm for this repo.', ['cccccccccccc'])];
   const { runCurator } = await loadOmAgents();
-  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4 });
+  const usage = createUsageCollector();
+  const agentStarted = Date.now();
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
+  const agentDurationMs = Date.now() - agentStarted;
   return deterministicCuratorRecord('curator-drops-noise-keeps-preference', output, started, [
     { label: 'must not drop durable user preference', pass: (o) => !curatorIds(o, 'dropped').includes('cccccccccccc') },
     { label: 'must drop only transient noise ids', pass: (o) => curatorIds(o, 'dropped').every((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'].includes(id)) },
-  ]);
+  ], usage.total, agentDurationMs);
 }
 
 async function curatorKeepsStaleTrapEvidence(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -361,7 +421,10 @@ async function curatorKeepsStaleTrapEvidence(modelSpec: string, judgeModel: stri
   ];
   const reflections = [ref('eeeeeeeeeeee', 'Approved feature flag is fast_sync_v2_enabled.', ['aaaaaaaaaaaa'])];
   const { runCurator } = await loadOmAgents();
-  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4 });
+  const usage = createUsageCollector();
+  const agentStarted = Date.now();
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
+  const agentDurationMs = Date.now() - agentStarted;
   return judgedCurator('curator-keeps-stale-trap-evidence', output, {
     id: 'curator-keeps-stale-trap-evidence',
     question: 'Did the curator recognize that the reflection omitted important stale/current trap semantics?',
@@ -376,7 +439,7 @@ async function curatorKeepsStaleTrapEvidence(modelSpec: string, judgeModel: stri
   }, judgeModel, started, [
     { label: 'must not drop stale/current trap evidence', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb', 'dddddddddddd'].includes(id)) },
     { label: 'must pin or flag stale/current trap evidence', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb', 'dddddddddddd'].includes(id)) }, 
-  ]);
+  ], usage.total, agentDurationMs);
 }
 
 async function curatorMixedReviewedPool(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -399,13 +462,16 @@ async function curatorMixedReviewedPool(modelSpec: string, judgeModel: string, t
     ref('888888888888', 'Use pnpm instead of npm/yarn in this repo.', ['cccccccccccc', '333333333333']),
   ];
   const { runCurator } = await loadOmAgents();
-  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['aaaaaaaaaaaa'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 3, thinkingLevel, maxTurns: 4 });
+  const usage = createUsageCollector();
+  const agentStarted = Date.now();
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['aaaaaaaaaaaa'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 3, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
+  const agentDurationMs = Date.now() - agentStarted;
   return deterministicCuratorRecord('curator-mixed-reviewed-pool', output, started, [
     { label: 'must not drop durable constraints or blockers', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['cccccccccccc', 'dddddddddddd', '222222222222', '333333333333'].includes(id)) },
     { label: 'dropped ids must stay within cap', pass: (o) => curatorIds(o, 'dropped').length <= 3 },
     { label: 'must unpin stale fixed failure', pass: (o) => curatorIds(o, 'unpinned').includes('aaaaaaaaaaaa') },
     { label: 'must pin or flag unresolved blocker evidence missing from reflections', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['dddddddddddd', '222222222222'].includes(id)) },
-  ]);
+  ], usage.total, agentDurationMs);
 }
 
 async function curatorMinimalPin(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -422,11 +488,14 @@ async function curatorMinimalPin(modelSpec: string, judgeModel: string, thinking
     ref('ffffffffffff', 'Validation passed with exact command `pnpm test && pnpm run typecheck`.', ['cccccccccccc']),
   ];
   const { runCurator } = await loadOmAgents();
-  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 1, thinkingLevel, maxTurns: 4 });
+  const usage = createUsageCollector();
+  const agentStarted = Date.now();
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 1, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
+  const agentDurationMs = Date.now() - agentStarted;
   return deterministicCuratorRecord('curator-minimal-pin-pressure', output, started, [
     { label: 'must not pin already-reflected exact details', pass: (o) => !curatorIds(o, 'pinned').some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb', 'cccccccccccc'].includes(id)) },
     { label: 'must not drop reflected durable details', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb', 'cccccccccccc'].includes(id)) },
-  ]);
+  ], usage.total, agentDurationMs);
 }
 
 async function curatorContradictoryReflection(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -439,7 +508,10 @@ async function curatorContradictoryReflection(modelSpec: string, judgeModel: str
   ];
   const reflections = [ref('dddddddddddd', 'Auth refresh token expiry is fixed.', ['aaaaaaaaaaaa'])];
   const { runCurator } = await loadOmAgents();
-  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4 });
+  const usage = createUsageCollector();
+  const agentStarted = Date.now();
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
+  const agentDurationMs = Date.now() - agentStarted;
   return judgedCurator('curator-contradictory-reflection', output, {
     id: 'curator-contradictory-reflection',
     question: 'Did the curator detect contradiction between reflection and observations and preserve evidence for repair?',
@@ -454,7 +526,7 @@ async function curatorContradictoryReflection(modelSpec: string, judgeModel: str
   }, judgeModel, started, [
     { label: 'must not drop contradictory unresolved evidence', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'].includes(id)) },
     { label: 'must pin or flag contradictory unresolved evidence', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'].includes(id)) },
-  ]);
+  ], usage.total, agentDurationMs);
 }
 
 async function curatorOneShotPriority(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -470,7 +542,10 @@ async function curatorOneShotPriority(modelSpec: string, judgeModel: string, thi
   ];
   const reflections = [ref('999999999999', 'Deploy now passes after port cleanup.', ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'])];
   const { runCurator } = await loadOmAgents();
-  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['aaaaaaaaaaaa'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4 });
+  const usage = createUsageCollector();
+  const agentStarted = Date.now();
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['aaaaaaaaaaaa'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
+  const agentDurationMs = Date.now() - agentStarted;
   return judgedCurator('curator-one-shot-priority', output, {
     id: 'curator-one-shot-priority',
     question: 'With multiple possible actions in one curator pass, did the curator choose safe high-priority actions instead of unsafe cleanup?',
@@ -485,7 +560,7 @@ async function curatorOneShotPriority(modelSpec: string, judgeModel: string, thi
   }, judgeModel, started, [
     { label: 'must not drop unreflected secret relation evidence', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['cccccccccccc', 'dddddddddddd'].includes(id)) },
     { label: 'must take a high-priority safe action', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged'), ...curatorIds(o, 'unpinned'), ...curatorIds(o, 'dropped')].length > 0 },
-  ]);
+  ], usage.total, agentDurationMs);
 }
 
 
@@ -521,6 +596,11 @@ async function main() {
     passed: records.filter((r) => r.passed).length,
     total: records.length,
     failed: records.filter((r) => !r.passed).map((r) => ({ id: r.id, agent: r.agent, judge: r.judge, error: r.error })),
+    durationMs: sumDuration(records, 'durationMs'),
+    agentDurationMs: sumDuration(records, 'agentDurationMs'),
+    judgeDurationMs: sumDuration(records, 'judgeDurationMs'),
+    usage: sumUsage(records, 'usage'),
+    judgeUsage: sumUsage(records, 'judgeUsage'),
   };
   fs.writeFileSync(path.join(args.outDir, 'results.json'), JSON.stringify(records, null, 2));
   fs.writeFileSync(path.join(args.outDir, 'summary.json'), JSON.stringify(summary, null, 2));
