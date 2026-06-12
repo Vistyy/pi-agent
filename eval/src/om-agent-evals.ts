@@ -44,6 +44,9 @@ type AgentEvalRecord = {
   judgeDurationMs?: number;
   usage?: TokenUsage;
   judgeUsage?: TokenUsage;
+  diagnosis?: unknown;
+  diagnosisUsage?: TokenUsage;
+  diagnosisDurationMs?: number;
   error?: string;
 };
 
@@ -106,21 +109,38 @@ function createUsageCollector(): { onUsage: (event: { usage?: unknown }) => void
   };
 }
 
-function sumUsage(records: AgentEvalRecord[], key: 'usage' | 'judgeUsage'): TokenUsage {
+function sumUsage(records: AgentEvalRecord[], key: 'usage' | 'judgeUsage' | 'diagnosisUsage'): TokenUsage {
   const total: TokenUsage = {};
   for (const record of records) addUsage(total, record[key] ?? {});
   return total;
 }
 
-function sumDuration(records: AgentEvalRecord[], key: 'durationMs' | 'agentDurationMs' | 'judgeDurationMs'): number {
+function sumDuration(records: AgentEvalRecord[], key: 'durationMs' | 'agentDurationMs' | 'judgeDurationMs' | 'diagnosisDurationMs'): number {
   return records.reduce((sum, record) => sum + (record[key] ?? 0), 0);
+}
+
+async function diagnoseFailure(record: AgentEvalRecord, probe: Probe, judgeModel: string): Promise<AgentEvalRecord> {
+  if (record.passed) return record;
+  const diagnosticProbe: Probe = {
+    id: `${probe.id}-diagnostic`,
+    question: 'Diagnose why the evaluated agent output failed this eval. Focus on prompt/input difficulty, missed evidence, confusing near-matches, and what change might improve behavior. Do not relitigate pass/fail.',
+    rubric: {
+      pass_if: ['Explains likely failure causes from the inputs, output, and expected behavior.'],
+      fail_if: ['Only repeats the failure label without analysis.'],
+    },
+  };
+  const diagnosticInput = JSON.stringify({ expected: probe, output: record.output, failure: record.judge }, null, 2);
+  const diagnosticStarted = Date.now();
+  const { run, judge } = await runJudge(diagnosticProbe, diagnosticInput, judgeModel);
+  return { ...record, diagnosis: judge, diagnosisUsage: run.usage, diagnosisDurationMs: Date.now() - diagnosticStarted, durationMs: Date.now() - diagnosticStarted + record.durationMs };
 }
 
 async function judged(id: string, agent: AgentEvalRecord['agent'], output: unknown, probe: Probe, judgeModel: string, started: number, usage?: TokenUsage, agentDurationMs?: number): Promise<AgentEvalRecord> {
   const answer = JSON.stringify(output, null, 2);
   const judgeStarted = Date.now();
   const { run, judge } = await runJudge(probe, answer, judgeModel);
-  return { id, agent, output, judge, passed: run.status === 0 && judge.passed, durationMs: Date.now() - started, agentDurationMs, judgeDurationMs: Date.now() - judgeStarted, usage, judgeUsage: run.usage };
+  const record = { id, agent, output, judge, passed: run.status === 0 && judge.passed, durationMs: Date.now() - started, agentDurationMs, judgeDurationMs: Date.now() - judgeStarted, usage, judgeUsage: run.usage };
+  return diagnoseFailure(record, probe, judgeModel);
 }
 
 function curatorIds(output: CuratorActionResult | undefined, key: keyof CuratorActionResult): string[] {
@@ -169,7 +189,7 @@ async function judgedCurator(
   agentDurationMs?: number,
 ): Promise<AgentEvalRecord> {
   const deterministic = deterministicCuratorRecord(id, output, started, checks, usage, agentDurationMs);
-  if (!deterministic.passed) return deterministic;
+  if (!deterministic.passed) return diagnoseFailure(deterministic, probe, judgeModel);
   return judged(id, 'curator', output ?? {}, probe, judgeModel, started, usage, agentDurationMs);
 }
 
@@ -706,6 +726,95 @@ async function curatorHardSchemaStaleNoise(modelSpec: string, judgeModel: string
 }
 
 
+
+async function curatorBrutalHistoricalPressure(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const started = Date.now();
+  const auth = await resolveModel(modelSpec);
+  const observations = [
+    obs('a00000000001', 'Implemented schema: `om.observations.flagged` appends follow-up requests with `observationIds` and normalized one-line `reason`.', '2026-06-11T21:00:00.000Z'),
+    obs('a00000000002', 'Near-match but stale proposal: event should be named `om.observations.flag` with enum reason `reflection_missing_exact_detail`.', '2026-06-11T21:01:00.000Z'),
+    obs('a00000000003', 'Implemented behavior: flags are implicitly resolved by later reflector review entry coverage, not by a separate resolved event.', '2026-06-11T21:02:00.000Z'),
+    obs('a00000000004', 'Stale design note: add `om.observations.covered` when reflector covers an observation.', '2026-06-11T21:03:00.000Z'),
+    obs('a00000000005', 'Proposed future reflection lifecycle event names are exact but not implemented: `om.reflections.deprecated` and `om.reflections.superseded`.', '2026-06-11T21:04:00.000Z'),
+    obs('a00000000006', 'Stale near-match: use `om.reflection.deprecated` singular and mutate old reflections in place.', '2026-06-11T21:05:00.000Z'),
+    obs('a00000000007', 'Current scheduler: curator runs after successful reflector review and emergency visible pressure, not from old active-pool soft threshold.', '2026-06-11T21:06:00.000Z'),
+    obs('a00000000008', 'Stale scheduler: dropper should run whenever active observations exceed 30 soft target.', '2026-06-11T21:07:00.000Z'),
+    obs('a00000000009', 'Current config default: emergencyCurateWhenVisibleObservationsOver is 60.', '2026-06-11T21:08:00.000Z'),
+    obs('a00000000010', 'Stale config default: dropWhenActiveObservationsOver is 80 and normal cleanup waits for hard cap pressure.', '2026-06-11T21:09:00.000Z'),
+    obs('a00000000011', 'Current eval doctrine: hard historical evals are expected to fail; do not weaken rubrics or fixtures just to preserve pass rate.', '2026-06-11T21:10:00.000Z'),
+    obs('a00000000012', 'Stale eval note: keep all easy synthetic evals because passing 8/8 is sufficient signal.', '2026-06-11T21:11:00.000Z'),
+    obs('a00000000013', 'Current blocker: recall model evals are missing; exact evidence should be recovered instead of trusting compressed near-matches.', '2026-06-11T21:12:00.000Z'),
+    obs('a00000000014', 'Stale recall assumption: compaction details make recall redundant, so no recall evals are needed.', '2026-06-11T21:13:00.000Z'),
+    obs('a00000000015', 'Pinned old failure: curator baseline failed 4/8 before prompt fixes; this is stale after later curator runs passed.', '2026-06-11T21:14:00.000Z'),
+    obs('a00000000016', 'Later validation: curator low/high runs now record evaluated-model usage and pass the hard schema smoke after rubric clarification.', '2026-06-11T21:15:00.000Z'),
+    obs('a00000000017', 'Pinned validation: `pnpm test && pnpm run typecheck` passed after curator emergency scheduling was wired.', '2026-06-11T21:16:00.000Z'),
+    obs('a00000000018', 'Noisy log: memory update task started.', '2026-06-11T21:17:00.000Z'),
+    obs('a00000000019', 'Noisy log containing scary token `om.observations.flagged` in debug output but no durable decision.', '2026-06-11T21:18:00.000Z'),
+    obs('a00000000020', 'Noisy log: provider request took 812ms.', '2026-06-11T21:19:00.000Z'),
+    obs('a00000000021', 'Assistant draft said maybe call the event `om.observation.flagged`; user later corrected to exact plural `om.observations.flagged`.', '2026-06-11T21:20:00.000Z'),
+    obs('a00000000022', 'User correction: the exact durable event is plural `om.observations.flagged`; remember the plural observations segment.', '2026-06-11T21:21:00.000Z'),
+    obs('a00000000023', 'Assistant draft said future event `om.reflections.supersedes`; user wanted `om.reflections.superseded`.', '2026-06-11T21:22:00.000Z'),
+    obs('a00000000024', 'User correction: future exact event name is `om.reflections.superseded`, not supersedes.', '2026-06-11T21:23:00.000Z'),
+    obs('a00000000025', 'Current implementation fact: curator tools reject non-candidate ids with `not_action_candidate`.', '2026-06-11T21:24:00.000Z'),
+    obs('a00000000026', 'Stale implementation note: curator can mutate any reviewed id if it appears in read-only context.', '2026-06-11T21:25:00.000Z'),
+    obs('a00000000027', 'Current model setting recommendation: curator should use low thinking because high had same pass rate and much higher token/time cost.', '2026-06-11T21:26:00.000Z'),
+    obs('a00000000028', 'Stale model setting: curatorThinking must stay high for safety.', '2026-06-11T21:27:00.000Z'),
+    obs('a00000000029', 'Noisy acknowledgement: sounds good, proceed.', '2026-06-11T21:28:00.000Z'),
+    obs('a00000000030', 'Noisy acknowledgement: okay.', '2026-06-11T21:29:00.000Z'),
+    obs('a00000000031', 'Current blocker: diagnostic prompts should run after unclear eval failures and must not change pass/fail.', '2026-06-11T21:30:00.000Z'),
+    obs('a00000000032', 'Stale plan: do all eval implementation in one pass without checkpoints.', '2026-06-11T21:31:00.000Z'),
+  ];
+  const reflections = [
+    ref('r00000000001', 'Memory has observation flags, future reflection lifecycle work, curator scheduling, and eval hardening.', ['a00000000001', 'a00000000005', 'a00000000007', 'a00000000011']),
+    ref('r00000000002', 'Cleanup moved away from dropper thresholds; emergency curator pressure exists.', ['a00000000007', 'a00000000009']),
+    ref('r00000000003', 'Curator evals passed after fixes; use the proven model settings.', ['a00000000016', 'a00000000027']),
+  ];
+  const { runCurator } = await loadOmAgents();
+  const usage = createUsageCollector();
+  const agentStarted = Date.now();
+  const output = await runCurator({
+    ...auth,
+    reflections,
+    observations,
+    pinnedObservationIds: ['a00000000015', 'a00000000017', 'a00000000028'],
+    flaggedObservationIds: ['a00000000013', 'a00000000031'],
+    protectedObservationIds: [],
+    maxDropsAllowed: 8,
+    thinkingLevel,
+    maxTurns: 4,
+    onUsage: usage.onUsage,
+  });
+  const agentDurationMs = Date.now() - agentStarted;
+  return judgedCurator('curator-brutal-historical-pressure', output, {
+    id: 'curator-brutal-historical-pressure',
+    question: 'In a large confusable historical pool, did the curator protect exact current schema/blocker/correction evidence, unpin stale pinned items, and only drop safe stale/noise observations?',
+    rubric: {
+      pass_if: [
+        'Does not drop protected current/correction ids: a00000000001, a00000000003, a00000000005, a00000000007, a00000000009, a00000000011, a00000000013, a00000000016, a00000000017, a00000000022, a00000000024, a00000000025, a00000000027, a00000000031.',
+        'Pins or flags at least two exact-schema/correction ids among a00000000001, a00000000005, a00000000022, a00000000024 because generic reflections omit exact names/corrections.',
+        'Pins or flags at least one current eval/recall/diagnostic blocker among a00000000011, a00000000013, a00000000031.',
+        'Unpins stale pinned ids a00000000015 and/or a00000000028 when later evidence shows they are stale.',
+        'Drops only safe stale/noise ids from this set: a00000000002, a00000000004, a00000000006, a00000000008, a00000000010, a00000000012, a00000000014, a00000000018, a00000000019, a00000000020, a00000000021, a00000000023, a00000000026, a00000000029, a00000000030, a00000000032.'
+      ],
+      fail_if: [
+        'The dropped array contains any protected current/correction id. A protected id in pinned or flagged is not dropped and should not be counted as a drop.',
+        'Fails to pin or flag exact schema/correction evidence despite generic reflections.',
+        'Fails to pin or flag current eval/recall/diagnostic blocker evidence.',
+        'Leaves both stale pinned ids still pinned with no unpin action.',
+        'Drops ids outside the safe stale/noise set.',
+        'The judge treats a flagged or pinned protected id as dropped even though it is absent from the dropped array.'
+      ],
+    },
+  }, judgeModel, started, [
+    { label: 'must not drop protected current/correction evidence', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['a00000000001', 'a00000000003', 'a00000000005', 'a00000000007', 'a00000000009', 'a00000000011', 'a00000000013', 'a00000000016', 'a00000000017', 'a00000000022', 'a00000000024', 'a00000000025', 'a00000000027', 'a00000000031'].includes(id)) },
+    { label: 'must pin or flag at least two exact schema/correction ids', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].filter((id) => ['a00000000001', 'a00000000005', 'a00000000022', 'a00000000024'].includes(id)).length >= 2 },
+    { label: 'must pin or flag an eval/recall/diagnostic blocker', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['a00000000011', 'a00000000013', 'a00000000031'].includes(id)) },
+    { label: 'must unpin at least one stale pinned id', pass: (o) => curatorIds(o, 'unpinned').some((id) => ['a00000000015', 'a00000000028'].includes(id)) },
+    { label: 'drops must be limited to safe stale/noise ids', pass: (o) => curatorIds(o, 'dropped').every((id) => ['a00000000002', 'a00000000004', 'a00000000006', 'a00000000008', 'a00000000010', 'a00000000012', 'a00000000014', 'a00000000018', 'a00000000019', 'a00000000020', 'a00000000021', 'a00000000023', 'a00000000026', 'a00000000029', 'a00000000030', 'a00000000032'].includes(id)) },
+  ], usage.total, agentDurationMs);
+}
+
+
 const allCases = [
   observerHardCurrentStale,
   observerHardAssistantOnly,
@@ -723,6 +832,7 @@ const allCases = [
   curatorContradictoryReflection,
   curatorOneShotPriority,
   curatorHardSchemaStaleNoise,
+  curatorBrutalHistoricalPressure,
 ];
 
 async function main() {
@@ -744,8 +854,10 @@ async function main() {
     durationMs: sumDuration(records, 'durationMs'),
     agentDurationMs: sumDuration(records, 'agentDurationMs'),
     judgeDurationMs: sumDuration(records, 'judgeDurationMs'),
+    diagnosisDurationMs: sumDuration(records, 'diagnosisDurationMs'),
     usage: sumUsage(records, 'usage'),
     judgeUsage: sumUsage(records, 'judgeUsage'),
+    diagnosisUsage: sumUsage(records, 'diagnosisUsage'),
   };
   fs.writeFileSync(path.join(args.outDir, 'results.json'), JSON.stringify(records, null, 2));
   fs.writeFileSync(path.join(args.outDir, 'summary.json'), JSON.stringify(summary, null, 2));
