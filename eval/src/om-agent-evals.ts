@@ -380,144 +380,6 @@ async function curatorFlagsMissingExactDetail(modelSpec: string, judgeModel: str
   ], usage.total, agentDurationMs);
 }
 
-async function curatorUnpinsStalePinnedFailure(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
-  const started = Date.now();
-  const auth = await resolveModel(modelSpec);
-  const observations = [
-    obs('aaaaaaaaaaaa', 'Old pinned failure: `pnpm test` failed in tests/parser.test.ts with CRLF offset mismatch.', '2026-06-07T09:00:00.000Z'),
-    obs('bbbbbbbbbbbb', 'Later validation passed: `pnpm test && pnpm run typecheck` completed successfully after the CRLF fix.', '2026-06-07T10:00:00.000Z'),
-  ];
-  const reflections = [ref('cccccccccccc', 'The CRLF offset failure is fixed; later pnpm test and typecheck passed.', ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'])];
-  const { runCurator } = await loadOmAgents();
-  const usage = createUsageCollector();
-  const agentStarted = Date.now();
-  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['aaaaaaaaaaaa'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 1, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
-  const agentDurationMs = Date.now() - agentStarted;
-  return judgedCurator('curator-unpins-stale-pinned-failure', output, {
-    id: 'curator-unpins-stale-pinned-failure',
-    question: 'Did the curator unpin an old pinned failure after later reflection records that validation passed?',
-    rubric: {
-      pass_if: [
-        'Output unpins aaaaaaaaaaaa, or otherwise clearly stops forcing the old failure into next context.',
-        'Output does not drop bbbbbbbbbbbb, which carries the passing validation evidence.',
-        'Output does not flag the old failure as unresolved.',
-      ],
-      fail_if: ['Output keeps only pinning/flagging aaaaaaaaaaaa as if the failure is current.', 'Output drops bbbbbbbbbbbb.', 'Output takes no action while a stale pinned failure remains pinned.'],
-    },
-  }, judgeModel, started, [
-    { label: 'must unpin stale pinned failure', pass: (o) => curatorIds(o, 'unpinned').includes('aaaaaaaaaaaa') },
-    { label: 'must not drop passing validation evidence', pass: (o) => !curatorIds(o, 'dropped').includes('bbbbbbbbbbbb') },
-  ], usage.total, agentDurationMs);
-}
-
-async function curatorDropsNoiseKeepsPreference(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
-  const started = Date.now();
-  const auth = await resolveModel(modelSpec);
-  const observations = [
-    obs('aaaaaaaaaaaa', 'Noisy transient log: webpack progress 17% module build 142/900.', '2026-06-07T09:00:00.000Z'),
-    obs('bbbbbbbbbbbb', 'Noisy transient log: webpack progress 18% module build 151/900.', '2026-06-07T09:01:00.000Z'),
-    obs('cccccccccccc', 'Current user preference: use pnpm instead of npm for this repo.', '2026-06-07T09:02:00.000Z'),
-  ];
-  const reflections = [ref('dddddddddddd', 'User prefers pnpm instead of npm for this repo.', ['cccccccccccc'])];
-  const { runCurator } = await loadOmAgents();
-  const usage = createUsageCollector();
-  const agentStarted = Date.now();
-  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
-  const agentDurationMs = Date.now() - agentStarted;
-  return deterministicCuratorRecord('curator-drops-noise-keeps-preference', output, started, [
-    { label: 'must not drop durable user preference', pass: (o) => !curatorIds(o, 'dropped').includes('cccccccccccc') },
-    { label: 'must drop only transient noise ids', pass: (o) => curatorIds(o, 'dropped').every((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'].includes(id)) },
-  ], usage.total, agentDurationMs);
-}
-
-async function curatorKeepsStaleTrapEvidence(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
-  const started = Date.now();
-  const auth = await resolveModel(modelSpec);
-  const observations = [
-    obs('aaaaaaaaaaaa', 'Canonical approved feature flag is `fast_sync_v2_enabled`, which supersedes rejected near-match `enableFastSync`.', '2026-06-07T09:00:00.000Z'),
-    obs('bbbbbbbbbbbb', 'Stale trap: `enableFastSync` appears in old docs and must not be used for the final implementation.', '2026-06-07T09:01:00.000Z'),
-    obs('cccccccccccc', 'Transient log: feature scan completed in 122ms.', '2026-06-07T09:02:00.000Z'),
-    obs('dddddddddddd', 'User asks to preserve exact current-vs-stale relationship when compacting.', '2026-06-07T09:03:00.000Z'),
-  ];
-  const reflections = [ref('eeeeeeeeeeee', 'Approved feature flag is fast_sync_v2_enabled.', ['aaaaaaaaaaaa'])];
-  const { runCurator } = await loadOmAgents();
-  const usage = createUsageCollector();
-  const agentStarted = Date.now();
-  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
-  const agentDurationMs = Date.now() - agentStarted;
-  return judgedCurator('curator-keeps-stale-trap-evidence', output, {
-    id: 'curator-keeps-stale-trap-evidence',
-    question: 'Did the curator recognize that the reflection omitted important stale/current trap semantics?',
-    rubric: {
-      pass_if: [
-        'The curator recognizes the rejected/stale near-match or stale/current relationship as important evidence.',
-        'The curator uses pin or flag semantics to keep or repair that omitted relationship.',
-        'Any cleanup is limited to semantically transient noise.',
-      ],
-      fail_if: ['The curator treats the stale/current trap as redundant because the reflection names only the current value.', 'The curator only performs noise cleanup and ignores the omitted rejected near-match relation.'],
-    },
-  }, judgeModel, started, [
-    { label: 'must not drop stale/current trap evidence', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb', 'dddddddddddd'].includes(id)) },
-    { label: 'must pin or flag stale/current trap evidence', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb', 'dddddddddddd'].includes(id)) }, 
-  ], usage.total, agentDurationMs);
-}
-
-async function curatorMixedReviewedPool(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
-  const started = Date.now();
-  const auth = await resolveModel(modelSpec);
-  const observations = [
-    obs('aaaaaaaaaaaa', 'Old failure: `pnpm test` failed in tests/parser.test.ts with CRLF offset mismatch.', '2026-06-07T08:00:00.000Z'),
-    obs('bbbbbbbbbbbb', 'Later validation passed: `pnpm test && pnpm run typecheck` passed after CRLF fix.', '2026-06-07T09:00:00.000Z'),
-    obs('cccccccccccc', 'Current constraint: use pnpm, never npm, in this repo.', '2026-06-07T09:01:00.000Z'),
-    obs('dddddddddddd', 'Exact unresolved blocker: `Error: ECONNRESET at src/api/client.ts:42` remains open.', '2026-06-07T09:02:00.000Z'),
-    obs('eeeeeeeeeeee', 'Noisy log: dev server rebuilt chunk vendor in 181ms.', '2026-06-07T09:03:00.000Z'),
-    obs('ffffffffffff', 'Noisy log: dev server rebuilt chunk app in 190ms.', '2026-06-07T09:04:00.000Z'),
-    obs('111111111111', 'Assistant noted no source changes were needed for README typo.', '2026-06-07T09:05:00.000Z'),
-    obs('222222222222', 'User says the ECONNRESET blocker should be treated as current until a passing retry is shown.', '2026-06-07T09:06:00.000Z'),
-    obs('333333333333', 'Old plan to use yarn was rejected when pnpm rule was approved.', '2026-06-07T09:07:00.000Z'),
-    obs('444444444444', 'Noisy log: heartbeat ok.', '2026-06-07T09:08:00.000Z'),
-  ];
-  const reflections = [
-    ref('999999999999', 'CRLF parser failure was fixed; pnpm test and typecheck passed.', ['aaaaaaaaaaaa', 'bbbbbbbbbbbb']),
-    ref('888888888888', 'Use pnpm instead of npm/yarn in this repo.', ['cccccccccccc', '333333333333']),
-  ];
-  const { runCurator } = await loadOmAgents();
-  const usage = createUsageCollector();
-  const agentStarted = Date.now();
-  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['aaaaaaaaaaaa'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 3, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
-  const agentDurationMs = Date.now() - agentStarted;
-  return deterministicCuratorRecord('curator-mixed-reviewed-pool', output, started, [
-    { label: 'must not drop durable constraints or blockers', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['cccccccccccc', 'dddddddddddd', '222222222222', '333333333333'].includes(id)) },
-    { label: 'dropped ids must stay within cap', pass: (o) => curatorIds(o, 'dropped').length <= 3 },
-    { label: 'must unpin stale fixed failure', pass: (o) => curatorIds(o, 'unpinned').includes('aaaaaaaaaaaa') },
-    { label: 'must pin or flag unresolved blocker evidence missing from reflections', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['dddddddddddd', '222222222222'].includes(id)) },
-  ], usage.total, agentDurationMs);
-}
-
-async function curatorMinimalPin(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
-  const started = Date.now();
-  const auth = await resolveModel(modelSpec);
-  const observations = [
-    obs('aaaaaaaaaaaa', 'Exact approved config path: `/etc/pi/agent/memory.toml`.', '2026-06-07T09:00:00.000Z'),
-    obs('bbbbbbbbbbbb', 'Exact rejected config path: `/etc/pi/memory.toml` is stale and should not be used.', '2026-06-07T09:01:00.000Z'),
-    obs('cccccccccccc', 'Exact command `pnpm test && pnpm run typecheck` passed.', '2026-06-07T09:02:00.000Z'),
-    obs('dddddddddddd', 'Exact harmless log: cache warmed in 15ms.', '2026-06-07T09:03:00.000Z'),
-  ];
-  const reflections = [
-    ref('eeeeeeeeeeee', 'Approved memory config path is /etc/pi/agent/memory.toml; /etc/pi/memory.toml is rejected stale.', ['aaaaaaaaaaaa', 'bbbbbbbbbbbb']),
-    ref('ffffffffffff', 'Validation passed with exact command `pnpm test && pnpm run typecheck`.', ['cccccccccccc']),
-  ];
-  const { runCurator } = await loadOmAgents();
-  const usage = createUsageCollector();
-  const agentStarted = Date.now();
-  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 1, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
-  const agentDurationMs = Date.now() - agentStarted;
-  return deterministicCuratorRecord('curator-minimal-pin-pressure', output, started, [
-    { label: 'must not pin already-reflected exact details', pass: (o) => !curatorIds(o, 'pinned').some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb', 'cccccccccccc'].includes(id)) },
-    { label: 'must not drop reflected durable details', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb', 'cccccccccccc'].includes(id)) },
-  ], usage.total, agentDurationMs);
-}
-
 async function curatorContradictoryReflection(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   const started = Date.now();
   const auth = await resolveModel(modelSpec);
@@ -548,42 +410,6 @@ async function curatorContradictoryReflection(modelSpec: string, judgeModel: str
     { label: 'must pin or flag contradictory unresolved evidence', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'].includes(id)) },
   ], usage.total, agentDurationMs);
 }
-
-async function curatorOneShotPriority(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
-  const started = Date.now();
-  const auth = await resolveModel(modelSpec);
-  const observations = [
-    obs('aaaaaaaaaaaa', 'Pinned old failure: deploy failed with `Error: EADDRINUSE` before port cleanup.', '2026-06-07T08:00:00.000Z'),
-    obs('bbbbbbbbbbbb', 'Later deploy passed after port cleanup; `pnpm deploy --dry-run` succeeded.', '2026-06-07T09:00:00.000Z'),
-    obs('cccccccccccc', 'Unreflected exact current secret name: `PI_AGENT_SESSION_KEY`, replacing stale `SESSION_SECRET`.', '2026-06-07T09:01:00.000Z'),
-    obs('dddddddddddd', 'Stale near-match `SESSION_SECRET` appears in old examples and must not be used.', '2026-06-07T09:02:00.000Z'),
-    obs('eeeeeeeeeeee', 'Noisy log: retry timer tick 1.', '2026-06-07T09:03:00.000Z'),
-    obs('ffffffffffff', 'Noisy log: retry timer tick 2.', '2026-06-07T09:04:00.000Z'),
-  ];
-  const reflections = [ref('999999999999', 'Deploy now passes after port cleanup.', ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'])];
-  const { runCurator } = await loadOmAgents();
-  const usage = createUsageCollector();
-  const agentStarted = Date.now();
-  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['aaaaaaaaaaaa'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
-  const agentDurationMs = Date.now() - agentStarted;
-  return judgedCurator('curator-one-shot-priority', output, {
-    id: 'curator-one-shot-priority',
-    question: 'With multiple possible actions in one curator pass, did the curator choose safe high-priority actions instead of unsafe cleanup?',
-    rubric: {
-      pass_if: [
-        'Output does not drop cccccccccccc or dddddddddddd because the secret replacement relation is unreflected.',
-        'Output chooses coherent high-priority action(s): unpin aaaaaaaaaaaa, flag/pin cccccccccccc and/or dddddddddddd, and/or drop only noisy eeeeeeeeeeee/ffffffffffff.',
-        'Multiple action types are allowed in one curator pass when each action is safe.'
-      ],
-      fail_if: ['The dropped array contains cccccccccccc or dddddddddddd.', 'The dropped array contains bbbbbbbbbbbb while old failure remains pinned.', 'Output prioritizes noisy cleanup while also losing unreflected critical relation evidence.'],
-    },
-  }, judgeModel, started, [
-    { label: 'must not drop unreflected secret relation evidence', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['cccccccccccc', 'dddddddddddd'].includes(id)) },
-    { label: 'must take a high-priority safe action', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged'), ...curatorIds(o, 'unpinned'), ...curatorIds(o, 'dropped')].length > 0 },
-  ], usage.total, agentDurationMs);
-}
-
-
 
 async function observerHardSchemaMess(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   const started = Date.now();
@@ -815,6 +641,120 @@ async function curatorBrutalHistoricalPressure(modelSpec: string, judgeModel: st
 }
 
 
+
+async function curatorBrutalUnpinTrap(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const started = Date.now();
+  const auth = await resolveModel(modelSpec);
+  const observations = [
+    obs('u00000000001', 'Pinned failure: `pnpm test` failed in tests/parser.test.ts with CRLF offset mismatch.', '2026-06-11T22:00:00.000Z'),
+    obs('u00000000002', 'Later validation for parser passed: `pnpm test tests/parser.test.ts && pnpm run typecheck` succeeded after CRLF fix.', '2026-06-11T22:01:00.000Z'),
+    obs('u00000000003', 'Pinned failure: deploy failed with `Error: EADDRINUSE` before port cleanup.', '2026-06-11T22:02:00.000Z'),
+    obs('u00000000004', 'Misleading pass: docs deploy dry run passed, but production deploy still fails with `Error: EADDRINUSE`.', '2026-06-11T22:03:00.000Z'),
+    obs('u00000000005', 'Current blocker: production deploy still fails with `Error: EADDRINUSE` until the port cleanup is applied.', '2026-06-11T22:04:00.000Z'),
+    obs('u00000000006', 'Pinned failure: auth refresh token expiry test failed.', '2026-06-11T22:05:00.000Z'),
+    obs('u00000000007', 'Stale near pass: auth login smoke test passed, but refresh token expiry test was not rerun.', '2026-06-11T22:06:00.000Z'),
+    obs('u00000000008', 'Current blocker: do not mark auth fixed until refresh token expiry test passes.', '2026-06-11T22:07:00.000Z'),
+    obs('u00000000009', 'Pinned validation: curator emergency scheduling passed full `pnpm test && pnpm run typecheck`.', '2026-06-11T22:08:00.000Z'),
+    obs('u00000000010', 'Stale note: old dropper tests passed before dropper was deleted.', '2026-06-11T22:09:00.000Z'),
+    obs('u00000000011', 'Noisy log: retry timer tick 1.', '2026-06-11T22:10:00.000Z'),
+    obs('u00000000012', 'Noisy log: retry timer tick 2.', '2026-06-11T22:11:00.000Z'),
+    obs('u00000000013', 'Exact current command to verify parser fix is `pnpm test tests/parser.test.ts && pnpm run typecheck`.', '2026-06-11T22:12:00.000Z'),
+    obs('u00000000014', 'Exact current command to verify deploy fix is `pnpm deploy --production --dry-run`, not docs deploy.', '2026-06-11T22:13:00.000Z'),
+    obs('u00000000015', 'Exact current command to verify auth fix is `pnpm test tests/auth-refresh.test.ts`.', '2026-06-11T22:14:00.000Z'),
+  ];
+  const reflections = [
+    ref('ur0000000001', 'Parser CRLF failure is fixed; deploy and auth have some passing validation.', ['u00000000001', 'u00000000002', 'u00000000004', 'u00000000007']),
+  ];
+  const { runCurator } = await loadOmAgents();
+  const usage = createUsageCollector();
+  const agentStarted = Date.now();
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['u00000000001', 'u00000000003', 'u00000000006', 'u00000000009'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 4, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
+  const agentDurationMs = Date.now() - agentStarted;
+  return judgedCurator('curator-brutal-unpin-trap', output, {
+    id: 'curator-brutal-unpin-trap',
+    question: 'Did the curator unpin only truly stale pinned failures while preserving still-current blockers hidden by misleading partial pass evidence?',
+    rubric: {
+      pass_if: [
+        'Unpins u00000000001 because parser failure has exact later passing validation.',
+        'Does not unpin u00000000003 or u00000000006 because deploy/auth remain current blockers despite misleading partial pass evidence.',
+        'Pins or flags deploy/auth current blocker evidence among u00000000005, u00000000008, u00000000014, u00000000015.',
+        'Does not drop current blocker or verification command ids u00000000005, u00000000008, u00000000013, u00000000014, u00000000015.',
+        'Drops only stale/noise ids among u00000000010, u00000000011, u00000000012.'
+      ],
+      fail_if: [
+        'Unpins current deploy/auth pinned failures u00000000003 or u00000000006.',
+        'Fails to unpin truly stale parser pinned failure u00000000001.',
+        'Drops current blocker or verification command evidence.',
+        'Treats partial pass evidence as full fix evidence.'
+      ],
+    },
+  }, judgeModel, started, [
+    { label: 'must unpin stale parser failure', pass: (o) => curatorIds(o, 'unpinned').includes('u00000000001') },
+    { label: 'must not unpin current deploy/auth failures', pass: (o) => !curatorIds(o, 'unpinned').some((id) => ['u00000000003', 'u00000000006'].includes(id)) },
+    { label: 'must pin or flag deploy/auth blocker evidence', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['u00000000005', 'u00000000008', 'u00000000014', 'u00000000015'].includes(id)) },
+    { label: 'must not drop blockers or verification commands', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['u00000000005', 'u00000000008', 'u00000000013', 'u00000000014', 'u00000000015'].includes(id)) },
+    { label: 'drops must be limited to stale/noise', pass: (o) => curatorIds(o, 'dropped').every((id) => ['u00000000010', 'u00000000011', 'u00000000012'].includes(id)) },
+  ], usage.total, agentDurationMs);
+}
+
+async function curatorBrutalContradictoryReflections(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const started = Date.now();
+  const auth = await resolveModel(modelSpec);
+  const observations = [
+    obs('c00000000001', 'Reflection r-old says feature flag is `enableFastSync`, but user later rejected that exact name.', '2026-06-11T23:00:00.000Z'),
+    obs('c00000000002', 'Current approved feature flag is `fast_sync_v2_enabled`; it supersedes rejected near-match `enableFastSync`.', '2026-06-11T23:01:00.000Z'),
+    obs('c00000000003', 'Stale docs still mention `enableFastSync`; do not use it in final implementation.', '2026-06-11T23:02:00.000Z'),
+    obs('c00000000004', 'Reflection r-new says auth bug is fixed, but no passing refresh-token-expiry test exists.', '2026-06-11T23:03:00.000Z'),
+    obs('c00000000005', 'Current auth blocker: `pnpm test tests/auth-refresh.test.ts` still fails on refresh token expiry.', '2026-06-11T23:04:00.000Z'),
+    obs('c00000000006', 'Reflection r-plan says recall is redundant after compaction.', '2026-06-11T23:05:00.000Z'),
+    obs('c00000000007', 'Current decision: recall evals are required because exact evidence can be missing from compressed memory.', '2026-06-11T23:06:00.000Z'),
+    obs('c00000000008', 'Noisy log: compaction hook ran.', '2026-06-11T23:07:00.000Z'),
+    obs('c00000000009', 'Noisy log: status command rendered.', '2026-06-11T23:08:00.000Z'),
+    obs('c00000000010', 'Exact schema correction: use `om.observations.flagged`, not `om.observation.flagged`.', '2026-06-11T23:09:00.000Z'),
+    obs('c00000000011', 'Exact reflection lifecycle correction: future name is `om.reflections.superseded`, not `om.reflections.supersedes`.', '2026-06-11T23:10:00.000Z'),
+    obs('c00000000012', 'Stale note: all curator evals passed, so no more hard evals needed.', '2026-06-11T23:11:00.000Z'),
+    obs('c00000000013', 'Current decision: hard eval failures are expected signal and should not be weakened to pass.', '2026-06-11T23:12:00.000Z'),
+  ];
+  const reflections = [
+    ref('cr0000000001', 'Use enableFastSync for the feature flag.', ['c00000000001']),
+    ref('cr0000000002', 'Auth refresh token expiry is fixed.', ['c00000000004']),
+    ref('cr0000000003', 'Recall is likely redundant after compaction.', ['c00000000006']),
+  ];
+  const { runCurator } = await loadOmAgents();
+  const usage = createUsageCollector();
+  const agentStarted = Date.now();
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 3, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
+  const agentDurationMs = Date.now() - agentStarted;
+  return judgedCurator('curator-brutal-contradictory-reflections', output, {
+    id: 'curator-brutal-contradictory-reflections',
+    question: 'Did the curator detect multiple confidently wrong reflections and preserve/flag corrective evidence instead of trusting the reflections or just cleaning noise?',
+    rubric: {
+      pass_if: [
+        'Pins or flags current feature flag correction evidence c00000000002 and/or stale-trap evidence c00000000003.',
+        'Pins or flags current auth failure evidence c00000000005.',
+        'Pins or flags recall-required evidence c00000000007 and/or hard-eval doctrine c00000000013.',
+        'Pins or flags exact schema correction c00000000010 and/or c00000000011.',
+        'Does not drop corrective/current ids c00000000002, c00000000005, c00000000007, c00000000010, c00000000011, c00000000013.',
+        'Drops, if any, are limited to noise/stale ids c00000000008, c00000000009, c00000000012.'
+      ],
+      fail_if: [
+        'Trusts wrong reflections and takes no corrective pin/flag actions.',
+        'Drops current corrective evidence.',
+        'Only drops noise while ignoring reflection contradictions.',
+        'Preserves stale enableFastSync as current.'
+      ],
+    },
+  }, judgeModel, started, [
+    { label: 'must pin or flag feature flag correction', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['c00000000002', 'c00000000003'].includes(id)) },
+    { label: 'must pin or flag auth failure correction', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].includes('c00000000005') },
+    { label: 'must pin or flag recall/hard-eval correction', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['c00000000007', 'c00000000013'].includes(id)) },
+    { label: 'must pin or flag exact schema correction', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['c00000000010', 'c00000000011'].includes(id)) },
+    { label: 'must not drop corrective/current evidence', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['c00000000002', 'c00000000005', 'c00000000007', 'c00000000010', 'c00000000011', 'c00000000013'].includes(id)) },
+    { label: 'drops must be limited to noise/stale ids', pass: (o) => curatorIds(o, 'dropped').every((id) => ['c00000000008', 'c00000000009', 'c00000000012'].includes(id)) },
+  ], usage.total, agentDurationMs);
+}
+
+
 const allCases = [
   observerHardCurrentStale,
   observerHardAssistantOnly,
@@ -824,15 +764,11 @@ const allCases = [
   reflectorReviewedZero,
   reflectorHardRepairFlag,
   curatorFlagsMissingExactDetail,
-  curatorUnpinsStalePinnedFailure,
-  curatorDropsNoiseKeepsPreference,
-  curatorKeepsStaleTrapEvidence,
-  curatorMixedReviewedPool,
-  curatorMinimalPin,
   curatorContradictoryReflection,
-  curatorOneShotPriority,
   curatorHardSchemaStaleNoise,
   curatorBrutalHistoricalPressure,
+  curatorBrutalUnpinTrap,
+  curatorBrutalContradictoryReflections,
 ];
 
 async function main() {
