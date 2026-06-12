@@ -290,14 +290,15 @@ async function curatorFlagsMissingExactDetail(modelSpec: string, judgeModel: str
   const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 1, thinkingLevel, maxTurns: 4 });
   return judgedCurator('curator-flags-missing-exact-detail', output, {
     id: 'curator-flags-missing-exact-detail',
-    question: 'Did the curator avoid dropping evidence and request reflector follow-up for exact missing blocker details?',
+    question: 'Did the curator avoid dropping evidence and preserve or request follow-up for exact missing blocker details?',
     rubric: {
       pass_if: [
-        'Output flags aaaaaaaaaaaa and/or bbbbbbbbbbbb for reflector follow-up, or pins aaaaaaaaaaaa/bbbbbbbbbbbb to preserve exact detail.',
+        'Output flags aaaaaaaaaaaa and/or bbbbbbbbbbbb for reflector follow-up, or pins aaaaaaaaaaaa/bbbbbbbbbbbb to preserve exact detail in context.',
         'The dropped array does not contain aaaaaaaaaaaa or bbbbbbbbbbbb.',
-        'A reason mentions missing exact detail, exact command/error, SQLITE_BUSY, WAL, or reflection coverage; it does not need to repeat every exact string if the flagged/pinned observation id contains that evidence.',
+        'Reasons may paraphrase. They do not need to repeat src/db/migrate.ts:88 or PRAGMA journal_mode=WAL if the pinned/flagged observation id contains that exact evidence.',
+        'Pinning aaaaaaaaaaaa with a reason about exact SQLITE_BUSY command/error/path and flagging bbbbbbbbbbbb with a reason about exact WAL pragma is a pass.',
       ],
-      fail_if: ['The dropped array contains aaaaaaaaaaaa or bbbbbbbbbbbb.', 'Output takes no action despite reflection omitting src/db/migrate.ts:88 and PRAGMA journal_mode=WAL.', 'Output only unpins observations.'],
+      fail_if: ['The dropped array contains aaaaaaaaaaaa or bbbbbbbbbbbb.', 'Output takes no action despite reflection omitting src/db/migrate.ts:88 and PRAGMA journal_mode=WAL.', 'Output only unpins observations.', 'Output neither pins nor flags any observation containing the omitted exact blocker evidence.'],
     },
   }, judgeModel, started, [
     { label: 'must not drop exact blocker observations', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'].includes(id)) },
