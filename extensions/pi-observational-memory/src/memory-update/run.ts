@@ -46,7 +46,7 @@ export function anyMemoryUpdateStageDue(entries: Entry[], runtime: Runtime): boo
 		|| activeObservationCount > runtime.config.dropWhenActiveObservationsOver;
 }
 
-function makeModelResolver(runtime: Runtime, ctx: MemoryUpdateCtx): (stage: "observer" | "reflector" | "dropper") => Promise<ResolvedModel | undefined> {
+function makeModelResolver(runtime: Runtime, ctx: MemoryUpdateCtx): (stage: "observer" | "reflector" | "curator" | "dropper") => Promise<ResolvedModel | undefined> {
 	let cached: ResolveResult | undefined;
 	return async (stage) => {
 		cached ??= await runtime.resolveModel({

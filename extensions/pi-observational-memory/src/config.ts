@@ -19,6 +19,8 @@ export interface Config {
 	strategy: MemoryStrategy;
 	observeEveryMessages: number;
 	reflectEveryObservations: number;
+	curateEveryReviewedObservations: number;
+	emergencyCurateWhenVisibleObservationsOver: number;
 	dropWhenActiveObservationsOver: number;
 	protectRecentObservations: number;
 	maxInitialObserveTokens: number;
@@ -27,6 +29,7 @@ export interface Config {
 	model?: ConfiguredModel;
 	observerThinking?: ModelThinkingLevel;
 	reflectorThinking?: ModelThinkingLevel;
+	curatorThinking?: ModelThinkingLevel;
 	dropperThinking?: ModelThinkingLevel;
 	debugLog: boolean;
 }
@@ -35,6 +38,8 @@ export const DEFAULTS: Config = {
 	strategy: STRATEGY.replacement,
 	observeEveryMessages: 32,
 	reflectEveryObservations: 8,
+	curateEveryReviewedObservations: 8,
+	emergencyCurateWhenVisibleObservationsOver: 120,
 	dropWhenActiveObservationsOver: 80,
 	protectRecentObservations: 32,
 	maxInitialObserveTokens: 100_000,
@@ -42,6 +47,7 @@ export const DEFAULTS: Config = {
 	agentMaxTurns: 16,
 	observerThinking: "low",
 	reflectorThinking: "xhigh",
+	curatorThinking: "high",
 	dropperThinking: "low",
 	debugLog: false,
 };
@@ -85,6 +91,8 @@ function normalizeSettingsConfig(value: Record<string, unknown>): Partial<Config
 	const numberKeys = [
 		"observeEveryMessages",
 		"reflectEveryObservations",
+		"curateEveryReviewedObservations",
+		"emergencyCurateWhenVisibleObservationsOver",
 		"dropWhenActiveObservationsOver",
 		"protectRecentObservations",
 		"maxInitialObserveTokens",
@@ -99,6 +107,7 @@ function normalizeSettingsConfig(value: Record<string, unknown>): Partial<Config
 	if (typeof value.debugLog === "boolean") normalized.debugLog = value.debugLog;
 	if (isThinkingLevel(value.observerThinking)) normalized.observerThinking = value.observerThinking;
 	if (isThinkingLevel(value.reflectorThinking)) normalized.reflectorThinking = value.reflectorThinking;
+	if (isThinkingLevel(value.curatorThinking)) normalized.curatorThinking = value.curatorThinking;
 	if (isThinkingLevel(value.dropperThinking)) normalized.dropperThinking = value.dropperThinking;
 	const model = normalizeModel(value.model);
 	if (model) normalized.model = model;
