@@ -163,7 +163,7 @@
                         }
                     }
                 },
-                "moonshotai/kimi-k2.6": {
+                "moonshotai/kimi-k2.7-code": {
                     "contextWindow": 200000,
                     "maxTokens": 64000,
                     "compat": {
