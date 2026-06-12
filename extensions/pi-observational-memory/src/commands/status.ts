@@ -4,9 +4,11 @@ import type { Runtime } from "../runtime.js";
 import {
 	contextProjection,
 	diffContextProjection,
+	entryIndexById,
 	foldAgentUsage,
 	foldLedger,
 	fullProjection,
+	latestCuratorCursorIndex,
 	nextContextProjection,
 	observationTokenSum,
 	reflectionTokenSum,
@@ -53,6 +55,10 @@ export async function runStatusCommand(args: unknown, ctx: any, runtime: Runtime
 	const contextTokens = observationTokenSum(context.observations) + reflectionTokenSum(context.reflections);
 	const obsProgress = sourceEntryCountSinceObservationCoverage(entries);
 	const reflectionProgress = observationsSinceReflectionCoverage(entries, folded.activeObservations).length;
+	const visibleObservationCount = nextContext.observations.length;
+	const curatorCursorIndex = latestCuratorCursorIndex(entries);
+	const entryIndexes = entryIndexById(entries);
+	const reviewedSinceCuratorCursor = nextContext.reviewed.filter((observation) => observation.sourceEntryIds.some((sourceEntryId) => (entryIndexes.get(sourceEntryId) ?? -1) > curatorCursorIndex)).length;
 
 	const lines = [
 		"── Memory ──",
@@ -63,6 +69,7 @@ export async function runStatusCommand(args: unknown, ctx: any, runtime: Runtime
 		"── Next work ──",
 		`Observe: ${obsProgress.toLocaleString()} / ${runtime.config.observeEveryMessages.toLocaleString()} source entries`,
 		`Reflect: ${reflectionProgress.toLocaleString()} / ${runtime.config.reflectEveryObservations.toLocaleString()} observations`,
+		`Curate: ${visibleObservationCount.toLocaleString()} / ${runtime.config.emergencyCurateWhenVisibleObservationsOver.toLocaleString()} visible observations emergency`,
 		"",
 		"── Cost ──",
 		usageLine("Total", memoryUsage.total),
@@ -78,6 +85,7 @@ export async function runStatusCommand(args: unknown, ctx: any, runtime: Runtime
 			`Review state: ${nextContext.reviewed.length.toLocaleString()} reviewed / ${nextContext.unreviewed.length.toLocaleString()} unreviewed`,
 			`Context drift: +${drift.observationsOnlyInNextContext.length.toLocaleString()} observations, +${drift.reflectionsOnlyInNextContext.length.toLocaleString()} reflections, -${drift.observationsOnlyInContext.length.toLocaleString()} stale observations`,
 			`Pinned reviewed observations: ${folded.pinnedObservationIds.size.toLocaleString()}`,
+			`Reviewed since curator cursor: ${reviewedSinceCuratorCursor.toLocaleString()}`,
 			`Protected recent: ${(runtime.config.protectRecentObservations ?? 20).toLocaleString()} observations`,
 			`Source entries since review cursor: ${reflectionReviewDistance.toLocaleString()}`,
 			"",

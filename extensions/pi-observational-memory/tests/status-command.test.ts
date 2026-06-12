@@ -26,6 +26,7 @@ function setup(args: { entries: TestEntry[]; runtime?: Partial<Runtime> }) {
 			strategy: "replacement",
 			observeEveryMessages: 10,
 			reflectEveryObservations: 20,
+			emergencyCurateWhenVisibleObservationsOver: 60,
 			observationsPoolMaxTokens: 40,
 		},
 		memoryUpdateInFlight: false,
@@ -57,6 +58,7 @@ describe("/om:status", () => {
 		expect(output).toContain("Size:         ~0 / 40 tokens");
 		expect(output).toContain("Observe: 0 / 10 source entries");
 		expect(output).toContain("Reflect: 0 / 20 observations");
+		expect(output).toContain("Curate: 0 / 60 visible observations emergency");
 		expect(output).not.toContain("Strategy:");
 	});
 
@@ -77,6 +79,7 @@ describe("/om:status", () => {
 		expect(output).toContain("Next context: 0 observations, 1 reflections");
 		expect(output).toContain("Observe: 2 / 10 source entries");
 		expect(output).toContain("Reflect: 0 / 20 observations");
+		expect(output).toContain("Curate: 0 / 60 visible observations emergency");
 		expect(output).toContain("Total: $0.0000 / 0 requests / 0 tokens");
 	});
 
@@ -94,6 +97,7 @@ describe("/om:status", () => {
 		expect(output).toContain("Ledger observations: 1 recorded / 0 dropped / 1 active");
 		expect(output).toContain("Review state: 0 reviewed / 1 unreviewed");
 		expect(output).toContain("Context drift: +1 observations, +0 reflections, -0 stale observations");
+		expect(output).toContain("Reviewed since curator cursor: 0");
 		expect(output).toContain("Source entries since review cursor: 1");
 	});
 
@@ -107,7 +111,7 @@ describe("/om:status", () => {
 		const output = await setup({
 			entries: [],
 			runtime: {
-				config: { strategy: "off", observeEveryMessages: 10, reflectEveryObservations: 20, observationsPoolMaxTokens: 40 },
+				config: { strategy: "off", observeEveryMessages: 10, reflectEveryObservations: 20, emergencyCurateWhenVisibleObservationsOver: 60, observationsPoolMaxTokens: 40 },
 				memoryUpdateInFlight: true,
 				memoryUpdatePhase: "reflector",
 				compactHookInFlight: true,

@@ -25,6 +25,7 @@ import {
 	observation,
 	observationsDroppedEntry,
 	observationsFlaggedEntry,
+	observationsPinnedEntry,
 	observationsRecordedEntry,
 	reflection,
 	reflectionsRecordedEntry,
@@ -47,6 +48,7 @@ function setup(args: {
 	entries: TestEntry[];
 	observeEveryMessages?: number;
 	reflectEveryObservations?: number;
+	emergencyCurateWhenVisibleObservationsOver?: number;
 	observationsPoolMaxTokens?: number;
 	maxInitialObserveTokens?: number;
 	strategy?: "replacement" | "off";
@@ -71,7 +73,7 @@ function setup(args: {
 			reflectEveryObservations: args.reflectEveryObservations ?? 1,
 			maxInitialObserveTokens: args.maxInitialObserveTokens ?? 100_000,
 			observationsPoolMaxTokens: args.observationsPoolMaxTokens ?? 100,
-			emergencyCurateWhenVisibleObservationsOver: 120,
+			emergencyCurateWhenVisibleObservationsOver: args.emergencyCurateWhenVisibleObservationsOver ?? 60,
 			protectRecentObservations: 32,
 			agentMaxTurns: 9,
 			model: { provider: "anthropic", id: "memory", thinking: "minimal" },
@@ -163,6 +165,32 @@ describe("memory update hook", () => {
 		fireTurnEnd();
 
 		expect(runtime.launchMemoryUpdateTask).not.toHaveBeenCalled();
+	});
+
+	it("runs curator alone when visible observations exceed emergency pressure", async () => {
+		const obs1 = observation("aaaaaaaaaaaa", { sourceEntryIds: ["raw-1"] });
+		const obs2 = observation("bbbbbbbbbbbb", { sourceEntryIds: ["raw-2"] });
+		const obs3 = observation("cccccccccccc", { sourceEntryIds: ["raw-3"] });
+		mockAgents.runCurator.mockResolvedValueOnce({ pinned: [], unpinned: [], flagged: [], dropped: [] });
+		const entries = [
+			textCustomMessage("raw-1", "aaaa"),
+			textCustomMessage("raw-2", "bbbb"),
+			textCustomMessage("raw-3", "cccc"),
+			observationsRecordedEntry("om-obs", { observations: [obs1, obs2, obs3], coversUpToId: "raw-3" }),
+			reflectionsReviewedEntry("om-reviewed", { coversUpToId: "raw-3" }),
+			observationsPinnedEntry("om-pin", { observationIds: ["aaaaaaaaaaaa", "bbbbbbbbbbbb", "cccccccccccc"], reason: "Keep visible." }),
+		];
+		const { fire, runLaunchedWork } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 999, emergencyCurateWhenVisibleObservationsOver: 2 });
+
+		fire();
+		await runLaunchedWork();
+
+		expect(mockAgents.runObserver).not.toHaveBeenCalled();
+		expect(mockAgents.runReflector).not.toHaveBeenCalled();
+		expect(mockAgents.runCurator).toHaveBeenCalledOnce();
+		expect(mockAgents.runCurator).toHaveBeenCalledWith(expect.objectContaining({
+			candidateObservationIds: ["aaaaaaaaaaaa", "bbbbbbbbbbbb", "cccccccccccc"],
+		}));
 	});
 
 	it("does not launch from either entrypoint when strategy is off", () => {

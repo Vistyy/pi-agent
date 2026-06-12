@@ -7,8 +7,10 @@ import {
 	OM_OBSERVATIONS_RECORDED,
 	entryIndexById,
 	foldLedger,
+	fullProjection,
 	latestCoverageIndex,
 	latestReflectionReviewEntryIndex,
+	nextContextProjection,
 	sourceEntryCountSinceObservationCoverage,
 	type Entry,
 } from "../session-ledger/index.js";
@@ -35,13 +37,22 @@ import { sourceEntriesAfter } from "./source-entries.js";
 import { observationsSinceReflectionCoverage } from "./stage-utils.js";
 import type { MemoryUpdateCtx, ResolvedModel, StageOutcome } from "./types.js";
 
-export function anyMemoryUpdateStageDue(entries: Entry[], runtime: Runtime): boolean {
+function memoryUpdateDueReasons(entries: Entry[], runtime: Runtime): { observer: boolean; reflector: boolean; curatorEmergency: boolean } {
 	const folded = foldLedger(entries, { pendingFlagsAfterIndex: latestReflectionReviewEntryIndex(entries) });
 	const unreflectedObservationCount = observationsSinceReflectionCoverage(entries, folded.activeObservations).length;
 	const flaggedActiveObservationCount = folded.activeObservations.filter((observation) => folded.flaggedObservationIds.has(observation.id)).length;
 	const reflectionWorkCount = unreflectedObservationCount + flaggedActiveObservationCount;
-	return sourceEntryCountSinceObservationCoverage(entries) >= runtime.config.observeEveryMessages
-		|| reflectionWorkCount >= runtime.config.reflectEveryObservations;
+	const visibleObservationCount = nextContextProjection(entries, fullProjection(entries)).observations.length;
+	return {
+		observer: sourceEntryCountSinceObservationCoverage(entries) >= runtime.config.observeEveryMessages,
+		reflector: reflectionWorkCount >= runtime.config.reflectEveryObservations,
+		curatorEmergency: visibleObservationCount > runtime.config.emergencyCurateWhenVisibleObservationsOver,
+	};
+}
+
+export function anyMemoryUpdateStageDue(entries: Entry[], runtime: Runtime): boolean {
+	const due = memoryUpdateDueReasons(entries, runtime);
+	return due.observer || due.reflector || due.curatorEmergency;
 }
 
 function makeModelResolver(runtime: Runtime, ctx: MemoryUpdateCtx): (stage: "observer" | "reflector" | "curator") => Promise<ResolvedModel | undefined> {
@@ -193,31 +204,44 @@ export async function runMemoryUpdate(
 	options: { forceObserveBeforeEntryId?: string } = {},
 ): Promise<void> {
 	const resolveModel = makeModelResolver(runtime, ctx);
+	let entries = ctx.sessionManager.getBranch() as Entry[];
+	let due = memoryUpdateDueReasons(entries, runtime);
 
-	const observerOutcome = await runMemoryUpdateStage(
-		pi,
-		runtime,
-		ctx,
-		"observer",
-		async () => {
-			const { runObserverStage } = await loadObserverStage();
-			return runObserverStage(pi, runtime, ctx, resolveModel, options.forceObserveBeforeEntryId);
-		},
-	);
-	if (observerOutcome === "abort") return;
+	if (due.observer || options.forceObserveBeforeEntryId) {
+		const observerOutcome = await runMemoryUpdateStage(
+			pi,
+			runtime,
+			ctx,
+			"observer",
+			async () => {
+				const { runObserverStage } = await loadObserverStage();
+				return runObserverStage(pi, runtime, ctx, resolveModel, options.forceObserveBeforeEntryId);
+			},
+		);
+		if (observerOutcome === "abort") return;
+		entries = ctx.sessionManager.getBranch() as Entry[];
+		due = memoryUpdateDueReasons(entries, runtime);
+	}
 
-	const reflectorOutcome = await runMemoryUpdateStage(
-		pi,
-		runtime,
-		ctx,
-		"reflector",
-		async () => {
-			const { runReflectorStage } = await loadReflectorStage();
-			return runReflectorStage(pi, runtime, ctx, resolveModel);
-		},
-	);
-	if (reflectorOutcome === "abort") return;
+	let ranReflector = false;
+	if (due.reflector) {
+		const reflectorOutcome = await runMemoryUpdateStage(
+			pi,
+			runtime,
+			ctx,
+			"reflector",
+			async () => {
+				const { runReflectorStage } = await loadReflectorStage();
+				return runReflectorStage(pi, runtime, ctx, resolveModel);
+			},
+		);
+		if (reflectorOutcome === "abort") return;
+		ranReflector = true;
+		entries = ctx.sessionManager.getBranch() as Entry[];
+		due = memoryUpdateDueReasons(entries, runtime);
+	}
 
+	if (!ranReflector && !due.curatorEmergency) return;
 	await runMemoryUpdateStage(
 		pi,
 		runtime,
