@@ -9,7 +9,7 @@ Priorities:
 1. Compaction must not block on full OM catchup.
 2. Additive mode should be removed.
 3. Prompt context should be driven by review/context state, not pool pressure.
-4. Dropper should evolve into a curator.
+4. Dropper should be replaced by a curator with a clean scheduler cutover.
 5. Recall should get model evals and UX review.
 6. Reflection deprecation/supersede is low priority and last.
 
@@ -21,15 +21,22 @@ Implemented in the current plan branch:
 - Default strategy changed to `replacement`.
 - Compaction path changed to observer-only safety flush.
 - Compaction path waits for in-flight memory work, then re-reads/recomputes the unobserved prefix.
-- `pnpm test` and `pnpm run typecheck` pass after these changes.
+- Review/context projection taxonomy is implemented: `contextProjection`, `nextContextProjection`, and reviewed/unreviewed classification from reflection review coverage.
+- Reviewed observations are hidden from next context by default; unreviewed observations and pinned reviewed observations remain visible.
+- Follow-up flags are implemented with bounded free-text reasons and are implicitly resolved by later reflector review coverage.
+- Pin/unpin visibility state is implemented with bounded free-text reasons; dropped tombstones remain hard suppression.
+- Curator agent skeleton is implemented with multi-action passes for pin, unpin, flag, drop, and no-action.
+- Curator evals exist in `/home/syzom/.pi/agent/eval` and the latest curator baseline passed 8/8 after splitting deterministic membership/cap checks from semantic judging.
+- `pnpm test` and `pnpm run typecheck` pass for the extension after these changes.
 
-Rejected/reverted transitional work:
+Superseded transitional work:
 
-- Progressive dropper soft threshold.
+- Progressive dropper soft threshold. It was useful as an intermediate cleanup trigger, but normal cleanup should now move to curator cursor thresholds.
+
+Deferred/reconsider later:
+
 - Default `reflectorThinking` downgrade from `xhigh` to `high`.
-- Dropper-after-abort and stuck-cursor force-advance changes.
-
-Those ideas should be reconsidered only if they still fit the reviewed/context lifecycle.
+- Stuck-cursor force-advance refinements beyond the current implementation.
 
 ## Target lifecycle
 
@@ -49,9 +56,9 @@ reflector
 reviewed observations
   hidden by default as covered
   ↓
-curator/dropper
+curator
   audits reviewed observations
-  pins, suppresses, or flags reflection follow-up work
+  pins, unpins, drops noise, or flags reflection follow-up work
 ```
 
 Prompt projection taxonomy:
@@ -127,6 +134,12 @@ Replace normal dropper trigger with:
 curateEveryReviewedObservations
 ```
 
+Clean cutover rule:
+
+```text
+when curator lifecycle is wired, remove normal dropper scheduling instead of running both agents in parallel
+```
+
 Make pool pressure emergency-only:
 
 ```ts
@@ -140,11 +153,13 @@ maxCuratorActionsPerRun
 maxPinnedObservations
 ```
 
-Rename eventually:
+Add curator model setting:
 
 ```ts
-dropperThinking → curatorThinking
+curatorThinking
 ```
+
+Remove dropper config once curator cleanup is scheduler-ready.
 
 ## Test/eval doctrine
 
@@ -275,7 +290,7 @@ unreviewed observations → in next context/pending
 flagged follow-ups         → pending
 ```
 
-### Stage 3: Introduce reviewed/context projection model
+### Stage 3: Introduce reviewed/context projection model — done
 
 Add ledger/projection support for reviewed observations being hidden by default.
 
@@ -319,7 +334,7 @@ hidden observations           = reviewed non-pinned observations + suppressed ob
 
 Existing `om.observations.dropped` tombstones remain respected. New context decisions layer on top for mixed old/new sessions.
 
-### Stage 4: Evolve dropper into curator
+### Stage 4: Replace dropper with curator
 
 Curator action vocabulary:
 
@@ -368,7 +383,7 @@ Reflector receives pending flagged observations as follow-up input alongside nor
 
 Pending means the flag event was appended after the latest reflector recorded/reviewed entry. Once a later reflector run records reflections or marks reviewed, earlier flags are implicitly handled; no separate resolved event exists yet.
 
-### Stage 4a: Curator evals before pin/unpin
+### Stage 4a: Curator evals before lifecycle cutover — done
 
 Curator behavior is model judgment, not just ledger mechanics. Add eval coverage before trusting pin/unpin/drop/flag decisions.
 
@@ -390,15 +405,17 @@ old pinned failure superseded by passing run   → unpin old
 user preference/current constraint            → do not drop
 noisy transient logs                          → drop
 reflection contradicts observation            → flag and keep visible
-important only for recall                     → neither pin nor drop
+stale/current trap omitted by reflection       → flag/pin relation evidence
+mixed reviewed pool                           → unpin stale fixed failure, protect unresolved blocker, drop only noise
 many candidate pins                           → choose minimal pins
-flagged then dropped                          → do not keep spending reflector budget
-fork/compaction projection                    → no unsafe loss of context
+one-shot priority                             → prefer high-value safe actions over pure cleanup
 ```
 
-Evals should run separately from `pnpm test` because they require live model calls. The same harness should later support recall evals.
+Evals run separately from `pnpm test` because they require live model calls. The harness lives in `/home/syzom/.pi/agent/eval`; latest curator baseline passed 8/8 with deterministic invariants plus semantic judging.
 
-### Stage 5: Rework triggers
+### Stage 5: Clean curator lifecycle cutover — next
+
+Remove normal dropper lifecycle scheduling and make curator the single cleanup/visibility agent.
 
 Normal curator trigger:
 
@@ -416,10 +433,27 @@ Other triggers:
 
 ```text
 unreviewed observations + pending flagged follow-ups >= reflectEveryObservations → reflector due
-suppression/context backlog exists → curator due
+curator cursor backlog exists → curator due
 ```
 
-The current soft drop threshold should disappear here.
+Curator budget:
+
+```text
+pinned ids + unpinned ids + flagged ids + dropped ids <= maxCuratorActionsPerRun
+```
+
+If more actions are useful than the per-run budget allows, unprocessed reviewed observations must remain behind the curator cursor or otherwise remain eligible for the next curator run. The budget must not make skipped candidates permanently forgotten.
+
+Action application rules:
+
+```text
+drop wins over pin/flag
+unpin removes forced visibility but does not drop evidence
+flag requests reflector follow-up through normal reflector threshold
+pinned reviewed observations stay in next context
+```
+
+The current soft drop threshold and normal dropper trigger should disappear here.
 
 ### Stage 6: Recall verification, evals, and UX
 
@@ -465,7 +499,7 @@ After lifecycle/additive/compaction changes, update:
 Expected statuses:
 
 ```text
-#1 sequential pipeline          partly fixed / revisit under curator lifecycle
+#1 sequential pipeline          partly fixed / revisit under clean curator lifecycle
 #2 observer validation gaps     still open
 #3 initial backfill skip        still open
 #4 compaction blocks LLM work   fixed by Stage 1
@@ -506,5 +540,8 @@ Reason for low priority:
 3. Compaction observer-only flush may miss unobserved data if observer fails.
    Mitigation: preserve source excerpts/details or fail safely when required observer flush cannot complete.
 
-4. Migration from `dropped` tombstones to context decisions may be messy.
-   Mitigation: maintain backward compatibility in fold/projection while adding new events.
+4. Replacing dropper with curator may regress cleanup conservatism.
+   Mitigation: deterministic lifecycle tests, curator eval baselines, and emergency visible-pressure trigger.
+
+5. Action budget may accidentally starve lower-priority candidates.
+   Mitigation: curator cursor must only advance over processed candidates, or skipped candidates must remain eligible next run.
