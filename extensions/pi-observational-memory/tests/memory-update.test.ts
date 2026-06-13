@@ -53,8 +53,7 @@ function setup(args: {
 	maxInitialObserveTokens?: number;
 	strategy?: "replacement" | "off";
 	memoryUpdateInFlight?: boolean;
-	memoryUpdatePromise?: Promise<void> | null;
-	observerStagePromise?: Promise<void> | null;
+	inFlightObserverStagePromise?: Promise<void> | null;
 	appendEntryReturnsId?: boolean;
 }) {
 	let entries = [...args.entries];
@@ -66,7 +65,6 @@ function setup(args: {
 	});
 	const pi = memoryUpdateApi(handlers, appendEntry);
 	let launchedWork: (() => Promise<void>) | undefined;
-	const usageRuntime = new Runtime();
 	const runtime = {
 		config: {
 			strategy: args.strategy ?? "replacement",
@@ -81,15 +79,12 @@ function setup(args: {
 			model: { provider: "anthropic", id: "memory", thinking: "minimal" },
 		},
 		memoryUpdateInFlight: args.memoryUpdateInFlight ?? false,
-		memoryUpdatePromise: args.memoryUpdatePromise ?? null,
-		observerStagePromise: args.observerStagePromise ?? null,
+		inFlightObserverStagePromise: args.inFlightObserverStagePromise ?? null,
 		memoryUpdatePhase: undefined as "observer" | "reflector" | "curator" | undefined,
 		resolveFailureNotified: false,
 		lastObserverError: undefined as string | undefined,
 		lastReflectorError: undefined as string | undefined,
 		lastCuratorError: undefined as string | undefined,
-		memoryAgentUsage: usageRuntime.memoryAgentUsage,
-		recordMemoryAgentUsage: usageRuntime.recordMemoryAgentUsage.bind(usageRuntime),
 		ensureConfig: vi.fn(),
 		resolveModel: vi.fn(async () => ({ ok: true, model: { reasoning: true }, apiKey: "key", headers: { h: "v" } })),
 		launchMemoryUpdateTask: vi.fn((_ctx, work) => {
@@ -158,8 +153,7 @@ describe("memory update hook", () => {
 		const obs = observation("bbbbbbbbbbbb", { sourceEntryIds: ["raw-1"] });
 		mockAgents.runObserver.mockResolvedValueOnce([obs]);
 		const entries = [textCustomMessage("raw-1", "aaaa"), textCustomMessage("raw-2", "bbbb")];
-		const never = new Promise<void>(() => {});
-		const { pi, runtime, ctx } = setup({ entries, memoryUpdateInFlight: true, memoryUpdatePromise: never, observeEveryMessages: 999, reflectEveryObservations: 999 });
+		const { pi, runtime, ctx } = setup({ entries, memoryUpdateInFlight: true, observeEveryMessages: 999, reflectEveryObservations: 999 });
 
 		await expect(ensureMemoryUpdatedBeforeCompaction(pi as never, runtime as Runtime, ctx as never, { firstKeptEntryId: "raw-2" })).resolves.toBeUndefined();
 
@@ -168,9 +162,9 @@ describe("memory update hook", () => {
 
 	it("waits for an in-flight observer stage before deciding whether compaction safety observe is needed", async () => {
 		let releaseObserver!: () => void;
-		const observerStagePromise = new Promise<void>((resolve) => { releaseObserver = resolve; });
+		const inFlightObserverStagePromise = new Promise<void>((resolve) => { releaseObserver = resolve; });
 		const entries = [textCustomMessage("raw-1", "aaaa"), textCustomMessage("raw-2", "bbbb")];
-		const { pi, runtime, ctx } = setup({ entries, observerStagePromise, observeEveryMessages: 999, reflectEveryObservations: 999 });
+		const { pi, runtime, ctx } = setup({ entries, inFlightObserverStagePromise, observeEveryMessages: 999, reflectEveryObservations: 999 });
 
 		let completed = false;
 		const compaction = ensureMemoryUpdatedBeforeCompaction(pi as never, runtime as Runtime, ctx as never, { firstKeptEntryId: "raw-2" }).then(() => { completed = true; });

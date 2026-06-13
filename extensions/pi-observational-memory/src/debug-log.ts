@@ -37,6 +37,17 @@ export function debugLogRelativePath(context: Pick<DebugLogContext, "sessionId">
 	return safeSessionId ? join(DEBUG_LOG_SESSION_DIR_RELATIVE_PATH, `${safeSessionId}.ndjson`) : undefined;
 }
 
+export function debugSessionMetadata(ctx: { sessionManager: { getSessionId?: () => string; getSessionFile?: () => string | undefined } }): { sessionId?: string; sessionFile?: string } {
+	try {
+		return {
+			sessionId: ctx.sessionManager.getSessionId?.(),
+			sessionFile: ctx.sessionManager.getSessionFile?.(),
+		};
+	} catch {
+		return {};
+	}
+}
+
 export function debugLog(event: string, data: Record<string, unknown> = {}): void {
 	const context = storage.getStore();
 	if (context?.enabled !== true) return;

@@ -2,6 +2,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { Runtime } from "../runtime.js";
 import { OM_AGENT_USAGE_RECORDED, buildAgentUsageRecordedData, entryIndexById, latestReflectionReviewMarkerId, type Entry, type Observation } from "../session-ledger/index.js";
 import type { ModelThinkingLevel } from "@earendil-works/pi-ai";
+import type { MemoryAgentUsage } from "../agents/common.js";
 import type { ResolvedModel } from "./types.js";
 
 export function commonAgentArgs(pi: ExtensionAPI, runtime: Runtime, resolved: ResolvedModel, thinkingOverride?: ModelThinkingLevel) {
@@ -11,8 +12,7 @@ export function commonAgentArgs(pi: ExtensionAPI, runtime: Runtime, resolved: Re
 		headers: resolved.headers,
 		maxTurns: runtime.config.agentMaxTurns,
 		thinkingLevel: thinkingOverride ?? runtime.config.model?.thinking ?? "low",
-		onUsage: (usage: Parameters<typeof runtime.recordMemoryAgentUsage>[0]) => {
-			runtime.recordMemoryAgentUsage(usage);
+		onUsage: (usage: MemoryAgentUsage) => {
 			pi.appendEntry(OM_AGENT_USAGE_RECORDED, buildAgentUsageRecordedData({ ...usage, agent: usage.agent ?? "unknown" }));
 		},
 	};

@@ -38,9 +38,9 @@ export type AgentRunRecordedData = {
 	status: "ok" | "skipped" | "error";
 	reason?: string;
 	durationMs: number;
-	requestCount: number;
-	costTotal: number;
-	totalTokens: number;
+	requestCount?: number;
+	costTotal?: number;
+	totalTokens?: number;
 	sourceEntryCount?: number;
 	sourceTokenEstimate?: number;
 	outputCount?: number;

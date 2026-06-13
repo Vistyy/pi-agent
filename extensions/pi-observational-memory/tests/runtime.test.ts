@@ -65,12 +65,10 @@ describe("Runtime behavior", () => {
 		});
 
 		expect(runtime.memoryUpdateInFlight).toBe(true);
-		expect(runtime.memoryUpdatePromise).toBe(promise);
 		expect(runtime.memoryUpdatePhase).toBe("observer");
 		release?.();
 		await promise;
 		expect(runtime.memoryUpdateInFlight).toBe(false);
-		expect(runtime.memoryUpdatePromise).toBeNull();
 		expect(runtime.memoryUpdatePhase).toBeUndefined();
 	});
 
