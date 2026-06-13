@@ -101,12 +101,20 @@ function ref(id: string, content: string, supportingObservationIds: string[]): R
   return { id, content, supportingObservationIds, tokenCount: Math.ceil(content.length / 4) };
 }
 
+function addCost(total: TokenUsage, usage: TokenUsage): void {
+  const cost = usage.cost as Record<string, number> | undefined;
+  if (!cost) return;
+  const totalCost = (total.cost ??= { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 }) as Record<string, number>;
+  for (const key of ['input', 'output', 'cacheRead', 'cacheWrite', 'total']) totalCost[key] = (totalCost[key] ?? 0) + (cost[key] ?? 0);
+}
+
 function addUsage(total: TokenUsage, usage: TokenUsage): void {
   total.input = (total.input ?? 0) + (usage.input ?? 0);
   total.output = (total.output ?? 0) + (usage.output ?? 0);
   total.cacheRead = (total.cacheRead ?? 0) + (usage.cacheRead ?? 0);
   total.cacheWrite = (total.cacheWrite ?? 0) + (usage.cacheWrite ?? 0);
   total.totalTokens = (total.totalTokens ?? 0) + (usage.totalTokens ?? 0);
+  addCost(total, usage);
 }
 
 function createUsageCollector(): { onUsage: (event: { usage?: unknown }) => void; total: TokenUsage } {

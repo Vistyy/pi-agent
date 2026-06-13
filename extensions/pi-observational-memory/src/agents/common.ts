@@ -1,5 +1,5 @@
 import { agentLoop, type AgentContext, type AgentLoopConfig, type AgentTool } from "@earendil-works/pi-agent-core";
-import { streamSimple, type Message, type Model, type ModelThinkingLevel } from "@earendil-works/pi-ai";
+import { calculateCost, streamSimple, type Message, type Model, type ModelThinkingLevel, type Usage } from "@earendil-works/pi-ai";
 import { AGENT_LOOP_MAX_TOKENS, boundedMaxTokens } from "./model-budget.js";
 import { debugLog } from "../debug-log.js";
 import { estimateStringTokens } from "../memory/token-estimate.js";
@@ -100,7 +100,8 @@ export async function runMemoryAgentLoop(args: MemoryAgentLoopArgs): Promise<voi
 		const originalResult = stream.result.bind(stream);
 		stream.result = async () => {
 			const result = await originalResult();
-			const usage = (result as { usage?: unknown }).usage;
+			const usage = (result as { usage?: Usage }).usage;
+			if (usage) calculateCost(model, usage);
 			const stopReason = (result as { stopReason?: unknown }).stopReason;
 			const durationMs = Date.now() - requestStarted;
 			if (usage) args.onUsage?.({
