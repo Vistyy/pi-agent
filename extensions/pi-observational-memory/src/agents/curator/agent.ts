@@ -47,6 +47,7 @@ interface RunCuratorArgs {
 	maxTurns?: number;
 	thinkingLevel?: ModelThinkingLevel;
 	onUsage?: (usage: MemoryAgentUsage) => void;
+	onInventory?: (inventory: CuratorInventoryArgs) => void;
 }
 
 const MarkNoActionsSchema = Type.Object({});
@@ -198,6 +199,7 @@ async function runCuratorPass(args: RunCuratorArgs): Promise<CuratorActionResult
 		parameters: CuratorInventorySchema,
 		execute: async (_id, params: CuratorInventoryArgs) => {
 			inventoryCallCount++;
+			args.onInventory?.(params);
 			const checked = {
 				mustPreserve: partitionObservationIds(params.mustPreserve, allowedIds),
 				needsFollowUp: partitionObservationIds(params.needsFollowUp, allowedIds),

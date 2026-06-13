@@ -44,6 +44,7 @@ type AgentEvalRecord = {
   judgeDurationMs?: number;
   usage?: TokenUsage;
   judgeUsage?: TokenUsage;
+  diagnostics?: unknown;
   diagnosis?: unknown;
   diagnosisUsage?: TokenUsage;
   diagnosisDurationMs?: number;
@@ -134,7 +135,7 @@ async function diagnoseFailure(record: AgentEvalRecord, probe: Probe, judgeModel
       fail_if: ['Only repeats the failure label without analysis.'],
     },
   };
-  const diagnosticInput = JSON.stringify({ expected: probe, output: record.output, failure: record.judge }, null, 2);
+  const diagnosticInput = JSON.stringify({ expected: probe, output: record.output, failure: record.judge, diagnostics: record.diagnostics }, null, 2);
   const diagnosticStarted = Date.now();
   const { run, judge } = await runJudge(diagnosticProbe, diagnosticInput, judgeModel);
   return { ...record, diagnosis: judge, diagnosisUsage: run.usage, diagnosisDurationMs: Date.now() - diagnosticStarted, durationMs: Date.now() - diagnosticStarted + record.durationMs };
@@ -155,18 +156,67 @@ function curatorIds(output: CuratorActionResult | undefined, key: keyof CuratorA
   return (value as Array<{ observationIds: string[] }>).flatMap((batch) => batch.observationIds);
 }
 
-function deterministicCuratorFailure(output: CuratorActionResult | undefined, checks: Array<{ label: string; pass: (output: CuratorActionResult | undefined) => boolean }>): string | undefined {
-  const failed = checks.filter((check) => !check.pass(output)).map((check) => check.label);
-  return failed.length ? failed.join('; ') : undefined;
+type CuratorCheck = { label: string; pass: (output: CuratorActionResult | undefined) => boolean; detail?: (output: CuratorActionResult | undefined) => unknown };
+
+type CuratorEvalDiagnostics = {
+  inventory?: unknown;
+  observations?: Observation[];
+  reflections?: Reflection[];
+  pinnedObservationIds?: string[];
+  flaggedObservationIds?: string[];
+  protectedObservationIds?: string[];
+  maxDropsAllowed?: number;
+};
+
+function curatorEvalDiagnostics(args: {
+  inventory?: unknown;
+  observations: Observation[];
+  reflections: Reflection[];
+  pinnedObservationIds?: string[];
+  flaggedObservationIds?: string[];
+  protectedObservationIds?: string[];
+  maxDropsAllowed?: number;
+}): CuratorEvalDiagnostics {
+  return args;
+}
+
+function missingIds(output: CuratorActionResult | undefined, actionKeys: Array<keyof CuratorActionResult>, expectedIds: string[]): string[] {
+  const actual = new Set(actionKeys.flatMap((key) => curatorIds(output, key)));
+  return expectedIds.filter((id) => !actual.has(id));
+}
+
+function forbiddenIds(output: CuratorActionResult | undefined, actionKeys: Array<keyof CuratorActionResult>, forbidden: string[]): string[] {
+  const forbiddenSet = new Set(forbidden);
+  return actionKeys.flatMap((key) => curatorIds(output, key).filter((id) => forbiddenSet.has(id)).map((id) => `${key}:${id}`));
+}
+
+function unexpectedIds(output: CuratorActionResult | undefined, actionKey: keyof CuratorActionResult, allowed: string[]): string[] {
+  const allowedSet = new Set(allowed);
+  return curatorIds(output, actionKey).filter((id) => !allowedSet.has(id));
+}
+
+function curatorActionIdSummary(output: CuratorActionResult | undefined): Record<string, string[]> {
+  return {
+    pinned: curatorIds(output, 'pinned'),
+    unpinned: curatorIds(output, 'unpinned'),
+    flagged: curatorIds(output, 'flagged'),
+    dropped: curatorIds(output, 'dropped'),
+  };
+}
+
+function deterministicCuratorFailure(output: CuratorActionResult | undefined, checks: CuratorCheck[]): { reason: string; details: unknown[] } | undefined {
+  const failed = checks.filter((check) => !check.pass(output)).map((check) => ({ label: check.label, detail: check.detail?.(output) ?? curatorActionIdSummary(output) }));
+  return failed.length ? { reason: failed.map((check) => check.label).join('; '), details: failed } : undefined;
 }
 
 function deterministicCuratorRecord(
   id: string,
   output: CuratorActionResult | undefined,
   started: number,
-  checks: Array<{ label: string; pass: (output: CuratorActionResult | undefined) => boolean }>,
+  checks: CuratorCheck[],
   usage?: TokenUsage,
   agentDurationMs?: number,
+  diagnostics?: CuratorEvalDiagnostics,
 ): AgentEvalRecord {
   const deterministicFailure = deterministicCuratorFailure(output, checks);
   return {
@@ -174,12 +224,13 @@ function deterministicCuratorRecord(
     agent: 'curator',
     output: output ?? {},
     judge: deterministicFailure
-      ? { passed: false, reason: `Deterministic invariant failed: ${deterministicFailure}` }
+      ? { passed: false, reason: `Deterministic invariant failed: ${deterministicFailure.reason}`, details: deterministicFailure.details }
       : { passed: true, reason: 'Deterministic invariants passed.' },
     passed: !deterministicFailure,
     durationMs: Date.now() - started,
     agentDurationMs,
     usage,
+    diagnostics,
   };
 }
 
@@ -189,11 +240,12 @@ async function judgedCurator(
   probe: Probe,
   judgeModel: string,
   started: number,
-  checks: Array<{ label: string; pass: (output: CuratorActionResult | undefined) => boolean }>,
+  checks: CuratorCheck[],
   usage?: TokenUsage,
   agentDurationMs?: number,
+  diagnostics?: CuratorEvalDiagnostics,
 ): Promise<AgentEvalRecord> {
-  const deterministic = deterministicCuratorRecord(id, output, started, checks, usage, agentDurationMs);
+  const deterministic = deterministicCuratorRecord(id, output, started, checks, usage, agentDurationMs, diagnostics);
   if (!deterministic.passed) return diagnoseFailure(deterministic, probe, judgeModel);
   return judged(id, 'curator', output ?? {}, probe, judgeModel, started, usage, agentDurationMs);
 }
@@ -364,8 +416,9 @@ async function curatorFlagsMissingExactDetail(modelSpec: string, judgeModel: str
   const reflections = [ref('cccccccccccc', 'Migration dry run failed with a database lock; WAL should stay enabled.', ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'])];
   const runCurator = await loadCuratorRunner();
   const usage = createUsageCollector();
+  let inventory: unknown;
   const agentStarted = Date.now();
-  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 1, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 1, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage, onInventory: (value: unknown) => { inventory = value; } });
   const agentDurationMs = Date.now() - agentStarted;
   return judgedCurator('curator-flags-missing-exact-detail', output, {
     id: 'curator-flags-missing-exact-detail',
@@ -382,7 +435,7 @@ async function curatorFlagsMissingExactDetail(modelSpec: string, judgeModel: str
   }, judgeModel, started, [
     { label: 'must not drop exact blocker observations', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'].includes(id)) },
     { label: 'must pin or flag at least one exact blocker observation', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'].includes(id)) },
-  ], usage.total, agentDurationMs);
+  ], usage.total, agentDurationMs, curatorEvalDiagnostics({ inventory, observations, reflections }));
 }
 
 async function curatorContradictoryReflection(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -396,8 +449,9 @@ async function curatorContradictoryReflection(modelSpec: string, judgeModel: str
   const reflections = [ref('dddddddddddd', 'Auth refresh token expiry is fixed.', ['aaaaaaaaaaaa'])];
   const runCurator = await loadCuratorRunner();
   const usage = createUsageCollector();
+  let inventory: unknown;
   const agentStarted = Date.now();
-  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage, onInventory: (value: unknown) => { inventory = value; } });
   const agentDurationMs = Date.now() - agentStarted;
   return judgedCurator('curator-contradictory-reflection', output, {
     id: 'curator-contradictory-reflection',
@@ -413,7 +467,7 @@ async function curatorContradictoryReflection(modelSpec: string, judgeModel: str
   }, judgeModel, started, [
     { label: 'must not drop contradictory unresolved evidence', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'].includes(id)) },
     { label: 'must pin or flag contradictory unresolved evidence', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'].includes(id)) },
-  ], usage.total, agentDurationMs);
+  ], usage.total, agentDurationMs, curatorEvalDiagnostics({ inventory, observations, reflections }));
 }
 
 async function observerHardSchemaMess(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -526,8 +580,9 @@ async function curatorHardSchemaStaleNoise(modelSpec: string, judgeModel: string
   ];
   const runCurator = await loadCuratorRunner();
   const usage = createUsageCollector();
+  let inventory: unknown;
   const agentStarted = Date.now();
-  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['555555555555'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 4, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['555555555555'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 4, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage, onInventory: (value: unknown) => { inventory = value; } });
   const agentDurationMs = Date.now() - agentStarted;
   return judgedCurator('curator-hard-schema-stale-noise', output, {
     id: 'curator-hard-schema-stale-noise',
@@ -554,7 +609,7 @@ async function curatorHardSchemaStaleNoise(modelSpec: string, judgeModel: string
     { label: 'must pin or flag exact schema names', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'].includes(id)) },
     { label: 'must pin or flag current eval/recall blockers', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['111111111111', '222222222222'].includes(id)) },
     { label: 'drops must be limited to stale/noise ids', pass: (o) => curatorIds(o, 'dropped').every((id) => ['cccccccccccc', 'dddddddddddd', 'eeeeeeeeeeee', 'ffffffffffff', '333333333333', '444444444444'].includes(id)) },
-  ], usage.total, agentDurationMs);
+  ], usage.total, agentDurationMs, curatorEvalDiagnostics({ inventory, observations, reflections }));
 }
 
 
@@ -603,6 +658,7 @@ async function curatorBrutalHistoricalPressure(modelSpec: string, judgeModel: st
   ];
   const runCurator = await loadCuratorRunner();
   const usage = createUsageCollector();
+  let inventory: unknown;
   const agentStarted = Date.now();
   const output = await runCurator({
     ...auth,
@@ -615,6 +671,7 @@ async function curatorBrutalHistoricalPressure(modelSpec: string, judgeModel: st
     thinkingLevel,
     maxTurns: 4,
     onUsage: usage.onUsage,
+    onInventory: (value: unknown) => { inventory = value; },
   });
   const agentDurationMs = Date.now() - agentStarted;
   return judgedCurator('curator-brutal-historical-pressure', output, {
@@ -642,7 +699,7 @@ async function curatorBrutalHistoricalPressure(modelSpec: string, judgeModel: st
     { label: 'must pin or flag an eval/recall/diagnostic blocker', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['a00000000011', 'a00000000013', 'a00000000031'].includes(id)) },
     { label: 'must unpin at least one stale pinned id', pass: (o) => curatorIds(o, 'unpinned').some((id) => ['a00000000015', 'a00000000028'].includes(id)) },
     { label: 'drops must be limited to safe stale/noise ids', pass: (o) => curatorIds(o, 'dropped').every((id) => ['a00000000002', 'a00000000004', 'a00000000006', 'a00000000008', 'a00000000010', 'a00000000012', 'a00000000014', 'a00000000018', 'a00000000019', 'a00000000020', 'a00000000021', 'a00000000023', 'a00000000026', 'a00000000029', 'a00000000030', 'a00000000032'].includes(id)) },
-  ], usage.total, agentDurationMs);
+  ], usage.total, agentDurationMs, curatorEvalDiagnostics({ inventory, observations, reflections }));
 }
 
 
@@ -672,8 +729,9 @@ async function curatorBrutalUnpinTrap(modelSpec: string, judgeModel: string, thi
   ];
   const runCurator = await loadCuratorRunner();
   const usage = createUsageCollector();
+  let inventory: unknown;
   const agentStarted = Date.now();
-  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['u00000000001', 'u00000000003', 'u00000000006', 'u00000000009'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 4, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['u00000000001', 'u00000000003', 'u00000000006', 'u00000000009'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 4, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage, onInventory: (value: unknown) => { inventory = value; } });
   const agentDurationMs = Date.now() - agentStarted;
   return judgedCurator('curator-brutal-unpin-trap', output, {
     id: 'curator-brutal-unpin-trap',
@@ -700,7 +758,7 @@ async function curatorBrutalUnpinTrap(modelSpec: string, judgeModel: string, thi
     { label: 'must pin or flag deploy/auth blocker evidence', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['u00000000005', 'u00000000008', 'u00000000014', 'u00000000015'].includes(id)) },
     { label: 'must not drop blockers or verification commands', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['u00000000005', 'u00000000008', 'u00000000013', 'u00000000014', 'u00000000015'].includes(id)) },
     { label: 'drops must be limited to stale/noise', pass: (o) => curatorIds(o, 'dropped').every((id) => ['u00000000010', 'u00000000011', 'u00000000012'].includes(id)) },
-  ], usage.total, agentDurationMs);
+  ], usage.total, agentDurationMs, curatorEvalDiagnostics({ inventory, observations, reflections }));
 }
 
 async function curatorBrutalContradictoryReflections(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -728,8 +786,9 @@ async function curatorBrutalContradictoryReflections(modelSpec: string, judgeMod
   ];
   const runCurator = await loadCuratorRunner();
   const usage = createUsageCollector();
+  let inventory: unknown;
   const agentStarted = Date.now();
-  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 3, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 3, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage, onInventory: (value: unknown) => { inventory = value; } });
   const agentDurationMs = Date.now() - agentStarted;
   return judgedCurator('curator-brutal-contradictory-reflections', output, {
     id: 'curator-brutal-contradictory-reflections',
@@ -759,7 +818,7 @@ async function curatorBrutalContradictoryReflections(modelSpec: string, judgeMod
     { label: 'must pin or flag exact schema correction', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['c00000000010', 'c00000000011'].includes(id)) },
     { label: 'must not drop corrective/current evidence', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['c00000000002', 'c00000000005', 'c00000000007', 'c00000000010', 'c00000000011', 'c00000000013'].includes(id)) },
     { label: 'drops must be limited to noise/stale ids', pass: (o) => curatorIds(o, 'dropped').every((id) => ['c00000000008', 'c00000000009', 'c00000000012'].includes(id)) },
-  ], usage.total, agentDurationMs);
+  ], usage.total, agentDurationMs, curatorEvalDiagnostics({ inventory, observations, reflections }));
 }
 
 
