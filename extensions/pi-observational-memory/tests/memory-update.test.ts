@@ -11,7 +11,8 @@ vi.mock("../src/agents/observer/agent.js", () => ({ runObserver: mockAgents.runO
 vi.mock("../src/agents/reflector/agent.js", () => ({ runReflector: mockAgents.runReflector }));
 vi.mock("../src/agents/curator/agent.js", () => ({ runCurator: mockAgents.runCurator }));
 
-import { ensureObservedBeforeCompaction, registerMemoryUpdateHook } from "../src/hooks/memory-update.js";
+import { ensureObservedBeforeCompaction } from "../src/memory-update/compaction.js";
+import { registerMemoryUpdateHook } from "../src/memory-update/scheduler.js";
 import { Runtime } from "../src/runtime.js";
 import {
 	OM_AGENT_RUN_RECORDED,

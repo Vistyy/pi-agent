@@ -3,8 +3,8 @@ import { STRATEGY } from "../config.js";
 import { debugLog, debugSessionMetadata, withDebugLogContext } from "../debug-log.js";
 import type { Runtime } from "../runtime.js";
 import { OM_AGENT_RUN_RECORDED, OM_OBSERVATIONS_RECORDED, entryIndexById, latestCoverageIndex, type Entry } from "../session-ledger/index.js";
+import { makeModelResolver, type MemoryStageName } from "./model-resolver.js";
 import { sourceEntriesAfter } from "./source-entries.js";
-import { makeModelResolver, type MemoryStageName } from "./run.js";
 import type { MemoryUpdateCtx, ResolvedModel, StageOutcome } from "./types.js";
 
 type ObserverStageModule = typeof import("./observer-stage.js");

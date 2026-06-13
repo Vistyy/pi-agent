@@ -1,8 +1,8 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 import { STRATEGY } from "../config.js";
+import { ensureObservedBeforeCompaction } from "../memory-update/compaction.js";
 import { getCompactionTransientMemory, resetCompactionTransientMemory } from "../memory-update/compaction-state.js";
-import { ensureObservedBeforeCompaction } from "./memory-update.js";
 import type { Runtime } from "../runtime.js";
 import { buildNextCompactionProjection, renderSummary, type Entry } from "../session-ledger/index.js";
 

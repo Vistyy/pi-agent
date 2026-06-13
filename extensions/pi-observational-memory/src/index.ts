@@ -2,7 +2,7 @@ import { Type } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
 import { registerCompactionHook } from "./hooks/compaction-hook.js";
-import { registerMemoryUpdateHook } from "./hooks/memory-update.js";
+import { registerMemoryUpdateHook } from "./memory-update/scheduler.js";
 import { Runtime } from "./runtime.js";
 
 export default function observationalMemory(pi: ExtensionAPI) {

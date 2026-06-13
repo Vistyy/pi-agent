@@ -3,8 +3,9 @@ import { STRATEGY } from "../config.js";
 import { debugSessionMetadata, withDebugLogContext } from "../debug-log.js";
 import type { Runtime } from "../runtime.js";
 import type { Entry } from "../session-ledger/index.js";
+import { anyMemoryUpdateStageDue } from "./due.js";
+import { runMemoryUpdate } from "./run.js";
 import type { MemoryUpdateCtx } from "./types.js";
-import { anyMemoryUpdateStageDue, runMemoryUpdate } from "./run.js";
 
 export function registerMemoryUpdateHook(pi: ExtensionAPI, runtime: Runtime): void {
 	const launch = (_event: unknown, ctx: MemoryUpdateCtx) => {
