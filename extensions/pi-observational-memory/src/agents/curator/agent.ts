@@ -202,9 +202,9 @@ function curatorRunSummary(candidateCount: number, contextCount: number, promptO
 	return `Action candidates: ${candidateCount.toLocaleString()}. Context observations: ${contextCount.toLocaleString()}. Prompt observations: ${promptObservationCount.toLocaleString()} (~${observationTokens.toLocaleString()} tokens). Maximum drops allowed this run: ${maxDropsAllowed.toLocaleString()}. Protected observations cannot be dropped. Make one conservative curation pass. Each tool call should contain the complete batch for that action type. Call mark_no_actions only when no action is safe or needed.`;
 }
 
-type CuratorPassMode = "all" | "unpin" | "unlinked-preserve" | "preserve";
+type CuratorPassMode = "unpin" | "unlinked-preserve" | "preserve";
 
-async function runCuratorPass(args: RunCuratorArgs, mode: CuratorPassMode = "all", initialResult?: CuratorActionResult): Promise<CuratorActionResult | undefined> {
+async function runCuratorPass(args: RunCuratorArgs, mode: CuratorPassMode, initialResult?: CuratorActionResult): Promise<CuratorActionResult | undefined> {
 	const { model, apiKey, headers, reflections, observations, maxDropsAllowed, signal } = args;
 	const protectedObservationIds = args.protectedObservationIds ?? [];
 	const baseCandidateIds = new Set(args.candidateObservationIds ?? observations.map((observation) => observation.id));
@@ -215,9 +215,7 @@ async function runCuratorPass(args: RunCuratorArgs, mode: CuratorPassMode = "all
 		? new Set([...baseCandidateIds].filter((id) => pinnedInputIds.has(id) && !priorActionIds.has(id)))
 		: mode === "unlinked-preserve"
 			? new Set([...baseCandidateIds].filter((id) => !linkedIds.has(id) && !priorActionIds.has(id)))
-			: mode === "preserve"
-				? new Set([...baseCandidateIds].filter((id) => !priorActionIds.has(id)))
-				: baseCandidateIds;
+			: new Set([...baseCandidateIds].filter((id) => !priorActionIds.has(id)));
 	const candidateObservations = observations.filter((observation) => candidateIds.has(observation.id));
 	if (candidateObservations.length === 0) return initialResult;
 	const contextObservations = [...observations.filter((observation) => baseCandidateIds.has(observation.id) && !candidateIds.has(observation.id)), ...(args.contextObservations ?? [])].filter((observation) => !candidateIds.has(observation.id));
@@ -234,7 +232,6 @@ async function runCuratorPass(args: RunCuratorArgs, mode: CuratorPassMode = "all
 
 	const result: CuratorActionResult = initialResult ?? { pinned: [], unpinned: [], flagged: [], dropped: [] };
 	let toolCallCount = 0;
-	let noActionCallCount = 0;
 
 	function makeActionTool(
 		name: string,
@@ -268,7 +265,6 @@ async function runCuratorPass(args: RunCuratorArgs, mode: CuratorPassMode = "all
 		description: "Mark that no curator action is safe or needed. Use only if you have not taken any other curator action. This tool call terminates the run.",
 		parameters: MarkNoActionsSchema,
 		execute: async (_id, _params: MarkNoActionsArgs) => {
-			noActionCallCount++;
 			const hasActions = result.pinned.length > 0 || result.unpinned.length > 0 || result.flagged.length > 0 || result.dropped.length > 0;
 			return { content: [{ type: "text", text: hasActions ? "Ignored no-action marker because curator actions already exist." : "Marked no curator actions." }], details: { reviewed: !hasActions, ignored: hasActions }, terminate: true };
 		},
@@ -360,18 +356,14 @@ async function runCuratorPass(args: RunCuratorArgs, mode: CuratorPassMode = "all
 		? "\n\nACTION PHASE: stale-pin review only. Only call unpin_observations for currently pinned candidates that are clearly stale, or mark_no_actions if none are safe to unpin. Do not pin, flag, or drop in this phase."
 		: mode === "unlinked-preserve"
 			? "\n\nACTION PHASE: unlinked preservation only. The action candidates in this phase are not cited by any current reflection. Call pin_observations or flag_observations for unlinked durable evidence that needs visibility or reflection follow-up, or mark_no_actions if none need preservation. Do not drop or unpin in this phase."
-			: mode === "preserve"
-				? "\n\nACTION PHASE: preservation and cleanup. Prior unpin and unlinked-preservation decisions have already been made; now call pin_observations, flag_observations, drop_observations, or mark_no_actions."
-				: "";
+			: "\n\nACTION PHASE: preservation and cleanup. Prior unpin and unlinked-preservation decisions have already been made; now call pin_observations, flag_observations, drop_observations, or mark_no_actions.";
 	const userText = `${baseUserText}${phaseInstruction}`;
 
 	const tools = mode === "unpin"
 		? [unpinObservations, markNoActions]
 		: mode === "unlinked-preserve"
 			? [pinObservations, flagObservations, markNoActions]
-			: mode === "preserve"
-				? [pinObservations, flagObservations, dropObservations, markNoActions]
-				: [pinObservations, unpinObservations, flagObservations, dropObservations, markNoActions] as AgentTool<any>[];
+			: [pinObservations, flagObservations, dropObservations, markNoActions] as AgentTool<any>[];
 
 	await runMemoryAgentLoop({
 		model,
@@ -390,7 +382,6 @@ async function runCuratorPass(args: RunCuratorArgs, mode: CuratorPassMode = "all
 
 	debugLog("curator.result", {
 		toolCallCount,
-		noActionCallCount,
 		pinnedBatchCount: result.pinned.length,
 		unpinnedBatchCount: result.unpinned.length,
 		flaggedBatchCount: result.flagged.length,
