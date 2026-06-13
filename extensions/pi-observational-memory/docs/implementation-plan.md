@@ -199,6 +199,28 @@ use deterministic invariants only for hard safety/cap/membership constraints
 
 For unclear failures, add a diagnostic follow-up prompt after the failed agent output. This should ask the model to explain why the desired behavior was not achieved and what evidence/prompt/context made the failure likely. This mirrors the pi-fork eval diagnostic pattern and is for improvement guidance, not pass/fail laundering.
 
+### Agent model benchmark notes
+
+Use this section for role-specific model comparisons. Eval runs are not committed, but stable summaries should be kept here when they inform defaults.
+
+Curator hard-4 benchmark, phased clumped flow, deterministic curator pass/fail, measured 2026-06-13:
+
+| model | thinking | pass | time | tokens | cost | note |
+|---|---|---:|---:|---:|---:|---|
+| `openrouter/openai/gpt-5.4-nano` | low | 4/4 | 121.9s | 143,843 | $0.0328 | Best measured latency/cost among passing models. Recheck occasionally. |
+| `openrouter/nvidia/nemotron-3-ultra-550b-a55b` | low | 4/4 | 127.6s | 213,182 | $0.1515 | Fast passing alternative, higher cost. |
+| `openrouter/x-ai/grok-4.3` | low | 4/4 | 178.0s | 97,108 | $0.1110 | Passing; slower than nano/mini. |
+| `openai-codex/gpt-5.4-mini` | low | 4/4 | 187.1s | 112,239 | $0.1208 | Current practical default because it is included in the user subscription / effectively free. |
+| `openrouter/xiaomi/mimo-v2.5` | low | 4/4 | 352.4s | 169,212 | $0.0228 | Cheapest passing run, but too slow. |
+| `openrouter/stepfun/step-3.7-flash` | low | 4/4 | 377.4s | 165,040 | $0.0733 | Passing but too slow. |
+| `openrouter/minimax/minimax-m3` | low | 4/4 | 609.0s | 168,812 | $0.0699 | Passing but too slow. |
+| `alibaba/qwen3.7-plus` | xhigh | 4/4 | 946.1s | 182,295 | $0.0808 | Passing but too slow. |
+| `deepseek/deepseek-v4-flash` | high | 4/4 | 470.4s | 264,844 | not captured | Passing, but latency too high; run predates cost capture. |
+| `deepseek/deepseek-v4-pro` | off | 3/4 | 151.5s | 152,199 | $0.0333 | Failed historical-pressure safety. |
+| `openrouter/google/gemini-3.1-flash-lite` | low | 1/4 | 108.6s | 144,767 | $0.0628 | Failed schema, historical, and unpin-trap cases. |
+
+Recommendation: keep `openai-codex/gpt-5.4-mini` low as the current curator default for practical/subscription reasons, while periodically retrying `openrouter/openai/gpt-5.4-nano` because it was the best measured paid option. Use the same table pattern later for observer and reflector comparisons.
+
 Recall split:
 
 ```text
