@@ -21,7 +21,7 @@ import {
 	summarizeCoverage,
 	type ReflectionCoverageTier,
 } from "../coverage.js";
-import { CURATOR_DROP_PHASE, CURATOR_PROTECT_PHASE, CURATOR_RETIRE_PINS_PHASE, CURATOR_SYSTEM } from "./prompts.js";
+import { CURATOR_ACTIONS_FROM_AUDIT_PHASE, CURATOR_COVERAGE_AUDIT_PHASE, CURATOR_DROP_PHASE, CURATOR_PROTECT_PHASE, CURATOR_RETIRE_PINS_PHASE, CURATOR_SYSTEM } from "./prompts.js";
 
 export type CuratorActionResult = {
 	pinned: Array<{ observationIds: string[]; reason: string }>;
@@ -50,6 +50,25 @@ interface RunCuratorArgs {
 }
 
 const MarkNoActionsSchema = Type.Object({});
+const CuratorAuditIssueSchema = Type.Union([
+	Type.Literal("missing_exact_detail"),
+	Type.Literal("contradiction"),
+	Type.Literal("stale_current_ambiguity"),
+	Type.Literal("validation_scope_mismatch"),
+	Type.Literal("unresolved_blocker"),
+	Type.Literal("user_correction_or_rejection"),
+]);
+const CuratorCoverageAuditSchema = Type.Object({
+	gaps: Type.Array(Type.Object({
+		observationIds: Type.Array(Type.String(), { minItems: 1 }),
+		reflectionIds: Type.Optional(Type.Array(Type.String())),
+		issue: CuratorAuditIssueSchema,
+		reason: Type.String({ minLength: 1 }),
+	}), { default: [] }),
+	sufficientlyCovered: Type.Array(Type.String(), { default: [] }),
+	staleOrNoise: Type.Array(Type.String(), { default: [] }),
+});
+const CuratorSubmitAuditSchema = Type.Object({ text: Type.String({ minLength: 1 }) });
 const CuratorInventorySchema = Type.Object({
 	mustPreserve: Type.Array(Type.String(), { default: [] }),
 	needsFollowUp: Type.Array(Type.String(), { default: [] }),
@@ -65,6 +84,8 @@ type CuratorBatch = { observationIds: string[]; reason: string };
 
 type MarkNoActionsArgs = Static<typeof MarkNoActionsSchema>;
 type CuratorInventoryArgs = Static<typeof CuratorInventorySchema>;
+type CuratorCoverageAuditArgs = Static<typeof CuratorCoverageAuditSchema>;
+type CuratorSubmitAuditArgs = Static<typeof CuratorSubmitAuditSchema>;
 type CuratorIdsWithReasonArgs = Static<typeof CuratorIdsWithReasonSchema>;
 
 function timestampRank(timestamp: string): number {
@@ -147,13 +168,15 @@ type CuratorActionName = "pin" | "unpin" | "flag" | "drop";
 type RunCuratorPassOptions = {
 	systemPrompt?: string;
 	phaseInstructions?: string;
+	auditText?: string;
+	auditMode?: "tool" | "text";
 	actions?: readonly CuratorActionName[];
 	protectedObservationIds?: readonly string[];
 	pinnedObservationIds?: readonly string[];
 	flaggedObservationIds?: readonly string[];
 };
 
-async function runCuratorPass(args: RunCuratorArgs, options: RunCuratorPassOptions = {}): Promise<CuratorActionResult | undefined> {
+async function runCuratorPass(args: RunCuratorArgs, options: RunCuratorPassOptions = {}): Promise<(CuratorActionResult & { auditText?: string }) | undefined> {
 	const { model, apiKey, headers, reflections, observations, maxDropsAllowed, signal } = args;
 	const protectedObservationIds = options.protectedObservationIds ?? args.protectedObservationIds ?? [];
 	const candidateIds = new Set(args.candidateObservationIds ?? observations.map((observation) => observation.id));
@@ -174,6 +197,7 @@ async function runCuratorPass(args: RunCuratorArgs, options: RunCuratorPassOptio
 	const result: CuratorActionResult = { pinned: [], unpinned: [], flagged: [], dropped: [] };
 	let toolCallCount = 0;
 	let inventoryCallCount = 0;
+	let auditText = "";
 	let noActionCallCount = 0;
 
 	function makeActionTool(
@@ -223,6 +247,28 @@ async function runCuratorPass(args: RunCuratorArgs, options: RunCuratorPassOptio
 				details: checked,
 				terminate: false,
 			};
+		},
+	};
+
+	const recordCoverageAudit: AgentTool<typeof CuratorCoverageAuditSchema> = {
+		name: "record_coverage_audit",
+		label: "Record coverage audit",
+		description: "Non-mutating audit tool. Record reflection coverage gaps, sufficiently covered observations, and stale/noise observations. This records the audit and lets you continue.",
+		parameters: CuratorCoverageAuditSchema,
+		execute: async (_id, params: CuratorCoverageAuditArgs) => {
+			const gapLines = params.gaps.map((gap) => `${gap.issue}: ${gap.observationIds.join(", ")}${gap.reflectionIds?.length ? ` vs ${gap.reflectionIds.join(", ")}` : ""} — ${gap.reason}`);
+			auditText = [`GAPS:`, ...gapLines, `SUFFICIENTLY COVERED: ${params.sufficientlyCovered.join(", ") || "none"}`, `STALE OR NOISE: ${params.staleOrNoise.join(", ") || "none"}`].join("\n");
+			return { content: [{ type: "text", text: "Coverage audit recorded. Continue if needed." }], details: params, terminate: false };
+		},
+	};
+	const submitAudit: AgentTool<typeof CuratorSubmitAuditSchema> = {
+		name: "submit_audit",
+		label: "Submit audit",
+		description: "Non-mutating tool. Submit a free-text coverage audit of reflection gaps, sufficient coverage, and stale/noise observations.",
+		parameters: CuratorSubmitAuditSchema,
+		execute: async (_id, params: CuratorSubmitAuditArgs) => {
+			auditText = params.text;
+			return { content: [{ type: "text", text: "Coverage audit submitted. Continue if needed." }], details: {}, terminate: false };
 		},
 	};
 
@@ -301,7 +347,8 @@ async function runCuratorPass(args: RunCuratorArgs, options: RunCuratorPassOptio
 		: "";
 	const actionNames = options.actions ?? ["pin", "unpin", "flag", "drop"];
 	const actionText = actionNames.map((action) => ({ pin: "pin", unpin: "unpin", flag: "flag", drop: "drop" })[action]).join(", ");
-	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nACTION CANDIDATES — you may ${actionText} only these observation ids:\n${joinOrEmpty(candidateObservations.map((observation) => actionSummaryLine(observation, pinnedIds, flaggedIds, coverageById)))}${contextSection}\n\nAction candidates: ${candidateObservations.length.toLocaleString()}. Context observations: ${contextObservations.length.toLocaleString()}. Prompt observations: ${promptObservations.length.toLocaleString()} (~${observationTokens.toLocaleString()} tokens). Maximum drops allowed this run: ${maxDropsAllowed.toLocaleString()}. Protected observations cannot be dropped.${options.phaseInstructions ? `\n\n${options.phaseInstructions}` : ""} Make one conservative curation pass. Each tool call should contain the complete batch for that action type. Call mark_no_actions only when no action is safe or needed.`;
+	const auditSection = options.auditText ? `\n\nCOVERAGE AUDIT RESULT:\n${options.auditText}` : "";
+	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nACTION CANDIDATES — you may ${actionText || "audit"} only these observation ids:\n${joinOrEmpty(candidateObservations.map((observation) => actionSummaryLine(observation, pinnedIds, flaggedIds, coverageById)))}${contextSection}${auditSection}\n\nAction candidates: ${candidateObservations.length.toLocaleString()}. Context observations: ${contextObservations.length.toLocaleString()}. Prompt observations: ${promptObservations.length.toLocaleString()} (~${observationTokens.toLocaleString()} tokens). Maximum drops allowed this run: ${maxDropsAllowed.toLocaleString()}. Protected observations cannot be dropped.${options.phaseInstructions ? `\n\n${options.phaseInstructions}` : ""} Make one conservative curation pass. Each tool call should contain the complete batch for that action type. Call mark_no_actions only when no action is safe or needed.`;
 
 	const toolsByAction: Record<CuratorActionName, AgentTool<any>> = {
 		pin: pinObservations,
@@ -309,7 +356,8 @@ async function runCuratorPass(args: RunCuratorArgs, options: RunCuratorPassOptio
 		flag: flagObservations,
 		drop: dropObservations,
 	};
-	const tools = [recordInventory, ...actionNames.map((action) => toolsByAction[action]), markNoActions] as AgentTool<any>[];
+	const auditTools = options.auditMode === "tool" ? [recordCoverageAudit] : options.auditMode === "text" ? [submitAudit] : [recordInventory];
+	const tools = [...auditTools, ...actionNames.map((action) => toolsByAction[action]), markNoActions] as AgentTool<any>[];
 
 	await runMemoryAgentLoop({
 		model,
@@ -336,6 +384,7 @@ async function runCuratorPass(args: RunCuratorArgs, options: RunCuratorPassOptio
 		droppedCount: result.dropped.length,
 	});
 
+	if (options.auditMode) return { ...result, auditText };
 	return result.pinned.length || result.unpinned.length || result.flagged.length || result.dropped.length ? result : undefined;
 }
 
@@ -365,6 +414,22 @@ function likelyPinRetirementEvidenceIds(observations: readonly Observation[]): S
 
 export async function runCurator(args: RunCuratorArgs): Promise<CuratorActionResult | undefined> {
 	return runCuratorPass(args);
+}
+
+export async function runCuratorCoverageAuditPhased(args: RunCuratorArgs, mode: "tool" | "text" = "tool"): Promise<CuratorActionResult | undefined> {
+	const audit = await runCuratorPass(args, {
+		systemPrompt: `${CURATOR_SYSTEM}${CURATOR_COVERAGE_AUDIT_PHASE}`,
+		phaseInstructions: mode === "tool"
+			? "Call record_coverage_audit with the complete coverage audit. Do not call pin, flag, unpin, or drop."
+			: "Call submit_audit with the complete free-text coverage audit. Do not call pin, flag, unpin, or drop.",
+		auditMode: mode,
+		actions: [],
+	});
+	return runCuratorPass(args, {
+		systemPrompt: `${CURATOR_SYSTEM}${CURATOR_ACTIONS_FROM_AUDIT_PHASE}`,
+		phaseInstructions: "This is the action phase after a coverage audit. Use the audit as a checklist before choosing actions.",
+		auditText: audit?.auditText,
+	});
 }
 
 export async function runCuratorPhased(args: RunCuratorArgs): Promise<CuratorActionResult | undefined> {

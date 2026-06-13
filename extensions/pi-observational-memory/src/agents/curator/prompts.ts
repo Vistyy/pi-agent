@@ -44,6 +44,25 @@ Use unpin_observations only when later same-scope evidence proves the pinned fac
 Partial validation, related smoke tests, or broader passing checks are not enough.
 Do not drop, pin, or flag in this phase.`;
 
+export const CURATOR_COVERAGE_AUDIT_PHASE = `
+
+PHASE: COVERAGE AUDIT
+
+Audit whether current reflections adequately preserve the reviewed observations.
+Do not choose curator actions in this phase.
+Find observations where reflections miss exact detail, contradict the observation, blur stale/current state, claim validation with the wrong scope, omit unresolved blockers, or omit user corrections/rejections.
+Also identify observations that are sufficiently covered and observations that are truly stale/noise.
+Be specific about exact ids and exact missing details.`;
+
+export const CURATOR_ACTIONS_FROM_AUDIT_PHASE = `
+
+PHASE: ACTIONS FROM COVERAGE AUDIT
+
+Use the coverage audit result as your primary checklist.
+Pin or flag observations with audit gaps.
+Unpin only stale pinned observations with same-scope proof.
+Drop only observations the audit identifies as stale/noise and that are not pinned, flagged, protected, current blockers, corrections, or exact details.`;
+
 export const CURATOR_DROP_PHASE = `
 
 PHASE: SAFE DROP
