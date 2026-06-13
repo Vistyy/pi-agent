@@ -48,6 +48,7 @@ interface RunCuratorArgs {
 	thinkingLevel?: ModelThinkingLevel;
 	onUsage?: (usage: MemoryAgentUsage) => void;
 	onInventory?: (inventory: CuratorInventoryArgs) => void;
+	clumpedRender?: "flat" | "clumped" | "clumped-full";
 }
 
 const MarkNoActionsSchema = Type.Object({});
@@ -141,6 +142,62 @@ function actionSummaryLine(observation: Observation, pinnedIds: ReadonlySet<stri
 	if (flaggedIds.has(observation.id)) labels.push("flagged");
 	const suffix = labels.length > 0 ? ` [state: ${labels.join(", ")}]` : "";
 	return `${observationToMemoryAgentLine(observation, coverageTierForObservation(observation, coverageById))}${suffix}`;
+}
+
+function renderObservationList(observations: readonly Observation[], pinnedIds: ReadonlySet<string>, flaggedIds: ReadonlySet<string>, coverageById: ReadonlyMap<string, ReflectionCoverageTier>): string {
+	return joinOrEmpty(observations.map((observation) => actionSummaryLine(observation, pinnedIds, flaggedIds, coverageById)));
+}
+
+function buildFlatUserText(args: {
+	reflections: readonly Reflection[];
+	candidateObservations: readonly Observation[];
+	contextObservations: readonly Observation[];
+	pinnedIds: ReadonlySet<string>;
+	flaggedIds: ReadonlySet<string>;
+	coverageById: ReadonlyMap<string, ReflectionCoverageTier>;
+	observationTokens: number;
+	maxDropsAllowed: number;
+}): string {
+	const contextSection = args.contextObservations.length
+		? `\n\nREAD-ONLY CONTEXT OBSERVATIONS:\n${renderObservationList(args.contextObservations, args.pinnedIds, args.flaggedIds, args.coverageById)}`
+		: "";
+	return `CURRENT REFLECTIONS:\n${joinOrEmpty(args.reflections.map(reflectionToSummaryLine))}\n\nACTION CANDIDATES — you may act only on these observation ids:\n${renderObservationList(args.candidateObservations, args.pinnedIds, args.flaggedIds, args.coverageById)}${contextSection}\n\n${curatorRunSummary(args.candidateObservations.length, args.contextObservations.length, args.candidateObservations.length + args.contextObservations.length, args.observationTokens, args.maxDropsAllowed)}`;
+}
+
+function buildClumpedUserText(args: {
+	reflections: readonly Reflection[];
+	candidateObservations: readonly Observation[];
+	contextObservations: readonly Observation[];
+	pinnedIds: ReadonlySet<string>;
+	flaggedIds: ReadonlySet<string>;
+	coverageById: ReadonlyMap<string, ReflectionCoverageTier>;
+	observationTokens: number;
+	maxDropsAllowed: number;
+	includeUnlinkedContext: boolean;
+}): string {
+	const reflectionSupportIds = new Set(args.reflections.flatMap((reflection) => reflection.supportingObservationIds));
+	const clumps = args.reflections.map((reflection) => {
+		const supportIds = new Set(reflection.supportingObservationIds);
+		const linkedCandidates = args.candidateObservations.filter((observation) => supportIds.has(observation.id));
+		const linkedContext = args.contextObservations.filter((observation) => supportIds.has(observation.id));
+		const linkedCandidateSection = linkedCandidates.length
+			? `\nLinked action candidates:\n${renderObservationList(linkedCandidates, args.pinnedIds, args.flaggedIds, args.coverageById)}`
+			: "\nLinked action candidates: (none)";
+		const linkedContextSection = linkedContext.length
+			? `\nLinked read-only context observations:\n${renderObservationList(linkedContext, args.pinnedIds, args.flaggedIds, args.coverageById)}`
+			: "";
+		return `${reflectionToSummaryLine(reflection)}${linkedCandidateSection}${linkedContextSection}`;
+	});
+	const unlinkedCandidates = args.candidateObservations.filter((observation) => !reflectionSupportIds.has(observation.id));
+	const unlinkedContext = args.contextObservations.filter((observation) => !reflectionSupportIds.has(observation.id));
+	const unlinkedContextSection = args.includeUnlinkedContext && unlinkedContext.length
+		? `\n\nUNLINKED READ-ONLY CONTEXT OBSERVATIONS — informational only; you may not act on these ids:\n${renderObservationList(unlinkedContext, args.pinnedIds, args.flaggedIds, args.coverageById)}`
+		: "";
+	return `REFLECTION CLUMPS — audit linked observations against the exact reflection that cites them. A linked observation can still need pinning or follow-up if the reflection omits exact paths, commands, settings, current/stale relationships, blockers, or corrections.\n\n${joinOrEmpty(clumps)}\n\nUNLINKED ACTION CANDIDATES — reviewed observations not cited by any current reflection; you may act only on these and the linked action candidate ids above:\n${renderObservationList(unlinkedCandidates, args.pinnedIds, args.flaggedIds, args.coverageById)}${unlinkedContextSection}\n\n${curatorRunSummary(args.candidateObservations.length, args.contextObservations.length, args.candidateObservations.length + args.contextObservations.length, args.observationTokens, args.maxDropsAllowed)}`;
+}
+
+function curatorRunSummary(candidateCount: number, contextCount: number, promptObservationCount: number, observationTokens: number, maxDropsAllowed: number): string {
+	return `Action candidates: ${candidateCount.toLocaleString()}. Context observations: ${contextCount.toLocaleString()}. Prompt observations: ${promptObservationCount.toLocaleString()} (~${observationTokens.toLocaleString()} tokens). Maximum drops allowed this run: ${maxDropsAllowed.toLocaleString()}. Protected observations cannot be dropped. Make one conservative curation pass. Each tool call should contain the complete batch for that action type. Call mark_no_actions only when no action is safe or needed.`;
 }
 
 async function runCuratorPass(args: RunCuratorArgs): Promise<CuratorActionResult | undefined> {
@@ -287,10 +344,28 @@ async function runCuratorPass(args: RunCuratorArgs): Promise<CuratorActionResult
 		coverageSummary: summarizeCoverage(promptObservations, coverageById),
 	});
 
-	const contextSection = contextObservations.length
-		? `\n\nREAD-ONLY CONTEXT OBSERVATIONS:\n${joinOrEmpty(contextObservations.map((observation) => actionSummaryLine(observation, pinnedIds, flaggedIds, coverageById)))}`
-		: "";
-	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nACTION CANDIDATES — you may act only on these observation ids:\n${joinOrEmpty(candidateObservations.map((observation) => actionSummaryLine(observation, pinnedIds, flaggedIds, coverageById)))}${contextSection}\n\nAction candidates: ${candidateObservations.length.toLocaleString()}. Context observations: ${contextObservations.length.toLocaleString()}. Prompt observations: ${promptObservations.length.toLocaleString()} (~${observationTokens.toLocaleString()} tokens). Maximum drops allowed this run: ${maxDropsAllowed.toLocaleString()}. Protected observations cannot be dropped. Make one conservative curation pass. Each tool call should contain the complete batch for that action type. Call mark_no_actions only when no action is safe or needed.`;
+	const userText = args.clumpedRender === "clumped" || args.clumpedRender === "clumped-full"
+		? buildClumpedUserText({
+			reflections,
+			candidateObservations,
+			contextObservations,
+			pinnedIds,
+			flaggedIds,
+			coverageById,
+			observationTokens,
+			maxDropsAllowed,
+			includeUnlinkedContext: args.clumpedRender === "clumped-full",
+		})
+		: buildFlatUserText({
+			reflections,
+			candidateObservations,
+			contextObservations,
+			pinnedIds,
+			flaggedIds,
+			coverageById,
+			observationTokens,
+			maxDropsAllowed,
+		});
 
 	const tools = [recordInventory, pinObservations, unpinObservations, flagObservations, dropObservations, markNoActions] as AgentTool<any>[];
 

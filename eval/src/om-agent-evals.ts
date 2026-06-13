@@ -51,7 +51,8 @@ type AgentEvalRecord = {
   error?: string;
 };
 
-type Args = { model: string; judgeModel: string; outDir: string; thinkingLevel: ModelThinkingLevel; only?: string };
+type CuratorVariant = 'flat' | 'clumped' | 'clumped-full';
+type Args = { model: string; judgeModel: string; outDir: string; thinkingLevel: ModelThinkingLevel; only?: string; curatorVariant: CuratorVariant };
 
 function parseArgs(): Args {
   const args = process.argv.slice(2);
@@ -65,6 +66,7 @@ function parseArgs(): Args {
     outDir: get('--out', path.join('runs', `om-agent-evals-${Date.now()}`))!,
     thinkingLevel: (get('--thinking', 'xhigh') ?? 'xhigh') as ModelThinkingLevel,
     only: get('--only'),
+    curatorVariant: (get('--curator-variant', 'flat') ?? 'flat') as CuratorVariant,
   };
 }
 
@@ -406,7 +408,7 @@ async function reflectorReviewedZero(modelSpec: string, judgeModel: string, thin
   }, judgeModel, started, usage.total, agentDurationMs);
 }
 
-async function curatorFlagsMissingExactDetail(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+async function curatorFlagsMissingExactDetail(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel, curatorVariant: CuratorVariant = 'flat'): Promise<AgentEvalRecord> {
   const started = Date.now();
   const auth = await resolveModel(modelSpec);
   const observations = [
@@ -418,7 +420,7 @@ async function curatorFlagsMissingExactDetail(modelSpec: string, judgeModel: str
   const usage = createUsageCollector();
   let inventory: unknown;
   const agentStarted = Date.now();
-  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 1, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage, onInventory: (value: unknown) => { inventory = value; } });
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 1, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage, onInventory: (value: unknown) => { inventory = value; }, clumpedRender: curatorVariant });
   const agentDurationMs = Date.now() - agentStarted;
   return judgedCurator('curator-flags-missing-exact-detail', output, {
     id: 'curator-flags-missing-exact-detail',
@@ -438,7 +440,7 @@ async function curatorFlagsMissingExactDetail(modelSpec: string, judgeModel: str
   ], usage.total, agentDurationMs, curatorEvalDiagnostics({ inventory, observations, reflections }));
 }
 
-async function curatorContradictoryReflection(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+async function curatorContradictoryReflection(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel, curatorVariant: CuratorVariant = 'flat'): Promise<AgentEvalRecord> {
   const started = Date.now();
   const auth = await resolveModel(modelSpec);
   const observations = [
@@ -451,7 +453,7 @@ async function curatorContradictoryReflection(modelSpec: string, judgeModel: str
   const usage = createUsageCollector();
   let inventory: unknown;
   const agentStarted = Date.now();
-  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage, onInventory: (value: unknown) => { inventory = value; } });
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage, onInventory: (value: unknown) => { inventory = value; }, clumpedRender: curatorVariant });
   const agentDurationMs = Date.now() - agentStarted;
   return judgedCurator('curator-contradictory-reflection', output, {
     id: 'curator-contradictory-reflection',
@@ -558,7 +560,7 @@ async function reflectorHardRepairFlag(modelSpec: string, judgeModel: string, th
   }, judgeModel, started, usage.total, agentDurationMs);
 }
 
-async function curatorHardSchemaStaleNoise(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+async function curatorHardSchemaStaleNoise(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel, curatorVariant: CuratorVariant = 'flat'): Promise<AgentEvalRecord> {
   const started = Date.now();
   const auth = await resolveModel(modelSpec);
   const observations = [
@@ -582,7 +584,7 @@ async function curatorHardSchemaStaleNoise(modelSpec: string, judgeModel: string
   const usage = createUsageCollector();
   let inventory: unknown;
   const agentStarted = Date.now();
-  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['555555555555'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 4, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage, onInventory: (value: unknown) => { inventory = value; } });
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['555555555555'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 4, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage, onInventory: (value: unknown) => { inventory = value; }, clumpedRender: curatorVariant });
   const agentDurationMs = Date.now() - agentStarted;
   return judgedCurator('curator-hard-schema-stale-noise', output, {
     id: 'curator-hard-schema-stale-noise',
@@ -614,7 +616,7 @@ async function curatorHardSchemaStaleNoise(modelSpec: string, judgeModel: string
 
 
 
-async function curatorBrutalHistoricalPressure(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+async function curatorBrutalHistoricalPressure(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel, curatorVariant: CuratorVariant = 'flat'): Promise<AgentEvalRecord> {
   const started = Date.now();
   const auth = await resolveModel(modelSpec);
   const observations = [
@@ -671,7 +673,7 @@ async function curatorBrutalHistoricalPressure(modelSpec: string, judgeModel: st
     thinkingLevel,
     maxTurns: 4,
     onUsage: usage.onUsage,
-    onInventory: (value: unknown) => { inventory = value; },
+    onInventory: (value: unknown) => { inventory = value; }, clumpedRender: curatorVariant,
   });
   const agentDurationMs = Date.now() - agentStarted;
   return judgedCurator('curator-brutal-historical-pressure', output, {
@@ -704,7 +706,7 @@ async function curatorBrutalHistoricalPressure(modelSpec: string, judgeModel: st
 
 
 
-async function curatorBrutalUnpinTrap(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+async function curatorBrutalUnpinTrap(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel, curatorVariant: CuratorVariant = 'flat'): Promise<AgentEvalRecord> {
   const started = Date.now();
   const auth = await resolveModel(modelSpec);
   const observations = [
@@ -731,7 +733,7 @@ async function curatorBrutalUnpinTrap(modelSpec: string, judgeModel: string, thi
   const usage = createUsageCollector();
   let inventory: unknown;
   const agentStarted = Date.now();
-  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['u00000000001', 'u00000000003', 'u00000000006', 'u00000000009'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 4, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage, onInventory: (value: unknown) => { inventory = value; } });
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['u00000000001', 'u00000000003', 'u00000000006', 'u00000000009'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 4, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage, onInventory: (value: unknown) => { inventory = value; }, clumpedRender: curatorVariant });
   const agentDurationMs = Date.now() - agentStarted;
   return judgedCurator('curator-brutal-unpin-trap', output, {
     id: 'curator-brutal-unpin-trap',
@@ -761,7 +763,7 @@ async function curatorBrutalUnpinTrap(modelSpec: string, judgeModel: string, thi
   ], usage.total, agentDurationMs, curatorEvalDiagnostics({ inventory, observations, reflections }));
 }
 
-async function curatorBrutalContradictoryReflections(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+async function curatorBrutalContradictoryReflections(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel, curatorVariant: CuratorVariant = 'flat'): Promise<AgentEvalRecord> {
   const started = Date.now();
   const auth = await resolveModel(modelSpec);
   const observations = [
@@ -788,7 +790,7 @@ async function curatorBrutalContradictoryReflections(modelSpec: string, judgeMod
   const usage = createUsageCollector();
   let inventory: unknown;
   const agentStarted = Date.now();
-  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 3, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage, onInventory: (value: unknown) => { inventory = value; } });
+  const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 3, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage, onInventory: (value: unknown) => { inventory = value; }, clumpedRender: curatorVariant });
   const agentDurationMs = Date.now() - agentStarted;
   return judgedCurator('curator-brutal-contradictory-reflections', output, {
     id: 'curator-brutal-contradictory-reflections',
@@ -844,7 +846,7 @@ async function main() {
   const cases = args.only ? allCases.filter((c) => c.name.includes(args.only!)) : allCases;
   const records: AgentEvalRecord[] = [];
   for (const c of cases) {
-    try { records.push(await c(args.model, args.judgeModel, args.thinkingLevel)); }
+    try { records.push(await c(args.model, args.judgeModel, args.thinkingLevel, args.curatorVariant)); }
     catch (error) {
       records.push({ id: c.name, agent: c.name.startsWith('observer') ? 'observer' : c.name.startsWith('reflector') ? 'reflector' : 'curator', output: undefined, passed: false, durationMs: 0, error: error instanceof Error ? (error.stack ?? error.message) : String(error) });
     }
