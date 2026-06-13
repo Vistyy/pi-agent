@@ -310,6 +310,26 @@ function mergeBatches(batches: Array<{ observationIds: string[]; reason: string 
 	return batches.flat();
 }
 
+function filterCuratorArgs(args: RunCuratorArgs, ids: ReadonlySet<string>): RunCuratorArgs {
+	const observations = args.observations.filter((observation) => ids.has(observation.id));
+	const contextObservations = (args.contextObservations ?? []).filter((observation) => ids.has(observation.id));
+	return {
+		...args,
+		observations,
+		contextObservations,
+		candidateObservationIds: [...ids],
+	};
+}
+
+function idsMatching(observations: readonly Observation[], predicate: (observation: Observation) => boolean): Set<string> {
+	return new Set(observations.filter(predicate).map((observation) => observation.id));
+}
+
+function likelyPinRetirementEvidenceIds(observations: readonly Observation[]): Set<string> {
+	const pattern = /\b(pass(?:ed|ing)?|fix(?:ed|es)?|validated?|validation|supersed(?:ed|es)|stale|later|newer|rerun|resolved)\b/i;
+	return idsMatching(observations, (observation) => pattern.test(observation.content));
+}
+
 export async function runCurator(args: RunCuratorArgs): Promise<CuratorActionResult | undefined> {
 	return runCuratorPass(args);
 }
@@ -329,7 +349,11 @@ export async function runCuratorPhased(args: RunCuratorArgs): Promise<CuratorAct
 	const originalPinnedIds = new Set(args.pinnedObservationIds ?? []);
 	const pinnedAfterProtect = new Set([...originalPinnedIds, ...(protect?.pinned.flatMap((batch) => batch.observationIds) ?? [])]);
 
-	const retire = await runCuratorPass(args, {
+	const retireInputIds = new Set<string>([
+		...originalPinnedIds,
+		...likelyPinRetirementEvidenceIds(args.observations),
+	]);
+	const retire = await runCuratorPass(filterCuratorArgs(args, retireInputIds), {
 		systemPrompt: `${CURATOR_SYSTEM}${CURATOR_RETIRE_PINS_PHASE}`,
 		phaseInstructions: "This is phase 2 of 3. Only unpin observations that were already pinned before this curator run and are truly stale by same-scope newer evidence. Do not unpin ids newly pinned in phase 1.",
 		actions: ["unpin"],
@@ -346,7 +370,8 @@ export async function runCuratorPhased(args: RunCuratorArgs): Promise<CuratorAct
 		...(args.flaggedObservationIds ?? []),
 	]);
 
-	const drop = await runCuratorPass(args, {
+	const dropCandidateIds = new Set(args.observations.map((observation) => observation.id).filter((id) => !dropProtectedIds.has(id)));
+	const drop = await runCuratorPass(filterCuratorArgs(args, dropCandidateIds), {
 		systemPrompt: `${CURATOR_SYSTEM}${CURATOR_DROP_PHASE}`,
 		phaseInstructions: `This is phase 3 of 3. Only drop safe noise. These ids are protected and must not be dropped: ${[...dropProtectedIds].join(", ") || "(none)"}.`,
 		actions: ["drop"],

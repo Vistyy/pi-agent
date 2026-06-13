@@ -168,7 +168,7 @@ describe("curator agent", () => {
 			await context.tools.find((candidate: any) => candidate.name === "drop_observations")!.execute("tool-3", { ids: ["aaaaaaaaaaaa", "bbbbbbbbbbbb"], reason: "Drop noise." });
 		});
 
-		const result = await runCuratorPhased({ ...baseArgs, maxDropsAllowed: 2, agentLoop: loop });
+		const result = await runCuratorPhased({ ...baseArgs, pinnedObservationIds: ["cccccccccccc"], maxDropsAllowed: 2, agentLoop: loop });
 
 		expect(toolNamesByCall).toEqual([
 			["flag_observations", "mark_no_actions", "pin_observations"],
