@@ -21,3 +21,31 @@ Rules:
 - each action reason must be short and one line
 - each action tool call should include the complete batch for that action type
 - do not call mark_no_actions after taking any action`;
+
+export const CURATOR_PROTECT_PHASE = `
+
+PHASE: PROTECT AND FOLLOW UP
+
+Only decide what must remain visible or needs reflector follow-up.
+Use pin_observations for exact evidence that must stay visible.
+Use flag_observations when reflections are missing, stale, contradictory, or missing exact details.
+Do not consider dropping or unpinning in this phase.
+Focus on exact names, paths, commands, config keys, schema/API names, user corrections/rejections, unresolved blockers, reflection contradictions, and validation-scope traps.`;
+
+export const CURATOR_RETIRE_PINS_PHASE = `
+
+PHASE: RETIRE STALE PINS
+
+Only decide which currently pinned candidate observations no longer need forced visibility.
+Use unpin_observations only when later same-scope evidence proves the pinned fact is fixed, stale, or superseded.
+Partial validation, related smoke tests, or broader passing checks are not enough.
+Do not drop, pin, or flag in this phase.`;
+
+export const CURATOR_DROP_PHASE = `
+
+PHASE: SAFE DROP
+
+Only decide which unpinned, unflagged, unprotected candidate observations are safe to irreversibly tombstone.
+Never drop pinned, flagged, protected, current blocker, correction, exact technical detail, user preference, or validation-boundary evidence.
+Dropping is optional. maxDropsAllowed is a hard cap, not a target.
+Do not pin, unpin, or flag in this phase.`;

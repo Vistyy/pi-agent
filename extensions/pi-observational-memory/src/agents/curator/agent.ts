@@ -21,7 +21,7 @@ import {
 	summarizeCoverage,
 	type ReflectionCoverageTier,
 } from "../coverage.js";
-import { CURATOR_SYSTEM } from "./prompts.js";
+import { CURATOR_DROP_PHASE, CURATOR_PROTECT_PHASE, CURATOR_RETIRE_PINS_PHASE, CURATOR_SYSTEM } from "./prompts.js";
 
 export type CuratorActionResult = {
 	pinned: Array<{ observationIds: string[]; reason: string }>;
@@ -135,16 +135,28 @@ function actionSummaryLine(observation: Observation, pinnedIds: ReadonlySet<stri
 	return `${observationToMemoryAgentLine(observation, coverageTierForObservation(observation, coverageById))}${suffix}`;
 }
 
-export async function runCurator(args: RunCuratorArgs): Promise<CuratorActionResult | undefined> {
-	const { model, apiKey, headers, reflections, observations, maxDropsAllowed, protectedObservationIds = [], signal } = args;
+type CuratorActionName = "pin" | "unpin" | "flag" | "drop";
+
+type RunCuratorPassOptions = {
+	systemPrompt?: string;
+	phaseInstructions?: string;
+	actions?: readonly CuratorActionName[];
+	protectedObservationIds?: readonly string[];
+	pinnedObservationIds?: readonly string[];
+	flaggedObservationIds?: readonly string[];
+};
+
+async function runCuratorPass(args: RunCuratorArgs, options: RunCuratorPassOptions = {}): Promise<CuratorActionResult | undefined> {
+	const { model, apiKey, headers, reflections, observations, maxDropsAllowed, signal } = args;
+	const protectedObservationIds = options.protectedObservationIds ?? args.protectedObservationIds ?? [];
 	const candidateIds = new Set(args.candidateObservationIds ?? observations.map((observation) => observation.id));
 	const candidateObservations = observations.filter((observation) => candidateIds.has(observation.id));
 	if (candidateObservations.length === 0) return undefined;
 	const contextObservations = (args.contextObservations ?? []).filter((observation) => !candidateIds.has(observation.id));
 	const promptObservations = [...candidateObservations, ...contextObservations];
 
-	const pinnedIds = new Set(args.pinnedObservationIds ?? []);
-	const flaggedIds = new Set(args.flaggedObservationIds ?? []);
+	const pinnedIds = new Set(options.pinnedObservationIds ?? args.pinnedObservationIds ?? []);
+	const flaggedIds = new Set(options.flaggedObservationIds ?? args.flaggedObservationIds ?? []);
 	const protectedIds = new Set(protectedObservationIds);
 	const allowedIds = new Set(candidateObservations.map((observation) => observation.id));
 	const pinnedAllowedIds = new Set(candidateObservations.filter((observation) => pinnedIds.has(observation.id)).map((observation) => observation.id));
@@ -255,7 +267,17 @@ export async function runCurator(args: RunCuratorArgs): Promise<CuratorActionRes
 	const contextSection = contextObservations.length
 		? `\n\nREAD-ONLY CONTEXT OBSERVATIONS:\n${joinOrEmpty(contextObservations.map((observation) => actionSummaryLine(observation, pinnedIds, flaggedIds, coverageById)))}`
 		: "";
-	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nACTION CANDIDATES — you may pin, unpin, flag, or drop only these observation ids:\n${joinOrEmpty(candidateObservations.map((observation) => actionSummaryLine(observation, pinnedIds, flaggedIds, coverageById)))}${contextSection}\n\nAction candidates: ${candidateObservations.length.toLocaleString()}. Context observations: ${contextObservations.length.toLocaleString()}. Prompt observations: ${promptObservations.length.toLocaleString()} (~${observationTokens.toLocaleString()} tokens). Maximum drops allowed this run: ${maxDropsAllowed.toLocaleString()}. Protected observations cannot be dropped. Make one conservative curation pass. You may call multiple action tools if multiple action types are needed; each tool call should contain the complete batch for that action type. Call mark_no_actions only when no action is safe or needed.`;
+	const actionNames = options.actions ?? ["pin", "unpin", "flag", "drop"];
+	const actionText = actionNames.map((action) => ({ pin: "pin", unpin: "unpin", flag: "flag", drop: "drop" })[action]).join(", ");
+	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nACTION CANDIDATES — you may ${actionText} only these observation ids:\n${joinOrEmpty(candidateObservations.map((observation) => actionSummaryLine(observation, pinnedIds, flaggedIds, coverageById)))}${contextSection}\n\nAction candidates: ${candidateObservations.length.toLocaleString()}. Context observations: ${contextObservations.length.toLocaleString()}. Prompt observations: ${promptObservations.length.toLocaleString()} (~${observationTokens.toLocaleString()} tokens). Maximum drops allowed this run: ${maxDropsAllowed.toLocaleString()}. Protected observations cannot be dropped.${options.phaseInstructions ? `\n\n${options.phaseInstructions}` : ""} Make one conservative curation pass. Each tool call should contain the complete batch for that action type. Call mark_no_actions only when no action is safe or needed.`;
+
+	const toolsByAction: Record<CuratorActionName, AgentTool<any>> = {
+		pin: pinObservations,
+		unpin: unpinObservations,
+		flag: flagObservations,
+		drop: dropObservations,
+	};
+	const tools = [...actionNames.map((action) => toolsByAction[action]), markNoActions] as AgentTool<any>[];
 
 	await runMemoryAgentLoop({
 		model,
@@ -265,9 +287,9 @@ export async function runCurator(args: RunCuratorArgs): Promise<CuratorActionRes
 		agentLoop: args.agentLoop,
 		maxTurns: args.maxTurns,
 		thinkingLevel: args.thinkingLevel,
-		systemPrompt: CURATOR_SYSTEM,
+		systemPrompt: options.systemPrompt ?? CURATOR_SYSTEM,
 		userText,
-		tools: [pinObservations, unpinObservations, flagObservations, dropObservations, markNoActions] as AgentTool<any>[],
+		tools,
 		agentName: "curator",
 		onUsage: args.onUsage,
 	});
@@ -281,5 +303,63 @@ export async function runCurator(args: RunCuratorArgs): Promise<CuratorActionRes
 		droppedCount: result.dropped.length,
 	});
 
+	return result.pinned.length || result.unpinned.length || result.flagged.length || result.dropped.length ? result : undefined;
+}
+
+function mergeBatches(batches: Array<{ observationIds: string[]; reason: string }>[]): Array<{ observationIds: string[]; reason: string }> {
+	return batches.flat();
+}
+
+export async function runCurator(args: RunCuratorArgs): Promise<CuratorActionResult | undefined> {
+	return runCuratorPass(args);
+}
+
+export async function runCuratorPhased(args: RunCuratorArgs): Promise<CuratorActionResult | undefined> {
+	const protect = await runCuratorPass(args, {
+		systemPrompt: `${CURATOR_SYSTEM}${CURATOR_PROTECT_PHASE}`,
+		phaseInstructions: "This is phase 1 of 3. Only protect critical evidence or request reflector follow-up. Do not retire pins or drop observations.",
+		actions: ["pin", "flag"],
+	});
+
+	const protectedByPhaseOne = new Set<string>([
+		...(args.protectedObservationIds ?? []),
+		...(protect?.pinned.flatMap((batch) => batch.observationIds) ?? []),
+		...(protect?.flagged.flatMap((batch) => batch.observationIds) ?? []),
+	]);
+	const originalPinnedIds = new Set(args.pinnedObservationIds ?? []);
+	const pinnedAfterProtect = new Set([...originalPinnedIds, ...(protect?.pinned.flatMap((batch) => batch.observationIds) ?? [])]);
+
+	const retire = await runCuratorPass(args, {
+		systemPrompt: `${CURATOR_SYSTEM}${CURATOR_RETIRE_PINS_PHASE}`,
+		phaseInstructions: "This is phase 2 of 3. Only unpin observations that were already pinned before this curator run and are truly stale by same-scope newer evidence. Do not unpin ids newly pinned in phase 1.",
+		actions: ["unpin"],
+		pinnedObservationIds: [...originalPinnedIds],
+		flaggedObservationIds: [...(args.flaggedObservationIds ?? []), ...(protect?.flagged.flatMap((batch) => batch.observationIds) ?? [])],
+		protectedObservationIds: [...protectedByPhaseOne],
+	});
+
+	const unpinnedIds = new Set(retire?.unpinned.flatMap((batch) => batch.observationIds) ?? []);
+	const pinnedAfterRetire = new Set([...pinnedAfterProtect].filter((id) => !unpinnedIds.has(id)));
+	const dropProtectedIds = new Set<string>([
+		...protectedByPhaseOne,
+		...pinnedAfterRetire,
+		...(args.flaggedObservationIds ?? []),
+	]);
+
+	const drop = await runCuratorPass(args, {
+		systemPrompt: `${CURATOR_SYSTEM}${CURATOR_DROP_PHASE}`,
+		phaseInstructions: `This is phase 3 of 3. Only drop safe noise. These ids are protected and must not be dropped: ${[...dropProtectedIds].join(", ") || "(none)"}.`,
+		actions: ["drop"],
+		pinnedObservationIds: [...pinnedAfterRetire],
+		flaggedObservationIds: [...(args.flaggedObservationIds ?? []), ...(protect?.flagged.flatMap((batch) => batch.observationIds) ?? [])],
+		protectedObservationIds: [...dropProtectedIds],
+	});
+
+	const result: CuratorActionResult = {
+		pinned: mergeBatches([protect?.pinned ?? []]),
+		unpinned: mergeBatches([retire?.unpinned ?? []]),
+		flagged: mergeBatches([protect?.flagged ?? []]),
+		dropped: drop?.dropped ?? [],
+	};
 	return result.pinned.length || result.unpinned.length || result.flagged.length || result.dropped.length ? result : undefined;
 }

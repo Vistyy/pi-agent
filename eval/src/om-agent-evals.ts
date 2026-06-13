@@ -19,17 +19,19 @@ type OmAgents = {
   runObserver: (args: Record<string, unknown>) => Promise<Observation[] | undefined>;
   runReflector: (args: Record<string, unknown>) => Promise<Reflection[] | undefined>;
   runCurator: (args: Record<string, unknown>) => Promise<CuratorActionResult | undefined>;
+  runCuratorPhased: (args: Record<string, unknown>) => Promise<CuratorActionResult | undefined>;
 };
 
 let omAgents: OmAgents | undefined;
+let curatorMode: 'single' | 'phased' = 'single';
 
 async function loadOmAgents(): Promise<OmAgents> {
   if (omAgents) return omAgents;
   const base = new URL('../../extensions/pi-observational-memory/src/agents/', import.meta.url);
   const observer = await import(new URL('observer/agent.ts', base).href) as { runObserver: OmAgents['runObserver'] };
   const reflector = await import(new URL('reflector/agent.ts', base).href) as { runReflector: OmAgents['runReflector'] };
-  const curator = await import(new URL('curator/agent.ts', base).href) as { runCurator: OmAgents['runCurator'] };
-  omAgents = { runObserver: observer.runObserver, runReflector: reflector.runReflector, runCurator: curator.runCurator };
+  const curator = await import(new URL('curator/agent.ts', base).href) as { runCurator: OmAgents['runCurator']; runCuratorPhased: OmAgents['runCuratorPhased'] };
+  omAgents = { runObserver: observer.runObserver, runReflector: reflector.runReflector, runCurator: curator.runCurator, runCuratorPhased: curator.runCuratorPhased };
   return omAgents;
 }
 
@@ -50,7 +52,7 @@ type AgentEvalRecord = {
   error?: string;
 };
 
-type Args = { model: string; judgeModel: string; outDir: string; thinkingLevel: ModelThinkingLevel; only?: string };
+type Args = { model: string; judgeModel: string; outDir: string; thinkingLevel: ModelThinkingLevel; only?: string; curatorMode: 'single' | 'phased' };
 
 function parseArgs(): Args {
   const args = process.argv.slice(2);
@@ -64,6 +66,7 @@ function parseArgs(): Args {
     outDir: get('--out', path.join('runs', `om-agent-evals-${Date.now()}`))!,
     thinkingLevel: (get('--thinking', 'xhigh') ?? 'xhigh') as ModelThinkingLevel,
     only: get('--only'),
+    curatorMode: args.includes('--curator-phased') ? 'phased' : 'single',
   };
 }
 
@@ -72,6 +75,11 @@ function parseModelSpec(spec: string): [provider: string, id: string] {
   const id = rest.join('/');
   if (!provider || !id) throw new Error(`model must be provider/id, got: ${spec}`);
   return [provider, id];
+}
+
+async function loadCuratorRunner(): Promise<OmAgents['runCurator']> {
+  const agents = await loadOmAgents();
+  return curatorMode === 'phased' ? agents.runCuratorPhased : agents.runCurator;
 }
 
 async function resolveModel(spec: string): Promise<{ model: Model<any>; apiKey: string; headers?: Record<string, string> }> {
@@ -357,7 +365,7 @@ async function curatorFlagsMissingExactDetail(modelSpec: string, judgeModel: str
     obs('bbbbbbbbbbbb', 'User says the SQLITE_BUSY failure remains the current blocker and WAL must stay enabled via `PRAGMA journal_mode=WAL`.', '2026-06-07T09:01:00.000Z'),
   ];
   const reflections = [ref('cccccccccccc', 'Migration dry run failed with a database lock; WAL should stay enabled.', ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'])];
-  const { runCurator } = await loadOmAgents();
+  const runCurator = await loadCuratorRunner();
   const usage = createUsageCollector();
   const agentStarted = Date.now();
   const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 1, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
@@ -389,7 +397,7 @@ async function curatorContradictoryReflection(modelSpec: string, judgeModel: str
     obs('cccccccccccc', 'Assistant mistakenly summarized the auth issue as fixed without a passing run.', '2026-06-07T09:02:00.000Z'),
   ];
   const reflections = [ref('dddddddddddd', 'Auth refresh token expiry is fixed.', ['aaaaaaaaaaaa'])];
-  const { runCurator } = await loadOmAgents();
+  const runCurator = await loadCuratorRunner();
   const usage = createUsageCollector();
   const agentStarted = Date.now();
   const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
@@ -519,7 +527,7 @@ async function curatorHardSchemaStaleNoise(modelSpec: string, judgeModel: string
   const reflections = [
     ref('999999999999', 'Memory lifecycle now uses curator follow-up flags, future reflection lifecycle work, hard evals, and curator emergency scheduling.', ['aaaaaaaaaaaa', 'bbbbbbbbbbbb', '111111111111', '222222222222', '666666666666']),
   ];
-  const { runCurator } = await loadOmAgents();
+  const runCurator = await loadCuratorRunner();
   const usage = createUsageCollector();
   const agentStarted = Date.now();
   const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['555555555555'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 4, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
@@ -595,7 +603,7 @@ async function curatorBrutalHistoricalPressure(modelSpec: string, judgeModel: st
     ref('r00000000002', 'Cleanup moved away from dropper thresholds; emergency curator pressure exists.', ['a00000000007', 'a00000000009']),
     ref('r00000000003', 'Curator evals passed after fixes; use the proven model settings.', ['a00000000016', 'a00000000027']),
   ];
-  const { runCurator } = await loadOmAgents();
+  const runCurator = await loadCuratorRunner();
   const usage = createUsageCollector();
   const agentStarted = Date.now();
   const output = await runCurator({
@@ -665,7 +673,7 @@ async function curatorBrutalUnpinTrap(modelSpec: string, judgeModel: string, thi
   const reflections = [
     ref('ur0000000001', 'Parser CRLF failure is fixed; deploy and auth have some passing validation.', ['u00000000001', 'u00000000002', 'u00000000004', 'u00000000007']),
   ];
-  const { runCurator } = await loadOmAgents();
+  const runCurator = await loadCuratorRunner();
   const usage = createUsageCollector();
   const agentStarted = Date.now();
   const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['u00000000001', 'u00000000003', 'u00000000006', 'u00000000009'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 4, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
@@ -720,7 +728,7 @@ async function curatorBrutalContradictoryReflections(modelSpec: string, judgeMod
     ref('cr0000000002', 'Auth refresh token expiry is fixed.', ['c00000000004']),
     ref('cr0000000003', 'Recall is likely redundant after compaction.', ['c00000000006']),
   ];
-  const { runCurator } = await loadOmAgents();
+  const runCurator = await loadCuratorRunner();
   const usage = createUsageCollector();
   const agentStarted = Date.now();
   const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 3, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
@@ -773,6 +781,7 @@ const allCases = [
 
 async function main() {
   const args = parseArgs();
+  curatorMode = args.curatorMode;
   fs.mkdirSync(args.outDir, { recursive: true });
   const cases = args.only ? allCases.filter((c) => c.name.includes(args.only!)) : allCases;
   const records: AgentEvalRecord[] = [];
