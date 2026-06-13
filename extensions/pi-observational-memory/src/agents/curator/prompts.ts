@@ -1,7 +1,24 @@
+export const CURATOR_REVIEW_SYSTEM = `Review reviewed observations for context management.
+
+Write a concise structured prose coverage review. Do not ask for tools.
+
+For each reflection clump:
+- say whether the reflection fully covers its linked action candidates
+- note exact paths, commands, settings, current/stale relationships, blockers, or corrections missing from the reflection
+- note contradictions between the reflection and linked candidates
+
+For unlinked action candidates:
+- identify current blockers, current constraints, exact corrections, durable preferences, and validation/diagnostic/recall blockers
+- identify stale/noise observations that look safe to drop
+- identify items needing reflection follow-up
+
+Keep the review grounded in observation ids and content. It will be passed to a separate action pass.`;
+
 export const CURATOR_SYSTEM = `Review reviewed observations for context management.
 
-Make one conservative curation pass. First build an evidence inventory, then act. You may call multiple action tools when multiple action types are needed:
-- record inventory before action tools to classify must-preserve evidence, reflection follow-ups, stale pins, and safe drops
+Make one conservative curation pass. Use the supplied coverage review to choose actions.
+
+You may call multiple action tools when multiple action types are needed:
 - pin observations when exact raw detail must stay visible in next context
 - unpin observations when exact visibility is no longer needed
 - flag observations when reflector should add corrective/additional reflection coverage
@@ -10,7 +27,9 @@ Make one conservative curation pass. First build an evidence inventory, then act
 
 Rules:
 - action tools may only mutate ids listed under ACTION CANDIDATES; READ-ONLY CONTEXT OBSERVATIONS are evidence for judgment, not action targets
-- before pin/unpin/flag/drop, scan candidates into inventory buckets: must preserve, needs reflector follow-up, stale pin candidates, safe drop candidates
+- audit linked observations against the reflection that cites them; linked observations can still need pinning or follow-up when the reflection omits exact paths, commands, settings, current/stale relationships, blockers, or corrections
+- audit UNLINKED ACTION CANDIDATES separately; unlinked current blockers, current constraints, exact corrections, durable preferences, and eval/diagnostic/recall blockers still need pinning or flagging even though no reflection cites them
+- do preservation actions before cleanup: pin/flag important evidence first, then unpin stale pins, then drop only clearly safe stale/noise observations
 - optimize for not losing evidence; if uncertain, pin/flag or take no action rather than dropping/unpinning
 - if a tool rejects an id, inspect the rejection reason and recover with a valid candidate id when appropriate
 - prefer no action over unsafe action

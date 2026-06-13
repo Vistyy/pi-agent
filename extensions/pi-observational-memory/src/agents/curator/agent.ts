@@ -21,7 +21,7 @@ import {
 	summarizeCoverage,
 	type ReflectionCoverageTier,
 } from "../coverage.js";
-import { CURATOR_SYSTEM } from "./prompts.js";
+import { CURATOR_REVIEW_SYSTEM, CURATOR_SYSTEM } from "./prompts.js";
 
 export type CuratorActionResult = {
 	pinned: Array<{ observationIds: string[]; reason: string }>;
@@ -47,17 +47,10 @@ interface RunCuratorArgs {
 	maxTurns?: number;
 	thinkingLevel?: ModelThinkingLevel;
 	onUsage?: (usage: MemoryAgentUsage) => void;
-	onInventory?: (inventory: CuratorInventoryArgs) => void;
 	clumpedRender?: "flat" | "clumped" | "clumped-full";
 }
 
 const MarkNoActionsSchema = Type.Object({});
-const CuratorInventorySchema = Type.Object({
-	mustPreserve: Type.Array(Type.String(), { default: [] }),
-	needsFollowUp: Type.Array(Type.String(), { default: [] }),
-	stalePinCandidates: Type.Array(Type.String(), { default: [] }),
-	safeDropCandidates: Type.Array(Type.String(), { default: [] }),
-});
 const CuratorIdsWithReasonSchema = Type.Object({
 	ids: Type.Array(Type.String({ minLength: 1 }), { minItems: 1 }),
 	reason: Type.String({ minLength: 1 }),
@@ -66,7 +59,6 @@ const CuratorIdsWithReasonSchema = Type.Object({
 type CuratorBatch = { observationIds: string[]; reason: string };
 
 type MarkNoActionsArgs = Static<typeof MarkNoActionsSchema>;
-type CuratorInventoryArgs = Static<typeof CuratorInventorySchema>;
 type CuratorIdsWithReasonArgs = Static<typeof CuratorIdsWithReasonSchema>;
 
 function timestampRank(timestamp: string): number {
@@ -164,6 +156,20 @@ function buildFlatUserText(args: {
 	return `CURRENT REFLECTIONS:\n${joinOrEmpty(args.reflections.map(reflectionToSummaryLine))}\n\nACTION CANDIDATES — you may act only on these observation ids:\n${renderObservationList(args.candidateObservations, args.pinnedIds, args.flaggedIds, args.coverageById)}${contextSection}\n\n${curatorRunSummary(args.candidateObservations.length, args.contextObservations.length, args.candidateObservations.length + args.contextObservations.length, args.observationTokens, args.maxDropsAllowed)}`;
 }
 
+function buildPinReviewSection(observations: readonly Observation[], candidateObservations: readonly Observation[], pinnedIds: ReadonlySet<string>, flaggedIds: ReadonlySet<string>, coverageById: ReadonlyMap<string, ReflectionCoverageTier>): string {
+	const pinnedCandidates = candidateObservations.filter((observation) => pinnedIds.has(observation.id));
+	if (pinnedCandidates.length === 0) return "";
+	const allByTime = [...observations].sort((a, b) => timestampRank(a.timestamp) - timestampRank(b.timestamp));
+	const blocks = pinnedCandidates.map((pinned) => {
+		const newer = allByTime.filter((observation) => observation.id !== pinned.id && timestampRank(observation.timestamp) > timestampRank(pinned.timestamp)).slice(0, 8);
+		const newerSection = newer.length
+			? `\nNewer evidence to compare:\n${renderObservationList(newer, pinnedIds, flaggedIds, coverageById)}`
+			: "\nNewer evidence to compare: (none)";
+		return `${actionSummaryLine(pinned, pinnedIds, flaggedIds, coverageById)}${newerSection}`;
+	});
+	return `\n\nPIN REVIEW CANDIDATES — currently pinned action candidates. Decide whether each still needs forced visibility, should be unpinned because newer same-scope evidence makes it stale, or is unsafe to unpin.\n${blocks.join("\n\n")}`;
+}
+
 function buildClumpedUserText(args: {
 	reflections: readonly Reflection[];
 	candidateObservations: readonly Observation[];
@@ -188,25 +194,33 @@ function buildClumpedUserText(args: {
 			: "";
 		return `${reflectionToSummaryLine(reflection)}${linkedCandidateSection}${linkedContextSection}`;
 	});
+	const allObservations = [...args.candidateObservations, ...args.contextObservations];
+	const pinReviewSection = buildPinReviewSection(allObservations, args.candidateObservations, args.pinnedIds, args.flaggedIds, args.coverageById);
 	const unlinkedCandidates = args.candidateObservations.filter((observation) => !reflectionSupportIds.has(observation.id));
 	const unlinkedContext = args.contextObservations.filter((observation) => !reflectionSupportIds.has(observation.id));
 	const unlinkedContextSection = args.includeUnlinkedContext && unlinkedContext.length
 		? `\n\nUNLINKED READ-ONLY CONTEXT OBSERVATIONS — informational only; you may not act on these ids:\n${renderObservationList(unlinkedContext, args.pinnedIds, args.flaggedIds, args.coverageById)}`
 		: "";
-	return `REFLECTION CLUMPS — audit linked observations against the exact reflection that cites them. A linked observation can still need pinning or follow-up if the reflection omits exact paths, commands, settings, current/stale relationships, blockers, or corrections.\n\n${joinOrEmpty(clumps)}\n\nUNLINKED ACTION CANDIDATES — reviewed observations not cited by any current reflection; you may act only on these and the linked action candidate ids above:\n${renderObservationList(unlinkedCandidates, args.pinnedIds, args.flaggedIds, args.coverageById)}${unlinkedContextSection}\n\n${curatorRunSummary(args.candidateObservations.length, args.contextObservations.length, args.candidateObservations.length + args.contextObservations.length, args.observationTokens, args.maxDropsAllowed)}`;
+	return `REFLECTION CLUMPS — audit linked observations against the exact reflection that cites them. A linked observation can still need pinning or follow-up if the reflection omits exact paths, commands, settings, current/stale relationships, blockers, or corrections.${pinReviewSection}\n\n${joinOrEmpty(clumps)}\n\nUNLINKED ACTION CANDIDATES — reviewed observations not cited by any current reflection; you may act only on these and the linked action candidate ids above:\n${renderObservationList(unlinkedCandidates, args.pinnedIds, args.flaggedIds, args.coverageById)}${unlinkedContextSection}\n\n${curatorRunSummary(args.candidateObservations.length, args.contextObservations.length, args.candidateObservations.length + args.contextObservations.length, args.observationTokens, args.maxDropsAllowed)}`;
 }
 
 function curatorRunSummary(candidateCount: number, contextCount: number, promptObservationCount: number, observationTokens: number, maxDropsAllowed: number): string {
 	return `Action candidates: ${candidateCount.toLocaleString()}. Context observations: ${contextCount.toLocaleString()}. Prompt observations: ${promptObservationCount.toLocaleString()} (~${observationTokens.toLocaleString()} tokens). Maximum drops allowed this run: ${maxDropsAllowed.toLocaleString()}. Protected observations cannot be dropped. Make one conservative curation pass. Each tool call should contain the complete batch for that action type. Call mark_no_actions only when no action is safe or needed.`;
 }
 
-async function runCuratorPass(args: RunCuratorArgs): Promise<CuratorActionResult | undefined> {
+type CuratorPassMode = "all" | "unpin" | "unlinked-preserve" | "preserve";
+
+async function runCuratorPass(args: RunCuratorArgs, reviewText?: string, mode: CuratorPassMode = "all", initialResult?: CuratorActionResult): Promise<CuratorActionResult | undefined> {
 	const { model, apiKey, headers, reflections, observations, maxDropsAllowed, signal } = args;
 	const protectedObservationIds = args.protectedObservationIds ?? [];
-	const candidateIds = new Set(args.candidateObservationIds ?? observations.map((observation) => observation.id));
+	const baseCandidateIds = new Set(args.candidateObservationIds ?? observations.map((observation) => observation.id));
+	const linkedIds = new Set(reflections.flatMap((reflection) => reflection.supportingObservationIds));
+	const candidateIds = mode === "unlinked-preserve"
+		? new Set([...baseCandidateIds].filter((id) => !linkedIds.has(id)))
+		: baseCandidateIds;
 	const candidateObservations = observations.filter((observation) => candidateIds.has(observation.id));
-	if (candidateObservations.length === 0) return undefined;
-	const contextObservations = (args.contextObservations ?? []).filter((observation) => !candidateIds.has(observation.id));
+	if (candidateObservations.length === 0) return initialResult;
+	const contextObservations = [...observations.filter((observation) => baseCandidateIds.has(observation.id) && !candidateIds.has(observation.id)), ...(args.contextObservations ?? [])].filter((observation) => !candidateIds.has(observation.id));
 	const promptObservations = [...candidateObservations, ...contextObservations];
 
 	const pinnedIds = new Set(args.pinnedObservationIds ?? []);
@@ -218,9 +232,8 @@ async function runCuratorPass(args: RunCuratorArgs): Promise<CuratorActionResult
 	const coverageById = reflectionCoverageMap(promptObservations, reflections);
 	const observationTokens = observationTokenSum(promptObservations);
 
-	const result: CuratorActionResult = { pinned: [], unpinned: [], flagged: [], dropped: [] };
+	const result: CuratorActionResult = initialResult ?? { pinned: [], unpinned: [], flagged: [], dropped: [] };
 	let toolCallCount = 0;
-	let inventoryCallCount = 0;
 	let noActionCallCount = 0;
 
 	function makeActionTool(
@@ -249,31 +262,6 @@ async function runCuratorPass(args: RunCuratorArgs): Promise<CuratorActionResult
 		};
 	}
 
-	const recordInventory: AgentTool<typeof CuratorInventorySchema> = {
-		name: "record_inventory",
-		label: "Record inventory",
-		description: "Non-mutating planning tool. Call before action tools to classify candidate observations into mustPreserve, needsFollowUp, stalePinCandidates, and safeDropCandidates. This records your evidence inventory and lets you continue with action tools.",
-		parameters: CuratorInventorySchema,
-		execute: async (_id, params: CuratorInventoryArgs) => {
-			inventoryCallCount++;
-			args.onInventory?.(params);
-			const checked = {
-				mustPreserve: partitionObservationIds(params.mustPreserve, allowedIds),
-				needsFollowUp: partitionObservationIds(params.needsFollowUp, allowedIds),
-				stalePinCandidates: partitionObservationIds(params.stalePinCandidates, allowedIds),
-				safeDropCandidates: partitionObservationIds(params.safeDropCandidates, allowedIds),
-			};
-			const acceptedCount = Object.values(checked).reduce((total, item) => total + item.accepted.length, 0);
-			const rejected = Object.values(checked).flatMap((item) => item.rejected);
-			debugLog("curator.inventory", { acceptedCount, rejectedCount: rejected.length });
-			return {
-				content: [{ type: "text", text: `Inventory recorded: ${acceptedCount} accepted ids, ${rejected.length} rejected ids${rejected.length ? ` (${rejected.map((item) => `${item.id}: ${item.reason}`).join(", ")})` : ""}. Continue with action tools if actions are needed.` }],
-				details: checked,
-				terminate: false,
-			};
-		},
-	};
-
 	const markNoActions: AgentTool<typeof MarkNoActionsSchema> = {
 		name: "mark_no_actions",
 		label: "Mark no actions",
@@ -292,7 +280,7 @@ async function runCuratorPass(args: RunCuratorArgs): Promise<CuratorActionResult
 		"Pin every reviewed observation whose exact raw details must remain visible in next context. Include every observation to pin in this complete batch for the pin action type. You may call other action tools afterward if needed.",
 		allowedIds,
 		(ids, reason) => {
-			const blocked = new Set([...result.dropped, ...batchIds(result.unpinned)]);
+			const blocked = new Set([...result.dropped, ...batchIds(result.unpinned), ...batchIds(result.pinned)]);
 			const data = buildObservationsPinnedData(ids.filter((id) => !blocked.has(id)), reason);
 			if (data) result.pinned.push(data);
 		},
@@ -314,7 +302,8 @@ async function runCuratorPass(args: RunCuratorArgs): Promise<CuratorActionResult
 		"Flag every reviewed observation needing reflector follow-up when reflection coverage is missing, stale, contradictory, or missing exact paths/commands/settings/stale-current relations. Include every observation to flag in this complete batch for the flag action type. You may call other action tools afterward if needed.",
 		allowedIds,
 		(ids, reason) => {
-			const data = buildObservationsFlaggedData(ids.filter((id) => !result.dropped.includes(id)), reason);
+			const alreadyFlagged = batchIds(result.flagged);
+			const data = buildObservationsFlaggedData(ids.filter((id) => !result.dropped.includes(id) && !alreadyFlagged.has(id)), reason);
 			if (data) result.flagged.push(data);
 		},
 	);
@@ -324,7 +313,8 @@ async function runCuratorPass(args: RunCuratorArgs): Promise<CuratorActionResult
 		"Drop every low-value reviewed observation that is clearly safe to tombstone. Include every observation to drop in this complete batch for the drop action type. You may call other action tools afterward if needed, but dropped ids cannot also be pinned, unpinned, or flagged.",
 		droppableIds,
 		(ids, _reason) => {
-			result.dropped = selectDropCandidates([...result.dropped, ...ids], candidateObservations, maxDropsAllowed, reflections, protectedObservationIds);
+			const sameRunProtected = new Set([...batchIds(result.pinned), ...batchIds(result.flagged), ...batchIds(result.unpinned)]);
+			result.dropped = selectDropCandidates([...result.dropped, ...ids.filter((id) => !sameRunProtected.has(id))], candidateObservations, maxDropsAllowed, reflections, protectedObservationIds);
 			const dropped = new Set(result.dropped);
 			result.pinned = removeIdsFromBatches(result.pinned, dropped);
 			result.unpinned = removeIdsFromBatches(result.unpinned, dropped);
@@ -344,6 +334,85 @@ async function runCuratorPass(args: RunCuratorArgs): Promise<CuratorActionResult
 		coverageSummary: summarizeCoverage(promptObservations, coverageById),
 	});
 
+	const baseUserText = args.clumpedRender === "clumped" || args.clumpedRender === "clumped-full"
+		? buildClumpedUserText({
+			reflections,
+			candidateObservations,
+			contextObservations,
+			pinnedIds,
+			flaggedIds,
+			coverageById,
+			observationTokens,
+			maxDropsAllowed,
+			includeUnlinkedContext: args.clumpedRender === "clumped-full",
+		})
+		: buildFlatUserText({
+			reflections,
+			candidateObservations,
+			contextObservations,
+			pinnedIds,
+			flaggedIds,
+			coverageById,
+			observationTokens,
+			maxDropsAllowed,
+		});
+	const phaseInstruction = mode === "unpin"
+		? "\n\nACTION PHASE: stale-pin review only. Only call unpin_observations for currently pinned candidates that are clearly stale, or mark_no_actions if none are safe to unpin. Do not pin, flag, or drop in this phase."
+		: mode === "unlinked-preserve"
+			? "\n\nACTION PHASE: unlinked preservation only. The action candidates in this phase are not cited by any current reflection. Call pin_observations or flag_observations for unlinked durable evidence that needs visibility or reflection follow-up, or mark_no_actions if none need preservation. Do not drop or unpin in this phase."
+			: mode === "preserve"
+				? "\n\nACTION PHASE: preservation and cleanup. Prior unpin and unlinked-preservation decisions have already been made; now call pin_observations, flag_observations, drop_observations, or mark_no_actions."
+				: "";
+	const userText = reviewText?.trim()
+		? `${baseUserText}\n\nCOVERAGE REVIEW FROM PREVIOUS PASS:\n${reviewText.trim()}\n\nUse this review to choose action tool calls. Do not repeat the review.${phaseInstruction}`
+		: `${baseUserText}${phaseInstruction}`;
+
+	const tools = mode === "unpin"
+		? [unpinObservations, markNoActions]
+		: mode === "unlinked-preserve"
+			? [pinObservations, flagObservations, markNoActions]
+			: mode === "preserve"
+				? [pinObservations, flagObservations, dropObservations, markNoActions]
+				: [pinObservations, unpinObservations, flagObservations, dropObservations, markNoActions] as AgentTool<any>[];
+
+	await runMemoryAgentLoop({
+		model,
+		apiKey,
+		headers,
+		signal,
+		agentLoop: args.agentLoop,
+		maxTurns: args.maxTurns,
+		thinkingLevel: args.thinkingLevel,
+		systemPrompt: CURATOR_SYSTEM,
+		userText,
+		tools,
+		agentName: "curator",
+		onUsage: args.onUsage,
+	});
+
+	debugLog("curator.result", {
+		toolCallCount,
+		noActionCallCount,
+		pinnedBatchCount: result.pinned.length,
+		unpinnedBatchCount: result.unpinned.length,
+		flaggedBatchCount: result.flagged.length,
+		droppedCount: result.dropped.length,
+	});
+
+	return result.pinned.length || result.unpinned.length || result.flagged.length || result.dropped.length ? result : undefined;
+}
+
+async function runCuratorReview(args: RunCuratorArgs): Promise<string> {
+	const { model, apiKey, headers, reflections, observations, maxDropsAllowed, signal } = args;
+	const candidateIds = new Set(args.candidateObservationIds ?? observations.map((observation) => observation.id));
+	const candidateObservations = observations.filter((observation) => candidateIds.has(observation.id));
+	if (candidateObservations.length === 0) return "";
+	const contextObservations = (args.contextObservations ?? []).filter((observation) => !candidateIds.has(observation.id));
+	const promptObservations = [...candidateObservations, ...contextObservations];
+	const pinnedIds = new Set(args.pinnedObservationIds ?? []);
+	const flaggedIds = new Set(args.flaggedObservationIds ?? []);
+	const coverageById = reflectionCoverageMap(promptObservations, reflections);
+	const observationTokens = observationTokenSum(promptObservations);
 	const userText = args.clumpedRender === "clumped" || args.clumpedRender === "clumped-full"
 		? buildClumpedUserText({
 			reflections,
@@ -366,37 +435,28 @@ async function runCuratorPass(args: RunCuratorArgs): Promise<CuratorActionResult
 			observationTokens,
 			maxDropsAllowed,
 		});
-
-	const tools = [recordInventory, pinObservations, unpinObservations, flagObservations, dropObservations, markNoActions] as AgentTool<any>[];
-
+	const reviewParts: string[] = [];
 	await runMemoryAgentLoop({
 		model,
 		apiKey,
 		headers,
 		signal,
 		agentLoop: args.agentLoop,
-		maxTurns: args.maxTurns,
+		maxTurns: 1,
 		thinkingLevel: args.thinkingLevel,
-		systemPrompt: CURATOR_SYSTEM,
+		systemPrompt: CURATOR_REVIEW_SYSTEM,
 		userText,
-		tools,
+		tools: [],
 		agentName: "curator",
 		onUsage: args.onUsage,
+		onAssistantText: (text) => reviewParts.push(text),
 	});
-
-	debugLog("curator.result", {
-		toolCallCount,
-		inventoryCallCount,
-		noActionCallCount,
-		pinnedBatchCount: result.pinned.length,
-		unpinnedBatchCount: result.unpinned.length,
-		flaggedBatchCount: result.flagged.length,
-		droppedCount: result.dropped.length,
-	});
-
-	return result.pinned.length || result.unpinned.length || result.flagged.length || result.dropped.length ? result : undefined;
+	return reviewParts.join("\n\n").trim();
 }
 
 export async function runCurator(args: RunCuratorArgs): Promise<CuratorActionResult | undefined> {
-	return runCuratorPass(args);
+	const reviewText = await runCuratorReview(args);
+	const afterUnpin = await runCuratorPass(args, reviewText, "unpin") ?? { pinned: [], unpinned: [], flagged: [], dropped: [] };
+	const afterUnlinkedPreserve = await runCuratorPass(args, reviewText, "unlinked-preserve", afterUnpin) ?? afterUnpin;
+	return runCuratorPass(args, reviewText, "preserve", afterUnlinkedPreserve);
 }

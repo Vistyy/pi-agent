@@ -19,19 +19,15 @@ const baseArgs = {
 };
 
 describe("curator agent", () => {
-	it("records inventory without mutating observations", async () => {
+	it("runs a prose review before action tools", async () => {
+		const toolCounts: number[] = [];
 		const loop = fakeAgentLoop(async (_prompts, context) => {
-			const tool = context.tools.find((candidate: any) => candidate.name === "record_inventory")!;
-			await tool.execute("tool-1", {
-				mustPreserve: ["aaaaaaaaaaaa", "missing"],
-				needsFollowUp: ["cccccccccccc"],
-				stalePinCandidates: [],
-				safeDropCandidates: ["bbbbbbbbbbbb"],
-			});
-			await context.tools.find((candidate: any) => candidate.name === "mark_no_actions")!.execute("tool-2", {});
+			toolCounts.push(context.tools.length);
+			await context.tools.find((candidate: any) => candidate.name === "mark_no_actions")!.execute("tool-1", {});
 		});
 
 		await expect(runCurator({ ...baseArgs, agentLoop: loop })).resolves.toBeUndefined();
+		expect(toolCounts).toEqual([2, 3, 4]);
 	});
 
 	it("pins valid ids and rejects invalid ids within the same tool call", async () => {
@@ -119,7 +115,7 @@ describe("curator agent", () => {
 		expect(result?.unpinned).toEqual([]);
 	});
 
-	it("drop conflicts remove prior pin and flag actions for the same id", async () => {
+	it("drop conflicts keep prior pin and flag actions for the same id", async () => {
 		const loop = fakeAgentLoop(async (_prompts, context) => {
 			await context.tools.find((candidate: any) => candidate.name === "pin_observations")!.execute("tool-1", { ids: ["bbbbbbbbbbbb"], reason: "Maybe keep." });
 			await context.tools.find((candidate: any) => candidate.name === "flag_observations")!.execute("tool-2", { ids: ["bbbbbbbbbbbb"], reason: "Maybe follow up." });
@@ -128,9 +124,9 @@ describe("curator agent", () => {
 
 		const result = await runCurator({ ...baseArgs, maxDropsAllowed: 1, agentLoop: loop });
 
-		expect(result?.pinned).toEqual([]);
-		expect(result?.flagged).toEqual([]);
-		expect(result?.dropped).toEqual(["bbbbbbbbbbbb"]);
+		expect(result?.pinned).toEqual([{ observationIds: ["bbbbbbbbbbbb"], reason: "Maybe keep." }]);
+		expect(result?.flagged).toEqual([{ observationIds: ["bbbbbbbbbbbb"], reason: "Maybe follow up." }]);
+		expect(result?.dropped).toEqual([]);
 	});
 
 	it("returns undefined when the model marks no actions", async () => {

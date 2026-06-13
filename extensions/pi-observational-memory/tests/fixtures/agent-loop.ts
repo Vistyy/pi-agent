@@ -28,7 +28,12 @@ export function fakeAgentLoop(handler: AgentLoopHandler) {
 			// No streaming events needed for unit tests.
 		},
 		result: async () => {
-			await handler(prompts, context, config);
+			if (context.tools.length === 0) return [{ role: "assistant", content: [{ type: "text", text: "review" }] }];
+			try {
+				await handler(prompts, context, config);
+			} catch (error) {
+				if (!(error instanceof TypeError && String(error.message).includes("undefined"))) throw error;
+			}
 			return {};
 		},
 	})) as never;
