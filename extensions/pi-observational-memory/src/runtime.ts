@@ -36,6 +36,7 @@ export class Runtime {
 	configLoaded = false;
 	memoryUpdateInFlight = false;
 	memoryUpdatePromise: Promise<void> | null = null;
+	observerStagePromise: Promise<void> | null = null;
 	memoryUpdatePhase: MemoryUpdatePhase | undefined;
 	compactHookInFlight = false;
 	resolveFailureNotified = false;

@@ -134,7 +134,7 @@ export async function ensureMemoryUpdatedBeforeCompaction(
 ): Promise<void> {
 	runtime.ensureConfig(ctx.cwd);
 	if (runtime.config.strategy === STRATEGY.off) return;
-	if (runtime.memoryUpdatePromise) await runtime.memoryUpdatePromise;
+	if (runtime.observerStagePromise) await runtime.observerStagePromise;
 	const entries = ctx.sessionManager.getBranch() as Entry[];
 	const firstKeptIndex = entryIndexById(entries).get(options.firstKeptEntryId ?? "");
 	const lastCoverageIdx = latestCoverageIndex(entries, OM_OBSERVATIONS_RECORDED);
@@ -159,6 +159,7 @@ export async function ensureMemoryUpdatedBeforeCompaction(
 				const { runObserverStage } = await loadObserverStage();
 				return runObserverStage(pi, runtime, ctx, resolveModel, options.firstKeptEntryId);
 			},
+			{ updateMemoryPhase: false, trackObserverPromise: false },
 		);
 	});
 }
@@ -169,32 +170,47 @@ async function runMemoryUpdateStage(
 	ctx: MemoryUpdateCtx,
 	stage: "observer" | "reflector" | "curator",
 	run: () => Promise<StageOutcome>,
+	options: { updateMemoryPhase?: boolean; trackObserverPromise?: boolean } = {},
 ): Promise<StageOutcome> {
-	runtime.memoryUpdatePhase = stage;
+	const updateMemoryPhase = options.updateMemoryPhase ?? true;
+	const trackObserverPromise = stage === "observer" && (options.trackObserverPromise ?? true);
+	if (updateMemoryPhase) runtime.memoryUpdatePhase = stage;
 	const started = Date.now();
 	const before = { ...runtime.memoryAgentUsage[stage] };
 	let outcome: StageOutcome = "abort";
 	let reason: string | undefined;
-	try {
-		outcome = await run();
-		return outcome;
-	} catch (error) {
-		reason = runtime.recordMemoryUpdateStageError(ctx, stage, error);
-		debugLog(`${stage}.error`, { errorMessage: reason });
-		return "abort";
-	} finally {
-		const after = runtime.memoryAgentUsage[stage];
-		pi.appendEntry(OM_AGENT_RUN_RECORDED, {
-			schemaVersion: 1,
-			agent: stage,
-			status: outcome === "abort" ? "error" : "ok",
-			reason,
-			durationMs: Date.now() - started,
-			requestCount: after.requests - before.requests,
-			costTotal: after.cost - before.cost,
-			totalTokens: after.totalTokens - before.totalTokens,
-		});
+	const work = (async () => {
+		try {
+			outcome = await run();
+			return outcome;
+		} catch (error) {
+			reason = runtime.recordMemoryUpdateStageError(ctx, stage, error);
+			debugLog(`${stage}.error`, { errorMessage: reason });
+			return "abort";
+		} finally {
+			const after = runtime.memoryAgentUsage[stage];
+			pi.appendEntry(OM_AGENT_RUN_RECORDED, {
+				schemaVersion: 1,
+				agent: stage,
+				status: outcome === "abort" ? "error" : "ok",
+				reason,
+				durationMs: Date.now() - started,
+				requestCount: after.requests - before.requests,
+				costTotal: after.cost - before.cost,
+				totalTokens: after.totalTokens - before.totalTokens,
+			});
+		}
+	})();
+	if (trackObserverPromise) {
+		const observerPromise = work.then(() => undefined);
+		runtime.observerStagePromise = observerPromise;
+		try {
+			return await work;
+		} finally {
+			if (runtime.observerStagePromise === observerPromise) runtime.observerStagePromise = null;
+		}
 	}
+	return work;
 }
 
 export async function runMemoryUpdate(

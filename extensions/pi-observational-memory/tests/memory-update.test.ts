@@ -53,6 +53,8 @@ function setup(args: {
 	maxInitialObserveTokens?: number;
 	strategy?: "replacement" | "off";
 	memoryUpdateInFlight?: boolean;
+	memoryUpdatePromise?: Promise<void> | null;
+	observerStagePromise?: Promise<void> | null;
 	appendEntryReturnsId?: boolean;
 }) {
 	let entries = [...args.entries];
@@ -79,6 +81,8 @@ function setup(args: {
 			model: { provider: "anthropic", id: "memory", thinking: "minimal" },
 		},
 		memoryUpdateInFlight: args.memoryUpdateInFlight ?? false,
+		memoryUpdatePromise: args.memoryUpdatePromise ?? null,
+		observerStagePromise: args.observerStagePromise ?? null,
 		memoryUpdatePhase: undefined as "observer" | "reflector" | "curator" | undefined,
 		resolveFailureNotified: false,
 		lastObserverError: undefined as string | undefined,
@@ -148,6 +152,37 @@ describe("memory update hook", () => {
 		expect(getMemoryAppends()).toEqual([
 			expect.objectContaining({ customType: OM_OBSERVATIONS_RECORDED }),
 		]);
+	});
+
+	it("does not wait for non-observer memory updates before compaction safety observe", async () => {
+		const obs = observation("bbbbbbbbbbbb", { sourceEntryIds: ["raw-1"] });
+		mockAgents.runObserver.mockResolvedValueOnce([obs]);
+		const entries = [textCustomMessage("raw-1", "aaaa"), textCustomMessage("raw-2", "bbbb")];
+		const never = new Promise<void>(() => {});
+		const { pi, runtime, ctx } = setup({ entries, memoryUpdateInFlight: true, memoryUpdatePromise: never, observeEveryMessages: 999, reflectEveryObservations: 999 });
+
+		await expect(ensureMemoryUpdatedBeforeCompaction(pi as never, runtime as Runtime, ctx as never, { firstKeptEntryId: "raw-2" })).resolves.toBeUndefined();
+
+		expect(mockAgents.runObserver).toHaveBeenCalledOnce();
+	});
+
+	it("waits for an in-flight observer stage before deciding whether compaction safety observe is needed", async () => {
+		let releaseObserver!: () => void;
+		const observerStagePromise = new Promise<void>((resolve) => { releaseObserver = resolve; });
+		const entries = [textCustomMessage("raw-1", "aaaa"), textCustomMessage("raw-2", "bbbb")];
+		const { pi, runtime, ctx } = setup({ entries, observerStagePromise, observeEveryMessages: 999, reflectEveryObservations: 999 });
+
+		let completed = false;
+		const compaction = ensureMemoryUpdatedBeforeCompaction(pi as never, runtime as Runtime, ctx as never, { firstKeptEntryId: "raw-2" }).then(() => { completed = true; });
+		await Promise.resolve();
+
+		expect(completed).toBe(false);
+		expect(mockAgents.runObserver).not.toHaveBeenCalled();
+
+		releaseObserver();
+		await compaction;
+
+		expect(mockAgents.runObserver).toHaveBeenCalledOnce();
 	});
 	const obsB = observation("bbbbbbbbbbbb", { sourceEntryIds: ["raw-2"] });
 	const refA = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
