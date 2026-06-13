@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { runCurator, runCuratorPhased } from "../src/agents/curator/agent.js";
+import { runCurator } from "../src/agents/curator/agent.js";
 import { observation, reflection } from "./fixtures/session.js";
 import { fakeAgentLoop } from "./fixtures/agent-loop.js";
 
@@ -165,33 +165,6 @@ describe("curator agent", () => {
 			],
 		});
 		expect(text).toContain("dddddddddddd: not_action_candidate");
-	});
-
-	it("phased curator exposes only phase-specific tools and protects phase-one pins from drops", async () => {
-		const toolNamesByCall: string[][] = [];
-		const loop = fakeAgentLoop(async (_prompts, context) => {
-			const names = context.tools.map((tool: any) => tool.name).sort();
-			toolNamesByCall.push(names);
-			if (names.includes("pin_observations")) {
-				await context.tools.find((candidate: any) => candidate.name === "pin_observations")!.execute("tool-1", { ids: ["aaaaaaaaaaaa"], reason: "Keep exact path visible." });
-				return;
-			}
-			if (names.includes("unpin_observations")) {
-				await context.tools.find((candidate: any) => candidate.name === "mark_no_actions")!.execute("tool-2", {});
-				return;
-			}
-			await context.tools.find((candidate: any) => candidate.name === "drop_observations")!.execute("tool-3", { ids: ["aaaaaaaaaaaa", "bbbbbbbbbbbb"], reason: "Drop noise." });
-		});
-
-		const result = await runCuratorPhased({ ...baseArgs, pinnedObservationIds: ["cccccccccccc"], maxDropsAllowed: 2, agentLoop: loop });
-
-		expect(toolNamesByCall).toEqual([
-			["flag_observations", "mark_no_actions", "pin_observations", "record_inventory"],
-			["mark_no_actions", "record_inventory", "unpin_observations"],
-			["drop_observations", "mark_no_actions", "record_inventory"],
-		]);
-		expect(result?.pinned).toEqual([{ observationIds: ["aaaaaaaaaaaa"], reason: "Keep exact path visible." }]);
-		expect(result?.dropped).toEqual(["bbbbbbbbbbbb"]);
 	});
 
 	it("renders pinned and flagged state in the prompt", async () => {

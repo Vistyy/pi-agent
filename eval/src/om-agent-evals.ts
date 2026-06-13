@@ -19,20 +19,17 @@ type OmAgents = {
   runObserver: (args: Record<string, unknown>) => Promise<Observation[] | undefined>;
   runReflector: (args: Record<string, unknown>) => Promise<Reflection[] | undefined>;
   runCurator: (args: Record<string, unknown>) => Promise<CuratorActionResult | undefined>;
-  runCuratorPhased: (args: Record<string, unknown>) => Promise<CuratorActionResult | undefined>;
-  runCuratorCoverageAuditPhased: (args: Record<string, unknown>, mode?: 'tool' | 'text') => Promise<CuratorActionResult | undefined>;
 };
 
 let omAgents: OmAgents | undefined;
-let curatorMode: 'single' | 'phased' | 'coverage-tool' | 'coverage-text' = 'single';
 
 async function loadOmAgents(): Promise<OmAgents> {
   if (omAgents) return omAgents;
   const base = new URL('../../extensions/pi-observational-memory/src/agents/', import.meta.url);
   const observer = await import(new URL('observer/agent.ts', base).href) as { runObserver: OmAgents['runObserver'] };
   const reflector = await import(new URL('reflector/agent.ts', base).href) as { runReflector: OmAgents['runReflector'] };
-  const curator = await import(new URL('curator/agent.ts', base).href) as { runCurator: OmAgents['runCurator']; runCuratorPhased: OmAgents['runCuratorPhased']; runCuratorCoverageAuditPhased: OmAgents['runCuratorCoverageAuditPhased'] };
-  omAgents = { runObserver: observer.runObserver, runReflector: reflector.runReflector, runCurator: curator.runCurator, runCuratorPhased: curator.runCuratorPhased, runCuratorCoverageAuditPhased: curator.runCuratorCoverageAuditPhased };
+  const curator = await import(new URL('curator/agent.ts', base).href) as { runCurator: OmAgents['runCurator'] };
+  omAgents = { runObserver: observer.runObserver, runReflector: reflector.runReflector, runCurator: curator.runCurator };
   return omAgents;
 }
 
@@ -53,7 +50,7 @@ type AgentEvalRecord = {
   error?: string;
 };
 
-type Args = { model: string; judgeModel: string; outDir: string; thinkingLevel: ModelThinkingLevel; only?: string; curatorMode: 'single' | 'phased' | 'coverage-tool' | 'coverage-text' };
+type Args = { model: string; judgeModel: string; outDir: string; thinkingLevel: ModelThinkingLevel; only?: string };
 
 function parseArgs(): Args {
   const args = process.argv.slice(2);
@@ -67,7 +64,6 @@ function parseArgs(): Args {
     outDir: get('--out', path.join('runs', `om-agent-evals-${Date.now()}`))!,
     thinkingLevel: (get('--thinking', 'xhigh') ?? 'xhigh') as ModelThinkingLevel,
     only: get('--only'),
-    curatorMode: args.includes('--curator-coverage-tool') ? 'coverage-tool' : args.includes('--curator-coverage-text') ? 'coverage-text' : args.includes('--curator-phased') ? 'phased' : 'single',
   };
 }
 
@@ -80,9 +76,6 @@ function parseModelSpec(spec: string): [provider: string, id: string] {
 
 async function loadCuratorRunner(): Promise<OmAgents['runCurator']> {
   const agents = await loadOmAgents();
-  if (curatorMode === 'phased') return agents.runCuratorPhased;
-  if (curatorMode === 'coverage-tool') return (args) => agents.runCuratorCoverageAuditPhased(args, 'tool');
-  if (curatorMode === 'coverage-text') return (args) => agents.runCuratorCoverageAuditPhased(args, 'text');
   return agents.runCurator;
 }
 
@@ -788,7 +781,6 @@ const allCases = [
 
 async function main() {
   const args = parseArgs();
-  curatorMode = args.curatorMode;
   fs.mkdirSync(args.outDir, { recursive: true });
   const cases = args.only ? allCases.filter((c) => c.name.includes(args.only!)) : allCases;
   const records: AgentEvalRecord[] = [];
