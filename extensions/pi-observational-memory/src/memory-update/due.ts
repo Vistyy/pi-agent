@@ -28,7 +28,3 @@ export function computeMemoryStageDue(entries: Entry[], runtime: Runtime): Memor
 	};
 }
 
-export function anyMemoryUpdateStageDue(entries: Entry[], runtime: Runtime): boolean {
-	const due = computeMemoryStageDue(entries, runtime);
-	return due.observerDue || due.reflectorDue || due.curatorEmergencyDue;
-}
