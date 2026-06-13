@@ -538,13 +538,13 @@ async function curatorHardSchemaStaleNoise(modelSpec: string, judgeModel: string
   const agentDurationMs = Date.now() - agentStarted;
   return judgedCurator('curator-hard-schema-stale-noise', output, {
     id: 'curator-hard-schema-stale-noise',
-    question: 'Did the curator preserve exact schema/blocker evidence while cleaning only stale/noisy observations from a mixed historical pool? Judge only the explicit action arrays in the JSON output: an id is preserved if it is absent from dropped and absent from unpinned.',
+    question: 'Did the curator preserve exact schema/blocker evidence while cleaning only stale/noisy observations from a mixed historical pool?',
     rubric: {
       pass_if: [
         'The dropped array contains none of these protected ids: aaaaaaaaaaaa, bbbbbbbbbbbb, 111111111111, 222222222222, 555555555555, 666666666666.',
         'The unpinned arrays contain none of these protected ids: aaaaaaaaaaaa, bbbbbbbbbbbb, 111111111111, 222222222222, 555555555555, 666666666666.',
-        'The pinned or flagged arrays include at least one exact schema id: aaaaaaaaaaaa or bbbbbbbbbbbb.',
-        'The pinned or flagged arrays include at least one current eval/recall blocker id: 111111111111 or 222222222222.',
+        'The pinned or flagged arrays include at least one exact schema id: aaaaaaaaaaaa or bbbbbbbbbbbb. It is correct for protected evidence to appear in pinned or flagged.',
+        'The pinned or flagged arrays include at least one current eval/recall blocker id: 111111111111 or 222222222222. It is correct for protected evidence to appear in pinned or flagged.',
         'Every dropped id is one of these allowed stale/noise ids: cccccccccccc, dddddddddddd, eeeeeeeeeeee, ffffffffffff, 333333333333, 444444444444.'
       ],
       fail_if: [
@@ -552,6 +552,7 @@ async function curatorHardSchemaStaleNoise(modelSpec: string, judgeModel: string
         'The unpinned arrays contain any protected id listed above.',
         'Neither exact schema id is pinned or flagged.',
         'Neither current eval/recall blocker id is pinned or flagged.',
+        'The judge treats protected ids in pinned or flagged arrays as a failure; pinned and flagged are preservation actions, not loss.',
         'The dropped array contains an id outside the allowed stale/noise set.'
       ],
     },
@@ -635,12 +636,11 @@ async function curatorBrutalHistoricalPressure(modelSpec: string, judgeModel: st
         'Drops only safe stale/noise ids from this set: a00000000002, a00000000004, a00000000006, a00000000008, a00000000010, a00000000012, a00000000014, a00000000018, a00000000019, a00000000020, a00000000021, a00000000023, a00000000026, a00000000029, a00000000030, a00000000032.'
       ],
       fail_if: [
-        'The dropped array contains any protected current/correction id. A protected id in pinned or flagged is not dropped and should not be counted as a drop.',
-        'Fails to pin or flag exact schema/correction evidence despite generic reflections.',
-        'Fails to pin or flag current eval/recall/diagnostic blocker evidence.',
-        'Leaves both stale pinned ids still pinned with no unpin action.',
-        'Drops ids outside the safe stale/noise set.',
-        'The judge treats a flagged or pinned protected id as dropped even though it is absent from the dropped array.'
+        'The dropped array contains any protected current/correction id.',
+        'Fewer than two exact schema/correction ids are pinned or flagged.',
+        'No current eval/recall/diagnostic blocker id is pinned or flagged.',
+        'Neither stale pinned id a00000000015 nor a00000000028 is unpinned.',
+        'The dropped array contains an id outside the safe stale/noise set.'
       ],
     },
   }, judgeModel, started, [
@@ -694,10 +694,11 @@ async function curatorBrutalUnpinTrap(modelSpec: string, judgeModel: string, thi
         'Drops only stale/noise ids among u00000000010, u00000000011, u00000000012.'
       ],
       fail_if: [
-        'Unpins current deploy/auth pinned failures u00000000003 or u00000000006.',
-        'Fails to unpin truly stale parser pinned failure u00000000001.',
-        'Drops current blocker or verification command evidence.',
-        'Treats partial pass evidence as full fix evidence.'
+        'u00000000001 is not unpinned.',
+        'u00000000003 or u00000000006 is unpinned.',
+        'None of u00000000005, u00000000008, u00000000014, or u00000000015 is pinned or flagged.',
+        'The dropped array contains any of u00000000005, u00000000008, u00000000013, u00000000014, or u00000000015.',
+        'The dropped array contains an id outside this set: u00000000010, u00000000011, u00000000012.'
       ],
     },
   }, judgeModel, started, [
@@ -750,10 +751,12 @@ async function curatorBrutalContradictoryReflections(modelSpec: string, judgeMod
         'Drops, if any, are limited to noise/stale ids c00000000008, c00000000009, c00000000012.'
       ],
       fail_if: [
-        'Trusts wrong reflections and takes no corrective pin/flag actions.',
-        'Drops current corrective evidence.',
-        'Only drops noise while ignoring reflection contradictions.',
-        'Preserves stale enableFastSync as current.'
+        'Neither c00000000002 nor c00000000003 is pinned or flagged.',
+        'c00000000005 is not pinned or flagged.',
+        'Neither c00000000007 nor c00000000013 is pinned or flagged.',
+        'Neither c00000000010 nor c00000000011 is pinned or flagged.',
+        'The dropped array contains any of c00000000002, c00000000005, c00000000007, c00000000010, c00000000011, or c00000000013.',
+        'The dropped array contains an id outside this set: c00000000008, c00000000009, c00000000012.'
       ],
     },
   }, judgeModel, started, [
