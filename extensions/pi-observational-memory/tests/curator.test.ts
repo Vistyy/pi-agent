@@ -19,6 +19,21 @@ const baseArgs = {
 };
 
 describe("curator agent", () => {
+	it("records inventory without mutating observations", async () => {
+		const loop = fakeAgentLoop(async (_prompts, context) => {
+			const tool = context.tools.find((candidate: any) => candidate.name === "record_inventory")!;
+			await tool.execute("tool-1", {
+				mustPreserve: ["aaaaaaaaaaaa", "missing"],
+				needsFollowUp: ["cccccccccccc"],
+				stalePinCandidates: [],
+				safeDropCandidates: ["bbbbbbbbbbbb"],
+			});
+			await context.tools.find((candidate: any) => candidate.name === "mark_no_actions")!.execute("tool-2", {});
+		});
+
+		await expect(runCurator({ ...baseArgs, agentLoop: loop })).resolves.toBeUndefined();
+	});
+
 	it("pins valid ids and rejects invalid ids within the same tool call", async () => {
 		const loop = fakeAgentLoop(async (_prompts, context) => {
 			const tool = context.tools.find((candidate: any) => candidate.name === "pin_observations")!;
@@ -171,9 +186,9 @@ describe("curator agent", () => {
 		const result = await runCuratorPhased({ ...baseArgs, pinnedObservationIds: ["cccccccccccc"], maxDropsAllowed: 2, agentLoop: loop });
 
 		expect(toolNamesByCall).toEqual([
-			["flag_observations", "mark_no_actions", "pin_observations"],
-			["mark_no_actions", "unpin_observations"],
-			["drop_observations", "mark_no_actions"],
+			["flag_observations", "mark_no_actions", "pin_observations", "record_inventory"],
+			["mark_no_actions", "record_inventory", "unpin_observations"],
+			["drop_observations", "mark_no_actions", "record_inventory"],
 		]);
 		expect(result?.pinned).toEqual([{ observationIds: ["aaaaaaaaaaaa"], reason: "Keep exact path visible." }]);
 		expect(result?.dropped).toEqual(["bbbbbbbbbbbb"]);

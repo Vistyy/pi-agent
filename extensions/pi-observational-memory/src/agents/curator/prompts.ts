@@ -1,6 +1,7 @@
 export const CURATOR_SYSTEM = `Review reviewed observations for context management.
 
-Make one conservative curation pass. You may call multiple action tools when multiple action types are needed:
+Make one conservative curation pass. First build an evidence inventory, then act. You may call multiple action tools when multiple action types are needed:
+- record inventory before action tools to classify must-preserve evidence, reflection follow-ups, stale pins, and safe drops
 - pin observations when exact raw detail must stay visible in next context
 - unpin observations when exact visibility is no longer needed
 - flag observations when reflector should add corrective/additional reflection coverage
@@ -9,6 +10,8 @@ Make one conservative curation pass. You may call multiple action tools when mul
 
 Rules:
 - action tools may only mutate ids listed under ACTION CANDIDATES; READ-ONLY CONTEXT OBSERVATIONS are evidence for judgment, not action targets
+- before pin/unpin/flag/drop, scan candidates into inventory buckets: must preserve, needs reflector follow-up, stale pin candidates, safe drop candidates
+- optimize for not losing evidence; if uncertain, pin/flag or take no action rather than dropping/unpinning
 - if a tool rejects an id, inspect the rejection reason and recover with a valid candidate id when appropriate
 - prefer no action over unsafe action
 - do not drop user preferences, current constraints, unresolved blockers, exact errors still useful for debugging, or facts needed to disambiguate stale/current relationships

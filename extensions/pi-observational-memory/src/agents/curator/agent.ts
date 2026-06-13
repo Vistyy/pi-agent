@@ -50,6 +50,12 @@ interface RunCuratorArgs {
 }
 
 const MarkNoActionsSchema = Type.Object({});
+const CuratorInventorySchema = Type.Object({
+	mustPreserve: Type.Array(Type.String(), { default: [] }),
+	needsFollowUp: Type.Array(Type.String(), { default: [] }),
+	stalePinCandidates: Type.Array(Type.String(), { default: [] }),
+	safeDropCandidates: Type.Array(Type.String(), { default: [] }),
+});
 const CuratorIdsWithReasonSchema = Type.Object({
 	ids: Type.Array(Type.String({ minLength: 1 }), { minItems: 1 }),
 	reason: Type.String({ minLength: 1 }),
@@ -58,6 +64,7 @@ const CuratorIdsWithReasonSchema = Type.Object({
 type CuratorBatch = { observationIds: string[]; reason: string };
 
 type MarkNoActionsArgs = Static<typeof MarkNoActionsSchema>;
+type CuratorInventoryArgs = Static<typeof CuratorInventorySchema>;
 type CuratorIdsWithReasonArgs = Static<typeof CuratorIdsWithReasonSchema>;
 
 function timestampRank(timestamp: string): number {
@@ -166,6 +173,7 @@ async function runCuratorPass(args: RunCuratorArgs, options: RunCuratorPassOptio
 
 	const result: CuratorActionResult = { pinned: [], unpinned: [], flagged: [], dropped: [] };
 	let toolCallCount = 0;
+	let inventoryCallCount = 0;
 	let noActionCallCount = 0;
 
 	function makeActionTool(
@@ -193,6 +201,30 @@ async function runCuratorPass(args: RunCuratorArgs, options: RunCuratorPassOptio
 			},
 		};
 	}
+
+	const recordInventory: AgentTool<typeof CuratorInventorySchema> = {
+		name: "record_inventory",
+		label: "Record inventory",
+		description: "Non-mutating planning tool. Call before action tools to classify candidate observations into mustPreserve, needsFollowUp, stalePinCandidates, and safeDropCandidates. This records your evidence inventory and lets you continue with action tools.",
+		parameters: CuratorInventorySchema,
+		execute: async (_id, params: CuratorInventoryArgs) => {
+			inventoryCallCount++;
+			const checked = {
+				mustPreserve: partitionObservationIds(params.mustPreserve, allowedIds),
+				needsFollowUp: partitionObservationIds(params.needsFollowUp, allowedIds),
+				stalePinCandidates: partitionObservationIds(params.stalePinCandidates, allowedIds),
+				safeDropCandidates: partitionObservationIds(params.safeDropCandidates, allowedIds),
+			};
+			const acceptedCount = Object.values(checked).reduce((total, item) => total + item.accepted.length, 0);
+			const rejected = Object.values(checked).flatMap((item) => item.rejected);
+			debugLog("curator.inventory", { acceptedCount, rejectedCount: rejected.length });
+			return {
+				content: [{ type: "text", text: `Inventory recorded: ${acceptedCount} accepted ids, ${rejected.length} rejected ids${rejected.length ? ` (${rejected.map((item) => `${item.id}: ${item.reason}`).join(", ")})` : ""}. Continue with action tools if actions are needed.` }],
+				details: checked,
+				terminate: false,
+			};
+		},
+	};
 
 	const markNoActions: AgentTool<typeof MarkNoActionsSchema> = {
 		name: "mark_no_actions",
@@ -277,7 +309,7 @@ async function runCuratorPass(args: RunCuratorArgs, options: RunCuratorPassOptio
 		flag: flagObservations,
 		drop: dropObservations,
 	};
-	const tools = [...actionNames.map((action) => toolsByAction[action]), markNoActions] as AgentTool<any>[];
+	const tools = [recordInventory, ...actionNames.map((action) => toolsByAction[action]), markNoActions] as AgentTool<any>[];
 
 	await runMemoryAgentLoop({
 		model,
@@ -296,6 +328,7 @@ async function runCuratorPass(args: RunCuratorArgs, options: RunCuratorPassOptio
 
 	debugLog("curator.result", {
 		toolCallCount,
+		inventoryCallCount,
 		noActionCallCount,
 		pinnedBatchCount: result.pinned.length,
 		unpinnedBatchCount: result.unpinned.length,
