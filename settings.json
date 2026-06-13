@@ -1,55 +1,58 @@
 {
-    "lastChangelogVersion": "0.79.1",
-    "defaultProvider": "openrouter",
-    "defaultModel": "moonshotai/kimi-k2.6",
-    "defaultThinkingLevel": "medium",
-    "doubleEscapeAction": "tree",
-    "theme": "syzom-dark",
-    "packages": [],
-    "terminal": {
-        "clearOnShrink": false
+  "lastChangelogVersion": "0.79.3",
+  "defaultProvider": "openrouter",
+  "defaultModel": "moonshotai/kimi-k2.6",
+  "defaultThinkingLevel": "low",
+  "doubleEscapeAction": "tree",
+  "theme": "syzom-dark",
+  "packages": [],
+  "terminal": {
+    "clearOnShrink": false
+  },
+  "observational-memory": {
+    "strategy": "replacement",
+    "model": {
+      "provider": "openai-codex",
+      "id": "gpt-5.4-mini"
     },
-    "observational-memory": {
-        "strategy": "replacement",
-        "model": {
-            "provider": "openai-codex",
-            "id": "gpt-5.4-mini"
-        },
-        "debugLog": true
-    },
-    "pi-fork": {
-        "tools": "read,bash,grep,find,ls,web_search,web_fetch,web_content_get",
-        "extensions": ["./extensions/web-search", "./extensions/pi-fork/sandbox.ts"],
-        "offline": true,
-        "costFooter": true,
-        "defaultEffort": "balanced",
-        "effortProfiles": {
-            "fast": {
-                "provider": "openai-codex",
-                "id": "gpt-5.4-mini",
-                "thinking": "low"
-            },
-            "balanced": {
-                "provider": "deepseek",
-                "id": "deepseek-v4-pro",
-                "thinking": "high"
-            },
-            "deep": {
-                "provider": "openrouter",
-                "id": "minimax/minimax-m3 ",
-                "thinking": "high"
-            }
-        }
-    },
-    "enabledModels": [
-        "openai-codex/gpt-5.5",
-        "deepseek/deepseek-v4-flash",
-        "deepseek/deepseek-v4-pro",
-        "openrouter/minimax/minimax-m3",
-        "alibaba/qwen3.7-plus",
-        "alibaba/qwen3.7-max",
-        "openrouter/xiaomi/mimo-v2.5",
-        "openrouter/xiaomi/mimo-v2.5-pro",
-        "openrouter/moonshotai/kimi-k2.7-code"
-    ]
+    "debugLog": true
+  },
+  "pi-fork": {
+    "tools": "read,bash,grep,find,ls,web_search,web_fetch,web_content_get",
+    "extensions": [
+      "./extensions/web-search",
+      "./extensions/pi-fork/sandbox.ts"
+    ],
+    "offline": true,
+    "costFooter": true,
+    "defaultEffort": "balanced",
+    "effortProfiles": {
+      "fast": {
+        "provider": "openai-codex",
+        "id": "gpt-5.4-mini",
+        "thinking": "low"
+      },
+      "balanced": {
+        "provider": "deepseek",
+        "id": "deepseek-v4-pro",
+        "thinking": "high"
+      },
+      "deep": {
+        "provider": "openrouter",
+        "id": "minimax/minimax-m3 ",
+        "thinking": "high"
+      }
+    }
+  },
+  "enabledModels": [
+    "openai-codex/gpt-5.5",
+    "deepseek/deepseek-v4-flash",
+    "deepseek/deepseek-v4-pro",
+    "openrouter/minimax/minimax-m3",
+    "alibaba/qwen3.7-plus",
+    "alibaba/qwen3.7-max",
+    "openrouter/xiaomi/mimo-v2.5",
+    "openrouter/xiaomi/mimo-v2.5-pro",
+    "openrouter/moonshotai/kimi-k2.7-code"
+  ]
 }
