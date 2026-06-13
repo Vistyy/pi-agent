@@ -6,7 +6,7 @@ import {
 	fuzzyFilter,
 } from "@earendil-works/pi-tui";
 import { homedir } from "node:os";
-import { dirname, relative, resolve } from "node:path";
+import { basename, dirname, relative, resolve } from "node:path";
 import { readdir } from "node:fs/promises";
 
 const MAX_SUGGESTIONS = 30;
@@ -129,11 +129,33 @@ function displayPath(absPath: string, cwd: string): string {
 	return absPath;
 }
 
+function withTrailingSlash(path: string): string {
+	return path.endsWith("/") ? path : `${path}/`;
+}
+
+function filenameRank(absPath: string, token: string): number {
+	const fileName = basename(absPath).toLowerCase();
+	const query = token.toLowerCase();
+
+	if (!query) return 3;
+	if (fileName === query) return 0;
+	if (fileName.startsWith(query)) return 1;
+	if (fileName.includes(query)) return 2;
+	return 3;
+}
+
+function rankByFilename(paths: string[], token: string): string[] {
+	return paths
+		.map((path, index) => ({ path, index, rank: filenameRank(path, token.trim()) }))
+		.sort((a, b) => a.rank - b.rank || a.index - b.index)
+		.map(({ path }) => path);
+}
+
 function toItem(absPath: string, cwd: string): AutocompleteItem {
 	return {
-		value: absPath,
-		label: displayPath(absPath, cwd),
-		description: displayPath(dirname(absPath), cwd),
+		value: `@${absPath}`,
+		label: basename(absPath),
+		description: withTrailingSlash(displayPath(dirname(absPath), cwd)),
 	};
 }
 
@@ -152,7 +174,7 @@ function createProvider(pi: ExtensionAPI, ctx: { cwd: string; ui: { notify: (mes
 			}
 
 			const matched = token.trim()
-				? fuzzyFilter(files, token, (path) => displayPath(path, ctx.cwd))
+				? rankByFilename(fuzzyFilter(files, token, (path) => displayPath(path, ctx.cwd)), token)
 				: files;
 
 			if (matched.length === 0) {
