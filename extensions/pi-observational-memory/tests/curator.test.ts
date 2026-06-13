@@ -27,7 +27,7 @@ describe("curator agent", () => {
 		});
 
 		await expect(runCurator({ ...baseArgs, agentLoop: loop })).resolves.toBeUndefined();
-		expect(toolCounts).toEqual([2, 3, 4]);
+		expect(toolCounts).toEqual([3, 4]);
 	});
 
 	it("pins valid ids and rejects invalid ids within the same tool call", async () => {

@@ -1,18 +1,26 @@
 export const CURATOR_REVIEW_SYSTEM = `Review reviewed observations for context management.
 
-Write a concise structured prose coverage review. Do not ask for tools.
+Write a concise structured coverage review. Do not ask for tools.
 
-For each reflection clump:
-- say whether the reflection fully covers its linked action candidates
-- note exact paths, commands, settings, current/stale relationships, blockers, or corrections missing from the reflection
-- note contradictions between the reflection and linked candidates
+Use exactly these sections:
 
-For unlinked action candidates:
-- identify current blockers, current constraints, exact corrections, durable preferences, and validation/diagnostic/recall blockers
-- identify stale/noise observations that look safe to drop
-- identify items needing reflection follow-up
+REFLECTION REVIEW
+- Only mention reflection clumps where linked action candidates need pinning, follow-up, or cleanup because coverage is missing, inexact, contradicted, or stale.
+- Format: "- <reflection id or none>: <issue>; action ids: <ids>".
 
-Keep the review grounded in observation ids and content. It will be passed to a separate action pass.`;
+PIN REVIEW
+- Only mention pinned action candidates that should be kept pinned, unpinned, or are unsafe to decide.
+- Format: "- <observation id>: keep pinned | unpin | unsure; reason".
+
+UNLINKED REVIEW
+- Only mention unlinked action candidates needing pinning or follow-up because no current reflection cites them.
+- Format: "- preserve/follow-up ids: <ids>; reason".
+
+CLEANUP REVIEW
+- Only mention observations that look safe to drop.
+- Format: "- safe drop ids: <ids>; reason".
+
+Keep the review grounded in observation ids. Omit sufficiently covered/no-action ids.`;
 
 export const CURATOR_SYSTEM = `Review reviewed observations for context management.
 

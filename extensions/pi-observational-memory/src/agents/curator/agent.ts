@@ -21,7 +21,7 @@ import {
 	summarizeCoverage,
 	type ReflectionCoverageTier,
 } from "../coverage.js";
-import { CURATOR_REVIEW_SYSTEM, CURATOR_SYSTEM } from "./prompts.js";
+import { CURATOR_SYSTEM } from "./prompts.js";
 
 export type CuratorActionResult = {
 	pinned: Array<{ observationIds: string[]; reason: string }>;
@@ -47,6 +47,7 @@ interface RunCuratorArgs {
 	maxTurns?: number;
 	thinkingLevel?: ModelThinkingLevel;
 	onUsage?: (usage: MemoryAgentUsage) => void;
+	onPhase?: (metrics: CuratorPhaseMetrics) => void;
 	clumpedRender?: "flat" | "clumped" | "clumped-full";
 }
 
@@ -57,6 +58,8 @@ const CuratorIdsWithReasonSchema = Type.Object({
 });
 
 type CuratorBatch = { observationIds: string[]; reason: string };
+type CuratorPhaseName = "unpin" | "unlinked-preserve" | "preserve";
+type CuratorPhaseMetrics = { phase: CuratorPhaseName; durationMs: number; usage: MemoryAgentUsage[] };
 
 type MarkNoActionsArgs = Static<typeof MarkNoActionsSchema>;
 type CuratorIdsWithReasonArgs = Static<typeof CuratorIdsWithReasonSchema>;
@@ -156,18 +159,10 @@ function buildFlatUserText(args: {
 	return `CURRENT REFLECTIONS:\n${joinOrEmpty(args.reflections.map(reflectionToSummaryLine))}\n\nACTION CANDIDATES — you may act only on these observation ids:\n${renderObservationList(args.candidateObservations, args.pinnedIds, args.flaggedIds, args.coverageById)}${contextSection}\n\n${curatorRunSummary(args.candidateObservations.length, args.contextObservations.length, args.candidateObservations.length + args.contextObservations.length, args.observationTokens, args.maxDropsAllowed)}`;
 }
 
-function buildPinReviewSection(observations: readonly Observation[], candidateObservations: readonly Observation[], pinnedIds: ReadonlySet<string>, flaggedIds: ReadonlySet<string>, coverageById: ReadonlyMap<string, ReflectionCoverageTier>): string {
+function buildPinReviewSection(candidateObservations: readonly Observation[], pinnedIds: ReadonlySet<string>, flaggedIds: ReadonlySet<string>, coverageById: ReadonlyMap<string, ReflectionCoverageTier>): string {
 	const pinnedCandidates = candidateObservations.filter((observation) => pinnedIds.has(observation.id));
 	if (pinnedCandidates.length === 0) return "";
-	const allByTime = [...observations].sort((a, b) => timestampRank(a.timestamp) - timestampRank(b.timestamp));
-	const blocks = pinnedCandidates.map((pinned) => {
-		const newer = allByTime.filter((observation) => observation.id !== pinned.id && timestampRank(observation.timestamp) > timestampRank(pinned.timestamp)).slice(0, 8);
-		const newerSection = newer.length
-			? `\nNewer evidence to compare:\n${renderObservationList(newer, pinnedIds, flaggedIds, coverageById)}`
-			: "\nNewer evidence to compare: (none)";
-		return `${actionSummaryLine(pinned, pinnedIds, flaggedIds, coverageById)}${newerSection}`;
-	});
-	return `\n\nPIN REVIEW CANDIDATES — currently pinned action candidates. Decide whether each still needs forced visibility, should be unpinned because newer same-scope evidence makes it stale, or is unsafe to unpin.\n${blocks.join("\n\n")}`;
+	return `\n\nPIN REVIEW CANDIDATES — currently pinned action candidates. Decide whether each still needs forced visibility, should be unpinned because same-scope evidence makes it stale, or is unsafe to unpin.\n${renderObservationList(pinnedCandidates, pinnedIds, flaggedIds, coverageById)}`;
 }
 
 function buildClumpedUserText(args: {
@@ -194,8 +189,7 @@ function buildClumpedUserText(args: {
 			: "";
 		return `${reflectionToSummaryLine(reflection)}${linkedCandidateSection}${linkedContextSection}`;
 	});
-	const allObservations = [...args.candidateObservations, ...args.contextObservations];
-	const pinReviewSection = buildPinReviewSection(allObservations, args.candidateObservations, args.pinnedIds, args.flaggedIds, args.coverageById);
+	const pinReviewSection = buildPinReviewSection(args.candidateObservations, args.pinnedIds, args.flaggedIds, args.coverageById);
 	const unlinkedCandidates = args.candidateObservations.filter((observation) => !reflectionSupportIds.has(observation.id));
 	const unlinkedContext = args.contextObservations.filter((observation) => !reflectionSupportIds.has(observation.id));
 	const unlinkedContextSection = args.includeUnlinkedContext && unlinkedContext.length
@@ -210,14 +204,20 @@ function curatorRunSummary(candidateCount: number, contextCount: number, promptO
 
 type CuratorPassMode = "all" | "unpin" | "unlinked-preserve" | "preserve";
 
-async function runCuratorPass(args: RunCuratorArgs, reviewText?: string, mode: CuratorPassMode = "all", initialResult?: CuratorActionResult): Promise<CuratorActionResult | undefined> {
+async function runCuratorPass(args: RunCuratorArgs, mode: CuratorPassMode = "all", initialResult?: CuratorActionResult): Promise<CuratorActionResult | undefined> {
 	const { model, apiKey, headers, reflections, observations, maxDropsAllowed, signal } = args;
 	const protectedObservationIds = args.protectedObservationIds ?? [];
 	const baseCandidateIds = new Set(args.candidateObservationIds ?? observations.map((observation) => observation.id));
 	const linkedIds = new Set(reflections.flatMap((reflection) => reflection.supportingObservationIds));
-	const candidateIds = mode === "unlinked-preserve"
-		? new Set([...baseCandidateIds].filter((id) => !linkedIds.has(id)))
-		: baseCandidateIds;
+	const priorActionIds = initialResult ? new Set([...batchIds(initialResult.pinned), ...batchIds(initialResult.flagged), ...batchIds(initialResult.unpinned), ...initialResult.dropped]) : new Set<string>();
+	const pinnedInputIds = new Set(args.pinnedObservationIds ?? []);
+	const candidateIds = mode === "unpin"
+		? new Set([...baseCandidateIds].filter((id) => pinnedInputIds.has(id) && !priorActionIds.has(id)))
+		: mode === "unlinked-preserve"
+			? new Set([...baseCandidateIds].filter((id) => !linkedIds.has(id) && !priorActionIds.has(id)))
+			: mode === "preserve"
+				? new Set([...baseCandidateIds].filter((id) => !priorActionIds.has(id)))
+				: baseCandidateIds;
 	const candidateObservations = observations.filter((observation) => candidateIds.has(observation.id));
 	if (candidateObservations.length === 0) return initialResult;
 	const contextObservations = [...observations.filter((observation) => baseCandidateIds.has(observation.id) && !candidateIds.has(observation.id)), ...(args.contextObservations ?? [])].filter((observation) => !candidateIds.has(observation.id));
@@ -363,9 +363,7 @@ async function runCuratorPass(args: RunCuratorArgs, reviewText?: string, mode: C
 			: mode === "preserve"
 				? "\n\nACTION PHASE: preservation and cleanup. Prior unpin and unlinked-preservation decisions have already been made; now call pin_observations, flag_observations, drop_observations, or mark_no_actions."
 				: "";
-	const userText = reviewText?.trim()
-		? `${baseUserText}\n\nCOVERAGE REVIEW FROM PREVIOUS PASS:\n${reviewText.trim()}\n\nUse this review to choose action tool calls. Do not repeat the review.${phaseInstruction}`
-		: `${baseUserText}${phaseInstruction}`;
+	const userText = `${baseUserText}${phaseInstruction}`;
 
 	const tools = mode === "unpin"
 		? [unpinObservations, markNoActions]
@@ -402,61 +400,47 @@ async function runCuratorPass(args: RunCuratorArgs, reviewText?: string, mode: C
 	return result.pinned.length || result.unpinned.length || result.flagged.length || result.dropped.length ? result : undefined;
 }
 
-async function runCuratorReview(args: RunCuratorArgs): Promise<string> {
-	const { model, apiKey, headers, reflections, observations, maxDropsAllowed, signal } = args;
-	const candidateIds = new Set(args.candidateObservationIds ?? observations.map((observation) => observation.id));
-	const candidateObservations = observations.filter((observation) => candidateIds.has(observation.id));
-	if (candidateObservations.length === 0) return "";
-	const contextObservations = (args.contextObservations ?? []).filter((observation) => !candidateIds.has(observation.id));
-	const promptObservations = [...candidateObservations, ...contextObservations];
-	const pinnedIds = new Set(args.pinnedObservationIds ?? []);
-	const flaggedIds = new Set(args.flaggedObservationIds ?? []);
-	const coverageById = reflectionCoverageMap(promptObservations, reflections);
-	const observationTokens = observationTokenSum(promptObservations);
-	const userText = args.clumpedRender === "clumped" || args.clumpedRender === "clumped-full"
-		? buildClumpedUserText({
-			reflections,
-			candidateObservations,
-			contextObservations,
-			pinnedIds,
-			flaggedIds,
-			coverageById,
-			observationTokens,
-			maxDropsAllowed,
-			includeUnlinkedContext: args.clumpedRender === "clumped-full",
-		})
-		: buildFlatUserText({
-			reflections,
-			candidateObservations,
-			contextObservations,
-			pinnedIds,
-			flaggedIds,
-			coverageById,
-			observationTokens,
-			maxDropsAllowed,
-		});
-	const reviewParts: string[] = [];
-	await runMemoryAgentLoop({
-		model,
-		apiKey,
-		headers,
-		signal,
-		agentLoop: args.agentLoop,
-		maxTurns: 1,
-		thinkingLevel: args.thinkingLevel,
-		systemPrompt: CURATOR_REVIEW_SYSTEM,
-		userText,
-		tools: [],
-		agentName: "curator",
-		onUsage: args.onUsage,
-		onAssistantText: (text) => reviewParts.push(text),
+async function runCuratorPhase<T>(args: RunCuratorArgs, phase: CuratorPhaseName, run: (phaseArgs: RunCuratorArgs) => Promise<T>): Promise<T> {
+	const started = Date.now();
+	const usage: MemoryAgentUsage[] = [];
+	const result = await run({
+		...args,
+		onUsage: (item) => {
+			usage.push(item);
+			args.onUsage?.(item);
+		},
 	});
-	return reviewParts.join("\n\n").trim();
+	args.onPhase?.({ phase, durationMs: Date.now() - started, usage });
+	return result;
+}
+
+function emptyCuratorResult(): CuratorActionResult {
+	return { pinned: [], unpinned: [], flagged: [], dropped: [] };
+}
+
+function mergeCuratorResults(results: CuratorActionResult[]): CuratorActionResult {
+	const pinned = results.flatMap((result) => result.pinned);
+	const unpinned = results.flatMap((result) => result.unpinned);
+	const flagged = results.flatMap((result) => result.flagged);
+	const dropped = results.flatMap((result) => result.dropped);
+	const unpinnedIds = batchIds(unpinned);
+	return {
+		pinned: removeIdsFromBatches(pinned, unpinnedIds),
+		unpinned,
+		flagged: removeIdsFromBatches(flagged, unpinnedIds),
+		dropped,
+	};
+}
+
+async function runCuratorActionPhase(args: RunCuratorArgs, phase: CuratorPhaseName, run: (phaseArgs: RunCuratorArgs) => Promise<CuratorActionResult | undefined>): Promise<CuratorActionResult> {
+	return await runCuratorPhase(args, phase, run) ?? emptyCuratorResult();
 }
 
 export async function runCurator(args: RunCuratorArgs): Promise<CuratorActionResult | undefined> {
-	const reviewText = await runCuratorReview(args);
-	const afterUnpin = await runCuratorPass(args, reviewText, "unpin") ?? { pinned: [], unpinned: [], flagged: [], dropped: [] };
-	const afterUnlinkedPreserve = await runCuratorPass(args, reviewText, "unlinked-preserve", afterUnpin) ?? afterUnpin;
-	return runCuratorPass(args, reviewText, "preserve", afterUnlinkedPreserve);
+	const [afterUnpin, afterUnlinkedPreserve] = await Promise.all([
+		runCuratorActionPhase(args, "unpin", (phaseArgs) => runCuratorPass(phaseArgs, "unpin")),
+		runCuratorActionPhase(args, "unlinked-preserve", (phaseArgs) => runCuratorPass(phaseArgs, "unlinked-preserve")),
+	]);
+	const merged = mergeCuratorResults([afterUnpin, afterUnlinkedPreserve]);
+	return runCuratorPhase(args, "preserve", (phaseArgs) => runCuratorPass(phaseArgs, "preserve", merged));
 }
