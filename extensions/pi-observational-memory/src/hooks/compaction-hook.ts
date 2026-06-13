@@ -1,7 +1,8 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 import { STRATEGY } from "../config.js";
-import { ensureMemoryUpdatedBeforeCompaction } from "./memory-update.js";
+import { getCompactionTransientMemory, resetCompactionTransientMemory } from "../memory-update/compaction-state.js";
+import { ensureObservedBeforeCompaction } from "./memory-update.js";
 import type { Runtime } from "../runtime.js";
 import { buildNextCompactionProjection, renderSummary, type Entry } from "../session-ledger/index.js";
 
@@ -28,23 +29,20 @@ export function registerCompactionHook(pi: ExtensionAPI, runtime: Runtime): void
 
 		runtime.compactHookInFlight = true;
 		try {
-			runtime.transientCompactionObservations = [];
-			runtime.transientCompactionReflections = [];
+			resetCompactionTransientMemory(runtime);
 			runtime.ensureConfig(ctx.cwd);
 			if (runtime.config.strategy === STRATEGY.off) return;
 			const { preparation } = event;
 			const { firstKeptEntryId, tokensBefore } = preparation;
-			await ensureMemoryUpdatedBeforeCompaction(pi, runtime, ctx, { firstKeptEntryId });
+			await ensureObservedBeforeCompaction(pi, runtime, ctx, { firstKeptEntryId });
 			if (runtime.config.strategy !== STRATEGY.replacement) return;
 			const branchEntries = ctx.sessionManager.getBranch() as Entry[];
+			const transient = getCompactionTransientMemory(runtime);
 			const projection = buildNextCompactionProjection(
 				branchEntries,
 				firstKeptEntryId,
 				{ observationsPoolMaxTokens: observationsPoolMaxTokens(runtime) },
-				{
-					observations: runtime.transientCompactionObservations,
-					reflections: runtime.transientCompactionReflections,
-				},
+				transient,
 			);
 			const summary = renderSummary(projection.reflections, projection.observations);
 

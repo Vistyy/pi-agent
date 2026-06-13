@@ -26,8 +26,6 @@ export class Runtime {
 	lastObserverError: string | undefined;
 	lastReflectorError: string | undefined;
 	lastCuratorError: string | undefined;
-	transientCompactionObservations: import("./session-ledger/index.js").Observation[] = [];
-	transientCompactionReflections: import("./session-ledger/index.js").Reflection[] = [];
 
 	ensureConfig(cwd: string): void {
 		if (this.configLoaded) return;

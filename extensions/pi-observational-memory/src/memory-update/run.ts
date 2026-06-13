@@ -1,14 +1,10 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { STRATEGY } from "../config.js";
-import { debugLog, debugSessionMetadata, withDebugLogContext } from "../debug-log.js";
+import { debugLog } from "../debug-log.js";
 import { type ResolveResult, type Runtime } from "../runtime.js";
 import {
 	OM_AGENT_RUN_RECORDED,
-	OM_OBSERVATIONS_RECORDED,
-	entryIndexById,
 	foldLedger,
 	fullProjection,
-	latestCoverageIndex,
 	latestReflectionReviewEntryIndex,
 	nextContextProjection,
 	sourceEntryCountSinceObservationCoverage,
@@ -33,7 +29,6 @@ function loadReflectorStage(): Promise<ReflectorStageModule> {
 function loadCuratorStage(): Promise<CuratorStageModule> {
 	return curatorStageModule ??= import("./curator-stage.js");
 }
-import { sourceEntriesAfter } from "./source-entries.js";
 import { observationsSinceReflectionCoverage } from "./stage-utils.js";
 import type { MemoryUpdateCtx, ResolvedModel, StageOutcome } from "./types.js";
 
@@ -55,7 +50,9 @@ export function anyMemoryUpdateStageDue(entries: Entry[], runtime: Runtime): boo
 	return due.observer || due.reflector || due.curatorEmergency;
 }
 
-function makeModelResolver(runtime: Runtime, ctx: MemoryUpdateCtx): (stage: "observer" | "reflector" | "curator") => Promise<ResolvedModel | undefined> {
+export type MemoryStageName = "observer" | "reflector" | "curator";
+
+export function makeModelResolver(runtime: Runtime, ctx: MemoryUpdateCtx): (stage: MemoryStageName) => Promise<ResolvedModel | undefined> {
 	let cached: ResolveResult | undefined;
 	return async (stage) => {
 		cached ??= await runtime.resolveModel({
@@ -77,102 +74,6 @@ function makeModelResolver(runtime: Runtime, ctx: MemoryUpdateCtx): (stage: "obs
 	};
 }
 
-export function registerMemoryUpdateHook(pi: ExtensionAPI, runtime: Runtime): void {
-	const launch = (_event: unknown, ctx: MemoryUpdateCtx) => {
-		maybeLaunchMemoryUpdate(pi, runtime, ctx);
-	};
-	pi.on("agent_start", launch);
-	pi.on("message_end", launch);
-	pi.on("turn_end", launch);
-}
-
-function maybeLaunchMemoryUpdate(pi: ExtensionAPI, runtime: Runtime, ctx: MemoryUpdateCtx): void {
-	runtime.ensureConfig(ctx.cwd);
-	if (runtime.config.strategy === STRATEGY.off) return;
-	if (runtime.memoryUpdateInFlight) return;
-
-	const entries = ctx.sessionManager.getBranch() as Entry[];
-	if (!anyMemoryUpdateStageDue(entries, runtime)) return;
-
-	const runId = `memory-update-${Date.now().toString(36)}-${Math.random().toString(16).slice(2, 8)}`;
-	const sessionMetadata = debugSessionMetadata(ctx);
-	void runtime.launchMemoryUpdateTask(ctx, async () => withDebugLogContext({
-		enabled: runtime.config.debugLog === true,
-		cwd: ctx.cwd,
-		...sessionMetadata,
-		runId,
-	}, async () => {
-		await runMemoryUpdate(pi, runtime, ctx);
-	}));
-}
-
-export async function ensureMemoryUpdatedBeforeCompaction(
-	pi: ExtensionAPI,
-	runtime: Runtime,
-	ctx: MemoryUpdateCtx,
-	options: { firstKeptEntryId?: string } = {},
-): Promise<void> {
-	runtime.ensureConfig(ctx.cwd);
-	if (runtime.config.strategy === STRATEGY.off) return;
-	if (runtime.inFlightObserverStagePromise) await runtime.inFlightObserverStagePromise;
-	const entries = ctx.sessionManager.getBranch() as Entry[];
-	const firstKeptIndex = entryIndexById(entries).get(options.firstKeptEntryId ?? "");
-	const lastCoverageIdx = latestCoverageIndex(entries, OM_OBSERVATIONS_RECORDED);
-	const hasUnobservedCompactedPrefix = firstKeptIndex !== undefined
-		&& sourceEntriesAfter(entries, lastCoverageIdx, firstKeptIndex).length > 0;
-	if (!hasUnobservedCompactedPrefix) return;
-	const runId = `compaction-observer-flush-${Date.now().toString(36)}-${Math.random().toString(16).slice(2, 8)}`;
-	const sessionMetadata = debugSessionMetadata(ctx);
-	await withDebugLogContext({
-		enabled: runtime.config.debugLog === true,
-		cwd: ctx.cwd,
-		...sessionMetadata,
-		runId,
-	}, async () => {
-		const resolveModel = makeModelResolver(runtime, ctx);
-		await runCompactionObserverFlush(pi, runtime, ctx, resolveModel, options.firstKeptEntryId);
-	});
-}
-
-function appendAgentRunEntry(
-	pi: ExtensionAPI,
-	stage: "observer" | "reflector" | "curator",
-	started: number,
-	outcome: StageOutcome,
-	reason: string | undefined,
-): void {
-	pi.appendEntry(OM_AGENT_RUN_RECORDED, {
-		schemaVersion: 1,
-		agent: stage,
-		status: outcome === "abort" ? "error" : "ok",
-		reason,
-		durationMs: Date.now() - started,
-	});
-}
-
-async function runCompactionObserverFlush(
-	pi: ExtensionAPI,
-	runtime: Runtime,
-	ctx: MemoryUpdateCtx,
-	resolveModel: (stage: "observer" | "reflector" | "curator") => Promise<ResolvedModel | undefined>,
-	firstKeptEntryId: string | undefined,
-): Promise<StageOutcome> {
-	const started = Date.now();
-	let outcome: StageOutcome = "abort";
-	let reason: string | undefined;
-	try {
-		const { runObserverStage } = await loadObserverStage();
-		outcome = await runObserverStage(pi, runtime, ctx, resolveModel, firstKeptEntryId);
-		return outcome;
-	} catch (error) {
-		reason = runtime.recordMemoryUpdateStageError(ctx, "observer", error);
-		debugLog("observer.error", { errorMessage: reason });
-		return "abort";
-	} finally {
-		appendAgentRunEntry(pi, "observer", started, outcome, reason);
-	}
-}
-
 async function runMemoryUpdateStage(
 	pi: ExtensionAPI,
 	runtime: Runtime,
@@ -192,7 +93,13 @@ async function runMemoryUpdateStage(
 		debugLog(`${stage}.error`, { errorMessage: reason });
 		return "abort";
 	} finally {
-		appendAgentRunEntry(pi, stage, started, outcome, reason);
+		pi.appendEntry(OM_AGENT_RUN_RECORDED, {
+			schemaVersion: 1,
+			agent: stage,
+			status: outcome === "abort" ? "error" : "ok",
+			reason,
+			durationMs: Date.now() - started,
+		});
 	}
 }
 

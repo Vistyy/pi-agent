@@ -13,6 +13,7 @@ import {
 	latestReflectionReviewEntryIndex,
 	type Entry,
 } from "../session-ledger/index.js";
+import { appendTransientCompactionReflections } from "./compaction-state.js";
 import { commonAgentArgs, observationsSinceReflectionCoverage } from "./stage-utils.js";
 import type { MemoryUpdateCtx, ResolveMemoryModel, StageOutcome } from "./types.js";
 
@@ -85,6 +86,6 @@ export async function runReflectorStage(
 	const data = buildReflectionsRecordedData(reflections, observationCoverageId);
 	if (!data) return "continue";
 	pi.appendEntry(OM_REFLECTIONS_RECORDED, data);
-	if (runtime.compactHookInFlight) runtime.transientCompactionReflections.push(...reflections);
+	appendTransientCompactionReflections(runtime, reflections);
 	return "continue";
 }

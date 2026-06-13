@@ -11,7 +11,7 @@ vi.mock("../src/agents/observer/agent.js", () => ({ runObserver: mockAgents.runO
 vi.mock("../src/agents/reflector/agent.js", () => ({ runReflector: mockAgents.runReflector }));
 vi.mock("../src/agents/curator/agent.js", () => ({ runCurator: mockAgents.runCurator }));
 
-import { ensureMemoryUpdatedBeforeCompaction, registerMemoryUpdateHook } from "../src/hooks/memory-update.js";
+import { ensureObservedBeforeCompaction, registerMemoryUpdateHook } from "../src/hooks/memory-update.js";
 import { Runtime } from "../src/runtime.js";
 import {
 	OM_AGENT_RUN_RECORDED,
@@ -137,7 +137,7 @@ describe("memory update hook", () => {
 		const entries = [textCustomMessage("raw-1", "aaaa"), textCustomMessage("raw-2", "bbbb")];
 		const { pi, runtime, ctx, getMemoryAppends } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 999 });
 
-		await ensureMemoryUpdatedBeforeCompaction(pi as never, runtime as Runtime, ctx as never, { firstKeptEntryId: "raw-2" });
+		await ensureObservedBeforeCompaction(pi as never, runtime as Runtime, ctx as never, { firstKeptEntryId: "raw-2" });
 
 		expect(mockAgents.runObserver).toHaveBeenCalledOnce();
 		expect(mockAgents.runReflector).not.toHaveBeenCalled();
@@ -155,7 +155,7 @@ describe("memory update hook", () => {
 		const entries = [textCustomMessage("raw-1", "aaaa"), textCustomMessage("raw-2", "bbbb")];
 		const { pi, runtime, ctx } = setup({ entries, memoryUpdateInFlight: true, observeEveryMessages: 999, reflectEveryObservations: 999 });
 
-		await expect(ensureMemoryUpdatedBeforeCompaction(pi as never, runtime as Runtime, ctx as never, { firstKeptEntryId: "raw-2" })).resolves.toBeUndefined();
+		await expect(ensureObservedBeforeCompaction(pi as never, runtime as Runtime, ctx as never, { firstKeptEntryId: "raw-2" })).resolves.toBeUndefined();
 
 		expect(mockAgents.runObserver).toHaveBeenCalledOnce();
 	});
@@ -167,7 +167,7 @@ describe("memory update hook", () => {
 		const { pi, runtime, ctx } = setup({ entries, inFlightObserverStagePromise, observeEveryMessages: 999, reflectEveryObservations: 999 });
 
 		let completed = false;
-		const compaction = ensureMemoryUpdatedBeforeCompaction(pi as never, runtime as Runtime, ctx as never, { firstKeptEntryId: "raw-2" }).then(() => { completed = true; });
+		const compaction = ensureObservedBeforeCompaction(pi as never, runtime as Runtime, ctx as never, { firstKeptEntryId: "raw-2" }).then(() => { completed = true; });
 		await Promise.resolve();
 
 		expect(completed).toBe(false);
