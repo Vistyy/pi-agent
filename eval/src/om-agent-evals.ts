@@ -51,7 +51,7 @@ type AgentEvalRecord = {
   error?: string;
 };
 
-type CuratorVariant = 'flat' | 'clumped' | 'clumped-full';
+type CuratorVariant = 'flat' | 'clumped';
 type Args = { model: string; judgeModel: string; outDir: string; thinkingLevel: ModelThinkingLevel; only?: string; curatorVariant: CuratorVariant };
 
 function parseArgs(): Args {
