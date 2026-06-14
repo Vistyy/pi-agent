@@ -13,20 +13,14 @@ export type ObserverToolRenderingOptions = {
 };
 
 const OBSERVER_ENTRY_MAX_CHARS = 12_000;
-export const DEFAULT_OBSERVER_TOOL_RENDERING: ObserverToolRenderingOptions = {
-	toolResultSummaryMaxChars: 300,
-	toolResultErrorMaxChars: 800,
-	toolResultsTotalMaxChars: 4_000,
-};
-
 type ToolBudget = { remaining: number };
 
-function cleanBody(text: string): string {
-	return text.split("\n").filter(Boolean).join("\n");
+function normalizeBody(text: string): string {
+	return text.trim();
 }
 
 function excerptWithBudget(text: string, maxChars: number, budget: ToolBudget): { excerpt: string; omitted: boolean; reason?: string } {
-	const body = cleanBody(text);
+	const body = normalizeBody(text);
 	if (!body) return { excerpt: "[no textual output]", omitted: false };
 	if (budget.remaining <= 0) return { excerpt: "[output omitted: observer tool excerpt budget exhausted]", omitted: true, reason: "budget_exhausted" };
 	const allowed = Math.max(0, Math.min(maxChars, budget.remaining));
@@ -59,8 +53,7 @@ function renderToolEvidence(args: {
 	truncated?: boolean;
 }): string {
 	const maxChars = args.status === "error" ? args.options.toolResultErrorMaxChars : args.options.toolResultSummaryMaxChars;
-	const outputChars = cleanBody(args.content).length;
-	const { excerpt, omitted, reason } = excerptWithBudget(args.content, maxChars, args.budget);
+	const outputChars = normalizeBody(args.content).length;	const { excerpt, omitted, reason } = excerptWithBudget(args.content, maxChars, args.budget);
 	const lines = [`[Tool evidence: ${args.toolName} @ ${args.time}]`, `status: ${args.status}`, `output_chars: ${outputChars}`];
 	if (args.input) lines.push(`input: ${args.input}`);
 	if (args.exitCode !== undefined) lines.push(`exitCode: ${args.exitCode}`);
@@ -77,11 +70,11 @@ function renderObserverMessage(entry: RenderableEntry, options: ObserverToolRend
 	const time = formatTimestamp(typeof msg.timestamp === "string" || typeof msg.timestamp === "number" ? msg.timestamp : entry.timestamp);
 
 	if (msg.role === "user") {
-		const body = cleanBody(textAndPlaceholders(msg.content));
+		const body = normalizeBody(textAndPlaceholders(msg.content));
 		return body ? `[User @ ${time}]: ${truncateMiddle(body, OBSERVER_ENTRY_MAX_CHARS)}` : null;
 	}
 	if (msg.role === "assistant") {
-		const body = cleanBody(textAndPlaceholders(msg.content, { omitRedactedThinking: true, includeThinking: false }));
+		const body = normalizeBody(textAndPlaceholders(msg.content, { omitRedactedThinking: true, includeThinking: false }));
 		return body ? `[Assistant @ ${time}]: ${truncateMiddle(body, OBSERVER_ENTRY_MAX_CHARS)}` : null;
 	}
 	if (msg.role === "toolResult") {
@@ -128,7 +121,7 @@ function isObserverSourceEntry(entry: RenderableEntry): boolean {
 
 export function serializeObserverSourceEntries(
 	entries: RenderableEntry[],
-	options: ObserverToolRenderingOptions = DEFAULT_OBSERVER_TOOL_RENDERING,
+	options: ObserverToolRenderingOptions,
 ): SourceAddressedSerialization {
 	const blocks: string[] = [];
 	const sourceEntryIds: string[] = [];

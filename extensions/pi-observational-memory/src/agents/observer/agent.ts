@@ -5,7 +5,7 @@ import type { Static } from "typebox";
 import { hashId } from "../../memory/ids.js";
 import { joinOrEmpty, normalizeAllowedIdsStrict, runMemoryAgentLoop, type MemoryAgentUsage } from "../common.js";
 import { OBSERVER_SYSTEM } from "./prompts.js";
-import { nowTimestamp, truncateRecordContent } from "../../memory/serialize.js";
+import { nowTimestamp, truncateRecordContent } from "../../memory/serialization/shared.js";
 import type { Observation } from "../../session-ledger/index.js";
 
 interface RunObserverArgs {

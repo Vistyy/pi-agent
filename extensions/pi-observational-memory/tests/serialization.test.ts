@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { renderRecallSourceEntry, serializeObserverSourceEntries } from "../src/memory/serialize.js";
+import { serializeObserverSourceEntries, type ObserverToolRenderingOptions } from "../src/memory/serialization/observer.js";
+import { renderRecallSourceEntry } from "../src/memory/serialization/recall.js";
+
+const observerToolOptions: ObserverToolRenderingOptions = {
+	toolResultSummaryMaxChars: 300,
+	toolResultErrorMaxChars: 800,
+	toolResultsTotalMaxChars: 4_000,
+};
 
 describe("memory serialization", () => {
 	it("keeps user prompts and omits assistant thinking from observer input", () => {
@@ -17,7 +24,7 @@ describe("memory serialization", () => {
 				timestamp: "2026-05-02T10:01:00.000Z",
 				message: { role: "assistant", timestamp: 1777716060000, content: [{ type: "thinking", thinking: "Maybe this is irrelevant." }, { type: "text", text: "I will use --unsafe-fast." }] },
 			},
-		] as any);
+		] as any, observerToolOptions);
 
 		expect(sourceEntryIds).toEqual(["raw-user", "raw-assistant"]);
 		expect(text).toContain("Remember the exact flag --unsafe-fast.");
@@ -72,7 +79,7 @@ describe("memory serialization", () => {
 				timestamp: "2026-05-02T10:00:00.000Z",
 				message: { role: "bashExecution", timestamp: 1777716000000, command: "pnpm test", output: "failed at exact needle", exitCode: 1, truncated: false },
 			},
-		] as any);
+		] as any, observerToolOptions);
 
 		expect(sourceEntryIds).toEqual(["bash-1"]);
 		expect(text).toContain("[Tool evidence: bash @");
@@ -105,7 +112,7 @@ describe("memory serialization", () => {
 				timestamp: "2026-05-02T10:06:00.000Z",
 				message: { role: "compactionSummary", summary: "Compaction message role." },
 			},
-		] as any);
+		] as any, observerToolOptions);
 
 		expect(sourceEntryIds).toEqual(["user-1"]);
 		expect(text).toContain("Primary user evidence.");

@@ -1,7 +1,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { runObserver } from "../agents/observer/agent.js";
 import { debugLog } from "../debug-log.js";
-import { serializeObserverSourceEntries } from "../memory/serialize.js";
+import { serializeObserverSourceEntries } from "../memory/serialization/observer.js";
 import type { Runtime } from "../runtime.js";
 import {
 	OM_OBSERVATIONS_RECORDED,
