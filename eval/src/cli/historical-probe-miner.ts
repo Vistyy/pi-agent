@@ -5,7 +5,7 @@ import { argValue } from '../lib/args.js';
 import { DEFAULT_MODEL, runPiSdk } from '../lib/pi.js';
 
 const input = process.argv[2];
-if (!input || input.startsWith('--')) throw new Error('usage: npm run mine-historical -- <session.jsonl> --out scratch/candidates.json');
+if (!input || input.startsWith('--')) throw new Error('usage: pnpm mine-historical -- <session.jsonl> --out scratch/candidates.json');
 const out = argValue('--out') ?? 'scratch-historical/candidate-probes.json';
 const model = argValue('--model') ?? DEFAULT_MODEL;
 const maxChars = Number(argValue('--max-chars') ?? '60000');

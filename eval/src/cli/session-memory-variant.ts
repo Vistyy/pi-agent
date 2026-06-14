@@ -7,18 +7,18 @@ import path from 'node:path';
 import { argValue } from '../lib/args.js';
 
 const variant = process.argv[2];
-const variants = ['clean', 'om-additive', 'om-replacement', 'original'] as const;
+const variants = ['clean', 'om-replacement', 'original'] as const;
 if (!variant || variant.startsWith('--') || !variants.includes(variant as never)) {
-  throw new Error(`usage: npm run session-memory -- <${variants.join('|')}> --out runs/name [--suite suites/memory-multi-compact]`);
+  throw new Error(`usage: pnpm session-memory -- <${variants.join('|')}> --out runs/name [--suite suites/memory/multi-compact]`);
 }
 
-const suite = argValue('--suite') ?? 'suites/memory-multi-compact';
+const suite = argValue('--suite') ?? 'suites/memory/multi-compact';
 const out = argValue('--out') ?? `runs/memory-hard-${variant}-${new Date().toISOString().replace(/[:.]/g, '-')}`;
 const model = argValue('--model') ?? 'openai-codex/gpt-5.4-mini';
 const thinking = (argValue('--thinking') ?? 'xhigh') as ModelThinkingLevel;
 const observerThinking = argValue('--observer-thinking') as ModelThinkingLevel | undefined;
 const reflectorThinking = argValue('--reflector-thinking') as ModelThinkingLevel | undefined;
-const dropperThinking = argValue('--dropper-thinking') as ModelThinkingLevel | undefined;
+const curatorThinking = argValue('--curator-thinking') as ModelThinkingLevel | undefined;
 const concurrency = argValue('--concurrency') ?? '1';
 const forcedMemoryPrep = process.argv.includes('--forced-memory-prep');
 const prepareTurns = argValue('--memory-prepare-turns') ?? '1';
@@ -37,10 +37,10 @@ function makeCwd(name: string, modelSpec: string): string {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), `pi-memory-hard-${name}-`));
   fs.mkdirSync(path.join(dir, '.pi'), { recursive: true });
   const omConfig: Record<string, unknown> = {
-    strategy: name === 'om-replacement' ? 'replacement' : 'additive',
+    strategy: 'replacement',
     observeEveryMessages: 32,
     reflectEveryObservations: 4,
-    dropWhenActiveObservationsOver: 80,
+    emergencyCurateWhenVisibleObservationsOver: 60,
     protectRecentObservations: 32,
     agentMaxTurns: 4,
     model: configuredModel(modelSpec),
@@ -48,7 +48,7 @@ function makeCwd(name: string, modelSpec: string): string {
   };
   if (observerThinking) omConfig.observerThinking = observerThinking;
   if (reflectorThinking) omConfig.reflectorThinking = reflectorThinking;
-  if (dropperThinking) omConfig.dropperThinking = dropperThinking;
+  if (curatorThinking) omConfig.curatorThinking = curatorThinking;
   fs.writeFileSync(path.join(dir, '.pi/settings.json'), JSON.stringify({ 'observational-memory': omConfig }, null, 2));
   return dir;
 }
@@ -61,15 +61,15 @@ function run(cmd: string, args: string[]) {
 }
 
 function baseArgs(extra: string[] = []) {
-  return ['run', 'eval', '--', suite, '--out', out, '--model', model, '--thinking', thinking, '--compact-before-prompt', '--compact-instructions', compactInstructions, '--concurrency', concurrency, ...extra];
+  return ['eval', '--', suite, '--out', out, '--model', model, '--thinking', thinking, '--compact-before-prompt', '--compact-instructions', compactInstructions, '--concurrency', concurrency, ...extra];
 }
 
 if (variant === 'clean') {
-  run('npm', baseArgs());
-} else if (variant === 'om-additive' || variant === 'om-replacement') {
+  run('pnpm', baseArgs());
+} else if (variant === 'om-replacement') {
   const prepArgs = forcedMemoryPrep ? ['--prepare-memory-before-compact', '--memory-prepare-turns', prepareTurns, '--memory-prepare-wait-ms', waitMs] : [];
-  run('npm', baseArgs(['--cwd', cwd, '--extension', latestOmExtension, ...prepArgs, '--allow-tool', 'recall']));
+  run('pnpm', baseArgs(['--cwd', cwd, '--extension', latestOmExtension, ...prepArgs, '--allow-tool', 'recall']));
 } else if (variant === 'original') {
   const prepArgs = forcedMemoryPrep ? ['--prepare-memory-before-compact', '--memory-prepare-turns', prepareTurns, '--memory-prepare-wait-ms', waitMs] : [];
-  run('npm', baseArgs(['--cwd', cwd, '--extension', originalOmExtension, ...prepArgs, '--allow-tool', 'recall']));
+  run('pnpm', baseArgs(['--cwd', cwd, '--extension', originalOmExtension, ...prepArgs, '--allow-tool', 'recall']));
 }

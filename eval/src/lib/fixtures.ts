@@ -5,10 +5,13 @@ import type { CalibrationExample, EvalFile, Probe } from './types.js';
 
 export function fixtureDirs(root: string, requireCalibration = false): string[] {
   if (fs.existsSync(path.join(root, 'eval.yml'))) return [root];
-  return fs.readdirSync(root)
-    .map((x) => path.join(root, x))
-    .filter((x) => fs.statSync(x).isDirectory())
-    .filter((x) => fs.existsSync(path.join(x, 'eval.yml')))
+  const dirs: string[] = [];
+  for (const name of fs.readdirSync(root)) {
+    const child = path.join(root, name);
+    if (!fs.statSync(child).isDirectory()) continue;
+    dirs.push(...fixtureDirs(child, requireCalibration));
+  }
+  return dirs
     .filter((x) => !requireCalibration || (readEvalFile(x).calibration?.length ?? 0) > 0)
     .sort();
 }

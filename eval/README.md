@@ -1,144 +1,133 @@
-# Pi memory evals
+# Pi evals
 
-Small benchmark for comparing Pi default compaction against observational-memory variants.
+Evaluation harnesses for memory, observational-memory agents, and pi-fork behavior.
 
-## Active suite
-
-```text
-suites/memory-multi-compact/      10 hardest retained cases
-runs/                    generated results, gitignored
-scratch-historical/      private scratch, gitignored
-```
-
-`memory-hard` keeps the historically hardest user-visible memory failures:
+## Layout
 
 ```text
-ambiguous-similar-errors
-assistant-only-evidence
-buried-negative-constraint
-conflicting-current-decision
-long-noisy-100-turn
-multi-hop-artifact-path
-rejected-command-resurrection
-temporal-expiry-current-rule
-tool-result-only-evidence
-unresolved-conflict-with-prior-final
+src/cli/                 executable wrappers; these are the only files that call main()
+src/lib/                 shared suite runner, judge, Pi SDK helpers, fixtures, summaries
+src/om/                  observational-memory agent evals
+  agent-evals.ts         OM agent eval CLI implementation
+  cases/                 observer, reflector, curator cases
+  diagnostics.ts         judge/deterministic diagnostics
+  runner.ts              model loading, OM agent loading, usage helpers
+src/fork/                pi-fork evals
+  agent-evals.ts         fork tool-selection eval CLI implementation
+  prompt-evals.ts        fork child-prompt eval CLI implementation
+  cases/                 fork agent and prompt cases
+  runner.ts/tool.ts      fork mock tool, diagnostics, runner helpers
+suites/                  YAML/session fixture suites for the generic memory runner
+runs/                    generated outputs; do not commit
 ```
 
-## Run
+## Suite layout
 
-Install once:
-
-```bash
-cd ~/.pi/agent/eval
-npm install
+```text
+suites/memory/
+  discriminator/         focused current-vs-stale and exact-evidence discriminators
+  multi-compact/         retained hard memory/compaction cases
 ```
 
-Dry run:
+Each leaf case directory contains:
 
-```bash
-npm run eval -- suites/memory-multi-compact --dry-run --out /tmp/pi-memory-hard-plan
+```text
+eval.yml
+source.stage1.jsonl
+source.stage2.jsonl
+...
 ```
 
-Default Pi:
+The suite runner accepts either one leaf fixture or any parent directory. Parent directories are scanned recursively for `eval.yml` files.
+
+Examples:
 
 ```bash
-npm run session-memory -- clean --out runs/memory-hard-clean-001
+pnpm eval -- suites/memory/multi-compact --dry-run --out /tmp/pi-memory-plan
+pnpm eval -- suites/memory/discriminator --dry-run --out /tmp/pi-memory-discriminator-plan
+pnpm eval -- suites/memory --dry-run --out /tmp/pi-memory-all-plan
 ```
 
-Latest OM additive:
+Default `pnpm eval` target:
+
+```text
+suites/memory/multi-compact
+```
+
+## Package scripts
 
 ```bash
-npm run session-memory -- om-additive --out runs/memory-hard-om-additive-001 \
+pnpm eval                  # generic YAML/session suite runner
+pnpm session-memory        # compare clean / OM replacement / original extension on a suite
+pnpm om-agent-evals        # direct OM observer/reflector/curator agent evals
+pnpm fork-agent-evals      # direct fork tool-selection evals
+pnpm fork-prompt-evals     # fork child prompt evals
+pnpm mine-historical       # mine candidate probes from a historical session
+pnpm typecheck
+```
+
+Use `pnpm`, not `npm`.
+
+## Common runs
+
+Generic memory suite:
+
+```bash
+pnpm eval -- suites/memory/multi-compact --out runs/memory-multi-compact-clean
+```
+
+Session memory variant comparison:
+
+```bash
+pnpm session-memory -- clean --out runs/memory-clean-001
+pnpm session-memory -- om-replacement --out runs/memory-om-replacement-001 \
   --om-extension /home/syzom/.pi/agent/extensions/pi-observational-memory
 ```
 
-Latest OM replacement:
+OM agent evals:
 
 ```bash
-npm run session-memory -- om-replacement --out runs/memory-hard-om-replacement-001 \
-  --om-extension /home/syzom/.pi/agent/extensions/pi-observational-memory
+pnpm om-agent-evals --only curatorBrutal --thinking low \
+  --model openai-codex/gpt-5.4-mini \
+  --judge-model openai-codex/gpt-5.4-mini \
+  --out runs/curator-brutal-mini-low
 ```
 
-Original `elpapi42/pi-observational-memory` checkout:
+Fork evals:
 
 ```bash
-npm run session-memory -- original --out runs/memory-hard-original-001 \
-  --original-extension /path/to/elpapi42/pi-observational-memory
-```
-
-Useful options:
-
-```text
---model provider/model
---concurrency N
---suite suites/memory-multi-compact
---cwd /tmp/custom-pi-cwd
-```
-
-OM variants rely on the compaction boundary to run due memory consolidation inline for preloaded fixtures.
-
-Forced materialization mode, for debugging only:
-
-```bash
-npm run session-memory -- om-additive --out runs/memory-hard-om-additive-forced-001 \
-  --forced-memory-prep --memory-prepare-turns 1
+pnpm fork-agent-evals --case memory-child-extensions-no-fork --out runs/fork-agent-smoke
+pnpm fork-prompt-evals --case fast-command-lookup --out runs/fork-prompt-smoke
 ```
 
 ## Result files
 
-Each run writes:
+Suite/session runs write some or all of:
 
 ```text
 runs/<name>/summary.json
 runs/<name>/results.json
 runs/<name>/judged-results.json
+runs/<name>/results.partial.json
 ```
 
-`summary.json` reports quality and cost:
+Agent eval summaries include timing and usage fields where available:
 
 ```text
-passed / total
-usage.prep        # memory prep calls
-usage.compaction  # compaction call
-usage.answer      # final answer call
-usage.judge       # judge calls
-usage.total
-```
-
-Use pass rate plus `usage.total.totalTokens` for cost/performance.
-
-## Failure modes
-
-The active memory suite targets compacted-session failure patterns:
-
-```text
-tentative_vs_decided
-  tentative idea later rejected must not become chosen direction
-
-rejected_path_resurrection
-  rejected approach must remain rejected after compaction
-
-subtle_constraint_once
-  one important user constraint must survive compaction
-
-exact_evidence_needed
-  answer should admit when exact evidence is absent and recall/source context is needed
-
-summary_drift
-  repeated compaction must not reverse or drop load-bearing decisions
-
-tool_noise_burial
-  important conclusion buried among noisy tool outputs must survive
+durationMs
+agentDurationMs
+judgeDurationMs
+diagnosisDurationMs
+usage
+judgeUsage
+diagnosisUsage
 ```
 
 ## Notes
 
-- `clean` loads no extensions.
-- `om-additive` sets `observational-memory.strategy = "additive"` in a temp cwd.
-- `om-replacement` sets `observational-memory.strategy = "replacement"` in a temp cwd.
-- Normal runs use accelerated eval threshold `observeAfterTokens = 1000` so preloaded fixtures trigger OM.
-- OM variants do not add synthetic prep turns by default.
-- `--forced-memory-prep` adds synthetic prep turns and is not representative of normal usage cost.
+- Eval output directories under `runs/` are not meant to be committed.
+- `clean` loads no extension.
+- `om-replacement` loads the current observational-memory extension in replacement mode.
 - `original` is for a local checkout of `https://github.com/elpapi42/pi-observational-memory`.
-- pi-vcc and pi-blackhole profiles were removed from active evals.
+- Additive OM mode and dropper-specific eval paths are obsolete.
+- Direct OM/fork agent eval cases live in TypeScript under `src/om/cases` and `src/fork/cases`; generic memory replay fixtures live under `suites/`.
