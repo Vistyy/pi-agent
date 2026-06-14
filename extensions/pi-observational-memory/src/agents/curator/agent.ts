@@ -17,7 +17,7 @@ import {
 	removeIdsFromBatches,
 } from "./actions.js";
 import { selectDropCandidates } from "./drop.js";
-import { CURATOR_SYSTEM } from "./prompts.js";
+import { CURATOR_PRESERVE_SYSTEM, CURATOR_UNLINKED_PRESERVE_SYSTEM, CURATOR_UNPIN_SYSTEM } from "./prompts.js";
 import { buildCuratorUserText } from "./render.js";
 import { selectCuratorPhaseInput, type CuratorPassMode } from "./selection.js";
 
@@ -79,12 +79,8 @@ function partitionObservationIds(ids: readonly string[] | undefined, allowedIds:
 	return { accepted, rejected };
 }
 
-function phaseInstruction(mode: CuratorPassMode): string {
-	return mode === "unpin"
-		? "\n\nACTION PHASE: stale-pin review only. Only call unpin_observations for currently pinned candidates that are clearly stale, or mark_no_actions if none are safe to unpin. Do not pin, flag, or drop in this phase."
-		: mode === "unlinked-preserve"
-			? "\n\nACTION PHASE: unlinked preservation only. The action candidates in this phase are not cited by any current reflection. Call pin_observations or flag_observations for unlinked durable evidence that needs visibility or reflection follow-up, or mark_no_actions if none need preservation. Do not drop or unpin in this phase."
-			: "\n\nACTION PHASE: preservation and cleanup. Prior unpin and unlinked-preservation decisions have already been made; now call pin_observations, flag_observations, drop_observations, or mark_no_actions.";
+function systemPromptForPhase(mode: CuratorPassMode): string {
+	return mode === "unpin" ? CURATOR_UNPIN_SYSTEM : mode === "unlinked-preserve" ? CURATOR_UNLINKED_PRESERVE_SYSTEM : CURATOR_PRESERVE_SYSTEM;
 }
 
 function makeActionTool(
@@ -236,8 +232,8 @@ async function runCuratorPass(args: RunCuratorArgs, mode: CuratorPassMode, initi
 		agentLoop: args.agentLoop,
 		maxTurns: args.maxTurns,
 		thinkingLevel: args.thinkingLevel,
-		systemPrompt: CURATOR_SYSTEM,
-		userText: `${rendered.userText}${phaseInstruction(mode)}`,
+		systemPrompt: systemPromptForPhase(mode),
+		userText: rendered.userText,
 		tools,
 		agentName: "curator",
 		onUsage: args.onUsage,
