@@ -2,9 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { Type, type ModelThinkingLevel } from '@earendil-works/pi-ai';
 import { defineTool, type ToolDefinition } from '@earendil-works/pi-coding-agent';
-import { DEFAULT_MODEL, runPiSdk, type MessageTraceRecord, type ToolCallRecord } from './lib/pi.js';
-import { runJudge } from './lib/judge.js';
-import type { Probe, TokenUsage } from './lib/types.js';
+import { DEFAULT_MODEL, runPiSdk, type MessageTraceRecord, type ToolCallRecord } from '../lib/pi.js';
+import { runJudge } from '../lib/judge.js';
+import type { Probe, TokenUsage } from '../lib/types.js';
 
 type Effort = 'fast' | 'balanced' | 'deep';
 type ExpectedEffort = Effort | Effort[];
@@ -536,7 +536,7 @@ function summarize(records: ForkEvalRecord[]) {
   };
 }
 
-async function main() {
+export async function main() {
   const args = parseArgs();
   fs.mkdirSync(args.outDir, { recursive: true });
   const selectedCases = args.caseId ? cases.filter((testCase) => testCase.id === args.caseId) : args.all ? cases : cases.slice(0, 1);

@@ -1,8 +1,8 @@
 #!/usr/bin/env tsx
 import fs from 'node:fs';
 import path from 'node:path';
-import { argValue } from './lib/args.js';
-import { DEFAULT_MODEL, runPiSdk } from './lib/pi.js';
+import { argValue } from '../lib/args.js';
+import { DEFAULT_MODEL, runPiSdk } from '../lib/pi.js';
 
 const input = process.argv[2];
 if (!input || input.startsWith('--')) throw new Error('usage: npm run mine-historical -- <session.jsonl> --out scratch/candidates.json');

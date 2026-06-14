@@ -2,9 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { AuthStorage, ModelRegistry } from '@earendil-works/pi-coding-agent';
 import type { Model, ModelThinkingLevel } from '@earendil-works/pi-ai';
-import { DEFAULT_MODEL } from './lib/pi.js';
-import { runJudge } from './lib/judge.js';
-import type { Probe, TokenUsage } from './lib/types.js';
+import { DEFAULT_MODEL } from '../lib/pi.js';
+import { runJudge } from '../lib/judge.js';
+import type { Probe, TokenUsage } from '../lib/types.js';
 
 type Observation = { id: string; content: string; timestamp: string; sourceEntryIds: string[]; tokenCount: number };
 type Reflection = { id: string; content: string; supportingObservationIds: string[]; tokenCount: number };
@@ -846,7 +846,7 @@ const allCases = [
   curatorBrutalContradictoryReflections,
 ];
 
-async function main() {
+export async function main() {
   const args = parseArgs();
   fs.mkdirSync(args.outDir, { recursive: true });
   const cases = args.only ? allCases.filter((c) => c.name.includes(args.only!)) : allCases;
@@ -876,4 +876,3 @@ async function main() {
   process.exitCode = summary.passed === summary.total ? 0 : 1;
 }
 
-await main();

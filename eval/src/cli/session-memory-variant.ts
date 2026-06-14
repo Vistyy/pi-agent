@@ -4,7 +4,7 @@ import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { argValue } from './lib/args.js';
+import { argValue } from '../lib/args.js';
 
 const variant = process.argv[2];
 const variants = ['clean', 'om-additive', 'om-replacement', 'original'] as const;

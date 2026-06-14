@@ -1,7 +1,7 @@
 import path from 'node:path';
-import { DEFAULT_MODEL, runPiSdk } from './lib/pi.js';
-import { runJudge } from './lib/judge.js';
-import type { JudgeResult, Probe, TokenUsage } from './lib/types.js';
+import { DEFAULT_MODEL, runPiSdk } from '../lib/pi.js';
+import { runJudge } from '../lib/judge.js';
+import type { JudgeResult, Probe, TokenUsage } from '../lib/types.js';
 
 type Effort = 'fast' | 'balanced' | 'deep';
 type Tier = 'smoke' | 'extended';
@@ -214,7 +214,7 @@ function addUsage(total: TokenUsage, usage?: TokenUsage): TokenUsage {
   };
 }
 
-async function main(): Promise<void> {
+export async function main(): Promise<void> {
   const args = parseArgs();
   const selectedCases = args.caseId
     ? cases.filter((testCase) => testCase.id === args.caseId)
