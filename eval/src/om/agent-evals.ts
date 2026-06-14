@@ -35,9 +35,12 @@ export async function main() {
     }
     fs.writeFileSync(path.join(args.outDir, 'results.partial.json'), JSON.stringify(records, null, 2));
   }
+  const scoredRecords = records.filter((r) => r.score);
   const summary = {
     passed: records.filter((r) => r.passed).length,
     total: records.length,
+    score: scoredRecords.reduce((total, r) => total + (r.score?.score ?? 0), 0),
+    maxScore: scoredRecords.reduce((total, r) => total + (r.score?.maxScore ?? 0), 0),
     failed: records.filter((r) => !r.passed).map((r) => ({ id: r.id, agent: r.agent, judge: r.judge, error: r.error })),
     durationMs: sumDuration(records, 'durationMs'),
     agentDurationMs: sumDuration(records, 'agentDurationMs'),

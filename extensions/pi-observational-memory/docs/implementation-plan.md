@@ -117,17 +117,21 @@ Implemented groundwork:
 
 1. Observer input is include-filtered to primary `message` entries.
 2. User and assistant messages remain visible; assistant thinking is redacted.
-3. Tool and bash results use generic sanitized rendering:
+3. Tool and bash results use policy-based sanitized rendering:
    - tool/status metadata
    - input summary when available
    - output char count
-   - bounded excerpt
+   - successful generic tool output is metadata-only by default
+   - bash/error output uses bounded excerpts
+   - configured delegation tools such as `fork` can keep full excerpts
    - omitted/truncated marker
 4. Defaults:
    ```text
-   observerToolResultSummaryMaxChars = 0
-   observerToolResultErrorMaxChars = 800
-   observerToolResultsTotalMaxChars = 4000
+   observerToolResultSummaryMaxLines = 4
+   observerToolResultErrorMaxLines = 20
+   observerToolResultsTotalMaxLines = 80
+   observerToolResultLineMaxChars = 300
+   observerToolOutputPolicies = { fork: "full-excerpt" }
    ```
 5. Derived/non-primary entries are skipped:
    - `compaction`
@@ -139,7 +143,7 @@ Implemented groundwork:
 
 Still open:
 
-- Whether successful tool excerpts should ever be enabled for specific workloads; default is metadata-only for successful tools.
+- Whether the small successful-tool line cap is enough to preserve useful validation/API facts without reviving edit/write churn.
 - Whether to add a mode flag later; avoid it for now unless evals show the single policy is wrong.
 - Whether to add a soft/hard output observation-count cap after baseline model evals.
 

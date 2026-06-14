@@ -1,4 +1,5 @@
 import type { ToolResultMessage } from "@earendil-works/pi-ai";
+import type { ObserverToolOutputPolicy } from "../../config.js";
 import { formatTimestamp, textAndPlaceholders, truncateMiddle, type RenderableEntry } from "./shared.js";
 
 export type SourceAddressedSerialization = {
@@ -7,31 +8,63 @@ export type SourceAddressedSerialization = {
 };
 
 export type ObserverToolRenderingOptions = {
-	toolResultSummaryMaxChars: number;
-	toolResultErrorMaxChars: number;
-	toolResultsTotalMaxChars: number;
+	toolResultSummaryMaxLines: number;
+	toolResultErrorMaxLines: number;
+	toolResultsTotalMaxLines: number;
+	toolResultLineMaxChars: number;
+	toolOutputPolicies: Record<string, ObserverToolOutputPolicy>;
 };
 
 const OBSERVER_ENTRY_MAX_CHARS = 12_000;
-type ToolBudget = { remaining: number };
+type ToolBudget = { remainingLines: number };
+
+function toolEvidencePolicy(toolName: string, status: "ok" | "error", role: "toolResult" | "bashExecution", options: ObserverToolRenderingOptions): ObserverToolOutputPolicy {
+	if (status === "error") return "bounded-excerpt";
+	if (role === "bashExecution") return "bounded-excerpt";
+	return options.toolOutputPolicies[toolName] ?? "metadata-only";
+}
 
 function normalizeBody(text: string): string {
 	return text.trim();
 }
 
-function excerptWithBudget(text: string, maxChars: number, budget: ToolBudget): { excerpt: string; omitted: boolean; reason?: string } {
+function truncateLine(line: string, maxChars: number): { text: string; omitted: boolean } {
+	return line.length > maxChars ? { text: truncateMiddle(line, maxChars), omitted: true } : { text: line, omitted: false };
+}
+
+type RenderedExcerpt = { excerpt: string; omitted: boolean; reason?: "policy" | "length" };
+
+function omittedByPolicy(): RenderedExcerpt {
+	return { excerpt: "[output omitted by observer policy]", omitted: true, reason: "policy" };
+}
+
+function renderExcerpt(text: string, maxLines: number, lineMaxChars: number, budget: ToolBudget): RenderedExcerpt {
 	const body = normalizeBody(text);
 	if (!body) return { excerpt: "[no textual output]", omitted: false };
-	if (maxChars <= 0) return { excerpt: "[output omitted: successful tool output hidden from observer input]", omitted: true, reason: "success_output_omitted" };
-	if (budget.remaining <= 0) return { excerpt: "[output omitted: observer tool excerpt budget exhausted]", omitted: true, reason: "budget_exhausted" };
-	const allowed = Math.max(0, Math.min(maxChars, budget.remaining));
-	if (allowed <= 0) return { excerpt: "[output omitted: observer tool excerpt budget exhausted]", omitted: true, reason: "budget_exhausted" };
-	budget.remaining -= allowed;
-	const excerpt = truncateMiddle(body, allowed);
+	if (budget.remainingLines <= 0 || maxLines <= 0) return { excerpt: "[output omitted because observer input budget was exhausted]", omitted: true, reason: "length" };
+
+	const lines = body.split(/\r?\n/);
+	const allowed = Math.min(lines.length, maxLines, budget.remainingLines);
+	budget.remainingLines -= allowed;
+
+	const selected = lines.length <= allowed
+		? lines
+		: [
+			...lines.slice(0, Math.ceil(allowed / 2)),
+			...lines.slice(-Math.floor(allowed / 2)),
+		];
+	const rendered = selected.map((line) => truncateLine(line, lineMaxChars));
+	const omittedByLineChars = rendered.some((line) => line.omitted);
+	const omittedByLines = lines.length > allowed;
+	const omittedMiddle = lines.length - selected.length;
+	const excerptLines = rendered.map((line) => line.text);
+	if (omittedByLines && omittedMiddle > 0) {
+		excerptLines.splice(Math.ceil(allowed / 2), 0, `… [truncated middle ${omittedMiddle} lines]`);
+	}
 	return {
-		excerpt,
-		omitted: body.length > allowed,
-		reason: body.length > allowed ? `truncated_to_${allowed}_chars` : undefined,
+		excerpt: excerptLines.join("\n"),
+		omitted: omittedByLines || omittedByLineChars,
+		reason: omittedByLines || omittedByLineChars ? "length" : undefined,
 	};
 }
 
@@ -52,9 +85,16 @@ function renderToolEvidence(args: {
 	input?: string;
 	exitCode?: number | string;
 	truncated?: boolean;
+	role: "toolResult" | "bashExecution";
 }): string {
-	const maxChars = args.status === "error" ? args.options.toolResultErrorMaxChars : args.options.toolResultSummaryMaxChars;
-	const outputChars = normalizeBody(args.content).length;	const { excerpt, omitted, reason } = excerptWithBudget(args.content, maxChars, args.budget);
+	const policy = toolEvidencePolicy(args.toolName, args.status, args.role, args.options);
+	const maxLines = policy === "full-excerpt"
+		? args.budget.remainingLines
+		: args.status === "error" ? args.options.toolResultErrorMaxLines : args.options.toolResultSummaryMaxLines;
+	const outputChars = normalizeBody(args.content).length;
+	const { excerpt, omitted, reason } = policy === "metadata-only"
+		? omittedByPolicy()
+		: renderExcerpt(args.content, maxLines, args.options.toolResultLineMaxChars, args.budget);
 	const lines = [`[Tool evidence: ${args.toolName} @ ${args.time}]`, `status: ${args.status}`, `output_chars: ${outputChars}`];
 	if (args.input) lines.push(`input: ${args.input}`);
 	if (args.exitCode !== undefined) lines.push(`exitCode: ${args.exitCode}`);
@@ -89,6 +129,7 @@ function renderObserverMessage(entry: RenderableEntry, options: ObserverToolRend
 			options,
 			budget,
 			input: inputSummary(msg),
+			role: "toolResult",
 		});
 	}
 	if (msg.role === "bashExecution") {
@@ -106,6 +147,7 @@ function renderObserverMessage(entry: RenderableEntry, options: ObserverToolRend
 			input: command,
 			exitCode,
 			truncated: msg.truncated === true,
+			role: "bashExecution",
 		});
 	}
 	return null;
@@ -126,7 +168,7 @@ export function serializeObserverSourceEntries(
 ): SourceAddressedSerialization {
 	const blocks: string[] = [];
 	const sourceEntryIds: string[] = [];
-	const budget = { remaining: options.toolResultsTotalMaxChars };
+	const budget = { remainingLines: options.toolResultsTotalMaxLines };
 	for (const entry of entries) {
 		if (!entry.id || !isObserverSourceEntry(entry)) continue;
 		const rendered = renderObserverSourceEntry(entry, options, budget);

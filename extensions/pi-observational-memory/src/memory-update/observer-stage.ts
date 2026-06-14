@@ -53,9 +53,11 @@ export async function runObserverStage(
 	}
 
 	const { text: chunk, sourceEntryIds } = serializeObserverSourceEntries(chunkEntries, {
-		toolResultSummaryMaxChars: runtime.config.observerToolResultSummaryMaxChars,
-		toolResultErrorMaxChars: runtime.config.observerToolResultErrorMaxChars,
-		toolResultsTotalMaxChars: runtime.config.observerToolResultsTotalMaxChars,
+		toolResultSummaryMaxLines: runtime.config.observerToolResultSummaryMaxLines,
+		toolResultErrorMaxLines: runtime.config.observerToolResultErrorMaxLines,
+		toolResultsTotalMaxLines: runtime.config.observerToolResultsTotalMaxLines,
+		toolResultLineMaxChars: runtime.config.observerToolResultLineMaxChars,
+		toolOutputPolicies: runtime.config.observerToolOutputPolicies,
 	});
 	if (!chunk.trim() || sourceEntryIds.length === 0) {
 		const data = buildObservationsRecordedData([], coversUpToId);

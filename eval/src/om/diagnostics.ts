@@ -1,6 +1,6 @@
 import { runJudge } from '../lib/judge.js';
 import type { Probe, TokenUsage } from '../lib/types.js';
-import type { AgentEvalRecord, CuratorActionResult, CuratorCheck, CuratorEvalDiagnostics, Observation, Reflection } from './types.js';
+import type { AgentEvalRecord, CuratorActionResult, CuratorCheck, CuratorEvalDiagnostics, EvalScoreDimension, Observation, ObserverCheck, Reflection } from './types.js';
 
 export async function diagnoseFailure(record: AgentEvalRecord, probe: Probe, judgeModel: string): Promise<AgentEvalRecord> {
   if (record.passed) return record;
@@ -24,6 +24,71 @@ export async function judged(id: string, agent: AgentEvalRecord['agent'], output
   const { run, judge } = await runJudge(probe, answer, judgeModel);
   const record = { id, agent, output, judge, passed: run.status === 0 && judge.passed, durationMs: Date.now() - started, agentDurationMs, judgeDurationMs: Date.now() - judgeStarted, usage, judgeUsage: run.usage };
   return diagnoseFailure(record, probe, judgeModel);
+}
+
+function deterministicObserverFailure(output: Observation[] | undefined, checks: ObserverCheck[]): { reason: string; details: unknown[] } | undefined {
+  const failed = checks.filter((check) => !check.pass(output)).map((check) => ({ label: check.label, detail: check.detail?.(output) ?? output }));
+  return failed.length ? { reason: failed.map((check) => check.label).join('; '), details: failed } : undefined;
+}
+
+export function observerText(output: Observation[] | undefined): string {
+  return (output ?? []).map((observation) => observation.content).join('\n');
+}
+
+export function observerSourceIds(output: Observation[] | undefined): string[] {
+  return (output ?? []).flatMap((observation) => observation.sourceEntryIds);
+}
+
+export function observerRequiresAll(...needles: string[]): ObserverCheck {
+  return { label: `requires ${needles.join(', ')}`, pass: (output) => needles.every((needle) => observerText(output).includes(needle)), detail: (output) => observerText(output) };
+}
+
+export function observerForbidsAny(...needles: string[]): ObserverCheck {
+  return { label: `forbids ${needles.join(', ')}`, pass: (output) => needles.every((needle) => !observerText(output).includes(needle)), detail: (output) => observerText(output) };
+}
+
+export function observerMaxCount(max: number): ObserverCheck {
+  return { label: `at most ${max} observations`, pass: (output) => (output ?? []).length <= max, detail: (output) => ({ count: (output ?? []).length }) };
+}
+
+export function observerForbidsSourceIds(...ids: string[]): ObserverCheck {
+  return { label: `forbids source ids ${ids.join(', ')}`, pass: (output) => ids.every((id) => !observerSourceIds(output).includes(id)), detail: (output) => observerSourceIds(output) };
+}
+
+export async function judgedObserverScored(
+  id: string,
+  output: Observation[] | undefined,
+  probe: Probe,
+  judgeModel: string,
+  started: number,
+  hardChecks: ObserverCheck[],
+  scoreChecks: ObserverCheck[],
+  usage?: TokenUsage,
+  agentDurationMs?: number,
+  diagnostics?: unknown,
+): Promise<AgentEvalRecord> {
+  const hardFailure = deterministicObserverFailure(output, hardChecks);
+  const dimensions: EvalScoreDimension[] = scoreChecks.map((check) => {
+    const passed = check.pass(output);
+    return { label: check.label, score: passed ? 1 : 0, maxScore: 1, detail: check.detail?.(output) ?? output };
+  });
+  const score = dimensions.reduce((total, dimension) => total + dimension.score, 0);
+  const maxScore = dimensions.reduce((total, dimension) => total + dimension.maxScore, 0);
+  const base: AgentEvalRecord = {
+    id,
+    agent: 'observer',
+    output: output ?? [],
+    judge: hardFailure
+      ? { passed: false, reason: `Hard invariant failed: ${hardFailure.reason}`, details: hardFailure.details }
+      : { passed: true, reason: 'Hard invariants passed; see score dimensions for capability signal.' },
+    passed: !hardFailure,
+    durationMs: Date.now() - started,
+    agentDurationMs,
+    usage,
+    diagnostics,
+    score: { hardFailed: Boolean(hardFailure), score, maxScore, dimensions },
+  };
+  return hardFailure ? diagnoseFailure(base, probe, judgeModel) : base;
 }
 
 export function curatorIds(output: CuratorActionResult | undefined, key: keyof CuratorActionResult): string[] {

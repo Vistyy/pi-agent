@@ -1,19 +1,20 @@
-import { observerHardAssistantOnly, observerHardCurrentStale, observerHardDenseToolChunk, observerHardEditForkChurn, observerHardOmittedToolEvidence, observerHardSchemaMess } from './observer.js';
+import { observerHardFutureIntent, observerHardSchemaMess, observerHardSessionCorrectionNoise, observerHardSessionIntentProvenance, observerHardStateStaleBlocker, observerHardStateVsProvenance, observerHardToolEvidenceBoundary } from './observer.js';
 import { reflectorHardCompression, reflectorHardRepairFlag, reflectorReviewedZero, reflectorSupersessionRelation } from './reflector.js';
 import { curatorBrutalContradictoryReflections, curatorBrutalHistoricalPressure, curatorBrutalUnpinTrap, curatorContradictoryReflection, curatorFlagsMissingExactDetail, curatorHardSchemaStaleNoise } from './curator.js';
 
 export const allCases = [
-  observerHardCurrentStale,
-  observerHardAssistantOnly,
+  observerHardStateStaleBlocker,
   reflectorHardCompression,
   reflectorSupersessionRelation,
   reflectorReviewedZero,
   curatorFlagsMissingExactDetail,
   curatorContradictoryReflection,
   observerHardSchemaMess,
-  observerHardDenseToolChunk,
-  observerHardEditForkChurn,
-  observerHardOmittedToolEvidence,
+  observerHardToolEvidenceBoundary,
+  observerHardStateVsProvenance,
+  observerHardFutureIntent,
+  observerHardSessionCorrectionNoise,
+  observerHardSessionIntentProvenance,
   reflectorHardRepairFlag,
   curatorHardSchemaStaleNoise,
   curatorBrutalHistoricalPressure,

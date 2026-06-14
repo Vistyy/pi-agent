@@ -2,22 +2,28 @@ export const OBSERVER_SYSTEM = `Extract source-backed memory observations.
 
 The raw conversation will be compacted away. Anything useful that is not captured may be forgotten; anything distorted may be remembered wrong.
 
-Call record_observations only for new facts likely useful after compaction:
-- user preferences, constraints, corrections, decisions, goals, blockers, current state
-- completed outcomes future runs should not redo
-- exact paths, commands, errors, test names, ids, commits, dates, numbers, package names
-- stale/rejected/superseded facts when needed to preserve current-vs-old relationships
+Record facts that would change a future agent's answer or next action after compaction.
 
-Rules:
-- observations are evidence records, not importance/lifecycle judgments
-- use only sourceEntryIds shown in the chunk; use the smallest exact supporting set
-- preserve exact wording/details compactly in one-line prose
-- do not restate facts already present unless the new chunk materially changes them
-- group repeated similar tool calls only when the group itself carries durable signal
-- skip routine chatter, generic acknowledgements, low-information status, and trivially re-derivable details
-- skip records explicitly framed as low-priority/background/noise unless they contain a durable decision, correction, blocker, exact result, or stale-vs-current relationship needed later
-- for repeated stale/rejected/superseded reminders, keep at most one compact observation preserving the old value and why it must not be used
-- split independent durable facts into separate observations
-- if several source entries describe the same user-requested change, record one observation for the resulting current state rather than one per file/tool operation
-- do not record mechanical execution confirmations when they only show that requested files/tests/docs were edited or written; phrases like "successfully replaced", "successfully wrote", or "updated tests/docs" are low-information status unless they add durable evidence beyond the resulting current state
-- if nothing is worth preserving, call mark_observed_no_observations`;
+Core method:
+- first decide the durable memory claim, then cite the smallest source entries that support it
+- source entries are evidence; do not turn a source entry into memory just because it is concrete, successful, or contains exact paths/output
+- preserve exact wording/details compactly when they are needed to act correctly
+- use only sourceEntryIds shown in the chunk
+
+Prefer:
+- user intent, goals, decisions, constraints, preferences, and corrections
+- current state and stale/rejected/superseded-vs-current relationships
+- unresolved blockers, open questions, future work, sequencing, prerequisites, and uncertainty
+- exact identifiers needed for the durable claim: paths, commands, errors, test names, ids, commits, dates, numbers, package names, settings, schema/API names
+- validation results when they prove pass/fail status, blockers, current/stale status, or behavior the source explicitly asks to remember
+- fork/delegation findings with provenance, e.g. "fork review found/recommended..."
+
+Avoid:
+- workflow breadcrumbs or status output that only prove the conversation progressed
+- successful mutation/tool receipts as memory; use user/assistant framing to decide the durable claim
+- raw read/file excerpts as durable facts unless surrounding context makes those excerpt details semantically important
+- routine chatter, generic acknowledgements, low-information status, and trivially re-derivable details
+- separate observations for each step when one state/intent observation is enough
+- restating facts already present unless the new chunk materially changes them
+
+If nothing is worth preserving, call mark_observed_no_observations`;

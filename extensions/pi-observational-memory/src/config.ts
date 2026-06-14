@@ -15,6 +15,8 @@ export const STRATEGY = {
 } as const;
 export type MemoryStrategy = (typeof STRATEGY)[keyof typeof STRATEGY];
 
+export type ObserverToolOutputPolicy = "metadata-only" | "bounded-excerpt" | "full-excerpt";
+
 export interface Config {
 	strategy: MemoryStrategy;
 	observeEveryMessages: number;
@@ -23,9 +25,11 @@ export interface Config {
 	protectRecentObservations: number;
 	maxInitialObserveTokens: number;
 	observationsPoolMaxTokens: number;
-	observerToolResultSummaryMaxChars: number;
-	observerToolResultErrorMaxChars: number;
-	observerToolResultsTotalMaxChars: number;
+	observerToolResultSummaryMaxLines: number;
+	observerToolResultErrorMaxLines: number;
+	observerToolResultsTotalMaxLines: number;
+	observerToolResultLineMaxChars: number;
+	observerToolOutputPolicies: Record<string, ObserverToolOutputPolicy>;
 	agentMaxTurns: number;
 	model?: ConfiguredModel;
 	observerThinking?: ModelThinkingLevel;
@@ -42,9 +46,11 @@ export const DEFAULTS: Config = {
 	protectRecentObservations: 32,
 	maxInitialObserveTokens: 100_000,
 	observationsPoolMaxTokens: 20_000,
-	observerToolResultSummaryMaxChars: 0,
-	observerToolResultErrorMaxChars: 800,
-	observerToolResultsTotalMaxChars: 4_000,
+	observerToolResultSummaryMaxLines: 4,
+	observerToolResultErrorMaxLines: 20,
+	observerToolResultsTotalMaxLines: 80,
+	observerToolResultLineMaxChars: 300,
+	observerToolOutputPolicies: { fork: "full-excerpt" },
 	agentMaxTurns: 16,
 	observerThinking: "low",
 	reflectorThinking: "xhigh",
@@ -76,6 +82,19 @@ function isMemoryStrategy(value: unknown): value is MemoryStrategy {
 	return typeof value === "string" && Object.values(STRATEGY).includes(value as MemoryStrategy);
 }
 
+function isObserverToolOutputPolicy(value: unknown): value is ObserverToolOutputPolicy {
+	return value === "metadata-only" || value === "bounded-excerpt" || value === "full-excerpt";
+}
+
+function normalizeObserverToolOutputPolicies(value: unknown): Record<string, ObserverToolOutputPolicy> | undefined {
+	if (!isRecord(value)) return undefined;
+	const policies: Record<string, ObserverToolOutputPolicy> = {};
+	for (const [toolName, policy] of Object.entries(value)) {
+		if (toolName.length > 0 && isObserverToolOutputPolicy(policy)) policies[toolName] = policy;
+	}
+	return Object.keys(policies).length > 0 ? policies : undefined;
+}
+
 function normalizeModel(value: unknown): ConfiguredModel | undefined {
 	if (!isRecord(value)) return undefined;
 	const provider = nonEmptyString(value.provider);
@@ -95,9 +114,10 @@ function normalizeSettingsConfig(value: Record<string, unknown>): Partial<Config
 		"protectRecentObservations",
 		"maxInitialObserveTokens",
 		"observationsPoolMaxTokens",
-		"observerToolResultSummaryMaxChars",
-		"observerToolResultErrorMaxChars",
-		"observerToolResultsTotalMaxChars",
+		"observerToolResultSummaryMaxLines",
+		"observerToolResultErrorMaxLines",
+		"observerToolResultsTotalMaxLines",
+		"observerToolResultLineMaxChars",
 		"agentMaxTurns",
 	] as const;
 	for (const key of numberKeys) {
@@ -111,6 +131,8 @@ function normalizeSettingsConfig(value: Record<string, unknown>): Partial<Config
 	if (isThinkingLevel(value.curatorThinking)) normalized.curatorThinking = value.curatorThinking;
 	const model = normalizeModel(value.model);
 	if (model) normalized.model = model;
+	const observerToolOutputPolicies = normalizeObserverToolOutputPolicies(value.observerToolOutputPolicies);
+	if (observerToolOutputPolicies) normalized.observerToolOutputPolicies = observerToolOutputPolicies;
 	return normalized;
 }
 
@@ -134,5 +156,10 @@ export function loadConfig(cwd: string): Config {
 		...DEFAULTS,
 		...globalConfig,
 		...projectConfig,
+		observerToolOutputPolicies: {
+			...DEFAULTS.observerToolOutputPolicies,
+			...globalConfig.observerToolOutputPolicies,
+			...projectConfig.observerToolOutputPolicies,
+		},
 	};
 }

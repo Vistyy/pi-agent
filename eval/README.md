@@ -111,7 +111,7 @@ runs/<name>/judged-results.json
 runs/<name>/results.partial.json
 ```
 
-Agent eval summaries include timing and usage fields where available:
+Agent eval summaries include timing, usage, and scored-capability fields where available:
 
 ```text
 durationMs
@@ -121,7 +121,11 @@ diagnosisDurationMs
 usage
 judgeUsage
 diagnosisUsage
+score
+maxScore
 ```
+
+For scored OM agent evals, `passed` means hard safety/invariant checks passed. The score measures retained useful detail, provenance, and completeness. A score miss is not automatically an unsafe failure.
 
 ## Notes
 

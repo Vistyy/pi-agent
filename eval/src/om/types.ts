@@ -31,7 +31,11 @@ export type AgentEvalRecord = {
   diagnosisUsage?: TokenUsage;
   diagnosisDurationMs?: number;
   error?: string;
+  score?: EvalScore;
 };
+
+export type EvalScoreDimension = { label: string; score: number; maxScore: number; detail?: unknown };
+export type EvalScore = { hardFailed: boolean; score: number; maxScore: number; dimensions: EvalScoreDimension[] };
 
 export type CuratorEvalDiagnostics = {
   observations?: Observation[];
@@ -44,3 +48,4 @@ export type CuratorEvalDiagnostics = {
 };
 
 export type CuratorCheck = { label: string; pass: (output: CuratorActionResult | undefined) => boolean; detail?: (output: CuratorActionResult | undefined) => unknown };
+export type ObserverCheck = { label: string; pass: (output: Observation[] | undefined) => boolean; detail?: (output: Observation[] | undefined) => unknown };
