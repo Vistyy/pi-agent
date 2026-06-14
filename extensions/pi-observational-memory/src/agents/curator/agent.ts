@@ -14,6 +14,7 @@ import {
 	emptyCuratorResult,
 	hasCuratorActions,
 	mergeCuratorResults,
+	partitionObservationIds,
 	removeIdsFromBatches,
 } from "./actions.js";
 import { selectDropCandidates } from "./drop.js";
@@ -53,33 +54,16 @@ const CuratorIdsWithReasonSchema = Type.Object({
 	reason: Type.String({ minLength: 1 }),
 });
 
-type CuratorPhaseName = "unpin" | "unlinked-preserve" | "preserve";
-type CuratorPhaseMetrics = { phase: CuratorPhaseName; durationMs: number; usage: MemoryAgentUsage[] };
+type CuratorPhaseMetrics = { phase: CuratorPassMode; durationMs: number; usage: MemoryAgentUsage[] };
 type CuratorIdsWithReasonArgs = Static<typeof CuratorIdsWithReasonSchema>;
 
-function partitionObservationIds(ids: readonly string[] | undefined, allowedIds: ReadonlySet<string>): { accepted: string[]; rejected: Array<{ id: string; reason: string }> } {
-	if (!ids || ids.length === 0) return { accepted: [], rejected: [] };
-	const accepted: string[] = [];
-	const rejected: Array<{ id: string; reason: string }> = [];
-	const seen = new Set<string>();
-	for (const id of ids) {
-		if (seen.has(id)) {
-			rejected.push({ id, reason: "duplicate" });
-			continue;
-		}
-		seen.add(id);
-		if (!allowedIds.has(id)) {
-			rejected.push({ id, reason: "not_action_candidate" });
-			continue;
-		}
-		accepted.push(id);
-	}
-	return { accepted, rejected };
-}
+const CURATOR_PHASES: Record<CuratorPassMode, { systemPrompt: string; toolNames: readonly CuratorToolName[] }> = {
+	unpin: { systemPrompt: CURATOR_UNPIN_SYSTEM, toolNames: ["unpin"] },
+	"unlinked-preserve": { systemPrompt: CURATOR_UNLINKED_PRESERVE_SYSTEM, toolNames: ["pin", "flag"] },
+	preserve: { systemPrompt: CURATOR_PRESERVE_SYSTEM, toolNames: ["pin", "flag", "drop"] },
+};
 
-function systemPromptForPhase(mode: CuratorPassMode): string {
-	return mode === "unpin" ? CURATOR_UNPIN_SYSTEM : mode === "unlinked-preserve" ? CURATOR_UNLINKED_PRESERVE_SYSTEM : CURATOR_PRESERVE_SYSTEM;
-}
+type CuratorToolName = "pin" | "unpin" | "flag" | "drop";
 
 function makeActionTool(
 	name: string,
@@ -160,11 +144,13 @@ function curatorTools(args: {
 		args.onToolCall,
 	);
 
-	return args.mode === "unpin"
-		? [unpinObservations]
-		: args.mode === "unlinked-preserve"
-			? [pinObservations, flagObservations]
-			: [pinObservations, flagObservations, dropObservations];
+	const toolByName: Record<CuratorToolName, AgentTool<any>> = {
+		pin: pinObservations,
+		unpin: unpinObservations,
+		flag: flagObservations,
+		drop: dropObservations,
+	};
+	return CURATOR_PHASES[args.mode].toolNames.map((name) => toolByName[name]);
 }
 
 async function runCuratorPass(args: RunCuratorArgs, mode: CuratorPassMode, initialResult?: CuratorActionResult): Promise<CuratorActionResult> {
@@ -218,7 +204,7 @@ async function runCuratorPass(args: RunCuratorArgs, mode: CuratorPassMode, initi
 		agentLoop: args.agentLoop,
 		maxTurns: args.maxTurns,
 		thinkingLevel: args.thinkingLevel,
-		systemPrompt: systemPromptForPhase(mode),
+		systemPrompt: CURATOR_PHASES[mode].systemPrompt,
 		userText: rendered.userText,
 		tools,
 		agentName: "curator",
@@ -236,7 +222,7 @@ async function runCuratorPass(args: RunCuratorArgs, mode: CuratorPassMode, initi
 	return result;
 }
 
-async function runCuratorPhase<T>(args: RunCuratorArgs, phase: CuratorPhaseName, run: (phaseArgs: RunCuratorArgs) => Promise<T>): Promise<T> {
+async function runCuratorPhase<T>(args: RunCuratorArgs, phase: CuratorPassMode, run: (phaseArgs: RunCuratorArgs) => Promise<T>): Promise<T> {
 	const started = Date.now();
 	const usage: MemoryAgentUsage[] = [];
 	const result = await run({

@@ -11,6 +11,26 @@ export function emptyCuratorResult(): CuratorActionResult {
 	return { pinned: [], unpinned: [], flagged: [], dropped: [] };
 }
 
+export function partitionObservationIds(ids: readonly string[] | undefined, allowedIds: ReadonlySet<string>): { accepted: string[]; rejected: Array<{ id: string; reason: string }> } {
+	if (!ids || ids.length === 0) return { accepted: [], rejected: [] };
+	const accepted: string[] = [];
+	const rejected: Array<{ id: string; reason: string }> = [];
+	const seen = new Set<string>();
+	for (const id of ids) {
+		if (seen.has(id)) {
+			rejected.push({ id, reason: "duplicate" });
+			continue;
+		}
+		seen.add(id);
+		if (!allowedIds.has(id)) {
+			rejected.push({ id, reason: "not_action_candidate" });
+			continue;
+		}
+		accepted.push(id);
+	}
+	return { accepted, rejected };
+}
+
 export function removeIdsFromBatches(batches: CuratorBatch[], ids: ReadonlySet<string>): CuratorBatch[] {
 	return batches
 		.map((batch) => ({ ...batch, observationIds: batch.observationIds.filter((id) => !ids.has(id)) }))
