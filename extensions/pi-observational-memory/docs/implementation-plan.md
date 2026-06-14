@@ -129,7 +129,6 @@ Implemented groundwork:
    ```text
    observerToolResultSummaryMaxLines = 4
    observerToolResultErrorMaxLines = 20
-   observerToolResultsTotalMaxLines = 80
    observerToolResultLineMaxChars = 300
    observerToolOutputPolicies = { fork: "full-excerpt" }
    ```

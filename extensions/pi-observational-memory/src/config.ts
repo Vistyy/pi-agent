@@ -27,7 +27,6 @@ export interface Config {
 	observationsPoolMaxTokens: number;
 	observerToolResultSummaryMaxLines: number;
 	observerToolResultErrorMaxLines: number;
-	observerToolResultsTotalMaxLines: number;
 	observerToolResultLineMaxChars: number;
 	observerToolOutputPolicies: Record<string, ObserverToolOutputPolicy>;
 	agentMaxTurns: number;
@@ -48,7 +47,6 @@ export const DEFAULTS: Config = {
 	observationsPoolMaxTokens: 20_000,
 	observerToolResultSummaryMaxLines: 4,
 	observerToolResultErrorMaxLines: 20,
-	observerToolResultsTotalMaxLines: 80,
 	observerToolResultLineMaxChars: 300,
 	observerToolOutputPolicies: { fork: "full-excerpt" },
 	agentMaxTurns: 16,
@@ -116,7 +114,6 @@ function normalizeSettingsConfig(value: Record<string, unknown>): Partial<Config
 		"observationsPoolMaxTokens",
 		"observerToolResultSummaryMaxLines",
 		"observerToolResultErrorMaxLines",
-		"observerToolResultsTotalMaxLines",
 		"observerToolResultLineMaxChars",
 		"agentMaxTurns",
 	] as const;

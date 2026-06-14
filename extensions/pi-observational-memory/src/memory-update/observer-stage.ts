@@ -55,7 +55,6 @@ export async function runObserverStage(
 	const { text: chunk, sourceEntryIds } = serializeObserverSourceEntries(chunkEntries, {
 		toolResultSummaryMaxLines: runtime.config.observerToolResultSummaryMaxLines,
 		toolResultErrorMaxLines: runtime.config.observerToolResultErrorMaxLines,
-		toolResultsTotalMaxLines: runtime.config.observerToolResultsTotalMaxLines,
 		toolResultLineMaxChars: runtime.config.observerToolResultLineMaxChars,
 		toolOutputPolicies: runtime.config.observerToolOutputPolicies,
 	});

@@ -6,7 +6,6 @@ import { renderRecallSourceEntry } from "../src/memory/serialization/recall.js";
 const observerToolOptions: ObserverToolRenderingOptions = {
 	toolResultSummaryMaxLines: 4,
 	toolResultErrorMaxLines: 20,
-	toolResultsTotalMaxLines: 80,
 	toolResultLineMaxChars: 300,
 	toolOutputPolicies: { fork: "full-excerpt" },
 };
@@ -45,7 +44,7 @@ describe("memory serialization", () => {
 				timestamp: "2026-05-02T10:00:00.000Z",
 				message: { role: "toolResult", timestamp: 1777716000000, toolName: "unknown_extension_tool", isError: false, path: "src/foo.ts", content: [{ type: "text", text: output }] },
 			},
-		] as any, { toolResultSummaryMaxLines: 4, toolResultErrorMaxLines: 20, toolResultsTotalMaxLines: 20, toolResultLineMaxChars: 300, toolOutputPolicies: { fork: "full-excerpt" } });
+		] as any, { toolResultSummaryMaxLines: 4, toolResultErrorMaxLines: 20, toolResultLineMaxChars: 300, toolOutputPolicies: { fork: "full-excerpt" } });
 
 		expect(text).toContain("[Tool evidence: unknown_extension_tool @");
 		expect(text).toContain("status: ok");
@@ -66,7 +65,7 @@ describe("memory serialization", () => {
 				timestamp: "2026-05-02T10:00:00.000Z",
 				message: { role: "toolResult", timestamp: 1777716000000, toolName: "edit", isError: false, path: "src/config.ts", content: [{ type: "text", text: "Successfully replaced 1 block in src/config.ts." }] },
 			},
-		] as any, { toolResultSummaryMaxLines: 0, toolResultErrorMaxLines: 20, toolResultsTotalMaxLines: 20, toolResultLineMaxChars: 300, toolOutputPolicies: { fork: "full-excerpt" } });
+		] as any, { toolResultSummaryMaxLines: 0, toolResultErrorMaxLines: 20, toolResultLineMaxChars: 300, toolOutputPolicies: { fork: "full-excerpt" } });
 
 		expect(text).toContain("status: ok");
 		expect(text).toContain("input: src/config.ts");
@@ -85,7 +84,7 @@ describe("memory serialization", () => {
 				timestamp: "2026-05-02T10:00:00.000Z",
 				message: { role: "toolResult", timestamp: 1777716000000, toolName: "custom_runner", isError: true, content: [{ type: "text", text: output }] },
 			},
-		] as any, { toolResultSummaryMaxLines: 4, toolResultErrorMaxLines: 20, toolResultsTotalMaxLines: 20, toolResultLineMaxChars: 300, toolOutputPolicies: { fork: "full-excerpt" } });
+		] as any, { toolResultSummaryMaxLines: 4, toolResultErrorMaxLines: 20, toolResultLineMaxChars: 300, toolOutputPolicies: { fork: "full-excerpt" } });
 
 		expect(text).toContain("status: error");
 		expect(text).toContain("ERROR first line");
@@ -155,15 +154,15 @@ describe("memory serialization", () => {
 				timestamp: "2026-06-11T14:02:00.000Z",
 				message: { role: "toolResult", timestamp: 1777716000000, toolName: "fork", isError: false, content: [{ type: "text", text: output }] },
 			},
-		] as any, { toolResultSummaryMaxLines: 4, toolResultErrorMaxLines: 20, toolResultsTotalMaxLines: 4, toolResultLineMaxChars: 300, toolOutputPolicies: { fork: "full-excerpt" } });
+		] as any, { toolResultSummaryMaxLines: 4, toolResultErrorMaxLines: 20, toolResultLineMaxChars: 300, toolOutputPolicies: { fork: "full-excerpt" } });
 
-		expect(text).toContain("output_omitted: true (length)");
+		expect(text).toContain("output_omitted: false");
 		expect(text).toContain("Additive cross-compaction memory gap");
 		expect(text).toContain("src/hooks/additive-context.ts");
 		expect(text).toContain("fix compaction gap first");
 		expect(text).toContain("add recall evals");
-		expect(text).toContain("truncated middle");
-		expect((text.match(/middle noise/g) ?? []).length).toBeLessThan(10);
+		expect(text).not.toContain("truncated middle");
+		expect((text.match(/middle noise/g) ?? []).length).toBe(1000);
 	});
 
 	it("renders unknown successful tools as metadata only by default", () => {
@@ -180,7 +179,7 @@ describe("memory serialization", () => {
 				timestamp: "2026-05-02T10:01:00.000Z",
 				message: { role: "toolResult", timestamp: 1777716060000, toolName: "second", isError: false, content: [{ type: "text", text: "SECOND-" + "b".repeat(200) }] },
 			},
-		] as any, { toolResultSummaryMaxLines: 4, toolResultErrorMaxLines: 20, toolResultsTotalMaxLines: 4, toolResultLineMaxChars: 300, toolOutputPolicies: { fork: "full-excerpt" } });
+		] as any, { toolResultSummaryMaxLines: 4, toolResultErrorMaxLines: 20, toolResultLineMaxChars: 300, toolOutputPolicies: { fork: "full-excerpt" } });
 
 		expect(text).toContain("[Tool evidence: first @");
 		expect(text).toContain("[Tool evidence: second @");

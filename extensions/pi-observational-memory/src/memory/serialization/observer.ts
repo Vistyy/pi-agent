@@ -10,13 +10,11 @@ export type SourceAddressedSerialization = {
 export type ObserverToolRenderingOptions = {
 	toolResultSummaryMaxLines: number;
 	toolResultErrorMaxLines: number;
-	toolResultsTotalMaxLines: number;
 	toolResultLineMaxChars: number;
 	toolOutputPolicies: Record<string, ObserverToolOutputPolicy>;
 };
 
 const OBSERVER_ENTRY_MAX_CHARS = 12_000;
-type ToolBudget = { remainingLines: number };
 
 function toolEvidencePolicy(toolName: string, status: "ok" | "error", role: "toolResult" | "bashExecution", options: ObserverToolRenderingOptions): ObserverToolOutputPolicy {
 	if (status === "error") return "bounded-excerpt";
@@ -38,14 +36,13 @@ function omittedByPolicy(): RenderedExcerpt {
 	return { excerpt: "[output omitted by observer policy]", omitted: true, reason: "policy" };
 }
 
-function renderExcerpt(text: string, maxLines: number, lineMaxChars: number, budget: ToolBudget): RenderedExcerpt {
+function renderExcerpt(text: string, maxLines: number, lineMaxChars: number): RenderedExcerpt {
 	const body = normalizeBody(text);
 	if (!body) return { excerpt: "[no textual output]", omitted: false };
-	if (budget.remainingLines <= 0 || maxLines <= 0) return { excerpt: "[output omitted because observer input budget was exhausted]", omitted: true, reason: "length" };
+	if (maxLines <= 0) return { excerpt: "[output omitted by observer policy]", omitted: true, reason: "policy" };
 
 	const lines = body.split(/\r?\n/);
-	const allowed = Math.min(lines.length, maxLines, budget.remainingLines);
-	budget.remainingLines -= allowed;
+	const allowed = Math.min(lines.length, maxLines);
 
 	const selected = lines.length <= allowed
 		? lines
@@ -81,7 +78,6 @@ function renderToolEvidence(args: {
 	status: "ok" | "error";
 	content: string;
 	options: ObserverToolRenderingOptions;
-	budget: ToolBudget;
 	input?: string;
 	exitCode?: number | string;
 	truncated?: boolean;
@@ -89,12 +85,12 @@ function renderToolEvidence(args: {
 }): string {
 	const policy = toolEvidencePolicy(args.toolName, args.status, args.role, args.options);
 	const maxLines = policy === "full-excerpt"
-		? args.budget.remainingLines
+		? Number.MAX_SAFE_INTEGER
 		: args.status === "error" ? args.options.toolResultErrorMaxLines : args.options.toolResultSummaryMaxLines;
 	const outputChars = normalizeBody(args.content).length;
 	const { excerpt, omitted, reason } = policy === "metadata-only"
 		? omittedByPolicy()
-		: renderExcerpt(args.content, maxLines, args.options.toolResultLineMaxChars, args.budget);
+		: renderExcerpt(args.content, maxLines, args.options.toolResultLineMaxChars);
 	const lines = [`[Tool evidence: ${args.toolName} @ ${args.time}]`, `status: ${args.status}`, `output_chars: ${outputChars}`];
 	if (args.input) lines.push(`input: ${args.input}`);
 	if (args.exitCode !== undefined) lines.push(`exitCode: ${args.exitCode}`);
@@ -105,7 +101,7 @@ function renderToolEvidence(args: {
 	return lines.join("\n");
 }
 
-function renderObserverMessage(entry: RenderableEntry, options: ObserverToolRenderingOptions, budget: ToolBudget): string | null {
+function renderObserverMessage(entry: RenderableEntry, options: ObserverToolRenderingOptions): string | null {
 	if (!entry.message || typeof entry.message !== "object") return null;
 	const msg = entry.message as Record<string, any>;
 	const time = formatTimestamp(typeof msg.timestamp === "string" || typeof msg.timestamp === "number" ? msg.timestamp : entry.timestamp);
@@ -127,7 +123,6 @@ function renderObserverMessage(entry: RenderableEntry, options: ObserverToolRend
 			status,
 			content: textAndPlaceholders(msg.content),
 			options,
-			budget,
 			input: inputSummary(msg),
 			role: "toolResult",
 		});
@@ -143,7 +138,6 @@ function renderObserverMessage(entry: RenderableEntry, options: ObserverToolRend
 			status,
 			content: output,
 			options,
-			budget,
 			input: command,
 			exitCode,
 			truncated: msg.truncated === true,
@@ -153,8 +147,8 @@ function renderObserverMessage(entry: RenderableEntry, options: ObserverToolRend
 	return null;
 }
 
-function renderObserverSourceEntry(entry: RenderableEntry, options: ObserverToolRenderingOptions, budget: ToolBudget): string | null {
-	if (entry.type === "message") return renderObserverMessage(entry, options, budget);
+function renderObserverSourceEntry(entry: RenderableEntry, options: ObserverToolRenderingOptions): string | null {
+	if (entry.type === "message") return renderObserverMessage(entry, options);
 	return null;
 }
 
@@ -168,10 +162,9 @@ export function serializeObserverSourceEntries(
 ): SourceAddressedSerialization {
 	const blocks: string[] = [];
 	const sourceEntryIds: string[] = [];
-	const budget = { remainingLines: options.toolResultsTotalMaxLines };
 	for (const entry of entries) {
 		if (!entry.id || !isObserverSourceEntry(entry)) continue;
-		const rendered = renderObserverSourceEntry(entry, options, budget);
+		const rendered = renderObserverSourceEntry(entry, options);
 		if (!rendered?.trim()) continue;
 		sourceEntryIds.push(entry.id);
 		blocks.push(`[Source entry id: ${entry.id}]\n${rendered}`);
