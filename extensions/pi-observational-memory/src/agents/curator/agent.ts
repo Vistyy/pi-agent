@@ -18,7 +18,7 @@ import {
 } from "./actions.js";
 import { selectDropCandidates } from "./drop.js";
 import { CURATOR_SYSTEM } from "./prompts.js";
-import { buildCuratorUserText, type CuratorRenderMode } from "./render.js";
+import { buildCuratorUserText } from "./render.js";
 import { selectCuratorPhaseInput, type CuratorPassMode } from "./selection.js";
 
 export type CuratorActionResult = {
@@ -46,7 +46,6 @@ interface RunCuratorArgs {
 	thinkingLevel?: ModelThinkingLevel;
 	onUsage?: (usage: MemoryAgentUsage) => void;
 	onPhase?: (metrics: CuratorPhaseMetrics) => void;
-	clumpedRender?: CuratorRenderMode;
 }
 
 const MarkNoActionsSchema = Type.Object({});
@@ -202,7 +201,7 @@ async function runCuratorPass(args: RunCuratorArgs, mode: CuratorPassMode, initi
 		pinnedIds,
 		flaggedIds,
 		maxDropsAllowed: args.maxDropsAllowed,
-	}, args.clumpedRender ?? "flat");
+	});
 	let toolCallCount = 0;
 	const tools = curatorTools({
 		mode,

@@ -14,8 +14,6 @@ import {
 	type ReflectionCoverageTier,
 } from "../coverage.js";
 
-export type CuratorRenderMode = "flat" | "clumped";
-
 export type CuratorPromptInput = {
 	reflections: readonly Reflection[];
 	candidateObservations: readonly Observation[];
@@ -47,14 +45,7 @@ function buildPinReviewSection(candidateObservations: readonly Observation[], pi
 	return `\n\nPIN REVIEW CANDIDATES — currently pinned action candidates. Decide whether each still needs forced visibility, should be unpinned because same-scope evidence makes it stale, or is unsafe to unpin.\n${renderObservationList(pinnedCandidates, pinnedIds, flaggedIds, coverageById)}`;
 }
 
-function buildFlatUserText(args: CuratorPromptInput, coverageById: ReadonlyMap<string, ReflectionCoverageTier>, observationTokens: number): string {
-	const contextSection = args.contextObservations.length
-		? `\n\nREAD-ONLY CONTEXT OBSERVATIONS:\n${renderObservationList(args.contextObservations, args.pinnedIds, args.flaggedIds, coverageById)}`
-		: "";
-	return `CURRENT REFLECTIONS:\n${joinOrEmpty(args.reflections.map(reflectionToSummaryLine))}\n\nACTION CANDIDATES — you may act only on these observation ids:\n${renderObservationList(args.candidateObservations, args.pinnedIds, args.flaggedIds, coverageById)}${contextSection}\n\n${curatorRunSummary(args.candidateObservations.length, args.contextObservations.length, args.candidateObservations.length + args.contextObservations.length, observationTokens, args.maxDropsAllowed)}`;
-}
-
-function buildClumpedUserText(args: CuratorPromptInput, coverageById: ReadonlyMap<string, ReflectionCoverageTier>, observationTokens: number): string {
+function renderCuratorPrompt(args: CuratorPromptInput, coverageById: ReadonlyMap<string, ReflectionCoverageTier>, observationTokens: number): string {
 	const reflectionSupportIds = new Set(args.reflections.flatMap((reflection) => reflection.supportingObservationIds));
 	const clumps = args.reflections.map((reflection) => {
 		const supportIds = new Set(reflection.supportingObservationIds);
@@ -73,12 +64,12 @@ function buildClumpedUserText(args: CuratorPromptInput, coverageById: ReadonlyMa
 	return `REFLECTION CLUMPS — audit linked observations against the exact reflection that cites them. A linked observation can still need pinning or follow-up if the reflection omits exact paths, commands, settings, current/stale relationships, blockers, or corrections.${pinReviewSection}\n\n${joinOrEmpty(clumps)}\n\nUNLINKED ACTION CANDIDATES — reviewed observations not cited by any current reflection; you may act only on these and the linked action candidate ids above:\n${renderObservationList(unlinkedCandidates, args.pinnedIds, args.flaggedIds, coverageById)}\n\n${curatorRunSummary(args.candidateObservations.length, args.contextObservations.length, args.candidateObservations.length + args.contextObservations.length, observationTokens, args.maxDropsAllowed)}`;
 }
 
-export function buildCuratorUserText(args: CuratorPromptInput, mode: CuratorRenderMode): { userText: string; observationTokens: number; coverageById: ReadonlyMap<string, ReflectionCoverageTier> } {
+export function buildCuratorUserText(args: CuratorPromptInput): { userText: string; observationTokens: number; coverageById: ReadonlyMap<string, ReflectionCoverageTier> } {
 	const promptObservations = [...args.candidateObservations, ...args.contextObservations];
 	const coverageById = reflectionCoverageMap(promptObservations, args.reflections);
 	const observationTokens = observationTokenSum(promptObservations);
 	return {
-		userText: mode === "clumped" ? buildClumpedUserText(args, coverageById, observationTokens) : buildFlatUserText(args, coverageById, observationTokens),
+		userText: renderCuratorPrompt(args, coverageById, observationTokens),
 		observationTokens,
 		coverageById,
 	};
