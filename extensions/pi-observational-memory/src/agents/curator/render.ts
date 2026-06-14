@@ -36,7 +36,7 @@ function renderObservationList(observations: readonly Observation[], pinnedIds: 
 }
 
 function curatorRunSummary(candidateCount: number, contextCount: number, promptObservationCount: number, observationTokens: number, maxDropsAllowed: number): string {
-	return `Action candidates: ${candidateCount.toLocaleString()}. Context observations: ${contextCount.toLocaleString()}. Prompt observations: ${promptObservationCount.toLocaleString()} (~${observationTokens.toLocaleString()} tokens). Maximum drops allowed this run: ${maxDropsAllowed.toLocaleString()}. Protected observations cannot be dropped. Make one conservative curation pass. Each tool call should contain the complete batch for that action type. Call mark_no_actions only when no action is safe or needed.`;
+	return `Action candidates: ${candidateCount.toLocaleString()}. Context observations: ${contextCount.toLocaleString()}. Prompt observations: ${promptObservationCount.toLocaleString()} (~${observationTokens.toLocaleString()} tokens). Maximum drops allowed this run: ${maxDropsAllowed.toLocaleString()}. Protected observations cannot be dropped. Make one conservative curation pass. Each tool call should contain the complete batch for that action type.`;
 }
 
 function buildPinReviewSection(candidateObservations: readonly Observation[], pinnedIds: ReadonlySet<string>, flaggedIds: ReadonlySet<string>, coverageById: ReadonlyMap<string, ReflectionCoverageTier>): string {

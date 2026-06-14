@@ -48,7 +48,6 @@ interface RunCuratorArgs {
 	onPhase?: (metrics: CuratorPhaseMetrics) => void;
 }
 
-const MarkNoActionsSchema = Type.Object({});
 const CuratorIdsWithReasonSchema = Type.Object({
 	ids: Type.Array(Type.String({ minLength: 1 }), { minItems: 1 }),
 	reason: Type.String({ minLength: 1 }),
@@ -56,7 +55,6 @@ const CuratorIdsWithReasonSchema = Type.Object({
 
 type CuratorPhaseName = "unpin" | "unlinked-preserve" | "preserve";
 type CuratorPhaseMetrics = { phase: CuratorPhaseName; durationMs: number; usage: MemoryAgentUsage[] };
-type MarkNoActionsArgs = Static<typeof MarkNoActionsSchema>;
 type CuratorIdsWithReasonArgs = Static<typeof CuratorIdsWithReasonSchema>;
 
 function partitionObservationIds(ids: readonly string[] | undefined, allowedIds: ReadonlySet<string>): { accepted: string[]; rejected: Array<{ id: string; reason: string }> } {
@@ -122,18 +120,6 @@ function curatorTools(args: {
 	protectedObservationIds: readonly string[];
 	onToolCall: (requested: number, accepted: number, rejected: number) => void;
 }): AgentTool<any>[] {
-	const markNoActions: AgentTool<typeof MarkNoActionsSchema> = {
-		name: "mark_no_actions",
-		label: "Mark no actions",
-		description: "Mark that no curator action is safe or needed. Use only if you have not taken any other curator action. This tool call terminates the run.",
-		parameters: MarkNoActionsSchema,
-		execute: async (_id, _params: MarkNoActionsArgs) => ({
-			content: [{ type: "text", text: hasCuratorActions(args.result) ? "Ignored no-action marker because curator actions already exist." : "Marked no curator actions." }],
-			details: { reviewed: !hasCuratorActions(args.result), ignored: hasCuratorActions(args.result) },
-			terminate: true,
-		}),
-	};
-
 	const pinObservations = makeActionTool(
 		"pin_observations",
 		"Pin observations",
@@ -175,10 +161,10 @@ function curatorTools(args: {
 	);
 
 	return args.mode === "unpin"
-		? [unpinObservations, markNoActions]
+		? [unpinObservations]
 		: args.mode === "unlinked-preserve"
-			? [pinObservations, flagObservations, markNoActions]
-			: [pinObservations, flagObservations, dropObservations, markNoActions];
+			? [pinObservations, flagObservations]
+			: [pinObservations, flagObservations, dropObservations];
 }
 
 async function runCuratorPass(args: RunCuratorArgs, mode: CuratorPassMode, initialResult?: CuratorActionResult): Promise<CuratorActionResult> {

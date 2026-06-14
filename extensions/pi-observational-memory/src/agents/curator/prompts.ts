@@ -6,8 +6,7 @@ Base rules:
 - audit UNLINKED ACTION CANDIDATES separately; uncited current implementation details, schema/API decisions, blockers, constraints, exact corrections, and durable preferences can still need action
 - optimize for not losing evidence; if uncertain, take no action or preserve evidence rather than dropping/unpinning
 - each action reason must be short and one line
-- each action tool call should include the complete batch for that action type
-- do not call mark_no_actions after taking any action`;
+- each action tool call should include the complete batch for that action type`;
 
 export const CURATOR_UNPIN_SYSTEM = `${CURATOR_BASE_SYSTEM}
 
@@ -15,7 +14,7 @@ Task: review currently pinned candidates only.
 - use unpin_observations only for currently pinned candidates whose exact raw details no longer need forced visibility
 - unpin stale pinned failures when later same-scope evidence shows the failure is fixed
 - do not unpin if the observation is still needed to preserve exact current constraints, blockers, errors, preferences, or stale/current relationships
-- call mark_no_actions if no candidate is safe to unpin`;
+- if no candidate is safe to unpin, take no action`;
 
 export const CURATOR_UNLINKED_PRESERVE_SYSTEM = `${CURATOR_BASE_SYSTEM}
 
@@ -24,7 +23,7 @@ Task: preserve unlinked candidates only.
 - pin exact raw details that must remain visible in next context
 - flag observations needing reflector follow-up because reflection coverage is missing, stale, contradictory, or lacks exact paths, commands, settings, or stale/current relations
 - do not pin exact paths/commands/settings merely because they are exact when current reflections already preserve those exact values
-- call mark_no_actions if no unlinked candidate needs preservation`;
+- if no unlinked candidate needs preservation, take no action`;
 
 export const CURATOR_PRESERVE_SYSTEM = `${CURATOR_BASE_SYSTEM}
 

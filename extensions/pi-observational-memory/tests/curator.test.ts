@@ -19,15 +19,14 @@ const baseArgs = {
 };
 
 describe("curator agent", () => {
-	it("runs a prose review before action tools", async () => {
+	it("returns undefined when no action tools are called", async () => {
 		const toolCounts: number[] = [];
 		const loop = fakeAgentLoop(async (_prompts, context) => {
 			toolCounts.push(context.tools.length);
-			await context.tools.find((candidate: any) => candidate.name === "mark_no_actions")!.execute("tool-1", {});
 		});
 
 		await expect(runCurator({ ...baseArgs, agentLoop: loop })).resolves.toBeUndefined();
-		expect(toolCounts).toEqual([3, 4]);
+		expect(toolCounts).toEqual([2, 3]);
 	});
 
 	it("pins valid ids and rejects invalid ids within the same tool call", async () => {
@@ -92,17 +91,6 @@ describe("curator agent", () => {
 		expect(result?.dropped).toEqual(["bbbbbbbbbbbb"]);
 	});
 
-	it("ignores mark_no_actions after actions already exist", async () => {
-		const loop = fakeAgentLoop(async (_prompts, context) => {
-			await context.tools.find((candidate: any) => candidate.name === "pin_observations")!.execute("tool-1", { ids: ["aaaaaaaaaaaa"], reason: "Keep exact path visible." });
-			await context.tools.find((candidate: any) => candidate.name === "mark_no_actions")!.execute("tool-2", {});
-		});
-
-		const result = await runCurator({ ...baseArgs, agentLoop: loop });
-
-		expect(result?.pinned).toEqual([{ observationIds: ["aaaaaaaaaaaa"], reason: "Keep exact path visible." }]);
-	});
-
 	it("rejects same-run pin/unpin conflicts", async () => {
 		const loop = fakeAgentLoop(async (_prompts, context) => {
 			await context.tools.find((candidate: any) => candidate.name === "pin_observations")!.execute("tool-1", { ids: ["aaaaaaaaaaaa"], reason: "Keep exact path visible." });
@@ -127,15 +115,6 @@ describe("curator agent", () => {
 		expect(result?.pinned).toEqual([{ observationIds: ["bbbbbbbbbbbb"], reason: "Maybe keep." }]);
 		expect(result?.flagged).toEqual([{ observationIds: ["bbbbbbbbbbbb"], reason: "Maybe follow up." }]);
 		expect(result?.dropped).toEqual([]);
-	});
-
-	it("returns undefined when the model marks no actions", async () => {
-		const loop = fakeAgentLoop(async (_prompts, context) => {
-			const tool = context.tools.find((candidate: any) => candidate.name === "mark_no_actions")!;
-			await tool.execute("tool-1", {});
-		});
-
-		await expect(runCurator({ ...baseArgs, agentLoop: loop })).resolves.toBeUndefined();
 	});
 
 	it("rejects context-only observation ids with exact feedback", async () => {
@@ -165,10 +144,8 @@ describe("curator agent", () => {
 
 	it("renders pinned and flagged state in the prompt", async () => {
 		let userText = "";
-		const loop = fakeAgentLoop(async (prompts, context) => {
+		const loop = fakeAgentLoop(async (prompts) => {
 			userText = prompts[0].content[0].text ?? "";
-			const tool = context.tools.find((candidate: any) => candidate.name === "mark_no_actions")!;
-			await tool.execute("tool-1", {});
 		});
 
 		await runCurator({ ...baseArgs, pinnedObservationIds: ["aaaaaaaaaaaa"], flaggedObservationIds: ["bbbbbbbbbbbb"], agentLoop: loop });
