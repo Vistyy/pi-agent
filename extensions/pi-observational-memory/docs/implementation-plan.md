@@ -4,29 +4,36 @@
 
 Make OM less noisy, cheaper, more continuous, and safer around compaction.
 
-Current priorities:
+Current direction:
 
-1. Sanitize observer input aggressively before adding observer evals.
-2. Add hard observer/reflector evals with token/cost budgets.
-3. Target low reasoning for observer, reflector, and curator unless evals prove otherwise.
-4. Redesign the confusing memory-size/full-fold threshold.
-5. Improve emergency curator behavior so pressure actually reduces next context.
-6. Defer recall evals/tuning until observer/reflector/curator costs are under control.
-7. Keep reflection lifecycle last unless reflection count becomes the dominant context/cost risk.
+1. Keep observer work closed for this pass unless real-session regressions reappear.
+2. Rework curator evals with the same hard-check + partial-score approach used for observer.
+3. Then address reflector lifecycle/evals, memory-budget semantics, recall, and end-to-end evals in that order.
+4. Prefer low reasoning for observer/curator/reflector unless evals prove otherwise.
 
-## Completed tombstones
+## Completed this redesign pass
 
 - Additive mode removed; default strategy is `replacement`.
 - Compaction uses an observer-only safety flush and does not block on full OM catchup.
-- Compaction waits for in-flight observer work, then re-checks the unobserved prefix before flushing.
 - Context taxonomy exists: `contextProjection`, `nextContextProjection`, reviewed/unreviewed, pinned reviewed visibility.
 - Reviewed observations are hidden from next context by default; unreviewed and pinned reviewed observations remain visible.
 - Follow-up flags use bounded free-text reasons and are implicitly resolved by later reflector review coverage.
 - Pin/unpin state exists; dropped tombstones remain hard suppression.
-- Curator replaced dropper and can pin, unpin, flag, and drop observations.
+- Curator replaced dropper and can pin, unpin, flag, and drop reviewed observations.
 - Curator runs after reflector or under visible-observation emergency pressure.
-- Curator eval harness lives in `/home/syzom/.pi/agent/eval`; synthetic baseline and hard-4 work exist.
 - Dropper code and eval routing were removed.
+- Observer input is sanitized and primary-source filtered.
+- Observer tool rendering is policy-based:
+  - unknown/generic successful tools are metadata-only by default
+  - mutation tools inherit metadata-only unless configured otherwise
+  - bash and errors use bounded excerpts
+  - configured delegation tools such as `fork` can use `full-excerpt`
+  - long lines are capped by `observerToolResultLineMaxChars`
+- Observer hard evals are done for this pass:
+  - 7-case scored hard suite exists
+  - hard checks distinguish unsafe failures from score/completeness misses
+  - current mini-low baseline passes hard checks
+  - future observer eval hardening is deferred unless real sessions show regressions
 
 ## Current lifecycle
 
@@ -34,7 +41,7 @@ Current priorities:
 source entries
   ↓
 observer
-  records raw observations from source input
+  records raw observations from sanitized primary source input
   ↓
 unreviewed observations
   visible in next context by default
@@ -58,162 +65,124 @@ current reflections
 - dropped observations
 ```
 
-## Observer source input categories
+## Observer source input: current contract
 
-Observer input is currently built from source ledger entries, not just chat messages.
+Observer coverage advances over source ledger entries, but observer model input now renders only primary `message` entries.
 
-Source entry types considered by observer coverage:
+Rendered message roles:
 
-```text
-message
-custom_message
-branch_summary
-compaction
-```
-
-`message` entries are further rendered by role/subtype:
-
-| Source | Current observer input behavior |
+| Source | Behavior |
 |---|---|
 | user message | included, capped per entry |
 | assistant message | included, thinking redacted, capped per entry |
-| tool result | included with tool name/status and excerpt |
-| bash execution | included with command/exit code/output excerpt |
-| custom message | included, capped per entry |
-| branch summary | included, capped per entry |
-| compaction summary | included, capped per entry |
-| `custom_message` ledger entry | included, capped per entry |
-| `branch_summary` ledger entry | included, capped per entry |
-| `compaction` ledger entry | included, capped per entry |
+| tool result | included as sanitized tool evidence |
+| bash execution | included as sanitized command/output evidence |
+| unsupported/derived roles | skipped |
 
-Current problem:
+Skipped as observer model input:
 
-- Tool outputs are capped per result, but there is no global per-chunk cap.
-- Compaction/branch summaries can be re-observed even though they are derived context, not new primary source.
-- OM custom events can enter observer input through `custom_message` source entries.
-- The observer prompt says to skip noise, but the model still pays to read the noise.
+```text
+compaction
+branch_summary
+custom_message
+custom/branch/compaction message roles
+```
 
-## Memory-size threshold problem
+If a chunk has only skipped entries, observer coverage advances with zero observations so the cursor does not stall.
+Observations may cite only rendered source ids.
 
-`observationsPoolMaxTokens` is misleading.
+Current defaults:
 
-Current behavior:
+```text
+observerToolResultSummaryMaxLines = 4
+observerToolResultErrorMaxLines = 20
+observerToolResultLineMaxChars = 300
+observerToolOutputPolicies = { fork: "full-excerpt" }
+```
 
-- Status displays `Size` as observations + reflections.
-- The `/ 20,000` denominator is `observationsPoolMaxTokens`.
-- The actual full-fold trigger counts observations only.
-- Crossing the threshold does not curate, drop, cap, or retire memory.
-- It only changes compaction projection shape from incremental fold to full fold.
+## Next planned work
 
-This needs redesign. The UI should not present an observation-only full-fold threshold as a memory-size cap.
+### Stage 1: Curator eval second pass
 
-## Remaining work
+Goal: make curator evals as legible and useful as observer evals.
 
-### Stage A: Observer input sanitization ← current
+Tasks:
 
-Goal: make observer cheap and dumb by reducing input before the model sees it.
+- Convert curator evals to hard-check + partial-score style.
+- Keep hard failures for unsafe actions:
+  - dropping protected/current evidence
+  - failing required unpin safety
+  - acting on non-candidate ids
+  - exceeding action/drop caps
+- Use score dimensions for retained detail, provenance, follow-up quality, and completeness.
+- Revisit hard cases for realism:
+  - historical/session-derived reviewed pools
+  - stale/current traps
+  - contradictory reflections
+  - pinned stale failures with newer passing evidence
+  - noisy reviewed pools with buried exact atoms
+- Keep synthetic smoke cases minimal.
+- Rerun low-thinking curator baseline after score semantics are clear.
 
-Implemented groundwork:
+### Stage 2: Reflector lifecycle redesign + evals
 
-1. Observer input is include-filtered to primary `message` entries.
-2. User and assistant messages remain visible; assistant thinking is redacted.
-3. Tool and bash results use policy-based sanitized rendering:
-   - tool/status metadata
-   - input summary when available
-   - output char count
-   - successful generic tool output is metadata-only by default
-   - bash/error output uses bounded excerpts
-   - configured delegation tools such as `fork` can keep full excerpts
-   - omitted/truncated marker
-4. Defaults:
-   ```text
-   observerToolResultSummaryMaxLines = 4
-   observerToolResultErrorMaxLines = 20
-   observerToolResultLineMaxChars = 300
-   observerToolOutputPolicies = { fork: "full-excerpt" }
-   ```
-5. Derived/non-primary entries are skipped:
-   - `compaction`
-   - `branch_summary`
-   - `custom_message`
-   - custom/branch/compaction message roles
-6. If a chunk has only skipped entries, observer coverage advances with zero observations so the cursor does not stall.
-7. Observations may cite only rendered source ids.
+Goal: reduce reflection volume and improve meaning repair before changing broader memory pressure.
 
-Still open:
+Tasks:
 
-- Whether the small successful-tool line cap is enough to preserve useful validation/API facts without reviving edit/write churn.
-- Whether to add a mode flag later; avoid it for now unless evals show the single policy is wrong.
-- Whether to add a soft/hard output observation-count cap after baseline model evals.
+- Add/refresh reflector hard evals with hard-check + score semantics.
+- Test dense synthesis, stale/current preservation, exact detail retention, and corrective follow-up handling.
+- Decide whether reflector synthesis should move observations out of active/visible context more aggressively.
+- Revisit reflection lifecycle only as needed:
+  - deprecate/supersede reflections
+  - merge duplicates
+  - retain exact stale/current relationships
 
-### Stage B: Observer hard evals with token budgets
+### Stage 3: Memory budget / full-fold / emergency pressure redesign
 
-Write evals only after Stage A semantics are settled.
-
-Cases should be historical/session-derived and check:
-
-- exact durable facts survive sanitized input
-- huge `read`/`bash` output is not required for normal observation
-- acknowledgements/churn/noise are ignored
-- duplicate observations are avoided
-- invalid/invented source ids are rejected clearly
-- low reasoning passes
-- token ceiling is part of pass/fail
-
-### Stage C: Reflector hard evals with token budgets
-
-Reflector currently compounds observer volume into reflection volume.
-
-Cases should check:
-
-- fewer, denser reflections
-- exact current decisions and corrections preserved
-- stale/current relationships preserved
-- no restating every observation
-- follow-up flags resolved by corrective/additional reflection
-- low reasoning passes
-- token ceiling is part of pass/fail
-
-### Stage D: Memory budget / full-fold / emergency pressure redesign
-
-This needs a larger rethink, not just a rename or status wording fix.
+Goal: replace misleading size/full-fold thresholds with a real, understandable pressure model.
 
 Current problems:
 
 - `observationsPoolMaxTokens` sounds like a memory cap but only controls compaction projection shape.
 - Status compares observations + reflections against an observation-only threshold.
-- The threshold does not trigger cleanup, curation, reflection retirement, or backpressure.
+- Crossing the threshold does not curate, drop, cap, or retire memory.
 - Emergency curator pressure is count-based, not token-based.
 - Reflections can grow large independently of observation pressure.
-- Cursor-filtered curator candidates can make emergency pressure fire without giving curator enough actionable material.
+- Cursor-filtered curator candidates can make emergency pressure fire without enough actionable material.
 
 Design questions:
 
-1. What should the real bounded resource be: next-context tokens, observation tokens, reflection tokens, source-entry lag, or a combination?
+1. What is the real bounded resource: next-context tokens, observation tokens, reflection tokens, source-entry lag, or a combination?
 2. Should token pressure force reflector first, curator first, both, or a separate lifecycle pass?
 3. Should emergency curator see all reviewed visible/pinned candidates, not just since-cursor candidates?
 4. Should reflection pressure trigger reflection deprecation/supersede earlier than planned?
-5. What status lines make the lifecycle understandable without implying a fake cap?
+5. What status lines explain lifecycle pressure without implying a fake cap?
 
-Do not implement this as a small wording change. Revisit after Stage A-C cost work clarifies observer/reflector volume.
+### Stage 4: Recall lookup + evals
 
-### Stage F: Reflection lifecycle, last unless needed sooner
+Goal: make exact evidence recovery reliable after compaction.
 
-143 reflections in a long session is a warning sign.
+Tasks:
 
-Possible future work:
+- Unit-test recall lookup mechanics separately from model behavior.
+- Add model evals for deciding when exact source evidence is required.
+- Cover stale/current traps, exact path/error/API questions, and provenance-sensitive answers.
+- Improve UX/status around recalled evidence and source provenance.
 
-- deprecate/supersede reflections
-- merge duplicate reflections
-- age out stale reflections only when newer reflections preserve the current relationship
-- show reflection pressure in status
+### Stage 5: End-to-end evals
 
-### Stage G: Recall evals and UX, deferred
+Goal: test the whole OM lifecycle under realistic long-session pressure.
 
-Recall remains important, but comes after observer/reflector/curator cost and lifecycle pressure are under control.
+Tasks:
 
-Needed later:
+- Build observer → reflector → curator → compaction → recall replay cases.
+- Use historical/session-derived slices first.
+- Include multi-compact sessions and giga-session pressure.
+- Track hard failures, partial scores, token cost, latency, and retained exact evidence.
 
-- lookup mechanics tests
-- model evals for deciding when exact source evidence is required
-- UX/status around recalled evidence and provenance
+## Deferred / conditional
+
+- More observer eval hardening only if real sessions show observer regressions.
+- Reflection deprecation/supersession only if reflection volume becomes a dominant context/cost risk before Stage 2.
+- More config knobs only after evals prove a single policy is insufficient.
