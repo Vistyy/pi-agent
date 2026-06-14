@@ -6,20 +6,72 @@ export type SourceAddressedSerialization = {
 	sourceEntryIds: string[];
 };
 
+export type ObserverToolRenderingOptions = {
+	toolResultSummaryMaxChars: number;
+	toolResultErrorMaxChars: number;
+	toolResultsTotalMaxChars: number;
+};
+
 const OBSERVER_ENTRY_MAX_CHARS = 12_000;
-const OBSERVER_TOOL_EXCERPT_MAX_CHARS = 1_000;
+export const DEFAULT_OBSERVER_TOOL_RENDERING: ObserverToolRenderingOptions = {
+	toolResultSummaryMaxChars: 300,
+	toolResultErrorMaxChars: 800,
+	toolResultsTotalMaxChars: 4_000,
+};
+
+type ToolBudget = { remaining: number };
 
 function cleanBody(text: string): string {
 	return text.split("\n").filter(Boolean).join("\n");
 }
 
-function compactToolExcerpt(text: string): string {
+function excerptWithBudget(text: string, maxChars: number, budget: ToolBudget): { excerpt: string; omitted: boolean; reason?: string } {
 	const body = cleanBody(text);
-	if (!body) return "[no textual output]";
-	return truncateMiddle(body, OBSERVER_TOOL_EXCERPT_MAX_CHARS);
+	if (!body) return { excerpt: "[no textual output]", omitted: false };
+	if (budget.remaining <= 0) return { excerpt: "[output omitted: observer tool excerpt budget exhausted]", omitted: true, reason: "budget_exhausted" };
+	const allowed = Math.max(0, Math.min(maxChars, budget.remaining));
+	if (allowed <= 0) return { excerpt: "[output omitted: observer tool excerpt budget exhausted]", omitted: true, reason: "budget_exhausted" };
+	budget.remaining -= allowed;
+	const excerpt = truncateMiddle(body, allowed);
+	return {
+		excerpt,
+		omitted: body.length > allowed,
+		reason: body.length > allowed ? `truncated_to_${allowed}_chars` : undefined,
+	};
 }
 
-function renderObserverMessage(entry: RenderableEntry): string | null {
+function inputSummary(msg: Record<string, any>): string | undefined {
+	const candidates = [msg.command, msg.input, msg.path, msg.filePath, msg.name]
+		.filter((value): value is string => typeof value === "string" && value.length > 0);
+	if (candidates.length === 0) return undefined;
+	return truncateMiddle(candidates.join(" "), 300);
+}
+
+function renderToolEvidence(args: {
+	time: string;
+	toolName: string;
+	status: "ok" | "error";
+	content: string;
+	options: ObserverToolRenderingOptions;
+	budget: ToolBudget;
+	input?: string;
+	exitCode?: number | string;
+	truncated?: boolean;
+}): string {
+	const maxChars = args.status === "error" ? args.options.toolResultErrorMaxChars : args.options.toolResultSummaryMaxChars;
+	const outputChars = cleanBody(args.content).length;
+	const { excerpt, omitted, reason } = excerptWithBudget(args.content, maxChars, args.budget);
+	const lines = [`[Tool evidence: ${args.toolName} @ ${args.time}]`, `status: ${args.status}`, `output_chars: ${outputChars}`];
+	if (args.input) lines.push(`input: ${args.input}`);
+	if (args.exitCode !== undefined) lines.push(`exitCode: ${args.exitCode}`);
+	if (args.truncated !== undefined) lines.push(`tool_truncated: ${args.truncated ? "true" : "false"}`);
+	lines.push(`output_omitted: ${omitted ? "true" : "false"}${reason ? ` (${reason})` : ""}`);
+	lines.push("excerpt:");
+	lines.push(excerpt);
+	return lines.join("\n");
+}
+
+function renderObserverMessage(entry: RenderableEntry, options: ObserverToolRenderingOptions, budget: ToolBudget): string | null {
 	if (!entry.message || typeof entry.message !== "object") return null;
 	const msg = entry.message as Record<string, any>;
 	const time = formatTimestamp(typeof msg.timestamp === "string" || typeof msg.timestamp === "number" ? msg.timestamp : entry.timestamp);
@@ -35,59 +87,55 @@ function renderObserverMessage(entry: RenderableEntry): string | null {
 	if (msg.role === "toolResult") {
 		const toolName = (msg as ToolResultMessage).toolName ?? "unknown";
 		const status = msg.isError === true ? "error" : "ok";
-		const excerpt = compactToolExcerpt(textAndPlaceholders(msg.content));
-		return `[Tool evidence: ${toolName} @ ${time}]\nstatus: ${status}\nexcerpt:\n${excerpt}`;
+		return renderToolEvidence({
+			time,
+			toolName,
+			status,
+			content: textAndPlaceholders(msg.content),
+			options,
+			budget,
+			input: inputSummary(msg),
+		});
 	}
 	if (msg.role === "bashExecution") {
 		const command = typeof msg.command === "string" ? msg.command : "";
 		const output = typeof msg.output === "string" ? msg.output : "";
 		const exitCode = typeof msg.exitCode === "number" ? msg.exitCode : "unknown";
-		const truncated = msg.truncated === true ? "true" : "false";
-		return `[Tool evidence: bash @ ${time}]\ncommand: ${command}\nexitCode: ${exitCode}\ntruncated: ${truncated}\nexcerpt:\n${compactToolExcerpt(output)}`;
-	}
-	if (msg.role === "custom") {
-		const customType = typeof msg.customType === "string" ? msg.customType : "unknown";
-		const body = cleanBody(textAndPlaceholders(msg.content));
-		return body ? `[Custom message (${customType}) @ ${time}]: ${truncateMiddle(body, OBSERVER_ENTRY_MAX_CHARS)}` : null;
-	}
-	if (msg.role === "branchSummary" || msg.role === "compactionSummary") {
-		const summary = typeof msg.summary === "string" ? msg.summary : "";
-		return summary ? `[${msg.role} @ ${time}]: ${truncateMiddle(summary, OBSERVER_ENTRY_MAX_CHARS)}` : null;
+		const status = typeof msg.exitCode === "number" && msg.exitCode !== 0 ? "error" : "ok";
+		return renderToolEvidence({
+			time,
+			toolName: "bash",
+			status,
+			content: output,
+			options,
+			budget,
+			input: command,
+			exitCode,
+			truncated: msg.truncated === true,
+		});
 	}
 	return null;
 }
 
-function renderObserverSourceEntry(entry: RenderableEntry): string | null {
-	if (entry.type === "message") return renderObserverMessage(entry);
-	if (entry.type === "custom_message") {
-		const time = formatTimestamp(entry.timestamp);
-		const tag = entry.customType ? `Custom (${entry.customType})` : "Custom";
-		const body = cleanBody(textAndPlaceholders(entry.content));
-		return body ? `[${tag} @ ${time}]: ${truncateMiddle(body, OBSERVER_ENTRY_MAX_CHARS)}` : null;
-	}
-	if (entry.type === "branch_summary" && typeof entry.summary === "string") {
-		const time = formatTimestamp(entry.timestamp);
-		return `[Branch summary @ ${time}]: ${truncateMiddle(entry.summary, OBSERVER_ENTRY_MAX_CHARS)}`;
-	}
-	if (entry.type === "compaction" && typeof entry.summary === "string") {
-		const time = formatTimestamp(entry.timestamp);
-		const firstKept = entry.firstKeptEntryId ? `; first kept: ${entry.firstKeptEntryId}` : "";
-		const tokensBefore = typeof entry.tokensBefore === "number" ? `; tokens before: ${entry.tokensBefore}` : "";
-		return `[Compaction summary @ ${time}${firstKept}${tokensBefore}]: ${truncateMiddle(entry.summary, OBSERVER_ENTRY_MAX_CHARS)}`;
-	}
+function renderObserverSourceEntry(entry: RenderableEntry, options: ObserverToolRenderingOptions, budget: ToolBudget): string | null {
+	if (entry.type === "message") return renderObserverMessage(entry, options, budget);
 	return null;
 }
 
 function isObserverSourceEntry(entry: RenderableEntry): boolean {
-	return entry.type === "message" || entry.type === "custom_message" || entry.type === "branch_summary" || entry.type === "compaction";
+	return entry.type === "message";
 }
 
-export function serializeObserverSourceEntries(entries: RenderableEntry[]): SourceAddressedSerialization {
+export function serializeObserverSourceEntries(
+	entries: RenderableEntry[],
+	options: ObserverToolRenderingOptions = DEFAULT_OBSERVER_TOOL_RENDERING,
+): SourceAddressedSerialization {
 	const blocks: string[] = [];
 	const sourceEntryIds: string[] = [];
+	const budget = { remaining: options.toolResultsTotalMaxChars };
 	for (const entry of entries) {
 		if (!entry.id || !isObserverSourceEntry(entry)) continue;
-		const rendered = renderObserverSourceEntry(entry);
+		const rendered = renderObserverSourceEntry(entry, options, budget);
 		if (!rendered?.trim()) continue;
 		sourceEntryIds.push(entry.id);
 		blocks.push(`[Source entry id: ${entry.id}]\n${rendered}`);

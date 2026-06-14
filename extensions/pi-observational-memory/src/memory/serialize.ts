@@ -5,7 +5,9 @@ export {
 	type RenderableEntry,
 } from "./serialization/shared.js";
 export {
+	DEFAULT_OBSERVER_TOOL_RENDERING,
 	serializeObserverSourceEntries,
+	type ObserverToolRenderingOptions,
 	type SourceAddressedSerialization,
 } from "./serialization/observer.js";
 export {

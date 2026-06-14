@@ -52,8 +52,17 @@ export async function runObserverStage(
 		return "continue";
 	}
 
-	const { text: chunk, sourceEntryIds } = serializeObserverSourceEntries(chunkEntries);
-	if (!chunk.trim() || sourceEntryIds.length === 0) return "continue";
+	const { text: chunk, sourceEntryIds } = serializeObserverSourceEntries(chunkEntries, {
+		toolResultSummaryMaxChars: runtime.config.observerToolResultSummaryMaxChars,
+		toolResultErrorMaxChars: runtime.config.observerToolResultErrorMaxChars,
+		toolResultsTotalMaxChars: runtime.config.observerToolResultsTotalMaxChars,
+	});
+	if (!chunk.trim() || sourceEntryIds.length === 0) {
+		const data = buildObservationsRecordedData([], coversUpToId);
+		if (data) pi.appendEntry(OM_OBSERVATIONS_RECORDED, data);
+		debugLog("observer.skipped_unrenderable_chunk", { coversUpToId, sourceEntryCount });
+		return "continue";
+	}
 
 	const memory = fullProjection(entries);
 	const priorReflections = memory.reflections.map(reflectionToSummaryLine);

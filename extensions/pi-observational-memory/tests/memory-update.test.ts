@@ -31,7 +31,7 @@ import {
 	reflection,
 	reflectionsRecordedEntry,
 	reflectionsReviewedEntry,
-	textCustomMessage,
+	rawMessage,
 	type TestEntry,
 } from "./fixtures/session.js";
 import { memoryUpdateApi, type AgentStartHandler, type TurnEndHandler } from "./fixtures/pi.js";
@@ -135,7 +135,7 @@ describe("memory update hook", () => {
 	it("force-observes unobserved source entries before the compaction kept tail", async () => {
 		const obs = observation("bbbbbbbbbbbb", { sourceEntryIds: ["raw-1"] });
 		mockAgents.runObserver.mockResolvedValueOnce([obs]);
-		const entries = [textCustomMessage("raw-1", "aaaa"), textCustomMessage("raw-2", "bbbb")];
+		const entries = [rawMessage("raw-1", "aaaa"), rawMessage("raw-2", "bbbb")];
 		const { pi, runtime, ctx, getMemoryAppends } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 999 });
 
 		await ensureObservedBeforeCompaction(pi as never, runtime as Runtime, ctx as never, { firstKeptEntryId: "raw-2" });
@@ -153,7 +153,7 @@ describe("memory update hook", () => {
 	it("does not wait for non-observer memory updates before compaction safety observe", async () => {
 		const obs = observation("bbbbbbbbbbbb", { sourceEntryIds: ["raw-1"] });
 		mockAgents.runObserver.mockResolvedValueOnce([obs]);
-		const entries = [textCustomMessage("raw-1", "aaaa"), textCustomMessage("raw-2", "bbbb")];
+		const entries = [rawMessage("raw-1", "aaaa"), rawMessage("raw-2", "bbbb")];
 		const { pi, runtime, ctx } = setup({ entries, memoryUpdateInFlight: true, observeEveryMessages: 999, reflectEveryObservations: 999 });
 
 		await expect(ensureObservedBeforeCompaction(pi as never, runtime as Runtime, ctx as never, { firstKeptEntryId: "raw-2" })).resolves.toBeUndefined();
@@ -164,7 +164,7 @@ describe("memory update hook", () => {
 	it("waits for an in-flight observer stage before deciding whether compaction safety observe is needed", async () => {
 		let releaseObserver!: () => void;
 		const inFlightObserverStagePromise = new Promise<void>((resolve) => { releaseObserver = resolve; });
-		const entries = [textCustomMessage("raw-1", "aaaa"), textCustomMessage("raw-2", "bbbb")];
+		const entries = [rawMessage("raw-1", "aaaa"), rawMessage("raw-2", "bbbb")];
 		const { pi, runtime, ctx } = setup({ entries, inFlightObserverStagePromise, observeEveryMessages: 999, reflectEveryObservations: 999 });
 
 		let completed = false;
@@ -184,7 +184,7 @@ describe("memory update hook", () => {
 
 	it("does not launch below all thresholds from either entrypoint", () => {
 		const entries = [
-			textCustomMessage("raw-1", "aaaa"),
+			rawMessage("raw-1", "aaaa"),
 			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
 			reflectionsRecordedEntry("om-ref", { reflections: [refA], coversUpToId: "raw-1" }),
 			observationsDroppedEntry("om-drop", { observationIds: ["aaaaaaaaaaaa"], coversUpToId: "raw-1" }),
@@ -203,9 +203,9 @@ describe("memory update hook", () => {
 		const obs3 = observation("cccccccccccc", { sourceEntryIds: ["raw-3"] });
 		mockAgents.runCurator.mockResolvedValueOnce({ pinned: [], unpinned: [], flagged: [], dropped: [] });
 		const entries = [
-			textCustomMessage("raw-1", "aaaa"),
-			textCustomMessage("raw-2", "bbbb"),
-			textCustomMessage("raw-3", "cccc"),
+			rawMessage("raw-1", "aaaa"),
+			rawMessage("raw-2", "bbbb"),
+			rawMessage("raw-3", "cccc"),
 			observationsRecordedEntry("om-obs", { observations: [obs1, obs2, obs3], coversUpToId: "raw-3" }),
 			reflectionsReviewedEntry("om-reviewed", { coversUpToId: "raw-3" }),
 			observationsPinnedEntry("om-pin", { observationIds: ["aaaaaaaaaaaa", "bbbbbbbbbbbb", "cccccccccccc"], reason: "Keep visible." }),
@@ -224,7 +224,7 @@ describe("memory update hook", () => {
 	});
 
 	it("does not launch from either entrypoint when strategy is off", () => {
-		const entries = [textCustomMessage("raw-1", "aaaaaaaa")];
+		const entries = [rawMessage("raw-1", "aaaaaaaa")];
 		const disabled = setup({ entries, strategy: "off" });
 
 		disabled.fireAgentStart();
@@ -234,7 +234,7 @@ describe("memory update hook", () => {
 	});
 
 	it("does not launch from either entrypoint while memory update is already in flight", () => {
-		const entries = [textCustomMessage("raw-1", "aaaaaaaa")];
+		const entries = [rawMessage("raw-1", "aaaaaaaa")];
 		const locked = setup({ entries, memoryUpdateInFlight: true });
 
 		locked.fireAgentStart();
@@ -244,7 +244,7 @@ describe("memory update hook", () => {
 	});
 
 	it("uses the shared lock when agent_start fires before turn_end", () => {
-		const entries = [textCustomMessage("raw-1", "aaaaaaaa")];
+		const entries = [rawMessage("raw-1", "aaaaaaaa")];
 		const { fireAgentStart, fireTurnEnd, runtime } = setup({ entries });
 
 		fireAgentStart();
@@ -256,7 +256,7 @@ describe("memory update hook", () => {
 	it("runs observer first and appends source-addressed observations", async () => {
 		const obs = observation("cccccccccccc", { sourceEntryIds: ["raw-1"] });
 		mockAgents.runObserver.mockResolvedValueOnce([obs]);
-		const entries = [textCustomMessage("raw-1", "aaaaaaaa")];
+		const entries = [rawMessage("raw-1", "aaaaaaaa")];
 		const { fire, runLaunchedWork, pi, runtime } = setup({ entries, reflectEveryObservations: 999 });
 
 		fire();
@@ -276,10 +276,10 @@ describe("memory update hook", () => {
 		const newObs = observation("dddddddddddd", { sourceEntryIds: ["raw-2"] });
 		mockAgents.runObserver.mockResolvedValueOnce([newObs]);
 		const entries = [
-			textCustomMessage("raw-1", "aaaa"),
+			rawMessage("raw-1", "aaaa"),
 			observationsRecordedEntry("om-prior", { observations: [prior], coversUpToId: "raw-1" }),
-			textCustomMessage("raw-2", "bbbbbbbb"),
-			textCustomMessage("raw-3", "cccccccc"),
+			rawMessage("raw-2", "bbbbbbbb"),
+			rawMessage("raw-3", "cccccccc"),
 		];
 		const { fire, runLaunchedWork, pi } = setup({ entries, reflectEveryObservations: 999 });
 
@@ -291,7 +291,7 @@ describe("memory update hook", () => {
 	});
 
 	it("skips initial observer backfill when the existing session is too large", async () => {
-		const entries = [textCustomMessage("raw-1", "aaaaaaaa")];
+		const entries = [rawMessage("raw-1", "aaaaaaaa")];
 		const { fire, runLaunchedWork, getMemoryAppends, ctx } = setup({ entries, maxInitialObserveTokens: 1 });
 
 		fire();
@@ -308,7 +308,7 @@ describe("memory update hook", () => {
 	});
 
 	it("observer no-output appends nothing and does not fake observation coverage", async () => {
-		const entries = [textCustomMessage("raw-1", "aaaaaaaa")];
+		const entries = [rawMessage("raw-1", "aaaaaaaa")];
 		const { fire, runLaunchedWork, getMemoryAppends } = setup({ entries });
 
 		fire();
@@ -320,7 +320,7 @@ describe("memory update hook", () => {
 	});
 
 	it("model resolution failure skips appending and notifies once", async () => {
-		const entries = [textCustomMessage("raw-1", "aaaaaaaa")];
+		const entries = [rawMessage("raw-1", "aaaaaaaa")];
 		const { fire, runLaunchedWork, getMemoryAppends, runtime, ctx } = setup({ entries });
 		runtime.resolveModel.mockResolvedValueOnce({ ok: false, reason: "no model" });
 
@@ -335,7 +335,7 @@ describe("memory update hook", () => {
 		mockAgents.runObserver.mockResolvedValueOnce([obsA]);
 		const newRef = reflection("ffffffffffff", ["aaaaaaaaaaaa"]);
 		mockAgents.runReflector.mockResolvedValueOnce([newRef]);
-		const entries = [textCustomMessage("raw-1", "aaaaaaaa")];
+		const entries = [rawMessage("raw-1", "aaaaaaaa")];
 		const { fire, runLaunchedWork, getMemoryAppends } = setup({ entries });
 
 		fire();
@@ -353,9 +353,9 @@ describe("memory update hook", () => {
 		const newRef = reflection("ffffffffffff", ["aaaaaaaaaaaa"]);
 		mockAgents.runReflector.mockResolvedValueOnce([newRef]);
 		const entries = [
-			textCustomMessage("raw-1", "aaaaaaaa"),
+			rawMessage("raw-1", "aaaaaaaa"),
 			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
-			textCustomMessage("raw-2", "bbbbbbbb"),
+			rawMessage("raw-2", "bbbbbbbb"),
 			observationsDroppedEntry("om-drop", { observationIds: ["bbbbbbbbbbbb"], coversUpToId: "raw-2" }),
 		];
 		const { fire, runLaunchedWork, pi } = setup({ entries, observeEveryMessages: 999 });
@@ -370,7 +370,7 @@ describe("memory update hook", () => {
 	it("counts follow-up flags toward the reflector threshold", async () => {
 		mockAgents.runReflector.mockResolvedValueOnce([]);
 		const entries = [
-			textCustomMessage("raw-1", "aaaaaaaa"),
+			rawMessage("raw-1", "aaaaaaaa"),
 			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
 			reflectionsRecordedEntry("om-ref", { reflections: [reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"])], coversUpToId: "raw-1" }),
 			observationsFlaggedEntry("om-flag", { observationIds: ["aaaaaaaaaaaa"], reason: "Reflection omitted exact error path." }),
@@ -388,7 +388,7 @@ describe("memory update hook", () => {
 
 	it("does not count follow-up flags already covered by reflector review", async () => {
 		const entries = [
-			textCustomMessage("raw-1", "aaaaaaaa"),
+			rawMessage("raw-1", "aaaaaaaa"),
 			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
 			observationsFlaggedEntry("om-flag", { observationIds: ["aaaaaaaaaaaa"], reason: "Reflection omitted exact error path." }),
 			reflectionsReviewedEntry("om-reviewed", { coversUpToId: "raw-1" }),
@@ -403,7 +403,7 @@ describe("memory update hook", () => {
 
 	it("does not run reflector for follow-up flags below the reflector threshold", async () => {
 		const entries = [
-			textCustomMessage("raw-1", "aaaaaaaa"),
+			rawMessage("raw-1", "aaaaaaaa"),
 			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
 			reflectionsRecordedEntry("om-ref", { reflections: [reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"])], coversUpToId: "raw-1" }),
 			observationsFlaggedEntry("om-flag", { observationIds: ["aaaaaaaaaaaa"], reason: "Reflection omitted exact error path." }),
@@ -421,9 +421,9 @@ describe("memory update hook", () => {
 		mockAgents.runReflector.mockResolvedValueOnce([newRef]);
 		mockAgents.runCurator.mockResolvedValueOnce({ pinned: [], unpinned: [], flagged: [], dropped: [] });
 		const entries = [
-			textCustomMessage("raw-1", "aaaaaaaa"),
+			rawMessage("raw-1", "aaaaaaaa"),
 			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
-			textCustomMessage("raw-2", "bbbbbbbb"),
+			rawMessage("raw-2", "bbbbbbbb"),
 		];
 		const { fire, runLaunchedWork, getMemoryAppends } = setup({ entries, observeEveryMessages: 999 });
 
@@ -440,7 +440,7 @@ describe("memory update hook", () => {
 
 	it("does not launch only because the old active observation pool threshold is exceeded", async () => {
 		const entries = [
-			textCustomMessage("raw-1", "aaaaaaaa"),
+			rawMessage("raw-1", "aaaaaaaa"),
 			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
 			reflectionsReviewedEntry("om-reviewed", { coversUpToId: "raw-1" }),
 		];
@@ -458,9 +458,9 @@ describe("memory update hook", () => {
 		mockAgents.runReflector.mockResolvedValueOnce([newRef]);
 		mockAgents.runCurator.mockResolvedValueOnce({ pinned: [], unpinned: [], flagged: [], dropped: ["bbbbbbbbbbbb"] });
 		const entries = [
-			textCustomMessage("raw-1", "aaaaaaaa"),
+			rawMessage("raw-1", "aaaaaaaa"),
 			observationsRecordedEntry("om-obs-a", { observations: [obsA], coversUpToId: "raw-1" }),
-			textCustomMessage("raw-2", "bbbbbbbb"),
+			rawMessage("raw-2", "bbbbbbbb"),
 			observationsRecordedEntry("om-obs-b", { observations: [obsB], coversUpToId: "raw-2" }),
 		];
 		const { fire, runLaunchedWork, getMemoryAppends } = setup({ entries, observeEveryMessages: 999 });
@@ -479,10 +479,10 @@ describe("memory update hook", () => {
 	it("does not run curator from existing reflections without same-run reflection work", async () => {
 		const ref = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
 		const entries = [
-			textCustomMessage("raw-1", "aaaaaaaa"),
+			rawMessage("raw-1", "aaaaaaaa"),
 			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
 			reflectionsRecordedEntry("om-ref", { reflections: [ref], coversUpToId: "raw-1" }),
-			textCustomMessage("raw-2", "bbbbbbbb"),
+			rawMessage("raw-2", "bbbbbbbb"),
 		];
 		const { fire, runLaunchedWork, getMemoryAppends } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 1 });
 
@@ -496,7 +496,7 @@ describe("memory update hook", () => {
 
 	it("appends reflection review marker and runs curator without empty drop entries", async () => {
 		mockAgents.runReflector.mockResolvedValueOnce([]);
-		const entries = [textCustomMessage("raw-1", "aaaaaaaa"), observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" })];
+		const entries = [rawMessage("raw-1", "aaaaaaaa"), observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" })];
 		const { fire, runLaunchedWork, pi, ctx } = setup({ entries, observeEveryMessages: 999 });
 
 		fire();
@@ -508,7 +508,7 @@ describe("memory update hook", () => {
 
 	it("preserves stage failure boundaries", async () => {
 		mockAgents.runObserver.mockRejectedValueOnce(new Error("observe failed"));
-		const observerFailure = setup({ entries: [textCustomMessage("raw-1", "aaaaaaaa")] });
+		const observerFailure = setup({ entries: [rawMessage("raw-1", "aaaaaaaa")] });
 		observerFailure.fire();
 		await observerFailure.runLaunchedWork();
 		expect(observerFailure.runtime.lastObserverError).toBe("observe failed");
@@ -518,7 +518,7 @@ describe("memory update hook", () => {
 		mockAgents.runObserver.mockResolvedValue(undefined);
 		mockAgents.runReflector.mockReset();
 		mockAgents.runReflector.mockRejectedValueOnce(new Error("reflect failed"));
-		const reflectorFailure = setup({ entries: [textCustomMessage("raw-1", "aaaaaaaa"), observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" })], observeEveryMessages: 999 });
+		const reflectorFailure = setup({ entries: [rawMessage("raw-1", "aaaaaaaa"), observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" })], observeEveryMessages: 999 });
 		reflectorFailure.fire();
 		await reflectorFailure.runLaunchedWork();
 		expect(reflectorFailure.runtime.lastReflectorError).toBe("reflect failed");
@@ -530,7 +530,7 @@ describe("memory update hook", () => {
 		mockAgents.runReflector.mockResolvedValueOnce([newRef]);
 		mockAgents.runCurator.mockReset();
 		mockAgents.runCurator.mockRejectedValueOnce(new Error("curate failed"));
-		const curatorFailure = setup({ entries: [textCustomMessage("raw-1", "aaaaaaaa"), observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" })], observeEveryMessages: 999 });
+		const curatorFailure = setup({ entries: [rawMessage("raw-1", "aaaaaaaa"), observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" })], observeEveryMessages: 999 });
 		curatorFailure.fire();
 		await curatorFailure.runLaunchedWork();
 		expect(curatorFailure.runtime.lastCuratorError).toBe("curate failed");

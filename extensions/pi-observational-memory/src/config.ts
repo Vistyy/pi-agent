@@ -23,6 +23,9 @@ export interface Config {
 	protectRecentObservations: number;
 	maxInitialObserveTokens: number;
 	observationsPoolMaxTokens: number;
+	observerToolResultSummaryMaxChars: number;
+	observerToolResultErrorMaxChars: number;
+	observerToolResultsTotalMaxChars: number;
 	agentMaxTurns: number;
 	model?: ConfiguredModel;
 	observerThinking?: ModelThinkingLevel;
@@ -39,6 +42,9 @@ export const DEFAULTS: Config = {
 	protectRecentObservations: 32,
 	maxInitialObserveTokens: 100_000,
 	observationsPoolMaxTokens: 20_000,
+	observerToolResultSummaryMaxChars: 300,
+	observerToolResultErrorMaxChars: 800,
+	observerToolResultsTotalMaxChars: 4_000,
 	agentMaxTurns: 16,
 	observerThinking: "low",
 	reflectorThinking: "xhigh",
@@ -89,6 +95,9 @@ function normalizeSettingsConfig(value: Record<string, unknown>): Partial<Config
 		"protectRecentObservations",
 		"maxInitialObserveTokens",
 		"observationsPoolMaxTokens",
+		"observerToolResultSummaryMaxChars",
+		"observerToolResultErrorMaxChars",
+		"observerToolResultsTotalMaxChars",
 		"agentMaxTurns",
 	] as const;
 	for (const key of numberKeys) {

@@ -4,7 +4,7 @@ import { renderRecallSourceEntry, serializeObserverSourceEntries } from "../src/
 
 describe("memory serialization", () => {
 	it("keeps user prompts and omits assistant thinking from observer input", () => {
-		const { text } = serializeObserverSourceEntries([
+		const { text, sourceEntryIds } = serializeObserverSourceEntries([
 			{
 				type: "message",
 				id: "raw-user",
@@ -19,6 +19,7 @@ describe("memory serialization", () => {
 			},
 		] as any);
 
+		expect(sourceEntryIds).toEqual(["raw-user", "raw-assistant"]);
 		expect(text).toContain("Remember the exact flag --unsafe-fast.");
 		expect(text).toContain("[non-text content omitted]");
 		expect(text).toContain("I will use --unsafe-fast.");
@@ -26,53 +27,116 @@ describe("memory serialization", () => {
 		expect(text).not.toContain("Maybe this is irrelevant");
 	});
 
-	it("renders tool results as compact evidence excerpts", () => {
+	it("renders successful tool results as metadata with bounded excerpts", () => {
 		const output = `HEAD-${"a".repeat(9000)}-TAIL`;
 		const { text } = serializeObserverSourceEntries([
 			{
 				type: "message",
 				id: "tool-1",
 				timestamp: "2026-05-02T10:00:00.000Z",
-				message: { role: "toolResult", timestamp: 1777716000000, toolName: "bash", isError: true, content: [{ type: "text", text: output }] },
+				message: { role: "toolResult", timestamp: 1777716000000, toolName: "unknown_extension_tool", isError: false, path: "src/foo.ts", content: [{ type: "text", text: output }] },
 			},
-		] as any);
+		] as any, { toolResultSummaryMaxChars: 120, toolResultErrorMaxChars: 800, toolResultsTotalMaxChars: 500 });
 
-		expect(text).toContain("[Tool evidence: bash @");
-		expect(text).toContain("status: error");
-		expect(text).toContain("excerpt:");
+		expect(text).toContain("[Tool evidence: unknown_extension_tool @");
+		expect(text).toContain("status: ok");
+		expect(text).toContain("output_chars:");
+		expect(text).toContain("input: src/foo.ts");
+		expect(text).toContain("output_omitted: true (truncated_to_120_chars)");
 		expect(text).toContain("HEAD-");
 		expect(text).toContain("-TAIL");
-		expect(text).toContain("[truncated middle");
 		expect(text.length).toBeLessThan(output.length);
 	});
 
-	it("renders bash execution and compaction summaries as observer sources", () => {
+	it("gives error tool results a larger generic excerpt", () => {
+		const output = `ERROR first line\n${"x".repeat(500)}\nFinal stack line`;
+		const { text } = serializeObserverSourceEntries([
+			{
+				type: "message",
+				id: "tool-error",
+				timestamp: "2026-05-02T10:00:00.000Z",
+				message: { role: "toolResult", timestamp: 1777716000000, toolName: "custom_runner", isError: true, content: [{ type: "text", text: output }] },
+			},
+		] as any, { toolResultSummaryMaxChars: 20, toolResultErrorMaxChars: 700, toolResultsTotalMaxChars: 700 });
+
+		expect(text).toContain("status: error");
+		expect(text).toContain("ERROR first line");
+		expect(text).toContain("Final stack line");
+	});
+
+	it("renders bash execution through the same sanitized tool path", () => {
 		const { text, sourceEntryIds } = serializeObserverSourceEntries([
 			{
 				type: "message",
 				id: "bash-1",
 				timestamp: "2026-05-02T10:00:00.000Z",
-				message: { role: "bashExecution", timestamp: 1777716000000, command: "npm test", output: "failed at exact needle", exitCode: 1, truncated: false },
-			},
-			{
-				type: "compaction",
-				id: "cmp-1",
-				timestamp: "2026-05-02T10:02:00.000Z",
-				firstKeptEntryId: "bash-1",
-				tokensBefore: 12345,
-				summary: "Earlier decision: keep model A.",
+				message: { role: "bashExecution", timestamp: 1777716000000, command: "pnpm test", output: "failed at exact needle", exitCode: 1, truncated: false },
 			},
 		] as any);
 
-		expect(sourceEntryIds).toEqual(["bash-1", "cmp-1"]);
+		expect(sourceEntryIds).toEqual(["bash-1"]);
 		expect(text).toContain("[Tool evidence: bash @");
-		expect(text).toContain("command: npm test");
+		expect(text).toContain("status: error");
+		expect(text).toContain("input: pnpm test");
 		expect(text).toContain("exitCode: 1");
-		expect(text).toContain("excerpt:");
 		expect(text).toContain("failed at exact needle");
-		expect(text).toContain("[Compaction summary @");
-		expect(text).toContain("first kept: bash-1");
-		expect(text).toContain("Earlier decision: keep model A.");
+	});
+
+	it("uses include filtering and excludes derived observer sources", () => {
+		const { text, sourceEntryIds } = serializeObserverSourceEntries([
+			{
+				type: "message",
+				id: "user-1",
+				timestamp: "2026-05-02T10:00:00.000Z",
+				message: { role: "user", content: "Primary user evidence." },
+			},
+			{ type: "compaction", id: "cmp-1", timestamp: "2026-05-02T10:02:00.000Z", summary: "Derived compaction should not be observed." },
+			{ type: "branch_summary", id: "branch-1", timestamp: "2026-05-02T10:03:00.000Z", summary: "Derived branch summary." },
+			{ type: "custom_message", id: "custom-1", timestamp: "2026-05-02T10:04:00.000Z", content: "Custom event." },
+			{
+				type: "message",
+				id: "custom-role",
+				timestamp: "2026-05-02T10:05:00.000Z",
+				message: { role: "custom", content: "Custom message role." },
+			},
+			{
+				type: "message",
+				id: "compaction-role",
+				timestamp: "2026-05-02T10:06:00.000Z",
+				message: { role: "compactionSummary", summary: "Compaction message role." },
+			},
+		] as any);
+
+		expect(sourceEntryIds).toEqual(["user-1"]);
+		expect(text).toContain("Primary user evidence.");
+		expect(text).not.toContain("Derived compaction");
+		expect(text).not.toContain("Derived branch");
+		expect(text).not.toContain("Custom event");
+		expect(text).not.toContain("Custom message role");
+		expect(text).not.toContain("Compaction message role");
+	});
+
+	it("enforces a total tool excerpt budget across generic tools", () => {
+		const { text } = serializeObserverSourceEntries([
+			{
+				type: "message",
+				id: "tool-1",
+				timestamp: "2026-05-02T10:00:00.000Z",
+				message: { role: "toolResult", timestamp: 1777716000000, toolName: "first", isError: false, content: [{ type: "text", text: "FIRST-" + "a".repeat(200) }] },
+			},
+			{
+				type: "message",
+				id: "tool-2",
+				timestamp: "2026-05-02T10:01:00.000Z",
+				message: { role: "toolResult", timestamp: 1777716060000, toolName: "second", isError: false, content: [{ type: "text", text: "SECOND-" + "b".repeat(200) }] },
+			},
+		] as any, { toolResultSummaryMaxChars: 80, toolResultErrorMaxChars: 80, toolResultsTotalMaxChars: 80 });
+
+		expect(text).toContain("FIRST-");
+		expect(text).toContain("[Tool evidence: second @");
+		expect(text).toContain("output_omitted: true (budget_exhausted)");
+		expect(text).toContain("[output omitted: observer tool excerpt budget exhausted]");
+		expect(text).not.toContain("SECOND-");
 	});
 
 	it("keeps recall evidence higher fidelity than observer input", () => {
