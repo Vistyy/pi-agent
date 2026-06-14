@@ -44,8 +44,3 @@ export async function main() {
   console.log(JSON.stringify(summary, null, 2));
   if (!summary.passed) process.exitCode = 1;
 }
-
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
