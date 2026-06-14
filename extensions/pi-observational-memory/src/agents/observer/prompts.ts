@@ -18,4 +18,6 @@ Rules:
 - skip records explicitly framed as low-priority/background/noise unless they contain a durable decision, correction, blocker, exact result, or stale-vs-current relationship needed later
 - for repeated stale/rejected/superseded reminders, keep at most one compact observation preserving the old value and why it must not be used
 - split independent durable facts into separate observations
+- if several source entries describe the same user-requested change, record one observation for the resulting current state rather than one per file/tool operation
+- do not record mechanical execution confirmations when they only show that requested files/tests/docs were edited or written; phrases like "successfully replaced", "successfully wrote", or "updated tests/docs" are low-information status unless they add durable evidence beyond the resulting current state
 - if nothing is worth preserving, call mark_observed_no_observations`;

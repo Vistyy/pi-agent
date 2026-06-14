@@ -125,7 +125,7 @@ Implemented groundwork:
    - omitted/truncated marker
 4. Defaults:
    ```text
-   observerToolResultSummaryMaxChars = 300
+   observerToolResultSummaryMaxChars = 0
    observerToolResultErrorMaxChars = 800
    observerToolResultsTotalMaxChars = 4000
    ```
@@ -139,7 +139,7 @@ Implemented groundwork:
 
 Still open:
 
-- Whether successful tool excerpts can be reduced further after deterministic fixture checks.
+- Whether successful tool excerpts should ever be enabled for specific workloads; default is metadata-only for successful tools.
 - Whether to add a mode flag later; avoid it for now unless evals show the single policy is wrong.
 - Whether to add a soft/hard output observation-count cap after baseline model evals.
 

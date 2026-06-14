@@ -22,6 +22,7 @@ function normalizeBody(text: string): string {
 function excerptWithBudget(text: string, maxChars: number, budget: ToolBudget): { excerpt: string; omitted: boolean; reason?: string } {
 	const body = normalizeBody(text);
 	if (!body) return { excerpt: "[no textual output]", omitted: false };
+	if (maxChars <= 0) return { excerpt: "[output omitted: successful tool output hidden from observer input]", omitted: true, reason: "success_output_omitted" };
 	if (budget.remaining <= 0) return { excerpt: "[output omitted: observer tool excerpt budget exhausted]", omitted: true, reason: "budget_exhausted" };
 	const allowed = Math.max(0, Math.min(maxChars, budget.remaining));
 	if (allowed <= 0) return { excerpt: "[output omitted: observer tool excerpt budget exhausted]", omitted: true, reason: "budget_exhausted" };

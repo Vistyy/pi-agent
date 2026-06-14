@@ -42,7 +42,7 @@ describe("config", () => {
 			emergencyCurateWhenVisibleObservationsOver: 60,
 			maxInitialObserveTokens: 100000,
 			observationsPoolMaxTokens: 20000,
-			observerToolResultSummaryMaxChars: 300,
+			observerToolResultSummaryMaxChars: 0,
 			observerToolResultErrorMaxChars: 800,
 			observerToolResultsTotalMaxChars: 4000,
 			protectRecentObservations: 32,

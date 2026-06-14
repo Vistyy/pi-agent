@@ -42,7 +42,7 @@ export const DEFAULTS: Config = {
 	protectRecentObservations: 32,
 	maxInitialObserveTokens: 100_000,
 	observationsPoolMaxTokens: 20_000,
-	observerToolResultSummaryMaxChars: 300,
+	observerToolResultSummaryMaxChars: 0,
 	observerToolResultErrorMaxChars: 800,
 	observerToolResultsTotalMaxChars: 4_000,
 	agentMaxTurns: 16,

@@ -28,7 +28,7 @@ export async function observerHardCurrentStale(modelSpec: string, judgeModel: st
   const agentDurationMs = Date.now() - agentStarted;
   return judged('observer-current-stale-sqlite', 'observer', output ?? [], {
     id: 'observer-current-stale-sqlite',
-    question: 'Did the observer extract the hard durable evidence from the chunk while omitting only the final assistant acknowledgement?',
+    question: 'Did the observer extract the hard durable evidence from the chunk without preserving the final assistant acknowledgement as memory?',
     rubric: {
       pass_if: [
         'Output contains an observation preserving that Redis is rejected/stale and SQLite at /tmp/jobs.db is current.',
@@ -36,7 +36,7 @@ export async function observerHardCurrentStale(modelSpec: string, judgeModel: st
         'Output contains the exact error SQLITE_BUSY at src/db/migrate.ts:88.',
         'Output contains the WAL requirement PRAGMA journal_mode=WAL.',
         'Recorded observations cite only source ids present in the chunk.',
-        'Output does not include source id assistant-d and does not preserve the final "Okay" acknowledgement as a standalone observation.',
+        'Output does not include source id assistant-d and does not preserve the final "Okay" acknowledgement as a standalone observation; it does not need to explicitly say the acknowledgement was omitted.'
       ],
       fail_if: [
         'Output treats Redis as current or omits that Redis is rejected/stale.',
@@ -67,11 +67,11 @@ export async function observerHardAssistantOnly(modelSpec: string, judgeModel: s
     rubric: {
       pass_if: [
         'Output preserves assistant-authored evidence that the parser entrypoint changed from src/parser.ts to src/parser/index.ts.',
-        'Output preserves tool-result evidence for the exact failing test tests/parser-regression.test.ts > keeps CRLF offsets.',
+        'Output preserves tool-result evidence for tests/parser-regression.test.ts and the CRLF offsets failure; exact subtest punctuation like `> keeps CRLF offsets` is helpful but not required.',
         'Output preserves expected column 17 and received column 16.',
         'Output preserves user-c evidence that the CRLF offset failure remains unresolved/not fixed.',
       ],
-      fail_if: ['Output ignores assistant/tool result evidence because it was not user-authored.', 'Output says or implies the CRLF offset issue is fixed.', 'Output invents source ids.'],
+      fail_if: ['Output ignores assistant/tool result evidence because it was not user-authored.', 'Output omits tests/parser-regression.test.ts, CRLF offsets, or expected/received column values.', 'Output says or implies the CRLF offset issue is fixed.', 'Output invents source ids.'],
     },
   }, judgeModel, started, usage.total, agentDurationMs);
 }
@@ -131,7 +131,7 @@ export async function observerHardDenseToolChunk(modelSpec: string, judgeModel: 
     '[Source entry id: user-tool-a] [User @ 2026-06-11 20:00]: Current route: src/app/api/[org]/route.ts for org-scoped endpoints.',
     '[Source entry id: tool-tool-b]\n[Tool evidence: bash @ 2026-06-11 20:01]\nstatus: error\noutput_chars: 420\ninput: pnpm test tests/api-org.test.ts\nexitCode: 1\noutput_omitted: false\nexcerpt:\nFAIL tests/api-org.test.ts > org-scoped > missing header\nExpected 401\nReceived 200',
     '[Source entry id: assistant-tool-c] [Assistant @ 2026-06-11 20:02]: The missing-header test needs a middleware fix before the org API route can be called done.',
-    '[Source entry id: tool-tool-d]\n[Tool evidence: read @ 2026-06-11 20:03]\nstatus: ok\noutput_chars: 18234\ninput: src/app/api/[org]/route.ts\noutput_omitted: true (truncated_to_300_chars)\nexcerpt:\nimport { Auth } from "./auth"\n… [truncated middle 17934 chars]\nexport default function handler() {}',
+    '[Source entry id: tool-tool-d]\n[Tool evidence: read @ 2026-06-11 20:03]\nstatus: ok\noutput_chars: 18234\ninput: src/app/api/[org]/route.ts\noutput_omitted: true (success_output_omitted)\nexcerpt:\n[output omitted: successful tool output hidden from observer input]',
     '[Source entry id: user-tool-e] [User @ 2026-06-11 20:04]: Use JWT not session. Add org-id claim. Keep the test blocked until the header is served.',
   ].join('\n\n');
   const { runObserver } = await loadOmAgents();
@@ -176,10 +176,10 @@ export async function observerHardEditForkChurn(modelSpec: string, judgeModel: s
   const auth = await resolveModel(modelSpec);
   const chunk = [
     '[Source entry id: user-churn-a] [User @ 2026-06-11 21:00]: Revert the config key to `emergencyCurateWhenVisibleObservationsOver`; do not keep the older `dropWhenActiveObservationsOver` soft-trigger wording.',
-    '[Source entry id: tool-churn-b]\n[Tool evidence: edit @ 2026-06-11 21:01]\nstatus: ok\noutput_chars: 78\ninput: src/config.ts\noutput_omitted: false\nexcerpt:\nSuccessfully replaced 1 block in src/config.ts.',
-    '[Source entry id: tool-churn-c]\n[Tool evidence: edit @ 2026-06-11 21:02]\nstatus: ok\noutput_chars: 84\ninput: tests/config.test.ts\noutput_omitted: false\nexcerpt:\nSuccessfully replaced 1 block in tests/config.test.ts.',
-    '[Source entry id: tool-churn-d]\n[Tool evidence: fork @ 2026-06-11 21:03]\nstatus: ok\noutput_chars: 4281\noutput_omitted: true (truncated_to_300_chars)\nexcerpt:\n## Result\nRecommended: use emergencyCurateWhenVisibleObservationsOver.\n… [truncated middle 3981 chars]\nEnd.',
-    '[Source entry id: tool-churn-e]\n[Tool evidence: write @ 2026-06-11 21:04]\nstatus: ok\noutput_chars: 42\ninput: docs/README.md\noutput_omitted: false\nexcerpt:\nSuccessfully wrote 2341 bytes.',
+    '[Source entry id: tool-churn-b]\n[Tool evidence: edit @ 2026-06-11 21:01]\nstatus: ok\noutput_chars: 78\ninput: src/config.ts\noutput_omitted: true (success_output_omitted)\nexcerpt:\n[output omitted: successful tool output hidden from observer input]',
+    '[Source entry id: tool-churn-c]\n[Tool evidence: edit @ 2026-06-11 21:02]\nstatus: ok\noutput_chars: 84\ninput: tests/config.test.ts\noutput_omitted: true (success_output_omitted)\nexcerpt:\n[output omitted: successful tool output hidden from observer input]',
+    '[Source entry id: tool-churn-d]\n[Tool evidence: fork @ 2026-06-11 21:03]\nstatus: ok\noutput_chars: 4281\noutput_omitted: true (success_output_omitted)\nexcerpt:\n[output omitted: successful tool output hidden from observer input]',
+    '[Source entry id: tool-churn-e]\n[Tool evidence: write @ 2026-06-11 21:04]\nstatus: ok\noutput_chars: 42\ninput: docs/README.md\noutput_omitted: true (success_output_omitted)\nexcerpt:\n[output omitted: successful tool output hidden from observer input]',
     '[Source entry id: assistant-churn-f] [Assistant @ 2026-06-11 21:05]: Reverted the config key and updated tests/docs to match.',
   ].join('\n\n');
   const { runObserver } = await loadOmAgents();
@@ -203,13 +203,13 @@ export async function observerHardEditForkChurn(modelSpec: string, judgeModel: s
       pass_if: [
         'Output preserves the current config key emergencyCurateWhenVisibleObservationsOver.',
         'Output preserves that older dropWhenActiveObservationsOver soft-trigger wording should not remain current.',
-        'Output does not record individual edit/write/fork operations as durable observations.',
-        'Output does not preserve Successfully replaced/wrote messages as memory facts.',
+        'Output does not record edit/write/fork operations or grouped file-update confirmations as durable observations.',
+        'Output does not preserve Successfully replaced/wrote messages, updated tests, or updated docs as memory facts.',
         'Output is compressed: at most 2 observations.',
       ],
       fail_if: [
         'Output omits emergencyCurateWhenVisibleObservationsOver.',
-        'Output records edit/write/fork tool activity as standalone durable facts.',
+        'Output records edit/write/fork tool activity or grouped file-update confirmations as durable facts.',
         'Output treats dropWhenActiveObservationsOver soft-trigger wording as current.',
         'Output invents source ids or records more than 2 observations.',
       ],
@@ -222,7 +222,7 @@ export async function observerHardOmittedToolEvidence(modelSpec: string, judgeMo
   const auth = await resolveModel(modelSpec);
   const chunk = [
     '[Source entry id: user-budget-a] [User @ 2026-06-11 22:00]: If validation fails, keep the exact failing file. Otherwise do not infer failure from tool metadata.',
-    '[Source entry id: tool-budget-b]\n[Tool evidence: bash @ 2026-06-11 22:01]\nstatus: ok\noutput_chars: 1200\ninput: pnpm test tests/parser.test.ts\nexitCode: 0\noutput_omitted: true (truncated_to_80_chars)\nexcerpt:\nPASS tests/parser.test.ts\n… [truncated middle 1120 chars]\nDone.',
+    '[Source entry id: tool-budget-b]\n[Tool evidence: bash @ 2026-06-11 22:01]\nstatus: ok\noutput_chars: 1200\ninput: pnpm test tests/parser.test.ts\nexitCode: 0\noutput_omitted: true (success_output_omitted)\nexcerpt:\n[output omitted: successful tool output hidden from observer input]',
     '[Source entry id: tool-budget-c]\n[Tool evidence: bash @ 2026-06-11 22:02]\nstatus: error\noutput_chars: 2400\ninput: pnpm test tests/auth-refresh.test.ts\nexitCode: 1\noutput_omitted: true (budget_exhausted)\nexcerpt:\n[output omitted: observer tool excerpt budget exhausted]',
     '[Source entry id: assistant-budget-d] [Assistant @ 2026-06-11 22:03]: I need to rerun auth with a larger excerpt before claiming the exact failure.',
   ].join('\n\n');
@@ -245,7 +245,7 @@ export async function observerHardOmittedToolEvidence(modelSpec: string, judgeMo
     question: 'Did the observer avoid inventing omitted tool evidence while preserving visible validation facts?',
     rubric: {
       pass_if: [
-        'Output may preserve that tests/parser.test.ts passed if it records validation evidence.',
+        'Output may preserve that `pnpm test tests/parser.test.ts` exited successfully if it records validation evidence.',
         'Output does not claim the exact auth-refresh failure because the error output was omitted due to budget exhaustion.',
         'Output may preserve that auth-refresh needs rerun/larger excerpt before claiming exact failure, sourced to assistant-budget-d.',
         'Output does not treat budget_exhausted or output omitted markers as durable facts themselves.',

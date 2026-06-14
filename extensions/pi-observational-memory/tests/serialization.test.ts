@@ -55,6 +55,22 @@ describe("memory serialization", () => {
 		expect(text.length).toBeLessThan(output.length);
 	});
 
+	it("can omit successful tool output while preserving metadata", () => {
+		const { text } = serializeObserverSourceEntries([
+			{
+				type: "message",
+				id: "tool-ok",
+				timestamp: "2026-05-02T10:00:00.000Z",
+				message: { role: "toolResult", timestamp: 1777716000000, toolName: "edit", isError: false, path: "src/config.ts", content: [{ type: "text", text: "Successfully replaced 1 block in src/config.ts." }] },
+			},
+		] as any, { toolResultSummaryMaxChars: 0, toolResultErrorMaxChars: 800, toolResultsTotalMaxChars: 500 });
+
+		expect(text).toContain("status: ok");
+		expect(text).toContain("input: src/config.ts");
+		expect(text).toContain("output_omitted: true (success_output_omitted)");
+		expect(text).not.toContain("Successfully replaced");
+	});
+
 	it("gives error tool results a larger generic excerpt", () => {
 		const output = `ERROR first line\n${"x".repeat(500)}\nFinal stack line`;
 		const { text } = serializeObserverSourceEntries([
@@ -121,6 +137,28 @@ describe("memory serialization", () => {
 		expect(text).not.toContain("Custom event");
 		expect(text).not.toContain("Custom message role");
 		expect(text).not.toContain("Compaction message role");
+	});
+
+	it("keeps head and tail details from large giga-session style tool output", () => {
+		const realGigaForkHead = "Now I have a thorough understanding of the full codebase. Here is my triage report. B1. Additive cross-compaction memory gap in src/hooks/additive-context.ts.";
+		const realGigaForkTail = "Recommended order: fix compaction gap first, then soften observation cleanup, then add recall evals. End of triage report.";
+		const output = `${realGigaForkHead}\n${"middle noise\n".repeat(1000)}${realGigaForkTail}`;
+		const { text } = serializeObserverSourceEntries([
+			{
+				type: "message",
+				id: "tool-giga-fork",
+				timestamp: "2026-06-11T14:02:00.000Z",
+				message: { role: "toolResult", timestamp: 1777716000000, toolName: "fork", isError: false, content: [{ type: "text", text: output }] },
+			},
+		] as any, { toolResultSummaryMaxChars: 400, toolResultErrorMaxChars: 800, toolResultsTotalMaxChars: 400 });
+
+		expect(text).toContain("output_omitted: true (truncated_to_400_chars)");
+		expect(text).toContain("Additive cross-compaction memory gap");
+		expect(text).toContain("src/hooks/additive-context.ts");
+		expect(text).toContain("fix compaction gap first");
+		expect(text).toContain("add recall evals");
+		expect((text.match(/middle noise/g) ?? []).length).toBeLessThan(10);
+		expect(text.length).toBeLessThan(900);
 	});
 
 	it("enforces a total tool excerpt budget across generic tools", () => {
