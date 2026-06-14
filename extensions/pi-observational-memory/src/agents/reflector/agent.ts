@@ -5,7 +5,7 @@ import type { Static } from "typebox";
 import { debugLog } from "../../debug-log.js";
 import { hashId } from "../../memory/ids.js";
 import { joinOrEmpty, normalizeAllowedIdsStrict, runMemoryAgentLoop, type MemoryAgentUsage } from "../common.js";
-import { truncateRecordContent } from "../../memory/serialization/shared.js";
+import { truncateRecordContent } from "../../memory/record-content.js";
 import { REFLECTOR_FOLLOW_UP_INSTRUCTIONS, REFLECTOR_SYSTEM } from "./prompts.js";
 import { estimateStringTokens } from "../../memory/token-estimate.js";
 import { reflectionToSummaryLine, type Observation, type Reflection } from "../../session-ledger/index.js";
