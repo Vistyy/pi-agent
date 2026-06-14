@@ -1,4 +1,4 @@
-import { observerHardAssistantOnly, observerHardCurrentStale, observerHardSchemaMess } from './observer.js';
+import { observerHardAssistantOnly, observerHardCurrentStale, observerHardDenseToolChunk, observerHardEditForkChurn, observerHardOmittedToolEvidence, observerHardSchemaMess } from './observer.js';
 import { reflectorHardCompression, reflectorHardRepairFlag, reflectorReviewedZero, reflectorSupersessionRelation } from './reflector.js';
 import { curatorBrutalContradictoryReflections, curatorBrutalHistoricalPressure, curatorBrutalUnpinTrap, curatorContradictoryReflection, curatorFlagsMissingExactDetail, curatorHardSchemaStaleNoise } from './curator.js';
 
@@ -11,6 +11,9 @@ export const allCases = [
   curatorFlagsMissingExactDetail,
   curatorContradictoryReflection,
   observerHardSchemaMess,
+  observerHardDenseToolChunk,
+  observerHardEditForkChurn,
+  observerHardOmittedToolEvidence,
   reflectorHardRepairFlag,
   curatorHardSchemaStaleNoise,
   curatorBrutalHistoricalPressure,
