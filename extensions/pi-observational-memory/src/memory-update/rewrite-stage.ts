@@ -35,24 +35,9 @@ export async function runRewriteStage(
 	const resolved = await resolveModel("rewrite");
 	if (!resolved) return "abort";
 
-	const sourceObservationIds = new Set<string>();
-	const visitReflection = (reflectionId: string, seen = new Set<string>()) => {
-		if (seen.has(reflectionId)) return;
-		seen.add(reflectionId);
-		const reflection = folded.reflectionsById.get(reflectionId);
-		if (!reflection) return;
-		for (const source of reflection.sources) {
-			if (source.startsWith("obs_")) sourceObservationIds.add(source);
-			if (source.startsWith("ref_")) visitReflection(source, seen);
-		}
-	};
-	for (const reflection of folded.reflections) visitReflection(reflection.id);
-	const observations = Array.from(sourceObservationIds).map((id) => folded.observationsById.get(id)).filter((observation) => observation !== undefined);
-
 	const result = await runRewrite({
 		...commonAgentArgs(pi, runtime, resolved, runtime.config.rewriteThinking),
 		reflections: folded.reflections,
-		observations,
 	});
 	if (!result) return "continue";
 

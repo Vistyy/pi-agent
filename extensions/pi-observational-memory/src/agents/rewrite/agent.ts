@@ -6,7 +6,7 @@ import { debugLog } from "../../debug-log.js";
 import { hashId, reflectionId } from "../../memory/ids.js";
 import { truncateRecordContent } from "../../memory/record-content.js";
 import { estimateStringTokens } from "../../memory/token-estimate.js";
-import { observationToSummaryLine, reflectionToSummaryLine, type Observation, type Reflection } from "../../session-ledger/index.js";
+import { reflectionToSummaryLine, type Reflection } from "../../session-ledger/index.js";
 import { joinOrEmpty, normalizeAllowedIdsStrict, runMemoryAgentLoop, type MemoryAgentUsage } from "../common.js";
 import { REWRITE_SYSTEM } from "./prompts.js";
 
@@ -24,7 +24,6 @@ interface RunRewriteArgs {
 	apiKey: string;
 	headers?: Record<string, string>;
 	reflections: Reflection[];
-	observations?: Observation[];
 	signal?: AbortSignal;
 	agentLoop?: typeof agentLoop;
 	maxTurns?: number;
@@ -52,22 +51,24 @@ function normalizeReflectionContent(content: string): string | undefined {
 	return normalized;
 }
 
-function sourceIdsForRewriteInput(reflections: readonly Reflection[], observations: readonly Observation[]): string[] {
+function sourceIdsForRewriteInput(reflections: readonly Reflection[]): string[] {
 	const ids: string[] = [];
 	const seen = new Set<string>();
-	for (const id of [...reflections.flatMap((reflection) => [reflection.id, ...reflection.sources]), ...observations.map((observation) => observation.id)]) {
-		if (seen.has(id)) continue;
-		seen.add(id);
-		ids.push(id);
+	for (const reflection of reflections) {
+		for (const id of [reflection.id, ...reflection.sources]) {
+			if (seen.has(id)) continue;
+			seen.add(id);
+			ids.push(id);
+		}
 	}
 	return ids;
 }
 
 export async function runRewrite(args: RunRewriteArgs): Promise<RewriteResult | undefined> {
-	const { model, apiKey, headers, reflections, observations = [], signal } = args;
+	const { model, apiKey, headers, reflections, signal } = args;
 	if (reflections.length === 0) return undefined;
 
-	const allowedSourceIds = sourceIdsForRewriteInput(reflections, observations);
+	const allowedSourceIds = sourceIdsForRewriteInput(reflections);
 	const retiredReflectionIds = reflections.map((reflection) => reflection.id);
 	const accumulated = new Map<string, Reflection>();
 	let markedNoRewrite = false;
@@ -107,8 +108,8 @@ export async function runRewrite(args: RunRewriteArgs): Promise<RewriteResult | 
 		},
 	};
 
-	const userText = `CURRENT ACTIVE REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nSOURCE OBSERVATIONS:\n${joinOrEmpty(observations.map(observationToSummaryLine))}\n\nRewrite these into a smaller current active memory set. Call record_rewritten_reflections once, or mark_no_rewrites if no safe compression is possible.`;
-	debugLog("rewrite.prompt", { reflectionCount: reflections.length, observationCount: observations.length, allowedSourceIdCount: allowedSourceIds.length, userTextTokenEstimate: estimateStringTokens(userText) });
+	const userText = `CURRENT ACTIVE REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nRewrite these into a smaller current active memory set. Call record_rewritten_reflections once, or mark_no_rewrites if no safe compression is possible.`;
+	debugLog("rewrite.prompt", { reflectionCount: reflections.length, allowedSourceIdCount: allowedSourceIds.length, userTextTokenEstimate: estimateStringTokens(userText) });
 	await runMemoryAgentLoop({
 		model,
 		apiKey,
