@@ -216,9 +216,11 @@ Tasks:
   - fallback: one-call low-thinking compression auditor that can request reflector repair, not pin observations
 - Ensure old curator safety cases are represented in future reflector/rewrite evals before deleting the old safety net.
 
-### Stage 4: Full active-memory rewrite
+### Stage 4: Full active-memory rewrite — started
 
 Goal: bound active reflection memory without per-reflection lifecycle management.
+
+Status: the deterministic rewrite retirement ledger shape exists (`om.reflections.rewritten`), and projection/folding remove retired reflections from active memory while preserving them in ledger lookup for recall. LLM rewrite generation, budget trigger, and validation are still upcoming.
 
 Design:
 
@@ -234,8 +236,9 @@ if active projection tokens > budget:
 
 Tasks:
 
-- Add rewrite event that retires old active reflection ids and records new normal reflections.
-- Do not make rewritten reflections a special shape; they are normal reflections with typed `sources`.
+- [x] Add rewrite audit event that retires old active reflection ids.
+- [ ] Add worker path that records new normal reflections plus rewrite audit metadata.
+- [x] Do not make rewritten reflections a special shape; they are normal reflections with typed `sources`.
 - Start with full rewrite of all current active reflections.
 - Do not add multi-phase rewrite unless evals show one pass is insufficient.
 - Add hidden rewrite audit metadata:

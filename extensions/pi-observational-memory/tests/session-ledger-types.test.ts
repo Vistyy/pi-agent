@@ -7,11 +7,13 @@ import {
 	OM_OBSERVATIONS_RECORDED,
 	OM_REFLECTIONS_RECORDED,
 	OM_REFLECTIONS_REVIEWED,
+	OM_REFLECTIONS_REWRITTEN,
 	buildObservationsDroppedData,
 	buildObservationsFlaggedData,
 	buildObservationsRecordedData,
 	buildReflectionsRecordedData,
 	buildReflectionsReviewedData,
+	buildReflectionsRewrittenData,
 	isMemoryDetails,
 	isObservationsDroppedData,
 	isObservationsDroppedEntry,
@@ -25,6 +27,8 @@ import {
 	isReflectionsRecordedEntry,
 	isReflectionsReviewedData,
 	isReflectionsReviewedEntry,
+	isReflectionsRewrittenData,
+	isReflectionsRewrittenEntry,
 } from "../src/session-ledger/index.js";
 import {
 	memoryDetails,
@@ -35,6 +39,7 @@ import {
 	reflection,
 	reflectionsRecordedEntry,
 	reflectionsReviewedEntry,
+	reflectionsRewrittenEntry,
 } from "./fixtures/session.js";
 
 describe("session-ledger type guards and builders", () => {
@@ -42,6 +47,7 @@ describe("session-ledger type guards and builders", () => {
 		expect(OM_OBSERVATIONS_RECORDED).toBe("om.observations.recorded");
 		expect(OM_REFLECTIONS_RECORDED).toBe("om.reflections.recorded");
 		expect(OM_REFLECTIONS_REVIEWED).toBe("om.reflections.reviewed");
+		expect(OM_REFLECTIONS_REWRITTEN).toBe("om.reflections.rewritten");
 		expect(OM_OBSERVATIONS_DROPPED).toBe("om.observations.dropped");
 		expect(OM_OBSERVATIONS_FLAGGED).toBe("om.observations.flagged");
 		expect(OM_FOLDED).toBe("om.folded");
@@ -62,6 +68,7 @@ describe("session-ledger type guards and builders", () => {
 		expect(isObservationsRecordedData({ observations: [observation("aaaaaaaaaaaa")], coversUpToId: "raw-1" })).toBe(true);
 		expect(isReflectionsRecordedData({ reflections: [reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"])], coversUpToId: "raw-2" })).toBe(true);
 		expect(isReflectionsReviewedData({ coversUpToId: "raw-2" })).toBe(true);
+		expect(isReflectionsRewrittenData({ retiredReflectionIds: ["ref_eeeeeeeeeeee"], newReflectionIds: ["ref_ffffffffffff"], retainedSourceIds: ["obs_aaaaaaaaaaaa"], discardedReflectionIds: ["ref_eeeeeeeeeeee"], discardedSummary: "Retired stale duplicate." })).toBe(true);
 		expect(isObservationsDroppedData({ observationIds: ["aaaaaaaaaaaa"], coversUpToId: "ref-entry-1" })).toBe(true);
 		expect(isObservationsFlaggedData({ observationIds: ["aaaaaaaaaaaa"], reason: "Reflection omitted exact error path." })).toBe(true);
 	});
@@ -69,6 +76,7 @@ describe("session-ledger type guards and builders", () => {
 	it("rejects empty ledger entry data so no empty progress entries can be appended", () => {
 		expect(isObservationsRecordedData({ observations: [], coversUpToId: "raw-1" })).toBe(true);
 		expect(isReflectionsRecordedData({ reflections: [], coversUpToId: "raw-1" })).toBe(false);
+		expect(isReflectionsRewrittenData({ retiredReflectionIds: [], newReflectionIds: ["ref_ffffffffffff"], retainedSourceIds: ["obs_aaaaaaaaaaaa"], discardedReflectionIds: ["ref_eeeeeeeeeeee"], discardedSummary: "Retired stale duplicate." })).toBe(false);
 		expect(isObservationsDroppedData({ observationIds: [], coversUpToId: "raw-1" })).toBe(false);
 		expect(isObservationsFlaggedData({ observationIds: [], reason: "Reflection omitted exact error path." })).toBe(false);
 		expect(isObservationsFlaggedData({ observationIds: ["aaaaaaaaaaaa"], reason: "" })).toBe(false);
@@ -79,6 +87,8 @@ describe("session-ledger type guards and builders", () => {
 		expect(buildObservationsRecordedData([], "raw-1")).toEqual({ observations: [], coversUpToId: "raw-1" });
 		expect(buildReflectionsRecordedData([], "raw-1")).toBeUndefined();
 		expect(buildReflectionsReviewedData("raw-1")).toEqual({ coversUpToId: "raw-1" });
+		expect(buildReflectionsRewrittenData({ retiredReflectionIds: ["ref_eeeeeeeeeeee"], newReflectionIds: ["ref_ffffffffffff"], retainedSourceIds: ["obs_aaaaaaaaaaaa"], discardedReflectionIds: ["ref_eeeeeeeeeeee"], discardedSummary: "Retired stale duplicate." })).toEqual({ retiredReflectionIds: ["ref_eeeeeeeeeeee"], newReflectionIds: ["ref_ffffffffffff"], retainedSourceIds: ["obs_aaaaaaaaaaaa"], discardedReflectionIds: ["ref_eeeeeeeeeeee"], discardedSummary: "Retired stale duplicate." });
+		expect(buildReflectionsRewrittenData({ retiredReflectionIds: [], newReflectionIds: ["ref_ffffffffffff"], retainedSourceIds: ["obs_aaaaaaaaaaaa"], discardedReflectionIds: ["ref_eeeeeeeeeeee"], discardedSummary: "Retired stale duplicate." })).toBeUndefined();
 		expect(buildObservationsDroppedData([], "raw-1")).toBeUndefined();
 		expect(buildObservationsFlaggedData([], "Reflection omitted exact error path.")).toBeUndefined();
 		expect(buildObservationsDroppedData(["aaaaaaaaaaaa"], "ref-entry-1")).toEqual({ observationIds: ["aaaaaaaaaaaa"], coversUpToId: "ref-entry-1" });
@@ -89,6 +99,7 @@ describe("session-ledger type guards and builders", () => {
 		expect(isObservationsRecordedEntry(observationsRecordedEntry("om-aaaaaaaaaaaa", { observations: [observation("aaaaaaaaaaaa")], coversUpToId: "raw-1" }))).toBe(true);
 		expect(isReflectionsRecordedEntry(reflectionsRecordedEntry("om-eeeeeeeeeeee", { reflections: [reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"])], coversUpToId: "raw-1" }))).toBe(true);
 		expect(isReflectionsReviewedEntry(reflectionsReviewedEntry("om-reviewed", { coversUpToId: "raw-1" }))).toBe(true);
+		expect(isReflectionsRewrittenEntry(reflectionsRewrittenEntry("om-rewrite", { retiredReflectionIds: ["ref_eeeeeeeeeeee"], newReflectionIds: ["ref_ffffffffffff"], retainedSourceIds: ["obs_aaaaaaaaaaaa"], discardedReflectionIds: ["ref_eeeeeeeeeeee"], discardedSummary: "Retired stale duplicate." }))).toBe(true);
 		expect(isObservationsDroppedEntry(observationsDroppedEntry("om-drop-1", { observationIds: ["aaaaaaaaaaaa"], coversUpToId: "om-eeeeeeeeeeee" }))).toBe(true);
 		expect(isObservationsFlaggedEntry(observationsFlaggedEntry("om-flag-1", { observationIds: ["aaaaaaaaaaaa"], reason: "Reflection omitted exact error path." }))).toBe(true);
 	});

@@ -5,6 +5,7 @@ import {
 	OM_FOLDED,
 	isMemoryDetails,
 	isObservationsDroppedEntry,
+	isReflectionsRewrittenData,
 	normalizeObservationsRecordedData,
 	normalizeReflectionsRecordedData,
 	type Entry,
@@ -12,7 +13,7 @@ import {
 	type Observation,
 	type Reflection,
 } from "./types.js";
-import { observationId as typedObservationId } from "../memory/ids.js";
+import { observationId as typedObservationId, reflectionId as typedReflectionId } from "../memory/ids.js";
 
 export type Projection = {
 	observations: Observation[];
@@ -78,6 +79,7 @@ function foldProjection(entries: Entry[], boundaries: FoldBoundaries): Projectio
 	const observationsById = new Set<string>();
 	const reflectionsById = new Set<string>();
 	const droppedObservationIds = new Set<string>();
+	const retiredReflectionIds = new Set<string>();
 
 	for (const entry of entries) {
 		const observationsData = entry.type === "custom" && entry.customType === "om.observations.recorded" ? normalizeObservationsRecordedData(entry.data) : undefined;
@@ -100,6 +102,11 @@ function foldProjection(entries: Entry[], boundaries: FoldBoundaries): Projectio
 			continue;
 		}
 
+		if (entry.type === "custom" && entry.customType === "om.reflections.rewritten" && isReflectionsRewrittenData(entry.data)) {
+			for (const reflectionId of entry.data.retiredReflectionIds) retiredReflectionIds.add(typedReflectionId(reflectionId));
+			continue;
+		}
+
 		if (isObservationsDroppedEntry(entry) && isCoveredAtOrBefore(entry, indexes, boundaries.dropsThroughIndex)) {
 			for (const observationId of entry.data.observationIds) droppedObservationIds.add(typedObservationId(observationId));
 		}
@@ -107,7 +114,7 @@ function foldProjection(entries: Entry[], boundaries: FoldBoundaries): Projectio
 
 	return {
 		observations: observations.filter((observation) => !droppedObservationIds.has(observation.id)),
-		reflections,
+		reflections: reflections.filter((reflection) => !retiredReflectionIds.has(reflection.id)),
 	};
 }
 

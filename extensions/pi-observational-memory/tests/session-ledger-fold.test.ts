@@ -10,6 +10,7 @@ import {
 	reflection,
 	reflectionsRecordedEntry,
 	reflectionsReviewedEntry,
+	reflectionsRewrittenEntry,
 	textCustomMessage,
 } from "./fixtures/session.js";
 
@@ -108,6 +109,29 @@ describe("session-ledger folding", () => {
 		expect(folded.reflectionsById.get("ref_eeeeeeeeeeee")?.content).toBe("first reflection");
 		expect(folded.observations).toHaveLength(1);
 		expect(folded.reflections).toHaveLength(1);
+	});
+
+	it("rewrite retirement removes reflections from active fold but preserves lookup history", () => {
+		const ref1 = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
+		const ref2 = reflection("ffffffffffff", ["aaaaaaaaaaaa"]);
+		const entries = [
+			textCustomMessage("raw-1", "aaaa"),
+			reflectionsRecordedEntry("om-ref-1", { reflections: [ref1], coversUpToId: "raw-1" }),
+			reflectionsRecordedEntry("om-ref-2", { reflections: [ref2], coversUpToId: "raw-1" }),
+			reflectionsRewrittenEntry("om-rewrite", {
+				retiredReflectionIds: ["eeeeeeeeeeee"],
+				newReflectionIds: ["ffffffffffff"],
+				retainedSourceIds: ["obs_aaaaaaaaaaaa"],
+				discardedReflectionIds: ["eeeeeeeeeeee"],
+				discardedSummary: "Retired stale duplicate.",
+			}),
+		];
+
+		const folded = foldLedger(entries);
+
+		expect(folded.reflections.map((ref) => ref.id)).toEqual(["ref_ffffffffffff"]);
+		expect(folded.retiredReflectionIds.has("ref_eeeeeeeeeeee")).toBe(true);
+		expect(folded.reflectionsById.get("ref_eeeeeeeeeeee")).toEqual(ref1);
 	});
 
 	it("folds flag-only follow-up ids for possible reflector repair", () => {

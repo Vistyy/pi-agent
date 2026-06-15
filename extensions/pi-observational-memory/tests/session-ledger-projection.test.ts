@@ -18,6 +18,7 @@ import {
 	reflection,
 	reflectionsRecordedEntry,
 	reflectionsReviewedEntry,
+	reflectionsRewrittenEntry,
 	textCustomMessage,
 } from "./fixtures/session.js";
 
@@ -173,6 +174,25 @@ describe("session-ledger projections", () => {
 
 		expect(projection.observations).toEqual([firstObs]);
 		expect(projection.reflections).toEqual([firstRef]);
+	});
+
+	it("rewrite events retire old reflections from active projection", () => {
+		const ref1 = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
+		const ref2 = reflection("ffffffffffff", ["aaaaaaaaaaaa"]);
+		const entries = [
+			textCustomMessage("raw-1", "aaaa"),
+			reflectionsRecordedEntry("om-ref-1", { reflections: [ref1], coversUpToId: "raw-1" }),
+			reflectionsRecordedEntry("om-ref-2", { reflections: [ref2], coversUpToId: "raw-1" }),
+			reflectionsRewrittenEntry("om-rewrite", {
+				retiredReflectionIds: ["eeeeeeeeeeee"],
+				newReflectionIds: ["ffffffffffff"],
+				retainedSourceIds: ["obs_aaaaaaaaaaaa"],
+				discardedReflectionIds: ["eeeeeeeeeeee"],
+				discardedSummary: "Retired stale duplicate.",
+			}),
+		];
+
+		expect(fullProjection(entries).reflections.map((ref) => ref.id)).toEqual(["ref_ffffffffffff"]);
 	});
 
 	it("uses >= observationsPoolMaxTokens for compaction full-fold pressure only", () => {

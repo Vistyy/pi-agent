@@ -1,6 +1,7 @@
 import {
 	isObservationsDroppedData,
 	isObservationsFlaggedData,
+	isReflectionsRewrittenData,
 	normalizeObservationFlagReason,
 	normalizeObservationsRecordedData,
 	normalizeReflectionsRecordedData,
@@ -8,11 +9,12 @@ import {
 	OM_OBSERVATIONS_FLAGGED,
 	OM_OBSERVATIONS_RECORDED,
 	OM_REFLECTIONS_RECORDED,
+	OM_REFLECTIONS_REWRITTEN,
 	type Entry,
 	type Observation,
 	type Reflection,
 } from "./types.js";
-import { observationId as typedObservationId } from "../memory/ids.js";
+import { observationId as typedObservationId, reflectionId as typedReflectionId } from "../memory/ids.js";
 
 export type FoldLedgerOptions = {
 	/** Fold entries from branch root through this entry id, inclusive. Omit to fold through branch tip. */
@@ -32,8 +34,10 @@ export type FoldedLedger = {
 	flaggedObservationIds: Set<string>;
 	/** Follow-up reasons by flagged observation id. Reasons are explanatory context, not deterministic routing. */
 	flaggedObservationReasonsById: Map<string, string[]>;
-	/** All first-valid reflection records encountered through the fold boundary. */
+	/** All first-valid reflection records encountered through the fold boundary that have not been retired by rewrite. */
 	reflections: Reflection[];
+	/** Reflection ids retired from active projection by rewrite events. */
+	retiredReflectionIds: Set<string>;
 	/** All first-valid observation records by id, including dropped observations. */
 	observationsById: Map<string, Observation>;
 	/** All first-valid reflection records by id. */
@@ -54,6 +58,7 @@ export function foldLedger(entries: Entry[], options: FoldLedgerOptions = {}): F
 	const observationsById = new Map<string, Observation>();
 	const reflectionsById = new Map<string, Reflection>();
 	const droppedObservationIds = new Set<string>();
+	const retiredReflectionIds = new Set<string>();
 	const flaggedObservationIds = new Set<string>();
 	const flaggedObservationReasonsById = new Map<string, string[]>();
 	const endIdx = foldEndIndex(entries, options.upToEntryId);
@@ -77,6 +82,12 @@ export function foldLedger(entries: Entry[], options: FoldLedgerOptions = {}): F
 			for (const reflection of data.reflections) {
 				if (!reflectionsById.has(reflection.id)) reflectionsById.set(reflection.id, reflection);
 			}
+			continue;
+		}
+
+		if (isCustomEntry(entry, OM_REFLECTIONS_REWRITTEN)) {
+			if (!isReflectionsRewrittenData(entry.data)) continue;
+			for (const id of entry.data.retiredReflectionIds) retiredReflectionIds.add(typedReflectionId(id));
 			continue;
 		}
 
@@ -108,7 +119,7 @@ export function foldLedger(entries: Entry[], options: FoldLedgerOptions = {}): F
 
 	const observations = Array.from(observationsById.values());
 	const activeObservations = observations.filter((observation) => !droppedObservationIds.has(observation.id));
-	const reflections = Array.from(reflectionsById.values());
+	const reflections = Array.from(reflectionsById.values()).filter((reflection) => !retiredReflectionIds.has(reflection.id));
 
 	return {
 		observations,
@@ -117,6 +128,7 @@ export function foldLedger(entries: Entry[], options: FoldLedgerOptions = {}): F
 		flaggedObservationIds,
 		flaggedObservationReasonsById,
 		reflections,
+		retiredReflectionIds,
 		observationsById,
 		reflectionsById,
 	};

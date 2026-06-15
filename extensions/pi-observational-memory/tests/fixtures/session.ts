@@ -34,6 +34,7 @@ export type TestReflection = {
 export const OM_OBSERVATIONS_RECORDED = "om.observations.recorded";
 export const OM_REFLECTIONS_RECORDED = "om.reflections.recorded";
 export const OM_REFLECTIONS_REVIEWED = "om.reflections.reviewed";
+export const OM_REFLECTIONS_REWRITTEN = "om.reflections.rewritten";
 export const OM_OBSERVATIONS_DROPPED = "om.observations.dropped";
 export const OM_OBSERVATIONS_FLAGGED = "om.observations.flagged";
 export const OM_FOLDED = "om.folded";
@@ -200,6 +201,28 @@ export function reflectionsReviewedEntry(
 		parentId: null,
 		timestamp: DEFAULT_TIMESTAMP,
 		customType: OM_REFLECTIONS_REVIEWED,
+		data: args,
+		...overrides,
+	};
+}
+
+export function reflectionsRewrittenEntry(
+	id: string,
+	args: {
+		retiredReflectionIds: string[];
+		newReflectionIds: string[];
+		retainedSourceIds: string[];
+		discardedReflectionIds: string[];
+		discardedSummary: string;
+	},
+	overrides: Partial<TestEntry> = {},
+): TestEntry {
+	return {
+		type: "custom",
+		id,
+		parentId: null,
+		timestamp: DEFAULT_TIMESTAMP,
+		customType: OM_REFLECTIONS_REWRITTEN,
 		data: args,
 		...overrides,
 	};
