@@ -200,7 +200,7 @@ Tasks:
 
 Goal: preserve the safety benefits of curator without pinning or multi-phase curator cost.
 
-Status: curator is no longer scheduled or configured, and pin/unpin behavior is gone. Remaining work is to harden the reflector contract/evals and decide whether a minimal compression auditor is still needed.
+Status: curator is no longer scheduled or configured, pin/unpin behavior is gone, and the reflector model-facing record tool now uses `sources` instead of legacy `supportingObservationIds`. Remaining work is to harden reflector evals for old curator safety cases and decide whether a minimal compression auditor is still needed.
 
 Tasks:
 

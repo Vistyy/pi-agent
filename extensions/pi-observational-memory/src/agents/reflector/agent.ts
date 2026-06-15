@@ -43,7 +43,7 @@ const RecordReflectionsSchema = Type.Object({
 	reflections: Type.Array(
 		Type.Object({
 			content: Type.String({ minLength: 1 }),
-			supportingObservationIds: Type.Array(Type.String({ minLength: 1 }), { minItems: 1 }),
+			sources: Type.Array(Type.String({ minLength: 1 }), { minItems: 1 }),
 		}),
 		{ minItems: 1 },
 	),
@@ -77,7 +77,7 @@ export function summarizeSupportIdCounts(reflections: readonly Reflection[]): {
 	};
 }
 
-export const normalizeSupportingObservationIds = normalizeAllowedIdsStrict;
+export const normalizeSourceIds = normalizeAllowedIdsStrict;
 
 function normalizeReflectionContent(content: string): string | undefined {
 	const normalized = truncateRecordContent(content.trim());
@@ -126,7 +126,7 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 	const recordReflections: AgentTool<typeof RecordReflectionsSchema> = {
 		name: "record_reflections",
 		label: "Record reflections",
-		description: "Record one complete batch of new durable reflections with supporting observation ids. This tool call terminates the run.",
+		description: "Record one complete batch of new durable reflections with source observation ids. This tool call terminates the run.",
 		parameters: RecordReflectionsSchema,
 		execute: async (_id, params: RecordReflectionsArgs) => {
 			toolCallCount++;
@@ -136,11 +136,11 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 			let rejected = 0;
 			for (const proposal of params.reflections) {
 				const content = normalizeReflectionContent(proposal.content);
-				const supportingObservationIds = normalizeSupportingObservationIds(proposal.supportingObservationIds, allowedObservationIds);
-				if (!content || !supportingObservationIds) {
+				const sourceIds = normalizeSourceIds(proposal.sources, allowedObservationIds);
+				if (!content || !sourceIds) {
 					rejected++;
 					if (!content) rejectedEmptyOrMultilineContentCount++;
-					if (!supportingObservationIds) rejectedInvalidSupportIdsCount++;
+					if (!sourceIds) rejectedInvalidSupportIdsCount++;
 					continue;
 				}
 				const id = reflectionId(hashId(content));
@@ -152,7 +152,7 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 					id,
 					kind: "reflection",
 					content,
-					sources: supportingObservationIds,
+					sources: sourceIds,
 					createdAt: new Date().toISOString(),
 				});
 				added++;

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-	normalizeSupportingObservationIds,
+	normalizeSourceIds,
 	observationToMemoryAgentLine,
 	runReflector,
 	summarizeSupportIdCounts,
@@ -109,17 +109,17 @@ describe("reflector agent", () => {
 		});
 	});
 
-	it("normalizes supporting observation ids by active observation order", () => {
-		expect(normalizeSupportingObservationIds(["obs_bbbbbbbbbbbb", "obs_aaaaaaaaaaaa", "obs_aaaaaaaaaaaa"], ["obs_aaaaaaaaaaaa", "obs_bbbbbbbbbbbb"])).toEqual(["obs_aaaaaaaaaaaa", "obs_bbbbbbbbbbbb"]);
-		expect(normalizeSupportingObservationIds(["obs_aaaaaaaaaaaa", "missing"], ["obs_aaaaaaaaaaaa"])).toBeUndefined();
-		expect(normalizeSupportingObservationIds([], ["obs_aaaaaaaaaaaa"])).toBeUndefined();
+	it("normalizes source observation ids by active observation order", () => {
+		expect(normalizeSourceIds(["obs_bbbbbbbbbbbb", "obs_aaaaaaaaaaaa", "obs_aaaaaaaaaaaa"], ["obs_aaaaaaaaaaaa", "obs_bbbbbbbbbbbb"])).toEqual(["obs_aaaaaaaaaaaa", "obs_bbbbbbbbbbbb"]);
+		expect(normalizeSourceIds(["obs_aaaaaaaaaaaa", "missing"], ["obs_aaaaaaaaaaaa"])).toBeUndefined();
+		expect(normalizeSourceIds([], ["obs_aaaaaaaaaaaa"])).toBeUndefined();
 	});
 
 	it("records one-line reflections with code-computed ids", async () => {
 		const content = "User prefers source-backed memory.";
 		const loop = fakeAgentLoop(async (_prompts, context) => {
 			await context.tools[0].execute("tool-1", {
-				reflections: [{ content, supportingObservationIds: ["obs_bbbbbbbbbbbb", "obs_aaaaaaaaaaaa"] }],
+				reflections: [{ content, sources: ["obs_bbbbbbbbbbbb", "obs_aaaaaaaaaaaa"] }],
 			});
 		});
 
@@ -132,8 +132,8 @@ describe("reflector agent", () => {
 		const loop = fakeAgentLoop(async (_prompts, context) => {
 			await context.tools[0].execute("tool-1", {
 				reflections: [
-					{ content: "Bad support", supportingObservationIds: ["missing"] },
-					{ content: "Two\nlines", supportingObservationIds: ["obs_aaaaaaaaaaaa"] },
+					{ content: "Bad support", sources: ["missing"] },
+					{ content: "Two\nlines", sources: ["obs_aaaaaaaaaaaa"] },
 				],
 			});
 		});
@@ -147,9 +147,9 @@ describe("reflector agent", () => {
 		const loop = fakeAgentLoop(async (_prompts, context) => {
 			await context.tools[0].execute("tool-1", {
 				reflections: [
-					{ content, supportingObservationIds: ["obs_aaaaaaaaaaaa"] },
-					{ content: "New durable fact.", supportingObservationIds: ["obs_aaaaaaaaaaaa"] },
-					{ content: "New durable fact.", supportingObservationIds: ["obs_bbbbbbbbbbbb"] },
+					{ content, sources: ["obs_aaaaaaaaaaaa"] },
+					{ content: "New durable fact.", sources: ["obs_aaaaaaaaaaaa"] },
+					{ content: "New durable fact.", sources: ["obs_bbbbbbbbbbbb"] },
 				],
 			});
 		});

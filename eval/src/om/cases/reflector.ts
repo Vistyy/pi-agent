@@ -24,10 +24,10 @@ export async function reflectorHardCompression(modelSpec: string, judgeModel: st
       pass_if: [
         'Output contains a reflection preserving SQLite at /tmp/jobs.db as current and Redis as rejected/stale.',
         'Output contains a reflection preserving the unresolved SQLITE_BUSY blocker at src/db/migrate.ts:88 and WAL/PRAGMA journal_mode=WAL requirement.',
-        'Each reflection has a supportingObservationIds array containing only these exact valid ids: aaaaaaaaaaaa, bbbbbbbbbbbb, cccccccccccc, dddddddddddd.',
+        'Each reflection has a sources array containing only these exact valid observation ids: obs_aaaaaaaaaaaa, obs_bbbbbbbbbbbb, obs_cccccccccccc, obs_dddddddddddd.',
         'Output does not create a durable reflection merely for assistant acknowledgement.',
       ],
-      fail_if: ['Output omits current-vs-stale relationship.', 'Output omits exact error/file or WAL requirement.', 'Any supportingObservationIds value is not one of: aaaaaaaaaaaa, bbbbbbbbbbbb, cccccccccccc, dddddddddddd.'],
+      fail_if: ['Output omits current-vs-stale relationship.', 'Output omits exact error/file or WAL requirement.', 'Any sources value is not one of: obs_aaaaaaaaaaaa, obs_bbbbbbbbbbbb, obs_cccccccccccc, obs_dddddddddddd.'],
     },
   }, judgeModel, started, usage.total, agentDurationMs);
 }
@@ -116,7 +116,7 @@ export async function reflectorHardRepairFlag(modelSpec: string, judgeModel: str
       pass_if: [
         'Output adds a new reflection that names om.observations.flagged exactly.',
         'Output includes the reason field shape or bounded one-line reason requirement.',
-        'Output cites supporting observation id aaaaaaaaaaaa.',
+        'Output cites source observation id obs_aaaaaaaaaaaa.',
         'Output does not claim to modify/delete the old reflection and does not merely repeat generic follow-up wording.'
       ],
       fail_if: [
