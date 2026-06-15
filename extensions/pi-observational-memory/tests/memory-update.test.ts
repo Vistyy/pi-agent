@@ -417,6 +417,43 @@ describe("memory update hook", () => {
 		]);
 	});
 
+	it("backs off rewrite no-op until active reflections change", async () => {
+		const oldRefs = ["eeeeeeeeeeee", "eeeeeeeeeee1", "eeeeeeeeeee2", "eeeeeeeeeee3", "eeeeeeeeeee4"].map((id) => reflection(id, ["aaaaaaaaaaaa"], { content: `Old active reflection ${id} with enough text to exceed budget.` }));
+		const entries = [rawMessage("raw-1", "aaaaaaaa"), reflectionsRecordedEntry("om-ref", { reflections: oldRefs, coversUpToId: "raw-1" })];
+		const { fire, runLaunchedWork } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 999, reflectionsPoolMaxTokens: 1 });
+
+		fire();
+		await runLaunchedWork();
+		fire();
+		await runLaunchedWork();
+
+		expect(mockAgents.runRewrite).toHaveBeenCalledTimes(1);
+	});
+
+	it("retries rewrite backoff after active reflections change", async () => {
+		const oldRefs = ["eeeeeeeeeeee", "eeeeeeeeeee1", "eeeeeeeeeee2", "eeeeeeeeeee3", "eeeeeeeeeee4"].map((id) => reflection(id, ["aaaaaaaaaaaa"], { content: `Old active reflection ${id} with enough text to exceed budget.` }));
+		const addedRef = reflection("eeeeeeeeeee5", ["aaaaaaaaaaaa"], { content: "New active reflection changes the rewrite input set." });
+		const newRef = reflection("ffffffffffff", [oldRefs[0].id], { content: "Compact replacement reflection." });
+		const entries = [rawMessage("raw-1", "aaaaaaaa"), reflectionsRecordedEntry("om-ref", { reflections: oldRefs, coversUpToId: "raw-1" })];
+		const { fire, runLaunchedWork, pi } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 999, reflectionsPoolMaxTokens: 1 });
+
+		fire();
+		await runLaunchedWork();
+		pi.appendEntry(OM_REFLECTIONS_RECORDED, { reflections: [addedRef], coversUpToId: "raw-1" });
+		mockAgents.runRewrite.mockResolvedValueOnce({
+			reflections: [newRef],
+			retiredReflectionIds: [...oldRefs, addedRef].map((ref) => ref.id),
+			newReflectionIds: [newRef.id],
+			retainedSourceIds: [oldRefs[0].id],
+			discardedReflectionIds: [],
+			discardedSummary: "No discarded details.",
+		});
+		fire();
+		await runLaunchedWork();
+
+		expect(mockAgents.runRewrite).toHaveBeenCalledTimes(2);
+	});
+
 	it("does not launch only because the old active observation pool threshold is exceeded", async () => {
 		const entries = [
 			rawMessage("raw-1", "aaaaaaaa"),

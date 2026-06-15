@@ -17,6 +17,10 @@ import type { MemoryUpdateCtx, ResolveMemoryModel, StageOutcome } from "./types.
 
 const MIN_REWRITE_REFLECTIONS = 5;
 
+function sameIds(a: Set<string> | undefined, b: string[]): boolean {
+	return !!a && a.size === b.length && b.every((id) => a.has(id));
+}
+
 export async function runRewriteStage(
 	pi: ExtensionAPI,
 	runtime: Runtime,
@@ -31,15 +35,30 @@ export async function runRewriteStage(
 		return "continue";
 	}
 
+	const activeReflectionIds = folded.reflections.map((reflection) => reflection.id);
+	if (sameIds(runtime.rewriteSkippedActiveIds, activeReflectionIds)) {
+		debugLog("rewrite.skip", { reason: "unchanged_after_noop", reflectionCount: folded.reflections.length, activeTokens });
+		return "continue";
+	}
+
 	if (ctx.hasUI) ctx.ui?.notify(`Observational memory: rewrite running (${folded.reflections.length.toLocaleString()} reflections, ~${activeTokens.toLocaleString()} tokens)`, "info");
 	const resolved = await resolveModel("rewrite");
 	if (!resolved) return "abort";
 
-	const result = await runRewrite({
-		...commonAgentArgs(pi, runtime, resolved, runtime.config.rewriteThinking),
-		reflections: folded.reflections,
-	});
-	if (!result) return "continue";
+	let result;
+	try {
+		result = await runRewrite({
+			...commonAgentArgs(pi, runtime, resolved, runtime.config.rewriteThinking),
+			reflections: folded.reflections,
+		});
+	} catch (error) {
+		runtime.rewriteSkippedActiveIds = new Set(activeReflectionIds);
+		throw error;
+	}
+	if (!result) {
+		runtime.rewriteSkippedActiveIds = new Set(activeReflectionIds);
+		return "continue";
+	}
 
 	const recordedData = buildReflectionsRecordedData(result.reflections, entries.at(-1)?.id ?? "rewrite");
 	const rewrittenData = buildReflectionsRewrittenData({
@@ -50,6 +69,7 @@ export async function runRewriteStage(
 		discardedSummary: result.discardedSummary,
 	});
 	if (!recordedData || !rewrittenData) return "continue";
+	runtime.rewriteSkippedActiveIds = undefined;
 	pi.appendEntry(OM_REFLECTIONS_RECORDED, recordedData);
 	pi.appendEntry(OM_REFLECTIONS_REWRITTEN, rewrittenData);
 	appendTransientCompactionReflections(runtime, result.reflections);

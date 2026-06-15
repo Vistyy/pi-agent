@@ -26,6 +26,7 @@ export class Runtime {
 	lastObserverError: string | undefined;
 	lastReflectorError: string | undefined;
 	lastRewriteError: string | undefined;
+	rewriteSkippedActiveIds: Set<string> | undefined;
 
 	ensureConfig(cwd: string): void {
 		if (this.configLoaded) return;
