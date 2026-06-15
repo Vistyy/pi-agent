@@ -15,15 +15,20 @@ export type TestEntry = {
 
 export type TestObservation = {
 	id: string;
+	kind: "observation";
 	content: string;
+	createdAt: string;
+	sources: string[];
 	timestamp: string;
 	sourceEntryIds: string[];
 };
 
 export type TestReflection = {
 	id: string;
+	kind: "reflection";
 	content: string;
-	supportingObservationIds: string[];
+	sources: string[];
+	createdAt: string;
 };
 
 export const OM_OBSERVATIONS_RECORDED = "om.observations.recorded";
@@ -127,24 +132,30 @@ export function observation(
 	id: string,
 	overrides: Partial<TestObservation> = {},
 ): TestObservation {
+	const sourceEntryIds = overrides.sourceEntryIds ?? ["raw-1"];
 	return {
-		id,
+		id: id.startsWith("obs_") ? id : `obs_${id}`,
+		kind: "observation",
 		content: `Observation ${id}`,
+		createdAt: DEFAULT_TIMESTAMP,
+		sources: sourceEntryIds,
 		timestamp: DEFAULT_TIMESTAMP,
-		sourceEntryIds: ["raw-1"],
+		sourceEntryIds,
 		...overrides,
 	};
 }
 
 export function reflection(
 	id: string,
-	supportingObservationIds: string[] = ["obs-1"],
+	sources: string[] = ["obs_aaaaaaaaaaaa"],
 	overrides: Partial<TestReflection> = {},
 ): TestReflection {
 	return {
-		id,
+		id: id.startsWith("ref_") ? id : `ref_${id}`,
+		kind: "reflection",
 		content: `Reflection ${id}`,
-		supportingObservationIds,
+		sources: sources.map((source) => source.startsWith("obs_") || source.startsWith("ref_") ? source : `obs_${source}`),
+		createdAt: DEFAULT_TIMESTAMP,
 		...overrides,
 	};
 }

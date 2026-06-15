@@ -39,7 +39,7 @@ describe("reflector agent", () => {
 			agentLoop: loop,
 		});
 
-		expect(userText).toContain("[aaaaaaaaaaaa]");
+		expect(userText).toContain("[obs_aaaaaaaaaaaa]");
 		expect(userText).toContain("[coverage: none] Uncovered durable fact");
 		expect(userText).toContain("[coverage: partial] Partially covered fact");
 		expect(userText).toContain("[coverage: strong] Strongly covered fact");
@@ -58,8 +58,8 @@ describe("reflector agent", () => {
 		});
 
 		expect(userText).toContain("FLAGGED FOR FOLLOW-UP");
-		expect(userText).toContain("[bbbbbbbbbbbb]");
-		expect(userText).toContain("[bbbbbbbbbbbb] — Reflection omitted exact error path.");
+		expect(userText).toContain("[obs_bbbbbbbbbbbb]");
+		expect(userText).toContain("[obs_bbbbbbbbbbbb] — Reflection omitted exact error path.");
 		expect(userText).toContain("Their full text is in CURRENT OBSERVATIONS.");
 		expect(userText).toContain("This does not modify existing reflections.");
 		expect(userText).toContain("Use the reasons as context, not as fixed categories.");
@@ -82,7 +82,7 @@ describe("reflector agent", () => {
 			"partial",
 		);
 
-		expect(line).toContain("[aaaaaaaaaaaa]");
+		expect(line).toContain("[obs_aaaaaaaaaaaa]");
 		expect(line).toContain("[coverage: partial]");
 		expect(line).toContain("Important reflected fact");
 	});
@@ -110,22 +110,22 @@ describe("reflector agent", () => {
 	});
 
 	it("normalizes supporting observation ids by active observation order", () => {
-		expect(normalizeSupportingObservationIds(["bbbbbbbbbbbb", "aaaaaaaaaaaa", "aaaaaaaaaaaa"], ["aaaaaaaaaaaa", "bbbbbbbbbbbb"])).toEqual(["aaaaaaaaaaaa", "bbbbbbbbbbbb"]);
-		expect(normalizeSupportingObservationIds(["aaaaaaaaaaaa", "missing"], ["aaaaaaaaaaaa"])).toBeUndefined();
-		expect(normalizeSupportingObservationIds([], ["aaaaaaaaaaaa"])).toBeUndefined();
+		expect(normalizeSupportingObservationIds(["obs_bbbbbbbbbbbb", "obs_aaaaaaaaaaaa", "obs_aaaaaaaaaaaa"], ["obs_aaaaaaaaaaaa", "obs_bbbbbbbbbbbb"])).toEqual(["obs_aaaaaaaaaaaa", "obs_bbbbbbbbbbbb"]);
+		expect(normalizeSupportingObservationIds(["obs_aaaaaaaaaaaa", "missing"], ["obs_aaaaaaaaaaaa"])).toBeUndefined();
+		expect(normalizeSupportingObservationIds([], ["obs_aaaaaaaaaaaa"])).toBeUndefined();
 	});
 
 	it("records one-line reflections with code-computed ids", async () => {
 		const content = "User prefers source-backed memory.";
 		const loop = fakeAgentLoop(async (_prompts, context) => {
 			await context.tools[0].execute("tool-1", {
-				reflections: [{ content, supportingObservationIds: ["bbbbbbbbbbbb", "aaaaaaaaaaaa"] }],
+				reflections: [{ content, supportingObservationIds: ["obs_bbbbbbbbbbbb", "obs_aaaaaaaaaaaa"] }],
 			});
 		});
 
 		const result = await runReflector({ ...baseArgs, agentLoop: loop });
 
-		expect(result).toEqual([{ id: hashId(content), content, supportingObservationIds: ["aaaaaaaaaaaa", "bbbbbbbbbbbb"] }]);
+		expect(result?.map(({ id, content, sources }) => ({ id, content, sources }))).toEqual([{ id: `ref_${hashId(content)}`, content, sources: ["obs_aaaaaaaaaaaa", "obs_bbbbbbbbbbbb"] }]);
 	});
 
 	it("rejects invented support ids and multiline content", async () => {
@@ -133,7 +133,7 @@ describe("reflector agent", () => {
 			await context.tools[0].execute("tool-1", {
 				reflections: [
 					{ content: "Bad support", supportingObservationIds: ["missing"] },
-					{ content: "Two\nlines", supportingObservationIds: ["aaaaaaaaaaaa"] },
+					{ content: "Two\nlines", supportingObservationIds: ["obs_aaaaaaaaaaaa"] },
 				],
 			});
 		});
@@ -147,9 +147,9 @@ describe("reflector agent", () => {
 		const loop = fakeAgentLoop(async (_prompts, context) => {
 			await context.tools[0].execute("tool-1", {
 				reflections: [
-					{ content, supportingObservationIds: ["aaaaaaaaaaaa"] },
-					{ content: "New durable fact.", supportingObservationIds: ["aaaaaaaaaaaa"] },
-					{ content: "New durable fact.", supportingObservationIds: ["bbbbbbbbbbbb"] },
+					{ content, supportingObservationIds: ["obs_aaaaaaaaaaaa"] },
+					{ content: "New durable fact.", supportingObservationIds: ["obs_aaaaaaaaaaaa"] },
+					{ content: "New durable fact.", supportingObservationIds: ["obs_bbbbbbbbbbbb"] },
 				],
 			});
 		});

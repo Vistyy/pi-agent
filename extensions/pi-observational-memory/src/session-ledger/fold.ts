@@ -2,11 +2,11 @@ import {
 	isObservationsDroppedData,
 	isObservationsFlaggedData,
 	isObservationsPinnedData,
-	isObservationsRecordedData,
+	normalizeObservationsRecordedData,
 	isObservationsUnpinnedData,
 	normalizeObservationFlagReason,
 	normalizeObservationPinReason,
-	isReflectionsRecordedData,
+	normalizeReflectionsRecordedData,
 	OM_OBSERVATIONS_DROPPED,
 	OM_OBSERVATIONS_FLAGGED,
 	OM_OBSERVATIONS_PINNED,
@@ -17,6 +17,7 @@ import {
 	type Observation,
 	type Reflection,
 } from "./types.js";
+import { observationId as typedObservationId } from "../memory/ids.js";
 
 export type FoldLedgerOptions = {
 	/** Fold entries from branch root through this entry id, inclusive. Omit to fold through branch tip. */
@@ -80,8 +81,9 @@ export function foldLedger(entries: Entry[], options: FoldLedgerOptions = {}): F
 		if (!entry) continue;
 
 		if (isCustomEntry(entry, OM_OBSERVATIONS_RECORDED)) {
-			if (!isObservationsRecordedData(entry.data)) continue;
-			for (const observation of entry.data.observations) {
+			const data = normalizeObservationsRecordedData(entry.data);
+			if (!data) continue;
+			for (const observation of data.observations) {
 				if (!observationsById.has(observation.id)) {
 					observationsById.set(observation.id, observation);
 				}
@@ -90,8 +92,9 @@ export function foldLedger(entries: Entry[], options: FoldLedgerOptions = {}): F
 		}
 
 		if (isCustomEntry(entry, OM_REFLECTIONS_RECORDED)) {
-			if (!isReflectionsRecordedData(entry.data)) continue;
-			for (const reflection of entry.data.reflections) {
+			const data = normalizeReflectionsRecordedData(entry.data, entry.timestamp ?? "");
+			if (!data) continue;
+			for (const reflection of data.reflections) {
 				if (!reflectionsById.has(reflection.id)) {
 					reflectionsById.set(reflection.id, reflection);
 				}
@@ -101,8 +104,8 @@ export function foldLedger(entries: Entry[], options: FoldLedgerOptions = {}): F
 
 		if (isCustomEntry(entry, OM_OBSERVATIONS_DROPPED)) {
 			if (!isObservationsDroppedData(entry.data)) continue;
-			for (const observationId of entry.data.observationIds) {
-				droppedObservationIds.add(observationId);
+			for (const id of entry.data.observationIds) {
+				droppedObservationIds.add(typedObservationId(id));
 			}
 			continue;
 		}
@@ -111,7 +114,8 @@ export function foldLedger(entries: Entry[], options: FoldLedgerOptions = {}): F
 			if (!isObservationsFlaggedData(entry.data)) continue;
 			if (options.pendingFlagsAfterIndex !== undefined && i <= options.pendingFlagsAfterIndex) continue;
 			const reason = normalizeObservationFlagReason(entry.data.reason);
-			for (const observationId of entry.data.observationIds) {
+			for (const id of entry.data.observationIds) {
+				const observationId = typedObservationId(id);
 				flaggedObservationIds.add(observationId);
 				flaggedObservationReasonsById.set(observationId, [
 					...(flaggedObservationReasonsById.get(observationId) ?? []),
@@ -124,7 +128,8 @@ export function foldLedger(entries: Entry[], options: FoldLedgerOptions = {}): F
 		if (isCustomEntry(entry, OM_OBSERVATIONS_PINNED)) {
 			if (!isObservationsPinnedData(entry.data)) continue;
 			const reason = normalizeObservationPinReason(entry.data.reason);
-			for (const observationId of entry.data.observationIds) {
+			for (const id of entry.data.observationIds) {
+				const observationId = typedObservationId(id);
 				pinnedObservationIds.add(observationId);
 				pinnedObservationReasonsById.set(observationId, [
 					...(pinnedObservationReasonsById.get(observationId) ?? []),
@@ -136,7 +141,8 @@ export function foldLedger(entries: Entry[], options: FoldLedgerOptions = {}): F
 
 		if (isCustomEntry(entry, OM_OBSERVATIONS_UNPINNED)) {
 			if (!isObservationsUnpinnedData(entry.data)) continue;
-			for (const observationId of entry.data.observationIds) {
+			for (const id of entry.data.observationIds) {
+				const observationId = typedObservationId(id);
 				pinnedObservationIds.delete(observationId);
 				pinnedObservationReasonsById.delete(observationId);
 			}

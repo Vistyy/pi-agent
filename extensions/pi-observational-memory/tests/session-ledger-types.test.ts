@@ -73,7 +73,7 @@ describe("session-ledger type guards and builders", () => {
 
 	it("accepts valid reflection records", () => {
 		expect(isReflection(reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]))).toBe(true);
-		expect(isReflection({ ...reflection("ffffffffffff"), supportingObservationIds: undefined })).toBe(false);
+		expect(isReflection({ ...reflection("ffffffffffff"), sources: undefined })).toBe(false);
 	});
 
 	it("accepts non-empty ledger entry data", () => {

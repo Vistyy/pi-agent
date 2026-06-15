@@ -2,10 +2,9 @@ import type { Observation, Reflection } from "./types.js";
 
 const CONTEXT_USAGE_INSTRUCTIONS = `These are condensed memories from earlier in this session.
 
-- Reflections: stable, long-lived facts about the user, project, decisions, and constraints. New reflection lines may include ids in brackets.
-- Observations: timestamped events from the conversation history, in chronological order. Observation lines include ids in brackets.
+- Reflections: stable, long-lived facts about the user, project, decisions, and constraints. Reflection lines include ids in brackets.
 
-Treat these as past records. When entries conflict, the most recent observation reflects the latest known state. Work that prior observations describe as completed should not be redone unless the user explicitly asks to revisit it.
+Treat these as past records. Work that prior reflections describe as completed should not be redone unless the user explicitly asks to revisit it.
 
 When answering from these memories, preserve exact relationship wording that disambiguates current from stale facts, especially terms like supersedes, rejected, stale, approved, current, forbidden, allowed, and unresolved. If a probe asks for an exact current detail and a stale near-match, include both and the relationship between them.
 
@@ -19,15 +18,8 @@ export function reflectionToSummaryLine(reflection: Reflection): string {
 	return `[${reflection.id}] ${reflection.content}`;
 }
 
-export function renderSummary(reflections: Reflection[], observations: Observation[]): string {
-	if (reflections.length === 0 && observations.length === 0) return "";
+export function renderSummary(reflections: Reflection[], _observations: Observation[] = []): string {
+	if (reflections.length === 0) return "";
 
-	const parts: string[] = [CONTEXT_USAGE_INSTRUCTIONS];
-	if (reflections.length > 0) {
-		parts.push(`## Reflections\n${reflections.map(reflectionToSummaryLine).join("\n")}`);
-	}
-	if (observations.length > 0) {
-		parts.push(`## Observations\n${observations.map(observationToSummaryLine).join("\n")}`);
-	}
-	return parts.join("\n\n");
+	return [CONTEXT_USAGE_INSTRUCTIONS, `## Reflections\n${reflections.map(reflectionToSummaryLine).join("\n")}`].join("\n\n");
 }

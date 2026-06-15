@@ -15,7 +15,7 @@ export const REFLECTION_COVERAGE_DROP_RANK: Record<ReflectionCoverageTier, numbe
 export function reflectionSupportCounts(reflections: readonly Reflection[]): Map<string, number> {
 	const counts = new Map<string, number>();
 	for (const reflection of reflections) {
-		const uniqueIds = new Set(reflection.supportingObservationIds);
+		const uniqueIds = new Set(reflection.sources.filter((source) => source.startsWith("obs_")));
 		for (const id of uniqueIds) counts.set(id, (counts.get(id) ?? 0) + 1);
 	}
 	return counts;

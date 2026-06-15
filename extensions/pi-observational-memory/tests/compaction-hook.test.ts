@@ -93,7 +93,7 @@ describe("compaction hook", () => {
 		expect(runtime.compactHookInFlight).toBe(false);
 	});
 
-	it("first normal compaction hides reviewed observations while keeping reflections", async () => {
+	it("first normal compaction renders active reflections only", async () => {
 		const obs1 = observation("aaaaaaaaaaaa", { sourceEntryIds: ["raw-1"] });
 		const ref1 = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
 		const entries = [
@@ -106,9 +106,9 @@ describe("compaction hook", () => {
 		const result = await run("raw-1");
 
 		expect(result.compaction?.details.fullFold).toBe(false);
-		expect(result.compaction?.details.observations.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa"]);
-		expect(result.compaction.details.reflections.map((ref) => ref.id)).toEqual(["eeeeeeeeeeee"]);
-		expect(result.compaction?.summary).toContain("## Reflections\n[eeeeeeeeeeee]");
+		expect(result.compaction?.details.observations).toEqual([]);
+		expect(result.compaction.details.reflections.map((ref) => ref.id)).toEqual(["ref_eeeeeeeeeeee"]);
+		expect(result.compaction?.summary).toContain("## Reflections\n[ref_eeeeeeeeeeee]");
 		expect(result.compaction?.summary).not.toContain("## Observations");
 	});
 
@@ -132,10 +132,10 @@ describe("compaction hook", () => {
 		const result = await run("raw-2");
 
 		expect(result.compaction?.details).toMatchObject({ type: "om.folded", fullFold: false });
-		expect(result.compaction?.details.observations.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa", "bbbbbbbbbbbb"]);
-		expect(result.compaction?.details.reflections.map((ref) => ref.id)).toEqual(["eeeeeeeeeeee", "ffffffffffff"]);
-		expect(result.compaction?.summary).toContain("## Reflections\n[eeeeeeeeeeee]");
-		expect(result.compaction?.summary).toContain("[ffffffffffff]");
+		expect(result.compaction?.details.observations).toEqual([]);
+		expect(result.compaction?.details.reflections.map((ref) => ref.id)).toEqual(["ref_eeeeeeeeeeee", "ref_ffffffffffff"]);
+		expect(result.compaction?.summary).toContain("## Reflections\n[ref_eeeeeeeeeeee]");
+		expect(result.compaction?.summary).toContain("[ref_ffffffffffff]");
 		expect(result.compaction?.summary).not.toContain("## Observations");
 	});
 
@@ -159,8 +159,8 @@ describe("compaction hook", () => {
 		const result = await run("raw-2");
 
 		expect(result.compaction?.details.fullFold).toBe(true);
-		expect(result.compaction?.details.observations.map((obs) => obs.id)).toEqual(["bbbbbbbbbbbb"]);
-		expect(result.compaction?.details.reflections.map((ref) => ref.id)).toEqual(["eeeeeeeeeeee", "ffffffffffff"]);
+		expect(result.compaction?.details.observations).toEqual([]);
+		expect(result.compaction?.details.reflections.map((ref) => ref.id)).toEqual(["ref_eeeeeeeeeeee", "ref_ffffffffffff"]);
 	});
 
 	it("does not wait for worker promises or call model resolution", async () => {

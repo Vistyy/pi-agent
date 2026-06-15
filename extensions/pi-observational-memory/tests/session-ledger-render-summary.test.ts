@@ -17,36 +17,22 @@ describe("session-ledger summary rendering", () => {
 		expect(summary).toContain("use the recall tool");
 	});
 
-	it("renders reflections with ids", () => {
+	it("renders active reflections with typed ids", () => {
 		const ref = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"], { content: "User prefers source-backed memory." });
 
 		const summary = renderSummary([ref], []);
 
-		expect(summary).toContain("## Reflections\n[eeeeeeeeeeee] User prefers source-backed memory.");
+		expect(summary).toContain("## Reflections\n[ref_eeeeeeeeeeee] User prefers source-backed memory.");
 	});
 
-	it("renders observations with ids, timestamps, and content", () => {
+	it("does not render observations into active memory summaries", () => {
 		const obs = observation("aaaaaaaaaaaa", {
-			content: "User confirmed recall should use exact source entry ids.",
-			timestamp: "2026-05-02 10:30",
+			content: "Typecheck failed: Command `pnpm run typecheck`; Error: TS2322 at src/config.ts:47; unresolved.",
 		});
 
 		const summary = renderSummary([], [obs]);
 
-		expect(summary).toContain(
-			"## Observations\n[aaaaaaaaaaaa] 2026-05-02 10:30 User confirmed recall should use exact source entry ids.",
-		);
-	});
-
-	it("renders exact observation content without structured event fields", () => {
-		const obs = observation("aaaaaaaaaaaa", {
-			content: "Typecheck failed: Command `npm run typecheck`; Error: TS2322 at src/config.ts:47; unresolved.",
-		});
-
-		const summary = renderSummary([], [obs]);
-
-		expect(summary).toContain("[aaaaaaaaaaaa]");
-		expect(summary).toContain("Typecheck failed: Command `npm run typecheck`; Error: TS2322 at src/config.ts:47; unresolved.");
+		expect(summary).toBe("");
 	});
 
 	it("keeps raw provenance metadata out of the compact summary", () => {

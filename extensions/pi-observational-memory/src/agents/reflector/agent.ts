@@ -3,7 +3,7 @@ import type { Model, ModelThinkingLevel } from "@earendil-works/pi-ai";
 import { Type } from "@earendil-works/pi-ai";
 import type { Static } from "typebox";
 import { debugLog } from "../../debug-log.js";
-import { hashId } from "../../memory/ids.js";
+import { hashId, reflectionId } from "../../memory/ids.js";
 import { joinOrEmpty, normalizeAllowedIdsStrict, runMemoryAgentLoop, type MemoryAgentUsage } from "../common.js";
 import { truncateRecordContent } from "../../memory/record-content.js";
 import { REFLECTOR_FOLLOW_UP_INSTRUCTIONS, REFLECTOR_SYSTEM } from "./prompts.js";
@@ -63,7 +63,7 @@ export function summarizeSupportIdCounts(reflections: readonly Reflection[]): {
 	if (reflections.length === 0) {
 		return { reflectionCount: 0, totalSupportIds: 0, minSupportIds: 0, maxSupportIds: 0, averageSupportIds: 0, histogram: {} };
 	}
-	const counts = reflections.map((reflection) => reflection.supportingObservationIds.length);
+	const counts = reflections.map((reflection) => reflection.sources.length);
 	const totalSupportIds = counts.reduce((sum, count) => sum + count, 0);
 	const histogram: Record<string, number> = {};
 	for (const count of counts) histogram[String(count)] = (histogram[String(count)] ?? 0) + 1;
@@ -143,15 +143,17 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 					if (!supportingObservationIds) rejectedInvalidSupportIdsCount++;
 					continue;
 				}
-				const id = hashId(content);
+				const id = reflectionId(hashId(content));
 				if (existingReflectionIds.has(id) || accumulated.has(id)) {
 					duplicates++;
 					continue;
 				}
 				accumulated.set(id, {
 					id,
+					kind: "reflection",
 					content,
-					supportingObservationIds,
+					sources: supportingObservationIds,
+					createdAt: new Date().toISOString(),
 				});
 				added++;
 			}

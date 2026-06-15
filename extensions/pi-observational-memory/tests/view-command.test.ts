@@ -60,10 +60,10 @@ describe("/om:view", () => {
 		const { output } = await setup(entries).run();
 
 		expect(output).toContain("── Reflections ──");
-		expect(output).toContain("[eeeeeeeeeeee] Reflection eeeeeeeeeeee");
+		expect(output).toContain("[ref_eeeeeeeeeeee] Reflection eeeeeeeeeeee");
 		expect(output).toContain("── Observations ──");
-		expect(output).toContain("[aaaaaaaaaaaa]");
-		expect(output).not.toContain("bbbbbbbbbbbb");
+		expect(output).toContain("No context observations.");
+		expect(output).not.toContain("obs_bbbbbbbbbbbb");
 	});
 
 	it("reviewed view renders reviewed observations hidden from context memory", async () => {
@@ -80,9 +80,9 @@ describe("/om:view", () => {
 
 		const { output } = await setup(entries).run("reviewed");
 
-		expect(output).toContain("[eeeeeeeeeeee] Reflection eeeeeeeeeeee");
-		expect(output).toContain("[aaaaaaaaaaaa]");
-		expect(output).not.toContain("bbbbbbbbbbbb");
+		expect(output).toContain("[ref_eeeeeeeeeeee] Reflection eeeeeeeeeeee");
+		expect(output).toContain("[obs_aaaaaaaaaaaa]");
+		expect(output).not.toContain("obs_bbbbbbbbbbbb");
 	});
 
 	it("full view renders recorded empty states", async () => {

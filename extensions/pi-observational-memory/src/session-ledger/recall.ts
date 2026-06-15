@@ -1,11 +1,12 @@
 import {
 	isObservationsDroppedEntry,
-	isObservationsRecordedEntry,
-	isReflectionsRecordedEntry,
+	normalizeObservationsRecordedData,
+	normalizeReflectionsRecordedData,
 	type Entry,
 	type Observation,
 	type Reflection,
 } from "./types.js";
+import { isLegacyMemoryId, observationId, reflectionId } from "../memory/ids.js";
 
 const SOURCE_TYPES = new Set(["message", "custom_message", "branch_summary"]);
 
@@ -101,20 +102,22 @@ function indexLedger(entries: Entry[]): {
 
 	for (let entryIndex = 0; entryIndex < entries.length; entryIndex++) {
 		const entry = entries[entryIndex];
-		if (isObservationsRecordedEntry(entry)) {
-			entry.data.observations.forEach((observation, recordIndex) => {
+		const observationsData = entry.type === "custom" && entry.customType === "om.observations.recorded" ? normalizeObservationsRecordedData(entry.data) : undefined;
+		if (observationsData) {
+			observationsData.observations.forEach((observation, recordIndex) => {
 				observations.push({ observation, entryId: entry.id, entryIndex, recordIndex });
 			});
 			continue;
 		}
-		if (isReflectionsRecordedEntry(entry)) {
-			entry.data.reflections.forEach((reflection, recordIndex) => {
+		const reflectionsData = entry.type === "custom" && entry.customType === "om.reflections.recorded" ? normalizeReflectionsRecordedData(entry.data, entry.timestamp ?? "") : undefined;
+		if (reflectionsData) {
+			reflectionsData.reflections.forEach((reflection, recordIndex) => {
 				reflections.push({ reflection, entryId: entry.id, entryIndex, recordIndex });
 			});
 			continue;
 		}
 		if (isObservationsDroppedEntry(entry)) {
-			entry.data.observationIds.forEach((id) => droppedIds.add(id));
+			entry.data.observationIds.forEach((id) => droppedIds.add(observationId(id)));
 		}
 	}
 
@@ -171,8 +174,10 @@ function notFound(memoryId: string): RecallResult {
 
 export function recallMemorySources(entries: Entry[], memoryId: string): RecallResult {
 	const { observations: indexedObservations, reflections: indexedReflections, droppedIds } = indexLedger(entries);
-	const directObservationMatches = indexedObservations.filter(({ observation }) => observation.id === memoryId);
-	const reflectionMatches = indexedReflections.filter(({ reflection }) => reflection.id === memoryId);
+	const observationLookupId = isLegacyMemoryId(memoryId) ? observationId(memoryId) : memoryId;
+	const reflectionLookupId = isLegacyMemoryId(memoryId) ? reflectionId(memoryId) : memoryId;
+	const directObservationMatches = indexedObservations.filter(({ observation }) => observation.id === observationLookupId);
+	const reflectionMatches = indexedReflections.filter(({ reflection }) => reflection.id === reflectionLookupId);
 
 	if (directObservationMatches.length === 0 && reflectionMatches.length === 0) return notFound(memoryId);
 
@@ -195,7 +200,7 @@ export function recallMemorySources(entries: Entry[], memoryId: string): RecallR
 	for (const match of directObservationMatches) addObservation(match);
 
 	for (const { reflection } of reflectionMatches) {
-		for (const observationId of uniqueStrings(reflection.supportingObservationIds)) {
+		for (const observationId of uniqueStrings(reflection.sources.filter((source) => source.startsWith("obs_")))) {
 			const indexed = observationsById.get(observationId);
 			if (!indexed) {
 				missingSupportingObservationIds.push(observationId);

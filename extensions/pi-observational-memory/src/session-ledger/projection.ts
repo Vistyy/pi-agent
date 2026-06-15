@@ -5,13 +5,14 @@ import {
 	OM_FOLDED,
 	isMemoryDetails,
 	isObservationsDroppedEntry,
-	isObservationsRecordedEntry,
-	isReflectionsRecordedEntry,
+	normalizeObservationsRecordedData,
+	normalizeReflectionsRecordedData,
 	type Entry,
 	type MemoryDetails,
 	type Observation,
 	type Reflection,
 } from "./types.js";
+import { observationId as typedObservationId } from "../memory/ids.js";
 
 export type Projection = {
 	observations: Observation[];
@@ -79,8 +80,9 @@ function foldProjection(entries: Entry[], boundaries: FoldBoundaries): Projectio
 	const droppedObservationIds = new Set<string>();
 
 	for (const entry of entries) {
-		if (isObservationsRecordedEntry(entry) && isCoveredAtOrBefore(entry, indexes, boundaries.observationsThroughIndex)) {
-			for (const observation of entry.data.observations) {
+		const observationsData = entry.type === "custom" && entry.customType === "om.observations.recorded" ? normalizeObservationsRecordedData(entry.data) : undefined;
+		if (observationsData && isCoveredAtOrBefore(entry as Entry & { data: { coversUpToId: string } }, indexes, boundaries.observationsThroughIndex)) {
+			for (const observation of observationsData.observations) {
 				if (observationsById.has(observation.id)) continue;
 				observationsById.add(observation.id);
 				observations.push(observation);
@@ -88,8 +90,9 @@ function foldProjection(entries: Entry[], boundaries: FoldBoundaries): Projectio
 			continue;
 		}
 
-		if (isReflectionsRecordedEntry(entry) && isCoveredAtOrBefore(entry, indexes, boundaries.reflectionsThroughIndex)) {
-			for (const reflection of entry.data.reflections) {
+		const reflectionsData = entry.type === "custom" && entry.customType === "om.reflections.recorded" ? normalizeReflectionsRecordedData(entry.data, entry.timestamp ?? "") : undefined;
+		if (reflectionsData && isCoveredAtOrBefore(entry as Entry & { data: { coversUpToId: string } }, indexes, boundaries.reflectionsThroughIndex)) {
+			for (const reflection of reflectionsData.reflections) {
 				if (reflectionsById.has(reflection.id)) continue;
 				reflectionsById.add(reflection.id);
 				reflections.push(reflection);
@@ -98,7 +101,7 @@ function foldProjection(entries: Entry[], boundaries: FoldBoundaries): Projectio
 		}
 
 		if (isObservationsDroppedEntry(entry) && isCoveredAtOrBefore(entry, indexes, boundaries.dropsThroughIndex)) {
-			for (const observationId of entry.data.observationIds) droppedObservationIds.add(observationId);
+			for (const observationId of entry.data.observationIds) droppedObservationIds.add(typedObservationId(observationId));
 		}
 	}
 
@@ -110,8 +113,8 @@ function foldProjection(entries: Entry[], boundaries: FoldBoundaries): Projectio
 
 function projectionFromMemoryDetails(details: MemoryDetails): Projection {
 	return {
-		observations: [...details.observations],
-		reflections: [...details.reflections],
+		observations: [],
+		reflections: details.reflections.map((reflection) => ({ ...reflection })),
 	};
 }
 
@@ -166,11 +169,9 @@ export function classifyObservationsByReview(entries: Entry[], observations: Obs
 
 export function nextContextProjection(entries: Entry[], projection: Projection): NextContextProjection {
 	const classified = classifyObservationsByReview(entries, projection.observations);
-	const folded = foldLedger(entries);
-	const pinnedReviewed = classified.reviewed.filter((observation) => folded.pinnedObservationIds.has(observation.id));
 	return {
 		reflections: projection.reflections,
-		observations: [...classified.unreviewed, ...pinnedReviewed],
+		observations: [],
 		...classified,
 	};
 }
@@ -222,7 +223,7 @@ function withCompactionDetails(context: Projection, detailsProjection: Projectio
 	const details: MemoryDetails = {
 		type: OM_FOLDED,
 		fullFold,
-		observations: detailsProjection.observations,
+		observations: [],
 		reflections: detailsProjection.reflections,
 	};
 

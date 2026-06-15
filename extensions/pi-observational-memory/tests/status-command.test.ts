@@ -96,7 +96,7 @@ describe("/om:status", () => {
 		expect(output).toContain("Strategy: replacement");
 		expect(output).toContain("Ledger observations: 1 recorded / 0 dropped / 1 active");
 		expect(output).toContain("Review state: 0 reviewed / 1 unreviewed");
-		expect(output).toContain("Context drift: +1 observations, +0 reflections, -0 stale observations");
+		expect(output).toContain("Context drift: +0 observations, +0 reflections, -0 stale observations");
 		expect(output).toContain("Reviewed since curator cursor: 0");
 		expect(output).toContain("Source entries since review cursor: 1");
 	});

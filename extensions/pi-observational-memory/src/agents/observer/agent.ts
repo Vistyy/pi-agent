@@ -2,7 +2,7 @@ import { agentLoop, type AgentTool } from "@earendil-works/pi-agent-core";
 import type { Model, ModelThinkingLevel } from "@earendil-works/pi-ai";
 import { Type } from "@earendil-works/pi-ai";
 import type { Static } from "typebox";
-import { hashId } from "../../memory/ids.js";
+import { hashId, observationId } from "../../memory/ids.js";
 import { joinOrEmpty, normalizeAllowedIdsStrict, runMemoryAgentLoop, type MemoryAgentUsage } from "../common.js";
 import { OBSERVER_SYSTEM } from "./prompts.js";
 import { nowTimestamp, truncateRecordContent } from "../../memory/record-content.js";
@@ -142,14 +142,17 @@ export async function runObserver(args: RunObserverArgs): Promise<Observation[] 
 					continue;
 				}
 				const content = truncateRecordContent(obs.content);
-				const id = hashId(content);
+				const id = observationId(hashId(content));
 				if (accumulated.has(id)) {
 					duplicates++;
 					continue;
 				}
 				accumulated.set(id, {
 					id,
+					kind: "observation",
 					content,
+					createdAt: obs.timestamp,
+					sources: sourceEntryIds.accepted,
 					timestamp: obs.timestamp,
 					sourceEntryIds: sourceEntryIds.accepted,
 				});

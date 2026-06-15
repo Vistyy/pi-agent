@@ -11,11 +11,12 @@ import {
 } from "../session-ledger/recall.js";
 import type { Observation, Reflection } from "../session-ledger/index.js";
 import { renderRecallSourceEntries, renderRecallSourceEntry } from "../memory/serialization/recall.js";
+import { isLegacyMemoryId, observationId } from "../memory/ids.js";
 import { estimateEntryTokens } from "../memory/token-estimate.js";
 
 export const RECALL_OBSERVATION_TOOL_NAME = "recall";
 
-const MEMORY_ID_PATTERN = /^[a-f0-9]{12}$/;
+const MEMORY_ID_PATTERN = /^(?:[a-f0-9]{12}|obs_[a-f0-9]{12}|ref_[a-f0-9]{12})$/;
 
 type RecallObservationToolStatus =
 	| "ok"
@@ -26,7 +27,7 @@ type RecallObservationToolStatus =
 	| "source_unavailable";
 
 type ObservationDetails = Pick<Observation, "id" | "content" | "timestamp"> & { status?: "active" | "dropped" };
-type ReflectionDetails = Pick<Reflection, "id" | "content" | "supportingObservationIds"> & { reflectionIndex: number };
+type ReflectionDetails = Pick<Reflection, "id" | "content" | "sources" | "createdAt"> & { reflectionIndex: number };
 
 export type RecallSourceEntryDetails = {
 	id: string;
@@ -146,7 +147,7 @@ function observationDetails(observation: Observation, status?: "active" | "dropp
 }
 
 function reflectionDetails(reflection: Reflection, reflectionIndex: number): ReflectionDetails {
-	return { id: reflection.id, content: reflection.content, supportingObservationIds: reflection.supportingObservationIds, reflectionIndex };
+	return { id: reflection.id, content: reflection.content, sources: reflection.sources, createdAt: reflection.createdAt, reflectionIndex };
 }
 
 function observationMatchDetails(match: RecalledObservation, includeSourceContent = true): RecallObservationMatchDetails {
@@ -216,7 +217,8 @@ function observationLineText(observation: ObservationDetails): string {
 }
 
 function directObservationMatches(result: Extract<RecallResult, { status: "found" }>): RecalledObservation[] {
-	return result.observations.filter((match) => match.observation.id === result.memoryId);
+	const lookupId = isLegacyMemoryId(result.memoryId) ? observationId(result.memoryId) : result.memoryId;
+	return result.observations.filter((match) => match.observation.id === lookupId);
 }
 
 function renderObservationOnlyTextFromResult(result: Extract<RecallResult, { status: "found" }>): string {

@@ -40,11 +40,14 @@ describe("runObserver", () => {
 
 		expect(observations).toHaveLength(1);
 		expect(observations?.[0]).toMatchObject({
+			kind: "observation",
 			content,
+			createdAt: "2026-05-02 10:30",
+			sources: ["entry-a"],
 			timestamp: "2026-05-02 10:30",
 			sourceEntryIds: ["entry-a"],
 		});
-		expect(observations?.[0].id).toMatch(/^[a-f0-9]{12}$/);
+		expect(observations?.[0].id).toMatch(/^obs_[a-f0-9]{12}$/);
 	});
 
 	it("rejects invented source ids with exact feedback and returns no observations", async () => {

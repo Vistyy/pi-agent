@@ -46,9 +46,9 @@ function buildPinReviewSection(candidateObservations: readonly Observation[], pi
 }
 
 function renderCuratorPrompt(args: CuratorPromptInput, coverageById: ReadonlyMap<string, ReflectionCoverageTier>, observationTokens: number): string {
-	const reflectionSupportIds = new Set(args.reflections.flatMap((reflection) => reflection.supportingObservationIds));
+	const reflectionSupportIds = new Set(args.reflections.flatMap((reflection) => reflection.sources.filter((source) => source.startsWith("obs_"))));
 	const clumps = args.reflections.map((reflection) => {
-		const supportIds = new Set(reflection.supportingObservationIds);
+		const supportIds = new Set(reflection.sources.filter((source) => source.startsWith("obs_")));
 		const linkedCandidates = args.candidateObservations.filter((observation) => supportIds.has(observation.id));
 		const linkedContext = args.contextObservations.filter((observation) => supportIds.has(observation.id));
 		const linkedCandidateSection = linkedCandidates.length

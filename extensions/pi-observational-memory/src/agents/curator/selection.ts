@@ -24,7 +24,7 @@ export function selectCuratorPhaseInput(args: {
 	initialResult?: CuratorActionResult;
 }): CuratorPhaseInput {
 	const baseCandidateIds = new Set(args.candidateObservationIds ?? args.observations.map((observation) => observation.id));
-	const linkedIds = new Set(args.reflections.flatMap((reflection) => reflection.supportingObservationIds));
+	const linkedIds = new Set(args.reflections.flatMap((reflection) => reflection.sources.filter((source) => source.startsWith("obs_"))));
 	const priorActionIds = args.initialResult ? new Set([...batchIds(args.initialResult.pinned), ...batchIds(args.initialResult.flagged), ...batchIds(args.initialResult.unpinned), ...args.initialResult.dropped]) : new Set<string>();
 	const pinnedInputIds = new Set(args.pinnedObservationIds ?? []);
 	const protectedIds = new Set(args.protectedObservationIds ?? []);

@@ -6,9 +6,7 @@ import {
 	observation,
 	observationsDroppedEntry,
 	observationsFlaggedEntry,
-	observationsPinnedEntry,
 	observationsRecordedEntry,
-	observationsUnpinnedEntry,
 	reflection,
 	reflectionsRecordedEntry,
 	reflectionsReviewedEntry,
@@ -16,7 +14,7 @@ import {
 } from "./fixtures/session.js";
 
 describe("session-ledger folding", () => {
-	it("folds observations and reflections from branch root through the target entry", () => {
+	it("folds typed observations and reflections from branch root through the target entry", () => {
 		const obs1 = observation("aaaaaaaaaaaa", { sourceEntryIds: ["raw-1"] });
 		const obs2 = observation("bbbbbbbbbbbb", { sourceEntryIds: ["raw-2"] });
 		const ref1 = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
@@ -30,10 +28,48 @@ describe("session-ledger folding", () => {
 
 		const folded = foldLedger(entries, { upToEntryId: "om-eeeeeeeeeeee" });
 
-		expect(folded.observations.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa"]);
-		expect(folded.activeObservations.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa"]);
-		expect(folded.reflections.map((ref) => ref.id)).toEqual(["eeeeeeeeeeee"]);
-		expect(folded.observationsById.get("bbbbbbbbbbbb")).toBeUndefined();
+		expect(folded.observations.map((obs) => obs.id)).toEqual(["obs_aaaaaaaaaaaa"]);
+		expect(folded.activeObservations.map((obs) => obs.id)).toEqual(["obs_aaaaaaaaaaaa"]);
+		expect(folded.reflections.map((ref) => ref.id)).toEqual(["ref_eeeeeeeeeeee"]);
+		expect(folded.reflections[0].sources).toEqual(["obs_aaaaaaaaaaaa"]);
+		expect(folded.observationsById.get("obs_bbbbbbbbbbbb")).toBeUndefined();
+	});
+
+	it("normalizes legacy ledger ids to typed internal ids", () => {
+		const entries = [
+			textCustomMessage("raw-1", "aaaa"),
+			{
+				type: "custom",
+				id: "om-obs",
+				parentId: null,
+				timestamp: "2026-05-02T10:00:00.000Z",
+				customType: "om.observations.recorded",
+				data: {
+					observations: [{ id: "aaaaaaaaaaaa", content: "legacy observation", timestamp: "2026-05-02T10:00:00.000Z", sourceEntryIds: ["raw-1"] }],
+					coversUpToId: "raw-1",
+				},
+			},
+			{
+				type: "custom",
+				id: "om-ref",
+				parentId: null,
+				timestamp: "2026-05-02T10:01:00.000Z",
+				customType: "om.reflections.recorded",
+				data: {
+					reflections: [{ id: "eeeeeeeeeeee", content: "legacy reflection", supportingObservationIds: ["aaaaaaaaaaaa"] }],
+					coversUpToId: "raw-1",
+				},
+			},
+		];
+
+		const folded = foldLedger(entries);
+
+		expect(folded.observationsById.get("obs_aaaaaaaaaaaa")?.kind).toBe("observation");
+		expect(folded.reflectionsById.get("ref_eeeeeeeeeeee")).toMatchObject({
+			kind: "reflection",
+			createdAt: "2026-05-02T10:01:00.000Z",
+			sources: ["obs_aaaaaaaaaaaa"],
+		});
 	});
 
 	it("applies drops as tombstones while preserving observation history", () => {
@@ -47,10 +83,10 @@ describe("session-ledger folding", () => {
 
 		const folded = foldLedger(entries);
 
-		expect(folded.observations.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa", "bbbbbbbbbbbb"]);
-		expect(folded.activeObservations.map((obs) => obs.id)).toEqual(["bbbbbbbbbbbb"]);
-		expect(folded.droppedObservationIds.has("aaaaaaaaaaaa")).toBe(true);
-		expect(folded.observationsById.get("aaaaaaaaaaaa")).toEqual(obs1);
+		expect(folded.observations.map((obs) => obs.id)).toEqual(["obs_aaaaaaaaaaaa", "obs_bbbbbbbbbbbb"]);
+		expect(folded.activeObservations.map((obs) => obs.id)).toEqual(["obs_bbbbbbbbbbbb"]);
+		expect(folded.droppedObservationIds.has("obs_aaaaaaaaaaaa")).toBe(true);
+		expect(folded.observationsById.get("obs_aaaaaaaaaaaa")).toEqual(obs1);
 	});
 
 	it("keeps first valid observation and reflection when duplicate ids appear", () => {
@@ -68,13 +104,13 @@ describe("session-ledger folding", () => {
 
 		const folded = foldLedger(entries);
 
-		expect(folded.observationsById.get("aaaaaaaaaaaa")?.content).toBe("first observation");
-		expect(folded.reflectionsById.get("eeeeeeeeeeee")?.content).toBe("first reflection");
+		expect(folded.observationsById.get("obs_aaaaaaaaaaaa")?.content).toBe("first observation");
+		expect(folded.reflectionsById.get("ref_eeeeeeeeeeee")?.content).toBe("first reflection");
 		expect(folded.observations).toHaveLength(1);
 		expect(folded.reflections).toHaveLength(1);
 	});
 
-	it("folds flagged observation ids for reflector follow-up", () => {
+	it("folds flag-only follow-up ids for possible reflector repair", () => {
 		const obs1 = observation("aaaaaaaaaaaa");
 		const entries = [
 			textCustomMessage("raw-1", "aaaa"),
@@ -84,10 +120,9 @@ describe("session-ledger folding", () => {
 
 		const folded = foldLedger(entries);
 
-		expect(folded.flaggedObservationIds.has("aaaaaaaaaaaa")).toBe(true);
-		expect(folded.flaggedObservationIds.has("deadbeef0000")).toBe(true);
-		expect(folded.flaggedObservationReasonsById.get("aaaaaaaaaaaa")).toEqual(["Reflection omitted exact detail."]);
-		expect(folded.activeObservations.map((obs) => obs.id)).toEqual(["aaaaaaaaaaaa"]);
+		expect(folded.flaggedObservationIds.has("obs_aaaaaaaaaaaa")).toBe(true);
+		expect(folded.flaggedObservationIds.has("obs_deadbeef0000")).toBe(true);
+		expect(folded.flaggedObservationReasonsById.get("obs_aaaaaaaaaaaa")).toEqual(["Reflection omitted exact detail."]);
 	});
 
 	it("can fold only unresolved follow-up flags after a review cursor", () => {
@@ -103,34 +138,16 @@ describe("session-ledger folding", () => {
 
 		const folded = foldLedger(entries, { pendingFlagsAfterIndex: 3 });
 
-		expect(folded.flaggedObservationIds.has("aaaaaaaaaaaa")).toBe(false);
-		expect(folded.flaggedObservationIds.has("bbbbbbbbbbbb")).toBe(true);
-		expect(folded.flaggedObservationReasonsById.get("bbbbbbbbbbbb")).toEqual(["new follow-up"]);
+		expect(folded.flaggedObservationIds.has("obs_aaaaaaaaaaaa")).toBe(false);
+		expect(folded.flaggedObservationIds.has("obs_bbbbbbbbbbbb")).toBe(true);
+		expect(folded.flaggedObservationReasonsById.get("obs_bbbbbbbbbbbb")).toEqual(["new follow-up"]);
 	});
 
-	it("folds pinned and unpinned observation ids", () => {
-		const obs1 = observation("aaaaaaaaaaaa");
-		const obs2 = observation("bbbbbbbbbbbb");
-		const entries = [
-			textCustomMessage("raw-1", "aaaa"),
-			observationsRecordedEntry("om-obs", { observations: [obs1, obs2], coversUpToId: "raw-1" }),
-			observationsPinnedEntry("om-pin-1", { observationIds: ["aaaaaaaaaaaa", "bbbbbbbbbbbb"], reason: "Keep exact details visible." }),
-			observationsUnpinnedEntry("om-unpin-1", { observationIds: ["aaaaaaaaaaaa"], reason: "Reflection now captures it." }),
-		];
-
-		const folded = foldLedger(entries);
-
-		expect(folded.pinnedObservationIds.has("aaaaaaaaaaaa")).toBe(false);
-		expect(folded.pinnedObservationIds.has("bbbbbbbbbbbb")).toBe(true);
-		expect(folded.pinnedObservationReasonsById.get("bbbbbbbbbbbb")).toEqual(["Keep exact details visible."]);
-	});
-
-	it("drop wins over pin and flag", () => {
+	it("drop wins over follow-up flags", () => {
 		const obs1 = observation("aaaaaaaaaaaa");
 		const entries = [
 			textCustomMessage("raw-1", "aaaa"),
 			observationsRecordedEntry("om-obs", { observations: [obs1], coversUpToId: "raw-1" }),
-			observationsPinnedEntry("om-pin-1", { observationIds: ["aaaaaaaaaaaa"], reason: "Keep exact details visible." }),
 			observationsFlaggedEntry("om-flag-1", { observationIds: ["aaaaaaaaaaaa"], reason: "Needs follow-up." }),
 			observationsDroppedEntry("om-drop-1", { observationIds: ["aaaaaaaaaaaa"], coversUpToId: "raw-1" }),
 		];
@@ -138,8 +155,7 @@ describe("session-ledger folding", () => {
 		const folded = foldLedger(entries);
 
 		expect(folded.activeObservations).toEqual([]);
-		expect(folded.pinnedObservationIds.has("aaaaaaaaaaaa")).toBe(false);
-		expect(folded.flaggedObservationIds.has("aaaaaaaaaaaa")).toBe(false);
+		expect(folded.flaggedObservationIds.has("obs_aaaaaaaaaaaa")).toBe(false);
 	});
 
 	it("normalizes and caps folded flag reasons", () => {
@@ -155,7 +171,7 @@ describe("session-ledger folding", () => {
 
 		const folded = foldLedger(entries);
 
-		expect(folded.flaggedObservationReasonsById.get("aaaaaaaaaaaa")).toEqual(["second", "third", "a".repeat(240)]);
+		expect(folded.flaggedObservationReasonsById.get("obs_aaaaaaaaaaaa")).toEqual(["second", "third", "a".repeat(240)]);
 	});
 
 	it("retains tombstones for unknown drop ids without throwing", () => {
@@ -166,7 +182,7 @@ describe("session-ledger folding", () => {
 
 		const folded = foldLedger(entries);
 
-		expect(folded.droppedObservationIds.has("deadbeef0000")).toBe(true);
+		expect(folded.droppedObservationIds.has("obs_deadbeef0000")).toBe(true);
 		expect(folded.activeObservations).toEqual([]);
 	});
 
@@ -184,7 +200,7 @@ describe("session-ledger folding", () => {
 			observationsRecordedEntry("fork-ledger", { observations: [forkObs], coversUpToId: "raw-fork" }),
 		];
 
-		expect(foldLedger(mainBranch).observations.map((obs) => obs.id)).toEqual(["aaaa00000000"]);
-		expect(foldLedger(forkBranch).observations.map((obs) => obs.id)).toEqual(["bbbb00000000"]);
+		expect(foldLedger(mainBranch).observations.map((obs) => obs.id)).toEqual(["obs_aaaa00000000"]);
+		expect(foldLedger(forkBranch).observations.map((obs) => obs.id)).toEqual(["obs_bbbb00000000"]);
 	});
 });

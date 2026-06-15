@@ -8,7 +8,7 @@ export const OM_OBSERVATIONS_UNPINNED = "om.observations.unpinned";
 export const OM_OBSERVATIONS_CURATED = "om.observations.curated";
 export const OM_FOLDED = "om.folded";
 
-export const MEMORY_ID_PATTERN = /^[a-f0-9]{12}$/;
+import { isLegacyMemoryId, isObservationId, isReflectionId, observationId, reflectionId } from "../memory/ids.js";
 
 export type Entry = {
 	type: string;
@@ -24,17 +24,28 @@ export type Entry = {
 	firstKeptEntryId?: string;
 };
 
-export type Observation = {
+export type MemoryRecordKind = "observation" | "reflection";
+
+export type MemoryRecordBase = {
 	id: string;
+	kind: MemoryRecordKind;
 	content: string;
+	createdAt: string;
+	sources: string[];
+};
+
+export type Observation = MemoryRecordBase & {
+	id: string;
+	kind: "observation";
+	/** Observation event time. Kept separately while prompts/status still render observation timestamps. */
 	timestamp: string;
+	/** Source ledger entry ids. Mirrors sources until source entries get typed ids. */
 	sourceEntryIds: string[];
 };
 
-export type Reflection = {
+export type Reflection = MemoryRecordBase & {
 	id: string;
-	content: string;
-	supportingObservationIds: string[];
+	kind: "reflection";
 };
 
 export type ObservationsRecordedEntryData = {
@@ -107,7 +118,7 @@ export function isNonEmptyStringArray(value: unknown): value is string[] {
 }
 
 export function isMemoryId(value: unknown): value is string {
-	return typeof value === "string" && MEMORY_ID_PATTERN.test(value);
+	return isLegacyMemoryId(value) || isObservationId(value) || isReflectionId(value);
 }
 
 function isTokenCount(value: unknown): value is number {
@@ -118,43 +129,73 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
 	return !!value && typeof value === "object";
 }
 
+export function normalizeObservation(value: unknown): Observation | undefined {
+	if (!isPlainRecord(value)) return undefined;
+	if (
+		!isMemoryId(value.id) ||
+		!isNonEmptyString(value.content) ||
+		!isNonEmptyString(value.timestamp) ||
+		!isNonEmptyStringArray(value.sourceEntryIds)
+	) return undefined;
+	return {
+		id: observationId(value.id),
+		kind: "observation",
+		content: value.content,
+		createdAt: isNonEmptyString(value.createdAt) ? value.createdAt : value.timestamp,
+		sources: value.sourceEntryIds,
+		timestamp: value.timestamp,
+		sourceEntryIds: value.sourceEntryIds,
+	};
+}
+
 export function isObservation(value: unknown): value is Observation {
-	if (!isPlainRecord(value)) return false;
-	return (
-		isMemoryId(value.id) &&
-		isNonEmptyString(value.content) &&
-		isNonEmptyString(value.timestamp) &&
-		isNonEmptyStringArray(value.sourceEntryIds)
-	);
+	return !!normalizeObservation(value);
+}
+
+export function normalizeReflection(value: unknown, createdAt: string): Reflection | undefined {
+	if (!isPlainRecord(value)) return undefined;
+	if (!isMemoryId(value.id) || !isNonEmptyString(value.content) || /\r|\n/.test(value.content)) return undefined;
+	const rawSources = isNonEmptyStringArray(value.sources)
+		? value.sources
+		: isNonEmptyStringArray(value.supportingObservationIds)
+			? value.supportingObservationIds.map(observationId)
+			: undefined;
+	if (!rawSources) return undefined;
+	const sources = rawSources.map((source) => isLegacyMemoryId(source) ? observationId(source) : source);
+	if (!sources.every((source) => isObservationId(source) || isReflectionId(source))) return undefined;
+	return {
+		id: reflectionId(value.id),
+		kind: "reflection",
+		content: value.content,
+		sources,
+		createdAt: isNonEmptyString(value.createdAt) ? value.createdAt : createdAt,
+	};
 }
 
 export function isReflection(value: unknown): value is Reflection {
-	if (!isPlainRecord(value)) return false;
-	return (
-		isMemoryId(value.id) &&
-		isNonEmptyString(value.content) &&
-		!/\r|\n/.test(value.content) &&
-		isNonEmptyStringArray(value.supportingObservationIds)
-	);
+	return !!normalizeReflection(value, "1970-01-01T00:00:00.000Z");
+}
+
+export function normalizeObservationsRecordedData(value: unknown): ObservationsRecordedEntryData | undefined {
+	if (!isPlainRecord(value) || !Array.isArray(value.observations) || !isNonEmptyString(value.coversUpToId)) return undefined;
+	const observations = value.observations.map(normalizeObservation);
+	if (observations.some((observation) => !observation)) return undefined;
+	return { observations: observations as Observation[], coversUpToId: value.coversUpToId };
 }
 
 export function isObservationsRecordedData(value: unknown): value is ObservationsRecordedEntryData {
-	if (!isPlainRecord(value)) return false;
-	return (
-		Array.isArray(value.observations) &&
-		value.observations.every(isObservation) &&
-		isNonEmptyString(value.coversUpToId)
-	);
+	return !!normalizeObservationsRecordedData(value);
+}
+
+export function normalizeReflectionsRecordedData(value: unknown, createdAt: string): ReflectionsRecordedEntryData | undefined {
+	if (!isPlainRecord(value) || !Array.isArray(value.reflections) || value.reflections.length === 0 || !isNonEmptyString(value.coversUpToId)) return undefined;
+	const reflections = value.reflections.map((reflection) => normalizeReflection(reflection, createdAt));
+	if (reflections.some((reflection) => !reflection)) return undefined;
+	return { reflections: reflections as Reflection[], coversUpToId: value.coversUpToId };
 }
 
 export function isReflectionsRecordedData(value: unknown): value is ReflectionsRecordedEntryData {
-	if (!isPlainRecord(value)) return false;
-	return (
-		Array.isArray(value.reflections) &&
-		value.reflections.length > 0 &&
-		value.reflections.every(isReflection) &&
-		isNonEmptyString(value.coversUpToId)
-	);
+	return !!normalizeReflectionsRecordedData(value, "1970-01-01T00:00:00.000Z");
 }
 
 export function isReflectionsReviewedData(value: unknown): value is ReflectionsReviewedEntryData {

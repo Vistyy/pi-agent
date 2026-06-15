@@ -93,7 +93,7 @@ describe("recall tool", () => {
 		expect(result.details?.reflections).toHaveLength(1);
 		expect(result.details?.observations).toHaveLength(1);
 		expect(text).toContain("Reflections:");
-		expect(text).toContain("[eeeeeeeeeeee] User likes tea.");
+		expect(text).toContain("[ref_eeeeeeeeeeee] User likes tea.");
 		expect(text).toContain("Observations:");
 		expect(text).toContain("Sources:");
 		expect(text).toContain("I like tea.");
