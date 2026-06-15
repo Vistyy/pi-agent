@@ -36,7 +36,6 @@ export const OM_REFLECTIONS_RECORDED = "om.reflections.recorded";
 export const OM_REFLECTIONS_REVIEWED = "om.reflections.reviewed";
 export const OM_OBSERVATIONS_DROPPED = "om.observations.dropped";
 export const OM_OBSERVATIONS_FLAGGED = "om.observations.flagged";
-export const OM_OBSERVATIONS_CURATED = "om.observations.curated";
 export const OM_FOLDED = "om.folded";
 
 const DEFAULT_TIMESTAMP = "2026-05-02T10:00:00.000Z";
@@ -238,23 +237,6 @@ export function observationsFlaggedEntry(
 	};
 }
 
-
-
-export function observationsCuratedEntry(
-	id: string,
-	args: { coversUpToId: string },
-	overrides: Partial<TestEntry> = {},
-): TestEntry {
-	return {
-		type: "custom",
-		id,
-		parentId: null,
-		timestamp: DEFAULT_TIMESTAMP,
-		customType: OM_OBSERVATIONS_CURATED,
-		data: args,
-		...overrides,
-	};
-}
 
 export function fakeSessionContext(initialEntries: TestEntry[] = []) {
 	let entries = [...initialEntries];

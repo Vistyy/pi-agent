@@ -2,21 +2,17 @@ import { describe, expect, it } from "vitest";
 
 import {
 	OM_FOLDED,
-	OM_OBSERVATIONS_CURATED,
 	OM_OBSERVATIONS_DROPPED,
 	OM_OBSERVATIONS_FLAGGED,
 	OM_OBSERVATIONS_RECORDED,
 	OM_REFLECTIONS_RECORDED,
 	OM_REFLECTIONS_REVIEWED,
-	buildObservationsCuratedData,
 	buildObservationsDroppedData,
 	buildObservationsFlaggedData,
 	buildObservationsRecordedData,
 	buildReflectionsRecordedData,
 	buildReflectionsReviewedData,
 	isMemoryDetails,
-	isObservationsCuratedData,
-	isObservationsCuratedEntry,
 	isObservationsDroppedData,
 	isObservationsDroppedEntry,
 	isObservationsFlaggedData,
@@ -33,7 +29,6 @@ import {
 import {
 	memoryDetails,
 	observation,
-	observationsCuratedEntry,
 	observationsDroppedEntry,
 	observationsFlaggedEntry,
 	observationsRecordedEntry,
@@ -49,7 +44,6 @@ describe("session-ledger type guards and builders", () => {
 		expect(OM_REFLECTIONS_REVIEWED).toBe("om.reflections.reviewed");
 		expect(OM_OBSERVATIONS_DROPPED).toBe("om.observations.dropped");
 		expect(OM_OBSERVATIONS_FLAGGED).toBe("om.observations.flagged");
-		expect(OM_OBSERVATIONS_CURATED).toBe("om.observations.curated");
 		expect(OM_FOLDED).toBe("om.folded");
 	});
 
@@ -70,7 +64,6 @@ describe("session-ledger type guards and builders", () => {
 		expect(isReflectionsReviewedData({ coversUpToId: "raw-2" })).toBe(true);
 		expect(isObservationsDroppedData({ observationIds: ["aaaaaaaaaaaa"], coversUpToId: "ref-entry-1" })).toBe(true);
 		expect(isObservationsFlaggedData({ observationIds: ["aaaaaaaaaaaa"], reason: "Reflection omitted exact error path." })).toBe(true);
-		expect(isObservationsCuratedData({ coversUpToId: "raw-2" })).toBe(true);
 	});
 
 	it("rejects empty ledger entry data so no empty progress entries can be appended", () => {
@@ -88,10 +81,8 @@ describe("session-ledger type guards and builders", () => {
 		expect(buildReflectionsReviewedData("raw-1")).toEqual({ coversUpToId: "raw-1" });
 		expect(buildObservationsDroppedData([], "raw-1")).toBeUndefined();
 		expect(buildObservationsFlaggedData([], "Reflection omitted exact error path.")).toBeUndefined();
-		expect(buildObservationsCuratedData("")).toBeUndefined();
 		expect(buildObservationsDroppedData(["aaaaaaaaaaaa"], "ref-entry-1")).toEqual({ observationIds: ["aaaaaaaaaaaa"], coversUpToId: "ref-entry-1" });
 		expect(buildObservationsFlaggedData(["aaaaaaaaaaaa"], ` ${"a".repeat(300)}\nmore detail`)).toEqual({ observationIds: ["aaaaaaaaaaaa"], reason: "a".repeat(240) });
-		expect(buildObservationsCuratedData("raw-2")).toEqual({ coversUpToId: "raw-2" });
 	});
 
 	it("recognizes memory entries", () => {
@@ -100,7 +91,6 @@ describe("session-ledger type guards and builders", () => {
 		expect(isReflectionsReviewedEntry(reflectionsReviewedEntry("om-reviewed", { coversUpToId: "raw-1" }))).toBe(true);
 		expect(isObservationsDroppedEntry(observationsDroppedEntry("om-drop-1", { observationIds: ["aaaaaaaaaaaa"], coversUpToId: "om-eeeeeeeeeeee" }))).toBe(true);
 		expect(isObservationsFlaggedEntry(observationsFlaggedEntry("om-flag-1", { observationIds: ["aaaaaaaaaaaa"], reason: "Reflection omitted exact error path." }))).toBe(true);
-		expect(isObservationsCuratedEntry(observationsCuratedEntry("om-curated-1", { coversUpToId: "raw-1" }))).toBe(true);
 	});
 
 	it("accepts flat folded memory details", () => {

@@ -181,7 +181,7 @@ Open architectural questions to settle in the spec:
    - no semantic/search recall is planned; active memory must retain useful handles
 6. Exact status language for ledger vs active memory vs recallable retired memory.
 
-### Stage 2: Data model and projection rewrite — mostly done
+### Stage 2: Data model and projection rewrite — done
 
 Goal: make projection reflect the new architecture.
 

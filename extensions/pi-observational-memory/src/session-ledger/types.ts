@@ -3,7 +3,6 @@ export const OM_REFLECTIONS_RECORDED = "om.reflections.recorded";
 export const OM_REFLECTIONS_REVIEWED = "om.reflections.reviewed";
 export const OM_OBSERVATIONS_DROPPED = "om.observations.dropped";
 export const OM_OBSERVATIONS_FLAGGED = "om.observations.flagged";
-export const OM_OBSERVATIONS_CURATED = "om.observations.curated";
 export const OM_FOLDED = "om.folded";
 
 import { isLegacyMemoryId, isObservationId, isReflectionId, observationId, reflectionId } from "../memory/ids.js";
@@ -71,10 +70,6 @@ export type ObservationsFlaggedEntryData = {
 	reason: string;
 };
 
-export type ObservationsCuratedEntryData = {
-	coversUpToId: string;
-};
-
 const OBSERVATION_FLAG_REASON_MAX_LENGTH = 240;
 
 export type MemoryDetails = {
@@ -89,8 +84,7 @@ export type MemoryCustomType =
 	| typeof OM_REFLECTIONS_RECORDED
 	| typeof OM_REFLECTIONS_REVIEWED
 	| typeof OM_OBSERVATIONS_DROPPED
-	| typeof OM_OBSERVATIONS_FLAGGED
-	| typeof OM_OBSERVATIONS_CURATED;
+	| typeof OM_OBSERVATIONS_FLAGGED;
 
 export function isNonEmptyString(value: unknown): value is string {
 	return typeof value === "string" && value.length > 0;
@@ -204,11 +198,6 @@ export function isObservationsFlaggedData(value: unknown): value is Observations
 	return isNonEmptyStringArray(value.observationIds) && isObservationFlagReason(value.reason);
 }
 
-export function isObservationsCuratedData(value: unknown): value is ObservationsCuratedEntryData {
-	if (!isPlainRecord(value)) return false;
-	return isNonEmptyString(value.coversUpToId);
-}
-
 export function isMemoryDetails(value: unknown): value is MemoryDetails {
 	if (!isPlainRecord(value)) return false;
 	return (
@@ -261,14 +250,6 @@ export function isObservationsFlaggedEntry(entry: Entry): entry is Entry & {
 	return entry.type === "custom" && entry.customType === OM_OBSERVATIONS_FLAGGED && isObservationsFlaggedData(entry.data);
 }
 
-export function isObservationsCuratedEntry(entry: Entry): entry is Entry & {
-	type: "custom";
-	customType: typeof OM_OBSERVATIONS_CURATED;
-	data: ObservationsCuratedEntryData;
-} {
-	return entry.type === "custom" && entry.customType === OM_OBSERVATIONS_CURATED && isObservationsCuratedData(entry.data);
-}
-
 export function buildObservationsRecordedData(
 	observations: Observation[],
 	coversUpToId: string,
@@ -307,7 +288,3 @@ export function buildObservationsFlaggedData(
 	return { observationIds, reason: normalizedReason };
 }
 
-export function buildObservationsCuratedData(coversUpToId: string): ObservationsCuratedEntryData | undefined {
-	if (!isNonEmptyString(coversUpToId)) return undefined;
-	return { coversUpToId };
-}
