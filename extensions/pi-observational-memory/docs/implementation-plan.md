@@ -186,3 +186,4 @@ Tasks:
 - More observer eval hardening only if real sessions show observer regressions.
 - Reflection deprecation/supersession only if reflection volume becomes a dominant context/cost risk before Stage 2.
 - More config knobs only after evals prove a single policy is insufficient.
+- After planned lifecycle/eval work, look at OM + fork interaction: use instant compaction and always-on memory to send compacted context to forked agents instead of full context, avoiding full uncached input cost.

@@ -179,3 +179,39 @@ export async function judgedCurator(
   if (!deterministic.passed) return diagnoseFailure(deterministic, probe, judgeModel);
   return deterministic;
 }
+
+export async function judgedCuratorScored(
+  id: string,
+  output: CuratorActionResult | undefined,
+  probe: Probe,
+  judgeModel: string,
+  started: number,
+  hardChecks: CuratorCheck[],
+  scoreChecks: CuratorCheck[],
+  usage?: TokenUsage,
+  agentDurationMs?: number,
+  diagnostics?: CuratorEvalDiagnostics,
+): Promise<AgentEvalRecord> {
+  const hardFailure = deterministicCuratorFailure(output, hardChecks);
+  const dimensions: EvalScoreDimension[] = scoreChecks.map((check) => {
+    const passed = check.pass(output);
+    return { label: check.label, score: passed ? 1 : 0, maxScore: 1, detail: check.detail?.(output) ?? curatorActionIdSummary(output) };
+  });
+  const score = dimensions.reduce((total, dimension) => total + dimension.score, 0);
+  const maxScore = dimensions.reduce((total, dimension) => total + dimension.maxScore, 0);
+  const base: AgentEvalRecord = {
+    id,
+    agent: 'curator',
+    output: output ?? {},
+    judge: hardFailure
+      ? { passed: false, reason: `Hard invariant failed: ${hardFailure.reason}`, details: hardFailure.details }
+      : { passed: true, reason: 'Hard invariants passed; see score dimensions for capability signal.' },
+    passed: !hardFailure,
+    durationMs: Date.now() - started,
+    agentDurationMs,
+    usage,
+    diagnostics,
+    score: { hardFailed: Boolean(hardFailure), score, maxScore, dimensions },
+  };
+  return hardFailure ? diagnoseFailure(base, probe, judgeModel) : base;
+}

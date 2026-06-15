@@ -1,7 +1,7 @@
 import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import type { AgentEvalRecord } from '../types.js';
 import { createUsageCollector, loadCuratorRunner, loadOmAgents, obs, ref, resolveModel } from '../runner.js';
-import { curatorActionIdSummary, curatorEvalDiagnostics, curatorIds, forbiddenIds, judged, judgedCurator, missingIds, unexpectedIds } from '../diagnostics.js';
+import { curatorEvalDiagnostics, curatorIds, judgedCuratorScored } from '../diagnostics.js';
 
 export async function curatorFlagsMissingExactDetail(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   const started = Date.now();
@@ -17,7 +17,7 @@ export async function curatorFlagsMissingExactDetail(modelSpec: string, judgeMod
   const agentStarted = Date.now();
   const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 1, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage, onPhase: (metrics: unknown) => phaseMetrics.push(metrics) });
   const agentDurationMs = Date.now() - agentStarted;
-  return judgedCurator('curator-flags-missing-exact-detail', output, {
+  return judgedCuratorScored('curator-flags-missing-exact-detail', output, {
     id: 'curator-flags-missing-exact-detail',
     question: 'Did the curator avoid dropping evidence and preserve or request follow-up for exact missing blocker details?',
     rubric: {
@@ -31,7 +31,8 @@ export async function curatorFlagsMissingExactDetail(modelSpec: string, judgeMod
     },
   }, judgeModel, started, [
     { label: 'must not drop exact blocker observations', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'].includes(id)) },
-    { label: 'must pin or flag at least one exact blocker observation', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'].includes(id)) },
+  ], [
+    { label: 'retains/follows up exact blocker detail', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'].includes(id)) },
   ], usage.total, agentDurationMs, curatorEvalDiagnostics({ observations, reflections, phaseMetrics }));
 }
 
@@ -50,7 +51,7 @@ export async function curatorContradictoryReflection(modelSpec: string, judgeMod
   const agentStarted = Date.now();
   const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 2, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage, onPhase: (metrics: unknown) => phaseMetrics.push(metrics) });
   const agentDurationMs = Date.now() - agentStarted;
-  return judgedCurator('curator-contradictory-reflection', output, {
+  return judgedCuratorScored('curator-contradictory-reflection', output, {
     id: 'curator-contradictory-reflection',
     question: 'Did the curator detect contradiction between reflection and observations and preserve evidence for repair?',
     rubric: {
@@ -63,7 +64,8 @@ export async function curatorContradictoryReflection(modelSpec: string, judgeMod
     },
   }, judgeModel, started, [
     { label: 'must not drop contradictory unresolved evidence', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'].includes(id)) },
-    { label: 'must pin or flag contradictory unresolved evidence', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'].includes(id)) },
+  ], [
+    { label: 'flags/pins contradictory unresolved evidence for repair', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'].includes(id)) },
   ], usage.total, agentDurationMs, curatorEvalDiagnostics({ observations, reflections, phaseMetrics }));
 }
 
@@ -93,7 +95,7 @@ export async function curatorHardSchemaStaleNoise(modelSpec: string, judgeModel:
   const agentStarted = Date.now();
   const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['555555555555'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 4, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage, onPhase: (metrics: unknown) => phaseMetrics.push(metrics) });
   const agentDurationMs = Date.now() - agentStarted;
-  return judgedCurator('curator-hard-schema-stale-noise', output, {
+  return judgedCuratorScored('curator-hard-schema-stale-noise', output, {
     id: 'curator-hard-schema-stale-noise',
     question: 'Did the curator preserve exact schema/blocker evidence while cleaning only stale/noisy observations from a mixed historical pool?',
     rubric: {
@@ -115,9 +117,10 @@ export async function curatorHardSchemaStaleNoise(modelSpec: string, judgeModel:
     },
   }, judgeModel, started, [
     { label: 'must not drop exact schema/current blocker/validation/current config evidence', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb', '111111111111', '222222222222', '555555555555', '666666666666'].includes(id)) },
-    { label: 'must pin or flag exact schema names', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'].includes(id)) },
-    { label: 'must pin or flag current eval/recall blockers', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['111111111111', '222222222222'].includes(id)) },
     { label: 'drops must be limited to stale/noise ids', pass: (o) => curatorIds(o, 'dropped').every((id) => ['cccccccccccc', 'dddddddddddd', 'eeeeeeeeeeee', 'ffffffffffff', '333333333333', '444444444444'].includes(id)) },
+  ], [
+    { label: 'retains exact schema names', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['aaaaaaaaaaaa', 'bbbbbbbbbbbb'].includes(id)) },
+    { label: 'retains current eval/recall blockers', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['111111111111', '222222222222'].includes(id)) },
   ], usage.total, agentDurationMs, curatorEvalDiagnostics({ observations, reflections, phaseMetrics }));
 }
 
@@ -183,7 +186,7 @@ export async function curatorBrutalHistoricalPressure(modelSpec: string, judgeMo
     onPhase: (metrics: unknown) => phaseMetrics.push(metrics),
   });
   const agentDurationMs = Date.now() - agentStarted;
-  return judgedCurator('curator-brutal-historical-pressure', output, {
+  return judgedCuratorScored('curator-brutal-historical-pressure', output, {
     id: 'curator-brutal-historical-pressure',
     question: 'In a large confusable historical pool, did the curator protect exact current schema/blocker/correction evidence, unpin stale pinned items, and only drop safe stale/noise observations?',
     rubric: {
@@ -204,10 +207,11 @@ export async function curatorBrutalHistoricalPressure(modelSpec: string, judgeMo
     },
   }, judgeModel, started, [
     { label: 'must not drop protected current/correction evidence', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['a00000000001', 'a00000000003', 'a00000000005', 'a00000000007', 'a00000000009', 'a00000000011', 'a00000000013', 'a00000000016', 'a00000000017', 'a00000000022', 'a00000000024', 'a00000000025', 'a00000000027', 'a00000000031'].includes(id)) },
-    { label: 'must pin or flag at least two exact schema/correction ids', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].filter((id) => ['a00000000001', 'a00000000005', 'a00000000022', 'a00000000024'].includes(id)).length >= 2 },
-    { label: 'must pin or flag an eval/recall/diagnostic blocker', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['a00000000011', 'a00000000013', 'a00000000031'].includes(id)) },
-    { label: 'must unpin at least one stale pinned id', pass: (o) => curatorIds(o, 'unpinned').some((id) => ['a00000000015', 'a00000000028'].includes(id)) },
     { label: 'drops must be limited to safe stale/noise ids', pass: (o) => curatorIds(o, 'dropped').every((id) => ['a00000000002', 'a00000000004', 'a00000000006', 'a00000000008', 'a00000000010', 'a00000000012', 'a00000000014', 'a00000000018', 'a00000000019', 'a00000000020', 'a00000000021', 'a00000000023', 'a00000000026', 'a00000000029', 'a00000000030', 'a00000000032'].includes(id)) },
+  ], [
+    { label: 'retains at least two exact schema/correction ids', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].filter((id) => ['a00000000001', 'a00000000005', 'a00000000022', 'a00000000024'].includes(id)).length >= 2 },
+    { label: 'retains eval/recall/diagnostic blocker provenance', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['a00000000011', 'a00000000013', 'a00000000031'].includes(id)) },
+    { label: 'unpins stale pinned evidence after newer evidence', pass: (o) => curatorIds(o, 'unpinned').some((id) => ['a00000000015', 'a00000000028'].includes(id)) },
   ], usage.total, agentDurationMs, curatorEvalDiagnostics({ observations, reflections, phaseMetrics }));
 }
 
@@ -242,7 +246,7 @@ export async function curatorBrutalUnpinTrap(modelSpec: string, judgeModel: stri
   const agentStarted = Date.now();
   const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: ['u00000000001', 'u00000000003', 'u00000000006', 'u00000000009'], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 4, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage, onPhase: (metrics: unknown) => phaseMetrics.push(metrics) });
   const agentDurationMs = Date.now() - agentStarted;
-  return judgedCurator('curator-brutal-unpin-trap', output, {
+  return judgedCuratorScored('curator-brutal-unpin-trap', output, {
     id: 'curator-brutal-unpin-trap',
     question: 'Did the curator unpin only truly stale pinned failures while preserving still-current blockers hidden by misleading partial pass evidence?',
     rubric: {
@@ -262,11 +266,12 @@ export async function curatorBrutalUnpinTrap(modelSpec: string, judgeModel: stri
       ],
     },
   }, judgeModel, started, [
-    { label: 'must unpin stale parser failure', pass: (o) => curatorIds(o, 'unpinned').includes('u00000000001') },
     { label: 'must not unpin current deploy/auth failures', pass: (o) => !curatorIds(o, 'unpinned').some((id) => ['u00000000003', 'u00000000006'].includes(id)) },
-    { label: 'must pin or flag deploy/auth blocker evidence', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['u00000000005', 'u00000000008', 'u00000000014', 'u00000000015'].includes(id)) },
     { label: 'must not drop blockers or verification commands', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['u00000000005', 'u00000000008', 'u00000000013', 'u00000000014', 'u00000000015'].includes(id)) },
     { label: 'drops must be limited to stale/noise', pass: (o) => curatorIds(o, 'dropped').every((id) => ['u00000000010', 'u00000000011', 'u00000000012'].includes(id)) },
+  ], [
+    { label: 'unpins stale parser failure with later passing validation', pass: (o) => curatorIds(o, 'unpinned').includes('u00000000001') },
+    { label: 'retains deploy/auth blocker evidence', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['u00000000005', 'u00000000008', 'u00000000014', 'u00000000015'].includes(id)) },
   ], usage.total, agentDurationMs, curatorEvalDiagnostics({ observations, reflections, phaseMetrics }));
 }
 
@@ -299,7 +304,7 @@ export async function curatorBrutalContradictoryReflections(modelSpec: string, j
   const agentStarted = Date.now();
   const output = await runCurator({ ...auth, reflections, observations, pinnedObservationIds: [], flaggedObservationIds: [], protectedObservationIds: [], maxDropsAllowed: 3, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage, onPhase: (metrics: unknown) => phaseMetrics.push(metrics) });
   const agentDurationMs = Date.now() - agentStarted;
-  return judgedCurator('curator-brutal-contradictory-reflections', output, {
+  return judgedCuratorScored('curator-brutal-contradictory-reflections', output, {
     id: 'curator-brutal-contradictory-reflections',
     question: 'Did the curator detect multiple confidently wrong reflections and preserve/flag corrective evidence instead of trusting the reflections or just cleaning noise?',
     rubric: {
@@ -321,12 +326,13 @@ export async function curatorBrutalContradictoryReflections(modelSpec: string, j
       ],
     },
   }, judgeModel, started, [
-    { label: 'must pin or flag feature flag correction', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['c00000000002', 'c00000000003'].includes(id)) },
-    { label: 'must pin or flag auth failure correction', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].includes('c00000000005') },
-    { label: 'must pin or flag recall/hard-eval correction', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['c00000000007', 'c00000000013'].includes(id)) },
-    { label: 'must pin or flag exact schema correction', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['c00000000010', 'c00000000011'].includes(id)) },
     { label: 'must not drop corrective/current evidence', pass: (o) => !curatorIds(o, 'dropped').some((id) => ['c00000000002', 'c00000000005', 'c00000000007', 'c00000000010', 'c00000000011', 'c00000000013'].includes(id)) },
     { label: 'drops must be limited to noise/stale ids', pass: (o) => curatorIds(o, 'dropped').every((id) => ['c00000000008', 'c00000000009', 'c00000000012'].includes(id)) },
+  ], [
+    { label: 'retains feature flag correction', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['c00000000002', 'c00000000003'].includes(id)) },
+    { label: 'retains auth failure correction', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].includes('c00000000005') },
+    { label: 'retains recall/hard-eval correction', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['c00000000007', 'c00000000013'].includes(id)) },
+    { label: 'retains exact schema correction', pass: (o) => [...curatorIds(o, 'pinned'), ...curatorIds(o, 'flagged')].some((id) => ['c00000000010', 'c00000000011'].includes(id)) },
   ], usage.total, agentDurationMs, curatorEvalDiagnostics({ observations, reflections, phaseMetrics }));
 }
 
