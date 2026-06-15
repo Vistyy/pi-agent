@@ -6,11 +6,9 @@ import {
 	compactionEntry,
 	memoryDetails,
 	observation,
-	observationsDroppedEntry,
 	observationsRecordedEntry,
 	reflection,
 	reflectionsRecordedEntry,
-	reflectionsReviewedEntry,
 	textCustomMessage,
 	type TestEntry,
 } from "./fixtures/session.js";
@@ -66,25 +64,6 @@ describe("/om:view", () => {
 		expect(output).not.toContain("obs_bbbbbbbbbbbb");
 	});
 
-	it("reviewed view renders reviewed observations hidden from context memory", async () => {
-		const reviewed = observation("aaaaaaaaaaaa", { sourceEntryIds: ["raw-1"] });
-		const unreviewed = observation("bbbbbbbbbbbb", { sourceEntryIds: ["raw-2"] });
-		const ref = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
-		const entries = [
-			textCustomMessage("raw-1", "aaaa"),
-			textCustomMessage("raw-2", "bbbb"),
-			observationsRecordedEntry("om-obs", { observations: [reviewed, unreviewed], coversUpToId: "raw-2" }),
-			reflectionsRecordedEntry("om-ref", { reflections: [ref], coversUpToId: "raw-1" }),
-			reflectionsReviewedEntry("om-reviewed", { coversUpToId: "raw-1" }),
-		];
-
-		const { output } = await setup(entries).run("reviewed");
-
-		expect(output).toContain("[ref_eeeeeeeeeeee] Reflection eeeeeeeeeeee");
-		expect(output).toContain("[obs_aaaaaaaaaaaa]");
-		expect(output).not.toContain("obs_bbbbbbbbbbbb");
-	});
-
 	it("full view renders recorded empty states", async () => {
 		const { output } = await setup([]).run("full");
 		const expected = [
@@ -101,6 +80,6 @@ describe("/om:view", () => {
 	it("rejects unsupported view arguments", async () => {
 		const { output } = await setup([]).run("diff");
 
-		expect(output).toBe("Usage: /om:view [context|full|reviewed]");
+		expect(output).toBe("Usage: /om:view [context|full]");
 	});
 });

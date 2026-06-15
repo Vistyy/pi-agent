@@ -3,7 +3,6 @@ import { observationsSinceReflectionCoverage } from "../memory-update/stage-util
 import type { Runtime } from "../runtime.js";
 import {
 	contextProjection,
-	diffContextProjection,
 	foldAgentUsage,
 	foldLedger,
 	fullProjection,
@@ -47,7 +46,6 @@ export async function runStatusCommand(args: unknown, ctx: any, runtime: Runtime
 	const context = contextProjection(entries);
 	const full = fullProjection(entries);
 	const nextContext = nextContextProjection(entries, full);
-	const drift = diffContextProjection(context, nextContext);
 	const memoryUsage = foldAgentUsage(entries);
 
 	const contextTokens = observationTokenSum(context.observations) + reflectionTokenSum(context.reflections);
@@ -74,9 +72,7 @@ export async function runStatusCommand(args: unknown, ctx: any, runtime: Runtime
 			"",
 			"── Details ──",
 			`Strategy: ${runtime.config.strategy}`,
-			`Ledger observations: ${folded.observations.length.toLocaleString()} recorded / ${folded.droppedObservationIds.size.toLocaleString()} dropped / ${folded.activeObservations.length.toLocaleString()} active`,
-			`Review state: ${nextContext.reviewed.length.toLocaleString()} reviewed / ${nextContext.unreviewed.length.toLocaleString()} unreviewed`,
-			`Context drift: +${drift.observationsOnlyInNextContext.length.toLocaleString()} observations, +${drift.reflectionsOnlyInNextContext.length.toLocaleString()} reflections, -${drift.observationsOnlyInContext.length.toLocaleString()} stale observations`,
+			`Ledger observations: ${folded.observations.length.toLocaleString()} recorded`,
 			`Source entries since review cursor: ${reflectionReviewDistance.toLocaleString()}`,
 			"",
 			"── Agent cost ──",

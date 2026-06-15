@@ -1,12 +1,7 @@
 import {
-	isObservationsDroppedData,
-	isObservationsFlaggedData,
 	isReflectionsRewrittenData,
-	normalizeObservationFlagReason,
 	normalizeObservationsRecordedData,
 	normalizeReflectionsRecordedData,
-	OM_OBSERVATIONS_DROPPED,
-	OM_OBSERVATIONS_FLAGGED,
 	OM_OBSERVATIONS_RECORDED,
 	OM_REFLECTIONS_RECORDED,
 	OM_REFLECTIONS_REWRITTEN,
@@ -14,32 +9,22 @@ import {
 	type Observation,
 	type Reflection,
 } from "./types.js";
-import { observationId as typedObservationId, reflectionId as typedReflectionId } from "../memory/ids.js";
+import { reflectionId as typedReflectionId } from "../memory/ids.js";
 
 export type FoldLedgerOptions = {
 	/** Fold entries from branch root through this entry id, inclusive. Omit to fold through branch tip. */
 	upToEntryId?: string;
-	/** Only include observation follow-up flags appended after this ledger index. Omit to include all flags. */
-	pendingFlagsAfterIndex?: number;
 };
 
 export type FoldedLedger = {
-	/** All first-valid observation records encountered through the fold boundary, including dropped observations. */
+	/** All first-valid observation records encountered through the fold boundary. */
 	observations: Observation[];
-	/** Observation records not tombstoned by a folded drop entry. */
+	/** Alias kept for reflector input while active observations remain hidden from projection. */
 	activeObservations: Observation[];
-	/** Tombstoned observation ids, including ids that may not have a corresponding folded observation. */
-	droppedObservationIds: Set<string>;
-	/** Observation ids flagged for reflector follow-up, including ids that may not have a corresponding folded observation. */
-	flaggedObservationIds: Set<string>;
-	/** Follow-up reasons by flagged observation id. Reasons are explanatory context, not deterministic routing. */
-	flaggedObservationReasonsById: Map<string, string[]>;
 	/** All first-valid reflection records encountered through the fold boundary that have not been retired by rewrite. */
 	reflections: Reflection[];
 	/** Reflection ids retired from active projection by rewrite events. */
 	retiredReflectionIds: Set<string>;
-	/** All first-valid observation records by id, including dropped observations. */
-	observationsById: Map<string, Observation>;
 	/** All first-valid reflection records by id. */
 	reflectionsById: Map<string, Reflection>;
 };
@@ -57,10 +42,7 @@ function isCustomEntry(entry: Entry, customType: string): boolean {
 export function foldLedger(entries: Entry[], options: FoldLedgerOptions = {}): FoldedLedger {
 	const observationsById = new Map<string, Observation>();
 	const reflectionsById = new Map<string, Reflection>();
-	const droppedObservationIds = new Set<string>();
 	const retiredReflectionIds = new Set<string>();
-	const flaggedObservationIds = new Set<string>();
-	const flaggedObservationReasonsById = new Map<string, string[]>();
 	const endIdx = foldEndIndex(entries, options.upToEntryId);
 
 	for (let i = 0; i <= endIdx; i++) {
@@ -88,48 +70,17 @@ export function foldLedger(entries: Entry[], options: FoldLedgerOptions = {}): F
 		if (isCustomEntry(entry, OM_REFLECTIONS_REWRITTEN)) {
 			if (!isReflectionsRewrittenData(entry.data)) continue;
 			for (const id of entry.data.retiredReflectionIds) retiredReflectionIds.add(typedReflectionId(id));
-			continue;
 		}
-
-		if (isCustomEntry(entry, OM_OBSERVATIONS_DROPPED)) {
-			if (!isObservationsDroppedData(entry.data)) continue;
-			for (const id of entry.data.observationIds) droppedObservationIds.add(typedObservationId(id));
-			continue;
-		}
-
-		if (isCustomEntry(entry, OM_OBSERVATIONS_FLAGGED)) {
-			if (!isObservationsFlaggedData(entry.data)) continue;
-			if (options.pendingFlagsAfterIndex !== undefined && i <= options.pendingFlagsAfterIndex) continue;
-			const reason = normalizeObservationFlagReason(entry.data.reason);
-			for (const id of entry.data.observationIds) {
-				const observationId = typedObservationId(id);
-				flaggedObservationIds.add(observationId);
-				flaggedObservationReasonsById.set(observationId, [
-					...(flaggedObservationReasonsById.get(observationId) ?? []),
-					reason,
-				].slice(-3));
-			}
-		}
-	}
-
-	for (const observationId of droppedObservationIds) {
-		flaggedObservationIds.delete(observationId);
-		flaggedObservationReasonsById.delete(observationId);
 	}
 
 	const observations = Array.from(observationsById.values());
-	const activeObservations = observations.filter((observation) => !droppedObservationIds.has(observation.id));
 	const reflections = Array.from(reflectionsById.values()).filter((reflection) => !retiredReflectionIds.has(reflection.id));
 
 	return {
 		observations,
-		activeObservations,
-		droppedObservationIds,
-		flaggedObservationIds,
-		flaggedObservationReasonsById,
+		activeObservations: observations,
 		reflections,
 		retiredReflectionIds,
-		observationsById,
 		reflectionsById,
 	};
 }

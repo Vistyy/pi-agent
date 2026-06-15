@@ -13,7 +13,6 @@ import {
 import { toolApi } from "./fixtures/pi.js";
 import {
 	observation,
-	observationsDroppedEntry,
 	observationsRecordedEntry,
 	rawMessage,
 	reflection,
@@ -60,22 +59,6 @@ describe("recall tool", () => {
 		expect(result.details?.matches[0].observation.status).toBe("active");
 		expect(text).toContain("I like tea.");
 		expect(formatRecallRenderedResultForTui(result, false)).toContain("✓ observation");
-	});
-
-	it("renders dropped observations as recallable but dropped", async () => {
-		const obs = observation("aaaaaaaaaaaa", { content: "User likes tea.", sourceEntryIds: ["raw-1"] });
-		const entries = [
-			rawMessage("raw-1", "I like tea."),
-			observationsRecordedEntry("om-obs", { observations: [obs], coversUpToId: "raw-1" }),
-			observationsDroppedEntry("om-drop", { observationIds: ["aaaaaaaaaaaa"], coversUpToId: "om-obs" }),
-		];
-
-		const { result, text } = await execute("aaaaaaaaaaaa", entries);
-		const tui = formatRecallRenderedResultForTui(result, false);
-
-		expect(result.details?.matches[0].observation.status).toBe("dropped");
-		expect(text).toContain("dropped from active memory but remains recallable");
-		expect(tui).toContain("[dropped]");
 	});
 
 	it("renders reflection recall with supporting observations and sources", async () => {

@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
 	normalizeSourceIds,
-	observationToMemoryAgentLine,
 	runReflector,
 	summarizeSupportIdCounts,
 } from "../src/agents/reflector/agent.js";
@@ -20,71 +19,17 @@ describe("reflector agent", () => {
 		observations: [obsA, obsB],
 	};
 
-	it("renders coverage tiers in every active observation line for the reflector", async () => {
-		const none = observation("aaaaaaaaaaaa", { content: "Uncovered durable fact" });
-		const partial = observation("bbbbbbbbbbbb", { content: "Partially covered fact" });
-		const strong = observation("cccccccccccc", { content: "Strongly covered fact" });
+	it("renders active observation lines for the reflector", async () => {
 		let userText = "";
 		const loop = fakeAgentLoop((prompts) => {
 			userText = prompts[0].content[0].text;
 		});
 
-		await runReflector({
-			...baseArgs,
-			observations: [none, partial, strong],
-			reflections: [
-				reflection("rrrrrrrrrrr1", ["bbbbbbbbbbbb", "cccccccccccc"]),
-				reflection("rrrrrrrrrrr2", ["cccccccccccc"]),
-			],
-			agentLoop: loop,
-		});
+		await runReflector({ ...baseArgs, agentLoop: loop });
 
 		expect(userText).toContain("[obs_aaaaaaaaaaaa]");
-		expect(userText).toContain("[coverage: none] Uncovered durable fact");
-		expect(userText).toContain("[coverage: partial] Partially covered fact");
-		expect(userText).toContain("[coverage: strong] Strongly covered fact");
-	});
-
-	it("renders flagged follow-up observations with reasons", async () => {
-		let userText = "";
-		const loop = fakeAgentLoop((prompts) => {
-			userText = prompts[0].content[0].text;
-		});
-
-		await runReflector({
-			...baseArgs,
-			flaggedObservations: [{ observation: obsB, reasons: ["Reflection omitted exact error path."] }],
-			agentLoop: loop,
-		});
-
-		expect(userText).toContain("FLAGGED FOR FOLLOW-UP");
-		expect(userText).toContain("[obs_bbbbbbbbbbbb]");
-		expect(userText).toContain("[obs_bbbbbbbbbbbb] — Reflection omitted exact error path.");
-		expect(userText).toContain("Their full text is in CURRENT OBSERVATIONS.");
-		expect(userText).toContain("This does not modify existing reflections.");
-		expect(userText).toContain("Use the reasons as context, not as fixed categories.");
-	});
-
-	it("omits flagged follow-up section when there are no flagged observations", async () => {
-		let userText = "";
-		const loop = fakeAgentLoop((prompts) => {
-			userText = prompts[0].content[0].text;
-		});
-
-		await runReflector({ ...baseArgs, flaggedObservations: [], agentLoop: loop });
-
-		expect(userText).not.toContain("FLAGGED FOR FOLLOW-UP");
-	});
-
-	it("renders reflector observation lines with coverage evidence only", () => {
-		const line = observationToMemoryAgentLine(
-			observation("aaaaaaaaaaaa", { content: "Important reflected fact" }),
-			"partial",
-		);
-
-		expect(line).toContain("[obs_aaaaaaaaaaaa]");
-		expect(line).toContain("[coverage: partial]");
-		expect(line).toContain("Important reflected fact");
+		expect(userText).toContain("Observation aaaaaaaaaaaa");
+		expect(userText).not.toContain("coverage:");
 	});
 
 	it("summarizes accepted reflection support-id counts without exposing ids", () => {

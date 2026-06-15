@@ -1,5 +1,4 @@
 import {
-	isObservationsDroppedEntry,
 	normalizeObservationsRecordedData,
 	normalizeReflectionsRecordedData,
 	type Entry,
@@ -28,7 +27,7 @@ export type RecalledObservation = {
 	observation: Observation;
 	observationEntryId: string;
 	observationRecordIndex: number;
-	status: "active" | "dropped";
+	status: "active";
 	sourceEntryIds: string[];
 	sourceEntries: Entry[];
 	missingSourceEntryIds: string[];
@@ -94,11 +93,9 @@ function uniqueStrings(values: string[]): string[] {
 function indexLedger(entries: Entry[]): {
 	observations: IndexedObservation[];
 	reflections: IndexedReflection[];
-	droppedIds: Set<string>;
 } {
 	const observations: IndexedObservation[] = [];
 	const reflections: IndexedReflection[] = [];
-	const droppedIds = new Set<string>();
 
 	for (let entryIndex = 0; entryIndex < entries.length; entryIndex++) {
 		const entry = entries[entryIndex];
@@ -116,13 +113,9 @@ function indexLedger(entries: Entry[]): {
 			});
 			continue;
 		}
-		if (isObservationsDroppedEntry(entry)) {
-			entry.data.observationIds.forEach((id) => droppedIds.add(observationId(id)));
-		}
 	}
 
-	return { observations, reflections, droppedIds };
-}
+	return { observations, reflections };}
 
 function resolveObservationSources(entries: Entry[], observation: Observation, location: ObservationLedgerLocation): RecalledObservation {
 	const sourceEntryIds = uniqueStrings(observation.sourceEntryIds);
@@ -173,7 +166,7 @@ function notFound(memoryId: string): RecallResult {
 }
 
 export function recallMemorySources(entries: Entry[], memoryId: string): RecallResult {
-	const { observations: indexedObservations, reflections: indexedReflections, droppedIds } = indexLedger(entries);
+	const { observations: indexedObservations, reflections: indexedReflections } = indexLedger(entries);
 	const observationLookupId = isLegacyMemoryId(memoryId) ? observationId(memoryId) : memoryId;
 	const reflectionLookupId = isLegacyMemoryId(memoryId) ? reflectionId(memoryId) : memoryId;
 	const directObservationMatches = indexedObservations.filter(({ observation }) => observation.id === observationLookupId);
@@ -197,7 +190,7 @@ export function recallMemorySources(entries: Entry[], memoryId: string): RecallR
 		const key = `${indexed.entryId}:${indexed.recordIndex}`;
 		if (recalledByKey.has(key)) return;
 		const recalled = resolveObservationSources(entries, indexed.observation, indexed);
-		recalled.status = droppedIds.has(indexed.observation.id) ? "dropped" : "active";
+		recalled.status = "active";
 		recalledByKey.set(key, recalled);
 	}
 

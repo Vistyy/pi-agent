@@ -1,9 +1,6 @@
 export const OM_OBSERVATIONS_RECORDED = "om.observations.recorded";
 export const OM_REFLECTIONS_RECORDED = "om.reflections.recorded";
-export const OM_REFLECTIONS_REVIEWED = "om.reflections.reviewed";
 export const OM_REFLECTIONS_REWRITTEN = "om.reflections.rewritten";
-export const OM_OBSERVATIONS_DROPPED = "om.observations.dropped";
-export const OM_OBSERVATIONS_FLAGGED = "om.observations.flagged";
 export const OM_FOLDED = "om.folded";
 
 import { isLegacyMemoryId, isObservationId, isReflectionId, observationId, reflectionId } from "../memory/ids.js";
@@ -56,10 +53,6 @@ export type ReflectionsRecordedEntryData = {
 	coversUpToId: string;
 };
 
-export type ReflectionsReviewedEntryData = {
-	coversUpToId: string;
-};
-
 export type ReflectionsRewrittenEntryData = {
 	retiredReflectionIds: string[];
 	newReflectionIds: string[];
@@ -67,19 +60,6 @@ export type ReflectionsRewrittenEntryData = {
 	discardedReflectionIds: string[];
 	discardedSummary: string;
 };
-
-export type ObservationsDroppedEntryData = {
-	observationIds: string[];
-	coversUpToId: string;
-};
-
-export type ObservationsFlaggedEntryData = {
-	observationIds: string[];
-	/** Short one-line explanation for reflector follow-up. Used as context, not deterministic routing. */
-	reason: string;
-};
-
-const OBSERVATION_FLAG_REASON_MAX_LENGTH = 240;
 
 export type MemoryDetails = {
 	type: typeof OM_FOLDED;
@@ -91,10 +71,7 @@ export type MemoryDetails = {
 export type MemoryCustomType =
 	| typeof OM_OBSERVATIONS_RECORDED
 	| typeof OM_REFLECTIONS_RECORDED
-	| typeof OM_REFLECTIONS_REVIEWED
-	| typeof OM_REFLECTIONS_REWRITTEN
-	| typeof OM_OBSERVATIONS_DROPPED
-	| typeof OM_OBSERVATIONS_FLAGGED;
+	| typeof OM_REFLECTIONS_REWRITTEN;
 
 export function isNonEmptyString(value: unknown): value is string {
 	return typeof value === "string" && value.length > 0;
@@ -179,7 +156,7 @@ export function isObservationsRecordedData(value: unknown): value is Observation
 }
 
 export function normalizeReflectionsRecordedData(value: unknown, createdAt: string): ReflectionsRecordedEntryData | undefined {
-	if (!isPlainRecord(value) || !Array.isArray(value.reflections) || value.reflections.length === 0 || !isNonEmptyString(value.coversUpToId)) return undefined;
+	if (!isPlainRecord(value) || !Array.isArray(value.reflections) || !isNonEmptyString(value.coversUpToId)) return undefined;
 	const reflections = value.reflections.map((reflection) => normalizeReflection(reflection, createdAt));
 	if (reflections.some((reflection) => !reflection)) return undefined;
 	return { reflections: reflections as Reflection[], coversUpToId: value.coversUpToId };
@@ -187,11 +164,6 @@ export function normalizeReflectionsRecordedData(value: unknown, createdAt: stri
 
 export function isReflectionsRecordedData(value: unknown): value is ReflectionsRecordedEntryData {
 	return !!normalizeReflectionsRecordedData(value, "1970-01-01T00:00:00.000Z");
-}
-
-export function isReflectionsReviewedData(value: unknown): value is ReflectionsReviewedEntryData {
-	if (!isPlainRecord(value)) return false;
-	return isNonEmptyString(value.coversUpToId);
 }
 
 export function isReflectionsRewrittenData(value: unknown): value is ReflectionsRewrittenEntryData {
@@ -203,24 +175,6 @@ export function isReflectionsRewrittenData(value: unknown): value is Reflections
 		isStringArray(value.discardedReflectionIds) &&
 		isNonEmptyString(value.discardedSummary)
 	);
-}
-
-export function isObservationsDroppedData(value: unknown): value is ObservationsDroppedEntryData {
-	if (!isPlainRecord(value)) return false;
-	return isNonEmptyStringArray(value.observationIds) && isNonEmptyString(value.coversUpToId);
-}
-
-export function normalizeObservationFlagReason(value: string): string {
-	return value.replace(/[\r\n]+/g, " ").trim().slice(0, OBSERVATION_FLAG_REASON_MAX_LENGTH);
-}
-
-export function isObservationFlagReason(value: unknown): value is string {
-	return typeof value === "string" && normalizeObservationFlagReason(value).length > 0;
-}
-
-export function isObservationsFlaggedData(value: unknown): value is ObservationsFlaggedEntryData {
-	if (!isPlainRecord(value)) return false;
-	return isNonEmptyStringArray(value.observationIds) && isObservationFlagReason(value.reason);
 }
 
 export function isMemoryDetails(value: unknown): value is MemoryDetails {
@@ -251,36 +205,12 @@ export function isReflectionsRecordedEntry(entry: Entry): entry is Entry & {
 	return entry.type === "custom" && entry.customType === OM_REFLECTIONS_RECORDED && isReflectionsRecordedData(entry.data);
 }
 
-export function isReflectionsReviewedEntry(entry: Entry): entry is Entry & {
-	type: "custom";
-	customType: typeof OM_REFLECTIONS_REVIEWED;
-	data: ReflectionsReviewedEntryData;
-} {
-	return entry.type === "custom" && entry.customType === OM_REFLECTIONS_REVIEWED && isReflectionsReviewedData(entry.data);
-}
-
 export function isReflectionsRewrittenEntry(entry: Entry): entry is Entry & {
 	type: "custom";
 	customType: typeof OM_REFLECTIONS_REWRITTEN;
 	data: ReflectionsRewrittenEntryData;
 } {
 	return entry.type === "custom" && entry.customType === OM_REFLECTIONS_REWRITTEN && isReflectionsRewrittenData(entry.data);
-}
-
-export function isObservationsDroppedEntry(entry: Entry): entry is Entry & {
-	type: "custom";
-	customType: typeof OM_OBSERVATIONS_DROPPED;
-	data: ObservationsDroppedEntryData;
-} {
-	return entry.type === "custom" && entry.customType === OM_OBSERVATIONS_DROPPED && isObservationsDroppedData(entry.data);
-}
-
-export function isObservationsFlaggedEntry(entry: Entry): entry is Entry & {
-	type: "custom";
-	customType: typeof OM_OBSERVATIONS_FLAGGED;
-	data: ObservationsFlaggedEntryData;
-} {
-	return entry.type === "custom" && entry.customType === OM_OBSERVATIONS_FLAGGED && isObservationsFlaggedData(entry.data);
 }
 
 export function buildObservationsRecordedData(
@@ -295,35 +225,13 @@ export function buildReflectionsRecordedData(
 	reflections: Reflection[],
 	coversUpToId: string,
 ): ReflectionsRecordedEntryData | undefined {
-	if (reflections.length === 0 || !isNonEmptyString(coversUpToId)) return undefined;
-	return { reflections, coversUpToId };
-}
-
-export function buildReflectionsReviewedData(coversUpToId: string): ReflectionsReviewedEntryData | undefined {
 	if (!isNonEmptyString(coversUpToId)) return undefined;
-	return { coversUpToId };
+	return { reflections, coversUpToId };
 }
 
 export function buildReflectionsRewrittenData(
 	data: ReflectionsRewrittenEntryData,
 ): ReflectionsRewrittenEntryData | undefined {
 	return isReflectionsRewrittenData(data) ? data : undefined;
-}
-
-export function buildObservationsDroppedData(
-	observationIds: string[],
-	coversUpToId: string,
-): ObservationsDroppedEntryData | undefined {
-	if (observationIds.length === 0 || !isNonEmptyString(coversUpToId)) return undefined;
-	return { observationIds, coversUpToId };
-}
-
-export function buildObservationsFlaggedData(
-	observationIds: string[],
-	reason: string,
-): ObservationsFlaggedEntryData | undefined {
-	const normalizedReason = normalizeObservationFlagReason(reason);
-	if (observationIds.length === 0 || !isObservationFlagReason(normalizedReason)) return undefined;
-	return { observationIds, reason: normalizedReason };
 }
 

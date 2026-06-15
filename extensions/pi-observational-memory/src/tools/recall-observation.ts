@@ -26,7 +26,7 @@ type RecallObservationToolStatus =
 	| "no_source"
 	| "source_unavailable";
 
-type ObservationDetails = Pick<Observation, "id" | "content" | "timestamp"> & { status?: "active" | "dropped" };
+type ObservationDetails = Pick<Observation, "id" | "content" | "timestamp"> & { status?: "active" };
 type ReflectionDetails = Pick<Reflection, "id" | "content" | "sources" | "createdAt"> & { reflectionIndex: number };
 
 export type RecallSourceEntryDetails = {
@@ -39,7 +39,7 @@ export type RecallSourceEntryDetails = {
 };
 
 type RecallObservationMatchDetails = {
-	status: "active" | "dropped" | "source_unavailable" | "no_source";
+	status: "active" | "source_unavailable" | "no_source";
 	observationEntryId: string;
 	observationRecordIndex: number;
 	observation: ObservationDetails;
@@ -142,7 +142,7 @@ function sourceEntryDetails(entry: Entry, includeContent: boolean): RecallSource
 	};
 }
 
-function observationDetails(observation: Observation, status?: "active" | "dropped"): ObservationDetails {
+function observationDetails(observation: Observation, status?: "active"): ObservationDetails {
 	return { id: observation.id, content: observation.content, timestamp: observation.timestamp, ...(status ? { status } : {}) };
 }
 
@@ -212,7 +212,7 @@ function reflectionLineText(reflection: ReflectionDetails): string {
 }
 
 function observationLineText(observation: ObservationDetails): string {
-	const status = observation.status === "dropped" ? " [dropped]" : "";
+	const status = "";
 	return `[${observation.id}]${status} ${observation.timestamp} ${observation.content}`;
 }
 
@@ -225,7 +225,6 @@ function renderObservationOnlyTextFromResult(result: Extract<RecallResult, { sta
 	const sections: string[] = [];
 	if (result.collision) sections.push(`Memory id ${result.memoryId} matched multiple observations; returning all matching source results from the current branch.`);
 	for (const match of directObservationMatches(result)) {
-		if (match.status === "dropped") sections.push(`Observation ${match.observation.id} is dropped from active memory but remains recallable.`);
 		if (match.missingSourceEntryIds.length > 0 || match.nonSourceEntryIds.length > 0) {
 			sections.push(friendlySourceUnavailableMessage(observationMatchDetails(match, false)));
 			continue;
@@ -352,7 +351,7 @@ function sourceMetadataLine(source: RecallSourceEntryDetails): string {
 }
 
 function observationLine(observation: ObservationDetails): string {
-	const status = observation.status === "dropped" ? " dropped" : "";
+	const status = "";
 	return alignedRow("✓ observation", `${observation.timestamp}${status}`, observation.content);
 }
 
@@ -398,7 +397,6 @@ function noteRows(details: RecallObservationToolDetails, sources: RecallSourceEn
 		return notes;
 	}
 	if (details.collision) notes.push(noteLine("id collision", `multiple memory items share ${details.memoryId}`));
-	if (details.observations.some((match) => match.observation.status === "dropped")) notes.push(noteLine("dropped", "one or more observations are dropped from active memory but remain recallable"));
 	if (details.unavailableSupportingObservations.length > 0) notes.push(noteLine("missing support", details.unavailableSupportingObservations.map((item) => item.observationId).join(", ")));
 	if (details.missingSourceEntryIds.length > 0) notes.push(noteLine("missing source", details.missingSourceEntryIds.join(", ")));
 	if (details.nonSourceEntryIds.length > 0) notes.push(noteLine("non-source", details.nonSourceEntryIds.join(", ")));

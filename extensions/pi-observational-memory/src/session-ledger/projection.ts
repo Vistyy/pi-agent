@@ -1,10 +1,9 @@
 import { foldLedger } from "./fold.js";
 import { observationTokenSum } from "./memory-tokens.js";
-import { entryIndexById, latestReflectionReviewIndex } from "./progress.js";
+import { entryIndexById } from "./progress.js";
 import {
 	OM_FOLDED,
 	isMemoryDetails,
-	isObservationsDroppedEntry,
 	isReflectionsRewrittenData,
 	normalizeObservationsRecordedData,
 	normalizeReflectionsRecordedData,
@@ -13,7 +12,7 @@ import {
 	type Observation,
 	type Reflection,
 } from "./types.js";
-import { observationId as typedObservationId, reflectionId as typedReflectionId } from "../memory/ids.js";
+import { reflectionId as typedReflectionId } from "../memory/ids.js";
 
 export type Projection = {
 	observations: Observation[];
@@ -26,12 +25,7 @@ export type ContextProjectionDiff = {
 	observationsOnlyInContext: Observation[];
 };
 
-export type ReviewClassification = {
-	reviewed: Observation[];
-	unreviewed: Observation[];
-};
-
-export type NextContextProjection = Projection & ReviewClassification;
+export type NextContextProjection = Projection;
 
 export type CompactionProjectionConfig = {
 	observationsPoolMaxTokens: number;
@@ -45,7 +39,6 @@ export type CompactionProjection = Projection & {
 type FoldBoundaries = {
 	observationsThroughIndex: number;
 	reflectionsThroughIndex: number;
-	dropsThroughIndex: number;
 };
 
 function tipIndex(entries: Entry[]): number {
@@ -78,7 +71,6 @@ function foldProjection(entries: Entry[], boundaries: FoldBoundaries): Projectio
 	const reflections: Reflection[] = [];
 	const observationsById = new Set<string>();
 	const reflectionsById = new Set<string>();
-	const droppedObservationIds = new Set<string>();
 	const retiredReflectionIds = new Set<string>();
 
 	for (const entry of entries) {
@@ -106,14 +98,10 @@ function foldProjection(entries: Entry[], boundaries: FoldBoundaries): Projectio
 			for (const reflectionId of entry.data.retiredReflectionIds) retiredReflectionIds.add(typedReflectionId(reflectionId));
 			continue;
 		}
-
-		if (isObservationsDroppedEntry(entry) && isCoveredAtOrBefore(entry, indexes, boundaries.dropsThroughIndex)) {
-			for (const observationId of entry.data.observationIds) droppedObservationIds.add(typedObservationId(observationId));
-		}
 	}
 
 	return {
-		observations: observations.filter((observation) => !droppedObservationIds.has(observation.id)),
+		observations,
 		reflections: reflections.filter((reflection) => !retiredReflectionIds.has(reflection.id)),
 	};
 }
@@ -140,7 +128,6 @@ export function fullProjection(entries: Entry[], upToEntryId?: string): Projecti
 	return foldProjection(entries, {
 		observationsThroughIndex: throughIndex,
 		reflectionsThroughIndex: throughIndex,
-		dropsThroughIndex: throughIndex,
 	});
 }
 
@@ -154,32 +141,10 @@ export function contextProjection(entries: Entry[]): Projection {
 	return { observations: context.observations, reflections: context.reflections };
 }
 
-export function classifyObservationsByReview(entries: Entry[], observations: Observation[]): ReviewClassification {
-	const reviewIndex = latestReflectionReviewIndex(entries);
-	if (reviewIndex < 0) return { reviewed: [], unreviewed: [...observations] };
-
-	const indexes = entryIndexById(entries);
-	const reviewed: Observation[] = [];
-	const unreviewed: Observation[] = [];
-
-	for (const observation of observations) {
-		const isReviewed = observation.sourceEntryIds.length > 0 && observation.sourceEntryIds.every((sourceEntryId) => {
-			const sourceIndex = indexes.get(sourceEntryId);
-			return sourceIndex !== undefined && sourceIndex <= reviewIndex;
-		});
-		if (isReviewed) reviewed.push(observation);
-		else unreviewed.push(observation);
-	}
-
-	return { reviewed, unreviewed };
-}
-
-export function nextContextProjection(entries: Entry[], projection: Projection): NextContextProjection {
-	const classified = classifyObservationsByReview(entries, projection.observations);
+export function nextContextProjection(_entries: Entry[], projection: Projection): NextContextProjection {
 	return {
 		reflections: projection.reflections,
 		observations: [],
-		...classified,
 	};
 }
 
@@ -212,7 +177,6 @@ function buildIncrementalCompactionProjection(entries: Entry[], seed: Projection
 	const folded = foldProjection(entries, {
 		observationsThroughIndex: tipIndex(entries),
 		reflectionsThroughIndex: tipIndex(entries),
-		dropsThroughIndex: latestFullFoldBoundaryIndex,
 	});
 	return mergeProjection(seed, folded);
 }

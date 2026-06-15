@@ -5,12 +5,9 @@ import type { Runtime } from "../runtime.js";
 import {
 	OM_OBSERVATIONS_RECORDED,
 	OM_REFLECTIONS_RECORDED,
-	OM_REFLECTIONS_REVIEWED,
 	buildReflectionsRecordedData,
-	buildReflectionsReviewedData,
 	foldLedger,
 	latestCoverageMarkerId,
-	latestReflectionReviewEntryIndex,
 	type Entry,
 } from "../session-ledger/index.js";
 import { appendTransientCompactionReflections } from "./compaction-state.js";
@@ -30,20 +27,13 @@ export async function runReflectorStage(
 		return "continue";
 	}
 
-	const folded = foldLedger(entries, { pendingFlagsAfterIndex: latestReflectionReviewEntryIndex(entries) });
+	const folded = foldLedger(entries);
 	const unreflectedObservations = observationsSinceReflectionCoverage(entries, folded.activeObservations);
-	const flaggedObservations = folded.activeObservations
-		.filter((observation) => folded.flaggedObservationIds.has(observation.id))
-		.map((observation) => ({
-			observation,
-			reasons: folded.flaggedObservationReasonsById.get(observation.id) ?? [],
-		}));
-	const reflectionWorkCount = unreflectedObservations.length + flaggedObservations.length;
+	const reflectionWorkCount = unreflectedObservations.length;
 	if (reflectionWorkCount < runtime.config.reflectEveryObservations) {
 		debugLog("reflector.skip", {
 			reason: "below_observation_threshold",
 			unreflectedObservationCount: unreflectedObservations.length,
-			flaggedObservationCount: flaggedObservations.length,
 			reflectionWorkCount,
 			reflectEveryObservations: runtime.config.reflectEveryObservations,
 			activeObservationCount: folded.activeObservations.length,
@@ -53,14 +43,13 @@ export async function runReflectorStage(
 	debugLog("reflector.stage_run", {
 		unreflectedObservationCount: unreflectedObservations.length,
 		activeObservationCount: folded.activeObservations.length,
-		flaggedObservationCount: flaggedObservations.length,
 		reflectionWorkCount,
 		reflectionCount: folded.reflections.length,
 		observationCoverageId,
 	});
 
 	if (ctx.hasUI) ctx.ui?.notify(
-		`Observational memory: reflector running (${reflectionWorkCount.toLocaleString()} reflection work items: ${unreflectedObservations.length.toLocaleString()} unreviewed, ${flaggedObservations.length.toLocaleString()} flagged)`,
+		`Observational memory: reflector running (${reflectionWorkCount.toLocaleString()} unreviewed observation${reflectionWorkCount === 1 ? "" : "s"})`,
 		"info",
 	);
 	const resolved = await resolveModel("reflector");
@@ -70,18 +59,12 @@ export async function runReflectorStage(
 		...commonAgentArgs(pi, runtime, resolved, runtime.config.reflectorThinking),
 		reflections: folded.reflections,
 		observations: folded.activeObservations,
-		flaggedObservations,
 	});
 	if (!reflections) {
 		debugLog("reflector.no_tool_output", { observationCoverageId });
 		return "continue";
 	}
-	if (reflections.length === 0) {
-		const reviewedData = buildReflectionsReviewedData(observationCoverageId);
-		debugLog("reflector.reviewed_empty", { observationCoverageId, appendedReview: reviewedData !== undefined });
-		if (reviewedData) pi.appendEntry(OM_REFLECTIONS_REVIEWED, reviewedData);
-		return "continue";
-	}
+	if (reflections.length === 0) debugLog("reflector.reviewed_empty", { observationCoverageId });
 
 	const data = buildReflectionsRecordedData(reflections, observationCoverageId);
 	if (!data) return "continue";

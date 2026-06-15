@@ -1,7 +1,6 @@
 import type { Runtime } from "../runtime.js";
 import {
 	foldLedger,
-	latestReflectionReviewEntryIndex,
 	reflectionTokenSum,
 	sourceEntryCountSinceObservationCoverage,
 	type Entry,
@@ -15,10 +14,8 @@ export type MemoryStageDue = {
 };
 
 export function computeMemoryStageDue(entries: Entry[], runtime: Runtime): MemoryStageDue {
-	const folded = foldLedger(entries, { pendingFlagsAfterIndex: latestReflectionReviewEntryIndex(entries) });
-	const unreflectedObservationCount = observationsSinceReflectionCoverage(entries, folded.activeObservations).length;
-	const flaggedActiveObservationCount = folded.activeObservations.filter((observation) => folded.flaggedObservationIds.has(observation.id)).length;
-	const reflectionWorkCount = unreflectedObservationCount + flaggedActiveObservationCount;
+	const folded = foldLedger(entries);
+	const reflectionWorkCount = observationsSinceReflectionCoverage(entries, folded.activeObservations).length;
 	return {
 		observerDue: sourceEntryCountSinceObservationCoverage(entries) >= runtime.config.observeEveryMessages,
 		reflectorDue: reflectionWorkCount >= runtime.config.reflectEveryObservations,

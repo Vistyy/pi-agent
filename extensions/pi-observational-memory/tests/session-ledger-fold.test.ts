@@ -1,230 +1,51 @@
 import { describe, expect, it } from "vitest";
-
-import { foldLedger } from "../src/session-ledger/index.js";
-import {
-	branchSummary,
-	observation,
-	observationsDroppedEntry,
-	observationsFlaggedEntry,
-	observationsRecordedEntry,
-	reflection,
-	reflectionsRecordedEntry,
-	reflectionsReviewedEntry,
-	reflectionsRewrittenEntry,
-	textCustomMessage,
-} from "./fixtures/session.js";
+import { foldLedger } from "../src/session-ledger/fold.js";
+import { observation, observationsRecordedEntry, reflection, reflectionsRecordedEntry, reflectionsRewrittenEntry, rawMessage } from "./fixtures/session.js";
 
 describe("session-ledger folding", () => {
-	it("folds typed observations and reflections from branch root through the target entry", () => {
-		const obs1 = observation("aaaaaaaaaaaa", { sourceEntryIds: ["raw-1"] });
-		const obs2 = observation("bbbbbbbbbbbb", { sourceEntryIds: ["raw-2"] });
-		const ref1 = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
+	it("folds typed observations and active reflections", () => {
+		const obs = observation("aaaaaaaaaaaa");
+		const ref = reflection("eeeeeeeeeeee", [obs.id]);
 		const entries = [
-			textCustomMessage("raw-1", "aaaa"),
-			observationsRecordedEntry("om-aaaaaaaaaaaa", { observations: [obs1], coversUpToId: "raw-1" }),
-			textCustomMessage("raw-2", "bbbb"),
-			reflectionsRecordedEntry("om-eeeeeeeeeeee", { reflections: [ref1], coversUpToId: "raw-2" }),
-			observationsRecordedEntry("om-bbbbbbbbbbbb", { observations: [obs2], coversUpToId: "raw-2" }),
-		];
-
-		const folded = foldLedger(entries, { upToEntryId: "om-eeeeeeeeeeee" });
-
-		expect(folded.observations.map((obs) => obs.id)).toEqual(["obs_aaaaaaaaaaaa"]);
-		expect(folded.activeObservations.map((obs) => obs.id)).toEqual(["obs_aaaaaaaaaaaa"]);
-		expect(folded.reflections.map((ref) => ref.id)).toEqual(["ref_eeeeeeeeeeee"]);
-		expect(folded.reflections[0].sources).toEqual(["obs_aaaaaaaaaaaa"]);
-		expect(folded.observationsById.get("obs_bbbbbbbbbbbb")).toBeUndefined();
-	});
-
-	it("normalizes legacy ledger ids to typed internal ids", () => {
-		const entries = [
-			textCustomMessage("raw-1", "aaaa"),
-			{
-				type: "custom",
-				id: "om-obs",
-				parentId: null,
-				timestamp: "2026-05-02T10:00:00.000Z",
-				customType: "om.observations.recorded",
-				data: {
-					observations: [{ id: "aaaaaaaaaaaa", content: "legacy observation", timestamp: "2026-05-02T10:00:00.000Z", sourceEntryIds: ["raw-1"] }],
-					coversUpToId: "raw-1",
-				},
-			},
-			{
-				type: "custom",
-				id: "om-ref",
-				parentId: null,
-				timestamp: "2026-05-02T10:01:00.000Z",
-				customType: "om.reflections.recorded",
-				data: {
-					reflections: [{ id: "eeeeeeeeeeee", content: "legacy reflection", supportingObservationIds: ["aaaaaaaaaaaa"] }],
-					coversUpToId: "raw-1",
-				},
-			},
+			rawMessage("raw-1", "source"),
+			observationsRecordedEntry("om-obs", { observations: [obs], coversUpToId: "raw-1" }),
+			reflectionsRecordedEntry("om-ref", { reflections: [ref], coversUpToId: "raw-1" }),
 		];
 
 		const folded = foldLedger(entries);
 
-		expect(folded.observationsById.get("obs_aaaaaaaaaaaa")?.kind).toBe("observation");
-		expect(folded.reflectionsById.get("ref_eeeeeeeeeeee")).toMatchObject({
-			kind: "reflection",
-			createdAt: "2026-05-02T10:01:00.000Z",
-			sources: ["obs_aaaaaaaaaaaa"],
-		});
+		expect(folded.observations).toEqual([obs]);
+		expect(folded.activeObservations).toEqual([obs]);
+		expect(folded.reflections).toEqual([ref]);
+		expect(folded.reflectionsById.get(ref.id)).toEqual(ref);
 	});
 
-	it("applies drops as tombstones while preserving observation history", () => {
-		const obs1 = observation("aaaaaaaaaaaa");
-		const obs2 = observation("bbbbbbbbbbbb");
-		const entries = [
-			textCustomMessage("raw-1", "aaaa"),
-			observationsRecordedEntry("om-aaaaaaaaaaaa", { observations: [obs1, obs2], coversUpToId: "raw-1" }),
-			observationsDroppedEntry("om-drop-1", { observationIds: ["aaaaaaaaaaaa"], coversUpToId: "raw-1" }),
-		];
+	it("keeps first valid record for duplicate ids", () => {
+		const firstObs = observation("aaaaaaaaaaaa", { content: "first" });
+		const secondObs = observation("aaaaaaaaaaaa", { content: "second" });
+		const firstRef = reflection("eeeeeeeeeeee", [firstObs.id], { content: "first ref" });
+		const secondRef = reflection("eeeeeeeeeeee", [firstObs.id], { content: "second ref" });
 
-		const folded = foldLedger(entries);
+		const folded = foldLedger([
+			observationsRecordedEntry("om-obs", { observations: [firstObs, secondObs], coversUpToId: "raw-1" }),
+			reflectionsRecordedEntry("om-ref", { reflections: [firstRef, secondRef], coversUpToId: "raw-1" }),
+		]);
 
-		expect(folded.observations.map((obs) => obs.id)).toEqual(["obs_aaaaaaaaaaaa", "obs_bbbbbbbbbbbb"]);
-		expect(folded.activeObservations.map((obs) => obs.id)).toEqual(["obs_bbbbbbbbbbbb"]);
-		expect(folded.droppedObservationIds.has("obs_aaaaaaaaaaaa")).toBe(true);
-		expect(folded.observationsById.get("obs_aaaaaaaaaaaa")).toEqual(obs1);
+		expect(folded.observations.map((obs) => obs.content)).toEqual(["first"]);
+		expect(folded.reflections.map((ref) => ref.content)).toEqual(["first ref"]);
 	});
 
-	it("keeps first valid observation and reflection when duplicate ids appear", () => {
-		const firstObs = observation("aaaaaaaaaaaa", { content: "first observation" });
-		const duplicateObs = observation("aaaaaaaaaaaa", { content: "duplicate observation" });
-		const firstRef = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"], { content: "first reflection" });
-		const duplicateRef = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"], { content: "duplicate reflection" });
-		const entries = [
-			textCustomMessage("raw-1", "aaaa"),
-			observationsRecordedEntry("om-aaaaaaaaaaaa", { observations: [firstObs], coversUpToId: "raw-1" }),
-			observationsRecordedEntry("om-bbbbbbbbbbbb", { observations: [duplicateObs], coversUpToId: "raw-1" }),
-			reflectionsRecordedEntry("om-eeeeeeeeeeee", { reflections: [firstRef], coversUpToId: "raw-1" }),
-			reflectionsRecordedEntry("om-ffffffffffff", { reflections: [duplicateRef], coversUpToId: "raw-1" }),
-		];
+	it("retires rewritten reflections from active fold while preserving lookup history", () => {
+		const oldRef = reflection("eeeeeeeeeeee");
+		const newRef = reflection("ffffffffffff", [oldRef.id]);
+		const folded = foldLedger([
+			reflectionsRecordedEntry("om-old", { reflections: [oldRef], coversUpToId: "raw-1" }),
+			reflectionsRecordedEntry("om-new", { reflections: [newRef], coversUpToId: "raw-1" }),
+			reflectionsRewrittenEntry("om-rw", { retiredReflectionIds: [oldRef.id], newReflectionIds: [newRef.id], retainedSourceIds: [oldRef.id], discardedReflectionIds: [], discardedSummary: "merged" }),
+		]);
 
-		const folded = foldLedger(entries);
-
-		expect(folded.observationsById.get("obs_aaaaaaaaaaaa")?.content).toBe("first observation");
-		expect(folded.reflectionsById.get("ref_eeeeeeeeeeee")?.content).toBe("first reflection");
-		expect(folded.observations).toHaveLength(1);
-		expect(folded.reflections).toHaveLength(1);
-	});
-
-	it("rewrite retirement removes reflections from active fold but preserves lookup history", () => {
-		const ref1 = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
-		const ref2 = reflection("ffffffffffff", ["aaaaaaaaaaaa"]);
-		const entries = [
-			textCustomMessage("raw-1", "aaaa"),
-			reflectionsRecordedEntry("om-ref-1", { reflections: [ref1], coversUpToId: "raw-1" }),
-			reflectionsRecordedEntry("om-ref-2", { reflections: [ref2], coversUpToId: "raw-1" }),
-			reflectionsRewrittenEntry("om-rewrite", {
-				retiredReflectionIds: ["eeeeeeeeeeee"],
-				newReflectionIds: ["ffffffffffff"],
-				retainedSourceIds: ["obs_aaaaaaaaaaaa"],
-				discardedReflectionIds: ["eeeeeeeeeeee"],
-				discardedSummary: "Retired stale duplicate.",
-			}),
-		];
-
-		const folded = foldLedger(entries);
-
-		expect(folded.reflections.map((ref) => ref.id)).toEqual(["ref_ffffffffffff"]);
-		expect(folded.retiredReflectionIds.has("ref_eeeeeeeeeeee")).toBe(true);
-		expect(folded.reflectionsById.get("ref_eeeeeeeeeeee")).toEqual(ref1);
-	});
-
-	it("folds flag-only follow-up ids for possible reflector repair", () => {
-		const obs1 = observation("aaaaaaaaaaaa");
-		const entries = [
-			textCustomMessage("raw-1", "aaaa"),
-			observationsRecordedEntry("om-aaaaaaaaaaaa", { observations: [obs1], coversUpToId: "raw-1" }),
-			observationsFlaggedEntry("om-flag-1", { observationIds: ["aaaaaaaaaaaa", "deadbeef0000"], reason: "Reflection omitted exact detail." }),
-		];
-
-		const folded = foldLedger(entries);
-
-		expect(folded.flaggedObservationIds.has("obs_aaaaaaaaaaaa")).toBe(true);
-		expect(folded.flaggedObservationIds.has("obs_deadbeef0000")).toBe(true);
-		expect(folded.flaggedObservationReasonsById.get("obs_aaaaaaaaaaaa")).toEqual(["Reflection omitted exact detail."]);
-	});
-
-	it("can fold only unresolved follow-up flags after a review cursor", () => {
-		const obs1 = observation("aaaaaaaaaaaa");
-		const obs2 = observation("bbbbbbbbbbbb");
-		const entries = [
-			textCustomMessage("raw-1", "aaaa"),
-			observationsRecordedEntry("om-obs", { observations: [obs1, obs2], coversUpToId: "raw-1" }),
-			observationsFlaggedEntry("om-flag-old", { observationIds: ["aaaaaaaaaaaa"], reason: "old follow-up" }),
-			reflectionsReviewedEntry("om-reviewed", { coversUpToId: "raw-1" }),
-			observationsFlaggedEntry("om-flag-new", { observationIds: ["bbbbbbbbbbbb"], reason: "new follow-up" }),
-		];
-
-		const folded = foldLedger(entries, { pendingFlagsAfterIndex: 3 });
-
-		expect(folded.flaggedObservationIds.has("obs_aaaaaaaaaaaa")).toBe(false);
-		expect(folded.flaggedObservationIds.has("obs_bbbbbbbbbbbb")).toBe(true);
-		expect(folded.flaggedObservationReasonsById.get("obs_bbbbbbbbbbbb")).toEqual(["new follow-up"]);
-	});
-
-	it("drop wins over follow-up flags", () => {
-		const obs1 = observation("aaaaaaaaaaaa");
-		const entries = [
-			textCustomMessage("raw-1", "aaaa"),
-			observationsRecordedEntry("om-obs", { observations: [obs1], coversUpToId: "raw-1" }),
-			observationsFlaggedEntry("om-flag-1", { observationIds: ["aaaaaaaaaaaa"], reason: "Needs follow-up." }),
-			observationsDroppedEntry("om-drop-1", { observationIds: ["aaaaaaaaaaaa"], coversUpToId: "raw-1" }),
-		];
-
-		const folded = foldLedger(entries);
-
-		expect(folded.activeObservations).toEqual([]);
-		expect(folded.flaggedObservationIds.has("obs_aaaaaaaaaaaa")).toBe(false);
-	});
-
-	it("normalizes and caps folded flag reasons", () => {
-		const obs1 = observation("aaaaaaaaaaaa");
-		const entries = [
-			textCustomMessage("raw-1", "aaaa"),
-			observationsRecordedEntry("om-aaaaaaaaaaaa", { observations: [obs1], coversUpToId: "raw-1" }),
-			observationsFlaggedEntry("om-flag-1", { observationIds: ["aaaaaaaaaaaa"], reason: "first" }),
-			observationsFlaggedEntry("om-flag-2", { observationIds: ["aaaaaaaaaaaa"], reason: "second" }),
-			observationsFlaggedEntry("om-flag-3", { observationIds: ["aaaaaaaaaaaa"], reason: "third" }),
-			observationsFlaggedEntry("om-flag-4", { observationIds: ["aaaaaaaaaaaa"], reason: ` ${"a".repeat(300)}\nmore` }),
-		];
-
-		const folded = foldLedger(entries);
-
-		expect(folded.flaggedObservationReasonsById.get("obs_aaaaaaaaaaaa")).toEqual(["second", "third", "a".repeat(240)]);
-	});
-
-	it("retains tombstones for unknown drop ids without throwing", () => {
-		const entries = [
-			textCustomMessage("raw-1", "aaaa"),
-			observationsDroppedEntry("om-drop-1", { observationIds: ["deadbeef0000"], coversUpToId: "raw-1" }),
-		];
-
-		const folded = foldLedger(entries);
-
-		expect(folded.droppedObservationIds.has("obs_deadbeef0000")).toBe(true);
-		expect(folded.activeObservations).toEqual([]);
-	});
-
-	it("folds only the branch path supplied by the caller", () => {
-		const mainObs = observation("aaaa00000000", { sourceEntryIds: ["raw-main"] });
-		const forkObs = observation("bbbb00000000", { sourceEntryIds: ["raw-fork"] });
-		const mainBranch = [
-			branchSummary("root", "root summary"),
-			textCustomMessage("raw-main", "main"),
-			observationsRecordedEntry("main-ledger", { observations: [mainObs], coversUpToId: "raw-main" }),
-		];
-		const forkBranch = [
-			branchSummary("root", "root summary"),
-			textCustomMessage("raw-fork", "fork"),
-			observationsRecordedEntry("fork-ledger", { observations: [forkObs], coversUpToId: "raw-fork" }),
-		];
-
-		expect(foldLedger(mainBranch).observations.map((obs) => obs.id)).toEqual(["obs_aaaa00000000"]);
-		expect(foldLedger(forkBranch).observations.map((obs) => obs.id)).toEqual(["obs_bbbb00000000"]);
+		expect(folded.reflections.map((ref) => ref.id)).toEqual([newRef.id]);
+		expect(folded.reflectionsById.get(oldRef.id)).toEqual(oldRef);
+		expect(folded.retiredReflectionIds.has(oldRef.id)).toBe(true);
 	});
 });

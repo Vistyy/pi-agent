@@ -1,9 +1,7 @@
 import { estimateEntryTokens } from "../memory/token-estimate.js";
 import {
-	OM_OBSERVATIONS_DROPPED,
 	OM_OBSERVATIONS_RECORDED,
 	OM_REFLECTIONS_RECORDED,
-	OM_REFLECTIONS_REVIEWED,
 	type Entry,
 	type MemoryCustomType,
 } from "./types.js";
@@ -35,9 +33,8 @@ function isValidCoverageEntry(entry: Entry, customType: MemoryCustomType): entry
 	if (!isObject(entry.data) || typeof entry.data.coversUpToId !== "string") return false;
 
 	if (customType === OM_OBSERVATIONS_RECORDED) return Array.isArray(entry.data.observations);
-	if (customType === OM_REFLECTIONS_RECORDED) return Array.isArray(entry.data.reflections) && entry.data.reflections.length > 0;
-	if (customType === OM_REFLECTIONS_REVIEWED) return true;
-	return Array.isArray(entry.data.observationIds) && entry.data.observationIds.length > 0;
+	if (customType === OM_REFLECTIONS_RECORDED) return Array.isArray(entry.data.reflections);
+	return false;
 }
 
 export function latestCoverageIndex(entries: Entry[], customType: MemoryCustomType): number {
@@ -101,16 +98,7 @@ export function sourceEntryCountSinceObservationCoverage(entries: Entry[]): numb
 }
 
 export function latestReflectionReviewIndex(entries: Entry[]): number {
-	return Math.max(latestCoverageIndex(entries, OM_REFLECTIONS_RECORDED), latestCoverageIndex(entries, OM_REFLECTIONS_REVIEWED));
-}
-
-export function latestReflectionReviewEntryIndex(entries: Entry[]): number {
-	let latest = -1;
-	for (let i = 0; i < entries.length; i++) {
-		const entry = entries[i];
-		if (isValidCoverageEntry(entry, OM_REFLECTIONS_RECORDED) || isValidCoverageEntry(entry, OM_REFLECTIONS_REVIEWED)) latest = i;
-	}
-	return latest;
+	return latestCoverageIndex(entries, OM_REFLECTIONS_RECORDED);
 }
 
 export function latestReflectionReviewMarkerId(entries: Entry[]): string | undefined {
@@ -142,9 +130,5 @@ export function sourceTokensSinceReflectionCoverage(entries: Entry[]): number {
 
 export function sourceTokensSinceReflectionReviewCoverage(entries: Entry[]): number {
 	return sourceTokensAfterIndex(entries, latestReflectionReviewIndex(entries));
-}
-
-export function sourceTokensSinceDropCoverage(entries: Entry[]): number {
-	return sourceTokensSinceCoverage(entries, OM_OBSERVATIONS_DROPPED);
 }
 

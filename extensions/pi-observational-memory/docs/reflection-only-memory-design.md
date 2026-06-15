@@ -12,7 +12,7 @@ active memory = current reflections only
 recall = exact evidence recovery
 ```
 
-Observations are not prompt memory. They are background evidence used by reflector, rewrite, and recall.
+Observations are not prompt memory. They are background evidence used by reflector and recall. Rewrite may preserve `obs_*` provenance ids already present in active reflections, but it does not inject observation contents into rewrite context for now.
 
 ## Non-goals
 
@@ -182,18 +182,17 @@ Algorithm:
 
 ```text
 1. Deterministically select all current active reflections.
-2. Build bounded rewrite input.
-3. Include timestamps/order for reflections and sourced observations needed for stale/current reasoning.
-4. Ask LLM for a smaller set of normal Reflection records.
-5. Mechanically validate output.
-6. If valid, append rewrite event:
+2. Build rewrite input from active reflection summary lines only.
+3. Ask LLM for a smaller set of normal Reflection records.
+4. Mechanically validate output.
+5. If valid, append rewrite event:
    - records new reflections
    - retires rewritten active reflections from projection
    - stores hidden audit metadata
-7. If invalid, no-op and retire nothing.
+6. If invalid, no-op and retire nothing.
 ```
 
-Start with full rewrite of all current active reflections. Do not add clustering or multi-phase rewrite unless evals show one pass is insufficient.
+Start with full rewrite of all current active reflections. Do not add observation-content expansion, clustering, or multi-phase rewrite unless evals show reflection-only one-pass rewrite is insufficient. Partial observation evidence can mislead stale/current reasoning, and full evidence can explode context.
 
 ## Rewrite event
 
@@ -240,7 +239,7 @@ Hard checks:
 
 - all ids are typed and valid
 - every new reflection id is new and valid
-- every source id exists in the rewrite packet or allowed ledger scope
+- every source id exists in the active reflection rewrite input or allowed provenance ids from those reflections
 - every new reflection has at least one source
 - no invented sources
 - no retired id outside active candidate set
@@ -269,7 +268,7 @@ Policy:
 
 - record last failure reason
 - report active-memory pressure in status
-- retry after cooldown, new evidence, or manual trigger
+- retry when the active reflection set changes, or after manual trigger if one is added later
 - if repeated failures occur, keep compaction working with larger active memory rather than losing information
 
 Status should make this visible:

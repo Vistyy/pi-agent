@@ -7,7 +7,6 @@ import {
 	compactionEntry,
 	memoryDetails,
 	observation,
-	observationsDroppedEntry,
 	observationsRecordedEntry,
 	reflection,
 	reflectionsRecordedEntry,
@@ -125,7 +124,6 @@ describe("compaction hook", () => {
 			textCustomMessage("raw-2", "bbbb"),
 			observationsRecordedEntry("om-bbbbbbbbbbbb", { observations: [obs2], coversUpToId: "raw-2" }),
 			reflectionsRecordedEntry("om-ffffffffffff", { reflections: [ref2], coversUpToId: "raw-2" }),
-			observationsDroppedEntry("om-drop-2", { observationIds: ["aaaaaaaaaaaa"], coversUpToId: "raw-2" }),
 		];
 		const { run } = setup({ entries, observationsPoolMaxTokens: 100 });
 
@@ -152,7 +150,6 @@ describe("compaction hook", () => {
 			textCustomMessage("raw-2", "bbbb"),
 			observationsRecordedEntry("om-bbbbbbbbbbbb", { observations: [obs2], coversUpToId: "raw-2" }),
 			reflectionsRecordedEntry("om-ffffffffffff", { reflections: [ref2], coversUpToId: "raw-2" }),
-			observationsDroppedEntry("om-drop-2", { observationIds: ["aaaaaaaaaaaa"], coversUpToId: "raw-2" }),
 		];
 		const { run } = setup({ entries, observationsPoolMaxTokens: 10 });
 

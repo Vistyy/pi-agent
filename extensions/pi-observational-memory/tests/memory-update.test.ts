@@ -16,20 +16,15 @@ import { registerMemoryUpdateHook } from "../src/memory-update/scheduler.js";
 import { Runtime } from "../src/runtime.js";
 import {
 	OM_AGENT_RUN_RECORDED,
-	OM_OBSERVATIONS_DROPPED,
 	OM_OBSERVATIONS_RECORDED,
 	OM_REFLECTIONS_RECORDED,
-	OM_REFLECTIONS_REVIEWED,
 	OM_REFLECTIONS_REWRITTEN,
 } from "../src/session-ledger/index.js";
 import {
 	observation,
-	observationsDroppedEntry,
-	observationsFlaggedEntry,
 	observationsRecordedEntry,
 	reflection,
 	reflectionsRecordedEntry,
-	reflectionsReviewedEntry,
 	rawMessage,
 	type TestEntry,
 } from "./fixtures/session.js";
@@ -184,7 +179,6 @@ describe("memory update hook", () => {
 			rawMessage("raw-1", "aaaa"),
 			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
 			reflectionsRecordedEntry("om-ref", { reflections: [refA], coversUpToId: "raw-1" }),
-			observationsDroppedEntry("om-drop", { observationIds: ["aaaaaaaaaaaa"], coversUpToId: "raw-1" }),
 		];
 		const { fireAgentStart, fireTurnEnd, runtime } = setup({ entries, observeEveryMessages: 10, reflectEveryObservations: 10 });
 
@@ -328,7 +322,6 @@ describe("memory update hook", () => {
 			rawMessage("raw-1", "aaaaaaaa"),
 			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
 			rawMessage("raw-2", "bbbbbbbb"),
-			observationsDroppedEntry("om-drop", { observationIds: ["bbbbbbbbbbbb"], coversUpToId: "raw-2" }),
 		];
 		const { fire, runLaunchedWork, pi } = setup({ entries, observeEveryMessages: 999 });
 
@@ -339,126 +332,10 @@ describe("memory update hook", () => {
 		expect(pi.appendEntry).toHaveBeenCalledWith(OM_REFLECTIONS_RECORDED, { reflections: [newRef], coversUpToId: "raw-1" });
 	});
 
-	it("counts follow-up flags toward the reflector threshold", async () => {
-		mockAgents.runReflector.mockResolvedValueOnce([]);
-		const entries = [
-			rawMessage("raw-1", "aaaaaaaa"),
-			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
-			reflectionsRecordedEntry("om-ref", { reflections: [reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"])], coversUpToId: "raw-1" }),
-			observationsFlaggedEntry("om-flag", { observationIds: ["aaaaaaaaaaaa"], reason: "Reflection omitted exact error path." }),
-		];
-		const { fire, runLaunchedWork } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 1 });
-
-		fire();
-		await runLaunchedWork();
-
-		expect(mockAgents.runReflector).toHaveBeenCalledWith(expect.objectContaining({
-			observations: [obsA],
-			flaggedObservations: [{ observation: obsA, reasons: ["Reflection omitted exact error path."] }],
-		}));
-	});
-
-	it("does not count follow-up flags already covered by reflector review", async () => {
-		const entries = [
-			rawMessage("raw-1", "aaaaaaaa"),
-			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
-			observationsFlaggedEntry("om-flag", { observationIds: ["aaaaaaaaaaaa"], reason: "Reflection omitted exact error path." }),
-			reflectionsReviewedEntry("om-reviewed", { coversUpToId: "raw-1" }),
-		];
-		const { fire, runLaunchedWork } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 1 });
-
-		fire();
-		await runLaunchedWork();
-
-		expect(mockAgents.runReflector).not.toHaveBeenCalled();
-	});
-
-	it("does not run reflector for follow-up flags below the reflector threshold", async () => {
-		const entries = [
-			rawMessage("raw-1", "aaaaaaaa"),
-			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
-			reflectionsRecordedEntry("om-ref", { reflections: [reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"])], coversUpToId: "raw-1" }),
-			observationsFlaggedEntry("om-flag", { observationIds: ["aaaaaaaaaaaa"], reason: "Reflection omitted exact error path." }),
-		];
-		const { fire, runLaunchedWork } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 2 });
-
-		fire();
-		await runLaunchedWork();
-
-		expect(mockAgents.runReflector).not.toHaveBeenCalled();
-	});
-
-
-
-	it("runs rewrite when active reflection tokens exceed the rewrite budget", async () => {
-		const oldRefs = ["eeeeeeeeeeee", "eeeeeeeeeee1", "eeeeeeeeeee2", "eeeeeeeeeee3", "eeeeeeeeeee4"].map((id) => reflection(id, ["aaaaaaaaaaaa"], { content: `Old active reflection ${id} with enough text to exceed the small rewrite budget.` }));
-		const newRef = reflection("ffffffffffff", [oldRefs[0].id], { content: "Compact replacement reflection." });
-		mockAgents.runRewrite.mockResolvedValueOnce({
-			reflections: [newRef],
-			retiredReflectionIds: oldRefs.map((ref) => ref.id),
-			newReflectionIds: [newRef.id],
-			retainedSourceIds: [oldRefs[0].id],
-			discardedReflectionIds: [],
-			discardedSummary: "No discarded details.",
-		});
-		const entries = [
-			rawMessage("raw-1", "aaaaaaaa"),
-			reflectionsRecordedEntry("om-ref", { reflections: oldRefs, coversUpToId: "raw-1" }),
-		];
-		const { fire, runLaunchedWork, getMemoryAppends } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 999, reflectionsPoolMaxTokens: 1 });
-
-		fire();
-		await runLaunchedWork();
-
-		expect(mockAgents.runRewrite).toHaveBeenCalledWith(expect.objectContaining({ reflections: oldRefs, maxTurns: 9, thinkingLevel: "minimal" }));
-		expect(getMemoryAppends()).toEqual([
-			{ customType: OM_REFLECTIONS_RECORDED, data: { reflections: [newRef], coversUpToId: "om-ref" } },
-			{ customType: OM_REFLECTIONS_REWRITTEN, data: { retiredReflectionIds: oldRefs.map((ref) => ref.id), newReflectionIds: [newRef.id], retainedSourceIds: [oldRefs[0].id], discardedReflectionIds: [], discardedSummary: "No discarded details." } },
-		]);
-	});
-
-	it("backs off rewrite no-op until active reflections change", async () => {
-		const oldRefs = ["eeeeeeeeeeee", "eeeeeeeeeee1", "eeeeeeeeeee2", "eeeeeeeeeee3", "eeeeeeeeeee4"].map((id) => reflection(id, ["aaaaaaaaaaaa"], { content: `Old active reflection ${id} with enough text to exceed budget.` }));
-		const entries = [rawMessage("raw-1", "aaaaaaaa"), reflectionsRecordedEntry("om-ref", { reflections: oldRefs, coversUpToId: "raw-1" })];
-		const { fire, runLaunchedWork } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 999, reflectionsPoolMaxTokens: 1 });
-
-		fire();
-		await runLaunchedWork();
-		fire();
-		await runLaunchedWork();
-
-		expect(mockAgents.runRewrite).toHaveBeenCalledTimes(1);
-	});
-
-	it("retries rewrite backoff after active reflections change", async () => {
-		const oldRefs = ["eeeeeeeeeeee", "eeeeeeeeeee1", "eeeeeeeeeee2", "eeeeeeeeeee3", "eeeeeeeeeee4"].map((id) => reflection(id, ["aaaaaaaaaaaa"], { content: `Old active reflection ${id} with enough text to exceed budget.` }));
-		const addedRef = reflection("eeeeeeeeeee5", ["aaaaaaaaaaaa"], { content: "New active reflection changes the rewrite input set." });
-		const newRef = reflection("ffffffffffff", [oldRefs[0].id], { content: "Compact replacement reflection." });
-		const entries = [rawMessage("raw-1", "aaaaaaaa"), reflectionsRecordedEntry("om-ref", { reflections: oldRefs, coversUpToId: "raw-1" })];
-		const { fire, runLaunchedWork, pi } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 999, reflectionsPoolMaxTokens: 1 });
-
-		fire();
-		await runLaunchedWork();
-		pi.appendEntry(OM_REFLECTIONS_RECORDED, { reflections: [addedRef], coversUpToId: "raw-1" });
-		mockAgents.runRewrite.mockResolvedValueOnce({
-			reflections: [newRef],
-			retiredReflectionIds: [...oldRefs, addedRef].map((ref) => ref.id),
-			newReflectionIds: [newRef.id],
-			retainedSourceIds: [oldRefs[0].id],
-			discardedReflectionIds: [],
-			discardedSummary: "No discarded details.",
-		});
-		fire();
-		await runLaunchedWork();
-
-		expect(mockAgents.runRewrite).toHaveBeenCalledTimes(2);
-	});
-
 	it("does not launch only because the old active observation pool threshold is exceeded", async () => {
 		const entries = [
 			rawMessage("raw-1", "aaaaaaaa"),
 			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
-			reflectionsReviewedEntry("om-reviewed", { coversUpToId: "raw-1" }),
 		];
 		const { fire, runLaunchedWork, runtime } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 999 });
 
