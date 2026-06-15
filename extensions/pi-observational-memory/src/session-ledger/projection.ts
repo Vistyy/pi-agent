@@ -19,12 +19,6 @@ export type Projection = {
 	reflections: Reflection[];
 };
 
-export type ContextProjectionDiff = {
-	observationsOnlyInNextContext: Observation[];
-	reflectionsOnlyInNextContext: Reflection[];
-	observationsOnlyInContext: Observation[];
-};
-
 export type NextContextProjection = Projection;
 
 export type CompactionProjectionConfig = {
@@ -216,16 +210,4 @@ export function buildNextCompactionProjection(
 	if (!shouldFullFold(incrementalProjection, config)) return withCompactionDetails(nextContextProjection(entries, incrementalProjection), incrementalProjection, false);
 	const fullFoldProjection = buildFullFoldCompactionProjection(entries, firstKeptEntryId);
 	return withCompactionDetails(nextContextProjection(entries, fullFoldProjection), fullFoldProjection, true);
-}
-
-export function diffContextProjection(context: Projection, nextContext: Projection): ContextProjectionDiff {
-	const contextObservationIds = new Set(context.observations.map((observation) => observation.id));
-	const nextContextObservationIds = new Set(nextContext.observations.map((observation) => observation.id));
-	const contextReflectionIds = new Set(context.reflections.map((reflection) => reflection.id));
-
-	return {
-		observationsOnlyInNextContext: nextContext.observations.filter((observation) => !contextObservationIds.has(observation.id)),
-		reflectionsOnlyInNextContext: nextContext.reflections.filter((reflection) => !contextReflectionIds.has(reflection.id)),
-		observationsOnlyInContext: context.observations.filter((observation) => !nextContextObservationIds.has(observation.id)),
-	};
 }

@@ -69,18 +69,6 @@ export function latestCoverageMarkerId(entries: Entry[], customType: MemoryCusto
 	return latestMarkerId;
 }
 
-export function earlierCoverageMarkerId(entries: Entry[], firstId: string | undefined, secondId: string | undefined): string | undefined {
-	if (!firstId) return secondId;
-	if (!secondId) return firstId;
-
-	const idToIndex = entryIndexById(entries);
-	const firstIndex = idToIndex.get(firstId);
-	const secondIndex = idToIndex.get(secondId);
-	if (firstIndex === undefined) return secondIndex === undefined ? undefined : secondId;
-	if (secondIndex === undefined) return firstId;
-	return firstIndex <= secondIndex ? firstId : secondId;
-}
-
 export function sourceEntriesAfterIndex(entries: Entry[], index: number): Entry[] {
 	return entries.slice(index + 1).filter(isSourceEntry);
 }
@@ -124,11 +112,4 @@ export function sourceEntryCountSinceReflectionReviewCoverage(entries: Entry[]):
 	return sourceEntryCountAfterIndex(entries, latestReflectionReviewIndex(entries));
 }
 
-export function sourceTokensSinceReflectionCoverage(entries: Entry[]): number {
-	return sourceTokensSinceCoverage(entries, OM_REFLECTIONS_RECORDED);
-}
-
-export function sourceTokensSinceReflectionReviewCoverage(entries: Entry[]): number {
-	return sourceTokensAfterIndex(entries, latestReflectionReviewIndex(entries));
-}
 

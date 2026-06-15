@@ -29,7 +29,6 @@ export type MemoryAgentLoopArgs = {
 	tools: AgentTool<any>[];
 	agentName?: MemoryAgentName;
 	onUsage?: (usage: MemoryAgentUsage) => void;
-	onAssistantText?: (text: string) => void;
 };
 
 export function joinOrEmpty(items: readonly string[]): string {
@@ -138,13 +137,6 @@ export async function runMemoryAgentLoop(args: MemoryAgentLoopArgs): Promise<voi
 			// Tool execution side effects collect outputs.
 		}
 		const result = await stream.result();
-		if (args.onAssistantText) {
-			for (const message of result as Array<{ role?: string; content?: Array<{ type?: string; text?: string }> }>) {
-				if (message.role !== "assistant") continue;
-				const text = (message.content ?? []).filter((item) => item.type === "text" && typeof item.text === "string").map((item) => item.text).join("\n").trim();
-				if (text) args.onAssistantText(text);
-			}
-		}
 		debugLog("memory_agent.end", {
 			agent: args.agentName,
 			durationMs: Date.now() - started,
