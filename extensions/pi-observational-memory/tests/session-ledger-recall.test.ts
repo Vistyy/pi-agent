@@ -5,6 +5,7 @@ import { OM_OBSERVATIONS_DROPPED, OM_OBSERVATIONS_RECORDED, OM_REFLECTIONS_RECOR
 const OBS_1 = "obs_aaaaaaaaaaaa";
 const OBS_2 = "obs_bbbbbbbbbbbb";
 const REF_1 = "ref_cccccccccccc";
+const REF_2 = "ref_dddddddddddd";
 const MISSING_OBS = "obs_eeeeeeeeeeee";
 
 function sourceEntry(id: string, content = `source ${id}`): Entry {
@@ -87,6 +88,24 @@ describe("session-ledger recall", () => {
 		expect(result.reflections.map((match) => match.reflection.id)).toEqual([REF_1]);
 		expect(result.observations.map((match) => match.observation.id)).toEqual([OBS_1, OBS_2]);
 		expect(result.sourceEntries.map((entry) => entry.id)).toEqual(["src-1", "src-2"]);
+		expect(result.partial).toBe(false);
+	});
+
+	it("recalls transitive ref-to-ref supporting observations", () => {
+		const entries = [
+			sourceEntry("src-1"),
+			observationsEntry("obs-entry-1", [observation(OBS_1, ["src-1"])]),
+			reflectionsEntry("ref-entry-1", [reflection(REF_1, [OBS_1])]),
+			reflectionsEntry("ref-entry-2", [reflection(REF_2, [REF_1])]),
+		];
+
+		const result = recallMemorySources(entries, REF_2);
+
+		expect(result.status).toBe("found");
+		if (result.status !== "found") return;
+		expect(result.reflections.map((match) => match.reflection.id)).toEqual([REF_2]);
+		expect(result.observations.map((match) => match.observation.id)).toEqual([OBS_1]);
+		expect(result.sourceEntries.map((entry) => entry.id)).toEqual(["src-1"]);
 		expect(result.partial).toBe(false);
 	});
 

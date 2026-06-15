@@ -185,6 +185,10 @@ export function recallMemorySources(entries: Entry[], memoryId: string): RecallR
 	for (const indexed of indexedObservations) {
 		if (!observationsById.has(indexed.observation.id)) observationsById.set(indexed.observation.id, indexed);
 	}
+	const reflectionsById = new Map<string, IndexedReflection>();
+	for (const indexed of indexedReflections) {
+		if (!reflectionsById.has(indexed.reflection.id)) reflectionsById.set(indexed.reflection.id, indexed);
+	}
 
 	const recalledByKey = new Map<string, RecalledObservation>();
 	const missingSupportingObservationIds: string[] = [];
@@ -199,16 +203,28 @@ export function recallMemorySources(entries: Entry[], memoryId: string): RecallR
 
 	for (const match of directObservationMatches) addObservation(match);
 
-	for (const { reflection } of reflectionMatches) {
-		for (const observationId of uniqueStrings(reflection.sources.filter((source) => source.startsWith("obs_")))) {
-			const indexed = observationsById.get(observationId);
-			if (!indexed) {
-				missingSupportingObservationIds.push(observationId);
+	const visitedReflectionIds = new Set<string>();
+	function addReflectionSources(reflection: Reflection): void {
+		if (visitedReflectionIds.has(reflection.id)) return;
+		visitedReflectionIds.add(reflection.id);
+		for (const source of uniqueStrings(reflection.sources)) {
+			if (source.startsWith("obs_")) {
+				const indexed = observationsById.get(source);
+				if (!indexed) {
+					missingSupportingObservationIds.push(source);
+					continue;
+				}
+				addObservation(indexed);
 				continue;
 			}
-			addObservation(indexed);
+			if (source.startsWith("ref_")) {
+				const indexed = reflectionsById.get(source);
+				if (indexed) addReflectionSources(indexed.reflection);
+			}
 		}
 	}
+
+	for (const { reflection } of reflectionMatches) addReflectionSources(reflection);
 
 	const recalledObservations = Array.from(recalledByKey.values());
 	const recalledReflections: RecalledReflection[] = reflectionMatches.map(({ reflection, entryId, recordIndex }) => ({

@@ -403,6 +403,7 @@ describe("memory update hook", () => {
 		});
 		const entries = [
 			rawMessage("raw-1", "aaaaaaaa"),
+			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
 			reflectionsRecordedEntry("om-ref", { reflections: oldRefs, coversUpToId: "raw-1" }),
 		];
 		const { fire, runLaunchedWork, getMemoryAppends } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 999, reflectionsPoolMaxTokens: 1 });
@@ -410,7 +411,7 @@ describe("memory update hook", () => {
 		fire();
 		await runLaunchedWork();
 
-		expect(mockAgents.runRewrite).toHaveBeenCalledWith(expect.objectContaining({ reflections: oldRefs, maxTurns: 9, thinkingLevel: "minimal" }));
+		expect(mockAgents.runRewrite).toHaveBeenCalledWith(expect.objectContaining({ reflections: oldRefs, observations: [obsA], maxTurns: 9, thinkingLevel: "minimal" }));
 		expect(getMemoryAppends()).toEqual([
 			{ customType: OM_REFLECTIONS_RECORDED, data: { reflections: [newRef], coversUpToId: "om-ref" } },
 			{ customType: OM_REFLECTIONS_REWRITTEN, data: { retiredReflectionIds: oldRefs.map((ref) => ref.id), newReflectionIds: [newRef.id], retainedSourceIds: [oldRefs[0].id], discardedReflectionIds: [], discardedSummary: "No discarded details." } },

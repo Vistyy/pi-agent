@@ -12,14 +12,18 @@ describe("rewrite agent", () => {
 
 	it("records compact rewritten reflections with audit metadata", async () => {
 		const content = "User needs exact paths and blocker commands preserved.";
-		const loop = fakeAgentLoop(async (_prompts, context) => {
+		const observations = [{ id: "obs_111111111111", kind: "observation" as const, content: "Observation evidence", createdAt: "2026-05-02T10:00:00.000Z", sources: ["raw-1"], timestamp: "2026-05-02T10:00:00.000Z", sourceEntryIds: ["raw-1"] }];
+		const loop = fakeAgentLoop(async (prompts, context) => {
+			const promptText = prompts.flatMap((prompt) => prompt.content.map((part) => part.text ?? "")).join("\n");
+			expect(promptText).toContain("SOURCE OBSERVATIONS:");
+			expect(promptText).toContain("2026-05-02T10:00:00.000Z Observation evidence");
 			await context.tools[0].execute("tool-1", {
 				discardedSummary: "Merged duplicate verbose details.",
 				reflections: [{ content, sources: [oldB.id, oldA.id, "obs_111111111111"] }],
 			});
 		});
 
-		const result = await runRewrite({ ...baseArgs, agentLoop: loop });
+		const result = await runRewrite({ ...baseArgs, observations, agentLoop: loop });
 
 		expect(result).toMatchObject({
 			retiredReflectionIds: [oldA.id, oldB.id],
