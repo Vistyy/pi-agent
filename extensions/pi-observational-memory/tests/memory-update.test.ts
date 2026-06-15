@@ -4,10 +4,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mockAgents = vi.hoisted(() => ({
 	runObserver: vi.fn(),
 	runReflector: vi.fn(),
+	runRewrite: vi.fn(),
 }));
 
 vi.mock("../src/agents/observer/agent.js", () => ({ runObserver: mockAgents.runObserver }));
 vi.mock("../src/agents/reflector/agent.js", () => ({ runReflector: mockAgents.runReflector }));
+vi.mock("../src/agents/rewrite/agent.js", () => ({ runRewrite: mockAgents.runRewrite }));
 
 import { ensureObservedBeforeCompaction } from "../src/memory-update/compaction.js";
 import { registerMemoryUpdateHook } from "../src/memory-update/scheduler.js";
@@ -18,6 +20,7 @@ import {
 	OM_OBSERVATIONS_RECORDED,
 	OM_REFLECTIONS_RECORDED,
 	OM_REFLECTIONS_REVIEWED,
+	OM_REFLECTIONS_REWRITTEN,
 } from "../src/session-ledger/index.js";
 import {
 	observation,
@@ -35,14 +38,17 @@ import { memoryUpdateApi, type AgentStartHandler, type TurnEndHandler } from "./
 beforeEach(() => {
 	mockAgents.runObserver.mockReset();
 	mockAgents.runReflector.mockReset();
+	mockAgents.runRewrite.mockReset();
 	mockAgents.runObserver.mockResolvedValue(undefined);
 	mockAgents.runReflector.mockResolvedValue(undefined);
+	mockAgents.runRewrite.mockResolvedValue(undefined);
 });
 
 function setup(args: {
 	entries: TestEntry[];
 	observeEveryMessages?: number;
 	reflectEveryObservations?: number;
+	reflectionsPoolMaxTokens?: number;
 	observationsPoolMaxTokens?: number;
 	maxInitialObserveTokens?: number;
 	strategy?: "replacement" | "off";
@@ -67,15 +73,17 @@ function setup(args: {
 			reflectEveryObservations: args.reflectEveryObservations ?? 1,
 			maxInitialObserveTokens: args.maxInitialObserveTokens ?? 100_000,
 			observationsPoolMaxTokens: args.observationsPoolMaxTokens ?? 100,
+			reflectionsPoolMaxTokens: args.reflectionsPoolMaxTokens ?? 100,
 			agentMaxTurns: 9,
 			model: { provider: "anthropic", id: "memory", thinking: "minimal" },
 		},
 		memoryUpdateInFlight: args.memoryUpdateInFlight ?? false,
 		inFlightObserverStagePromise: args.inFlightObserverStagePromise ?? null,
-		memoryUpdatePhase: undefined as "observer" | "reflector" | undefined,
+		memoryUpdatePhase: undefined as "observer" | "reflector" | "rewrite" | undefined,
 		resolveFailureNotified: false,
 		lastObserverError: undefined as string | undefined,
 		lastReflectorError: undefined as string | undefined,
+		lastRewriteError: undefined as string | undefined,
 		ensureConfig: vi.fn(),
 		resolveModel: vi.fn(async () => ({ ok: true, model: { reasoning: true }, apiKey: "key", headers: { h: "v" } })),
 		launchMemoryUpdateTask: vi.fn((_ctx, work) => {
@@ -83,10 +91,11 @@ function setup(args: {
 			launchedWork = work;
 			return Promise.resolve();
 		}),
-		recordMemoryUpdateStageError: vi.fn((ctx, phase: "observer" | "reflector", error: unknown) => {
+		recordMemoryUpdateStageError: vi.fn((ctx, phase: "observer" | "reflector" | "rewrite", error: unknown) => {
 			const message = error instanceof Error ? error.message : String(error);
 			if (phase === "observer") runtime.lastObserverError = message;
 			if (phase === "reflector") runtime.lastReflectorError = message;
+			if (phase === "rewrite") runtime.lastRewriteError = message;
 			ctx.ui?.notify(`Observational memory: ${phase} failed: ${message}`, "warning");
 			return message;
 		}),
@@ -381,6 +390,33 @@ describe("memory update hook", () => {
 
 
 
+	it("runs rewrite when active reflection tokens exceed the rewrite budget", async () => {
+		const oldRefs = ["eeeeeeeeeeee", "eeeeeeeeeee1", "eeeeeeeeeee2", "eeeeeeeeeee3", "eeeeeeeeeee4"].map((id) => reflection(id, ["aaaaaaaaaaaa"], { content: `Old active reflection ${id} with enough text to exceed the small rewrite budget.` }));
+		const newRef = reflection("ffffffffffff", [oldRefs[0].id], { content: "Compact replacement reflection." });
+		mockAgents.runRewrite.mockResolvedValueOnce({
+			reflections: [newRef],
+			retiredReflectionIds: oldRefs.map((ref) => ref.id),
+			newReflectionIds: [newRef.id],
+			retainedSourceIds: [oldRefs[0].id],
+			discardedReflectionIds: [],
+			discardedSummary: "No discarded details.",
+		});
+		const entries = [
+			rawMessage("raw-1", "aaaaaaaa"),
+			reflectionsRecordedEntry("om-ref", { reflections: oldRefs, coversUpToId: "raw-1" }),
+		];
+		const { fire, runLaunchedWork, getMemoryAppends } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 999, reflectionsPoolMaxTokens: 1 });
+
+		fire();
+		await runLaunchedWork();
+
+		expect(mockAgents.runRewrite).toHaveBeenCalledWith(expect.objectContaining({ reflections: oldRefs, maxTurns: 9, thinkingLevel: "minimal" }));
+		expect(getMemoryAppends()).toEqual([
+			{ customType: OM_REFLECTIONS_RECORDED, data: { reflections: [newRef], coversUpToId: "om-ref" } },
+			{ customType: OM_REFLECTIONS_REWRITTEN, data: { retiredReflectionIds: oldRefs.map((ref) => ref.id), newReflectionIds: [newRef.id], retainedSourceIds: [oldRefs[0].id], discardedReflectionIds: [], discardedSummary: "No discarded details." } },
+		]);
+	});
+
 	it("does not launch only because the old active observation pool threshold is exceeded", async () => {
 		const entries = [
 			rawMessage("raw-1", "aaaaaaaa"),
@@ -415,5 +451,15 @@ describe("memory update hook", () => {
 		expect(reflectorFailure.runtime.lastReflectorError).toBe("reflect failed");
 		expect(reflectorFailure.getMemoryAppends()).toEqual([]);
 
+		mockAgents.runReflector.mockReset();
+		mockAgents.runReflector.mockResolvedValue(undefined);
+		mockAgents.runRewrite.mockReset();
+		mockAgents.runRewrite.mockRejectedValueOnce(new Error("rewrite failed"));
+		const rewriteRefs = ["eeeeeeeeeeee", "eeeeeeeeeee1", "eeeeeeeeeee2", "eeeeeeeeeee3", "eeeeeeeeeee4"].map((id) => reflection(id, ["aaaaaaaaaaaa"], { content: `Old active reflection ${id} with enough text to exceed budget.` }));
+		const rewriteFailure = setup({ entries: [rawMessage("raw-1", "aaaaaaaa"), reflectionsRecordedEntry("om-ref", { reflections: rewriteRefs, coversUpToId: "raw-1" })], observeEveryMessages: 999, reflectEveryObservations: 999, reflectionsPoolMaxTokens: 1 });
+		rewriteFailure.fire();
+		await rewriteFailure.runLaunchedWork();
+		expect(rewriteFailure.runtime.lastRewriteError).toBe("rewrite failed");
+		expect(rewriteFailure.getMemoryAppends()).toEqual([]);
 	});
 });

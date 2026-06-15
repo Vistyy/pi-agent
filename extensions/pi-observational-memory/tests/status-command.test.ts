@@ -33,6 +33,7 @@ function setup(args: { entries: TestEntry[]; runtime?: Partial<Runtime> }) {
 		compactHookInFlight: false,
 		lastObserverError: undefined,
 		lastReflectorError: undefined,
+		lastRewriteError: undefined,
 		...args.runtime,
 	};
 	registerStatusCommand(pi, runtime as Runtime);
@@ -112,6 +113,7 @@ describe("/om:status", () => {
 				compactHookInFlight: true,
 				lastObserverError: "observer failed",
 				lastReflectorError: "reflect failed",
+				lastRewriteError: "rewrite failed",
 			},
 		}).run("full");
 
@@ -120,6 +122,7 @@ describe("/om:status", () => {
 		expect(output).toContain("Compaction hook: running");
 		expect(output).toContain("Observer: observer failed");
 		expect(output).toContain("Reflector: reflect failed");
+		expect(output).toContain("Rewrite: rewrite failed");
 	});
 
 	it("shows memory update in flight without phase when phase is unavailable", async () => {

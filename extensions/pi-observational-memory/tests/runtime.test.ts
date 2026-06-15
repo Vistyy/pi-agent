@@ -78,10 +78,13 @@ describe("Runtime behavior", () => {
 
 		expect(runtime.recordMemoryUpdateStageError({ hasUI: true, ui: { notify } }, "observer", new Error("observe failed"))).toBe("observe failed");
 		expect(runtime.recordMemoryUpdateStageError({ hasUI: true, ui: { notify } }, "reflector", new Error("reflect failed"))).toBe("reflect failed");
+		expect(runtime.recordMemoryUpdateStageError({ hasUI: true, ui: { notify } }, "rewrite", new Error("rewrite failed"))).toBe("rewrite failed");
 
 		expect(runtime.lastObserverError).toBe("observe failed");
 		expect(runtime.lastReflectorError).toBe("reflect failed");
+		expect(runtime.lastRewriteError).toBe("rewrite failed");
 		expect(notify).toHaveBeenCalledWith("Observational memory: observer failed: observe failed", "warning");
 		expect(notify).toHaveBeenCalledWith("Observational memory: reflector failed: reflect failed", "warning");
+		expect(notify).toHaveBeenCalledWith("Observational memory: rewrite failed: rewrite failed", "warning");
 	});
 });

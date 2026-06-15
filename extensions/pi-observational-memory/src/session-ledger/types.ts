@@ -104,6 +104,10 @@ export function isNonEmptyStringArray(value: unknown): value is string[] {
 	return Array.isArray(value) && value.length > 0 && value.every(isNonEmptyString);
 }
 
+function isStringArray(value: unknown): value is string[] {
+	return Array.isArray(value) && value.every(isNonEmptyString);
+}
+
 export function isMemoryId(value: unknown): value is string {
 	return isLegacyMemoryId(value) || isObservationId(value) || isReflectionId(value);
 }
@@ -196,7 +200,7 @@ export function isReflectionsRewrittenData(value: unknown): value is Reflections
 		isNonEmptyStringArray(value.retiredReflectionIds) &&
 		isNonEmptyStringArray(value.newReflectionIds) &&
 		isNonEmptyStringArray(value.retainedSourceIds) &&
-		isNonEmptyStringArray(value.discardedReflectionIds) &&
+		isStringArray(value.discardedReflectionIds) &&
 		isNonEmptyString(value.discardedSummary)
 	);
 }
