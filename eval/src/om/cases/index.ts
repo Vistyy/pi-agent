@@ -1,5 +1,5 @@
 import { observerHardFutureIntent, observerHardSchemaMess, observerHardSessionCorrectionNoise, observerHardSessionIntentProvenance, observerHardStateStaleBlocker, observerHardStateVsProvenance, observerHardToolEvidenceBoundary } from './observer.js';
-import { reflectorHardCompression, reflectorHardRepairFlag, reflectorReviewedZero, reflectorSupersessionRelation } from './reflector.js';
+import { reflectorExactAnchorSurvivesNoise, reflectorFlagAlreadyCoveredDoesNotLoop, reflectorHardCompression, reflectorHardRepairFlag, reflectorRetractsNoLongerTrue, reflectorReviewedZero, reflectorSupersessionRelation } from './reflector.js';
 
 export const allCases = [
   observerHardStateStaleBlocker,
@@ -13,4 +13,7 @@ export const allCases = [
   observerHardSessionCorrectionNoise,
   observerHardSessionIntentProvenance,
   reflectorHardRepairFlag,
+  reflectorRetractsNoLongerTrue,
+  reflectorExactAnchorSurvivesNoise,
+  reflectorFlagAlreadyCoveredDoesNotLoop,
 ];

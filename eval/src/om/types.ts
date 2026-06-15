@@ -31,3 +31,5 @@ export type EvalScoreDimension = { label: string; score: number; maxScore: numbe
 export type EvalScore = { hardFailed: boolean; score: number; maxScore: number; dimensions: EvalScoreDimension[] };
 
 export type ObserverCheck = { label: string; pass: (output: Observation[] | undefined) => boolean; detail?: (output: Observation[] | undefined) => unknown };
+export type ReflectorCheck = { label: string; pass: (output: Reflection[] | undefined) => boolean; detail?: (output: Reflection[] | undefined) => unknown };
+export type ReflectionEvalDiagnostics = { observations?: Observation[]; reflections?: Reflection[]; flaggedObservationIds?: string[] };

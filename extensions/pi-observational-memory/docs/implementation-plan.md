@@ -200,7 +200,7 @@ Tasks:
 
 Goal: preserve the safety benefits of curator without pinning or multi-phase curator cost.
 
-Status: curator is no longer scheduled or configured, pin/unpin behavior is gone, the reflector model-facing record tool now uses `sources` instead of legacy `supportingObservationIds`, and OM eval infrastructure no longer loads or references the deleted curator agent. Remaining work is to harden reflector evals for old curator safety cases and decide whether a minimal compression auditor is still needed.
+Status: curator is no longer scheduled or configured, pin/unpin behavior is gone, the reflector model-facing record tool now uses `sources` instead of legacy `supportingObservationIds`, and OM eval infrastructure no longer loads or references the deleted curator agent. Reflector evals now include scored hard-check support and old-curator safety coverage for stale active-memory correction, exact-anchor retention under noise, and flagged evidence that is already covered. Remaining work is to run/tune those evals against real models and use the results to decide whether a minimal compression auditor is still needed.
 
 Tasks:
 

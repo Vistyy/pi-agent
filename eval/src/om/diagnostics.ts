@@ -1,6 +1,6 @@
 import { runJudge } from '../lib/judge.js';
 import type { Probe, TokenUsage } from '../lib/types.js';
-import type { AgentEvalRecord, EvalScoreDimension, Observation, ObserverCheck } from './types.js';
+import type { AgentEvalRecord, EvalScoreDimension, Observation, ObserverCheck, Reflection, ReflectionEvalDiagnostics, ReflectorCheck } from './types.js';
 
 export async function diagnoseFailure(record: AgentEvalRecord, probe: Probe, judgeModel: string): Promise<AgentEvalRecord> {
   if (record.passed) return record;
@@ -55,6 +55,36 @@ export function observerForbidsSourceIds(...ids: string[]): ObserverCheck {
   return { label: `forbids source ids ${ids.join(', ')}`, pass: (output) => ids.every((id) => !observerSourceIds(output).includes(id)), detail: (output) => observerSourceIds(output) };
 }
 
+function deterministicReflectorFailure(output: Reflection[] | undefined, checks: ReflectorCheck[]): { reason: string; details: unknown[] } | undefined {
+  const failed = checks.filter((check) => !check.pass(output)).map((check) => ({ label: check.label, detail: check.detail?.(output) ?? output }));
+  return failed.length ? { reason: failed.map((check) => check.label).join('; '), details: failed } : undefined;
+}
+
+export function reflectionText(output: Reflection[] | undefined): string {
+  return (output ?? []).map((reflection) => reflection.content).join('\n');
+}
+
+export function reflectionSourceIds(output: Reflection[] | undefined): string[] {
+  return (output ?? []).flatMap((reflection) => reflection.sources);
+}
+
+export function reflectorRequiresAll(...needles: string[]): ReflectorCheck {
+  return { label: `requires ${needles.join(', ')}`, pass: (output) => needles.every((needle) => reflectionText(output).includes(needle)), detail: (output) => reflectionText(output) };
+}
+
+export function reflectorForbidsAny(...needles: string[]): ReflectorCheck {
+  return { label: `forbids ${needles.join(', ')}`, pass: (output) => needles.every((needle) => !reflectionText(output).includes(needle)), detail: (output) => reflectionText(output) };
+}
+
+export function reflectorMaxCount(max: number): ReflectorCheck {
+  return { label: `at most ${max} reflections`, pass: (output) => (output ?? []).length <= max, detail: (output) => ({ count: (output ?? []).length }) };
+}
+
+export function reflectorSourceIdsAllowed(allowedIds: string[]): ReflectorCheck {
+  const allowed = new Set(allowedIds);
+  return { label: `source ids limited to ${allowedIds.join(', ')}`, pass: (output) => reflectionSourceIds(output).every((id) => allowed.has(id)), detail: (output) => reflectionSourceIds(output) };
+}
+
 export async function judgedObserverScored(
   id: string,
   output: Observation[] | undefined,
@@ -77,6 +107,42 @@ export async function judgedObserverScored(
   const base: AgentEvalRecord = {
     id,
     agent: 'observer',
+    output: output ?? [],
+    judge: hardFailure
+      ? { passed: false, reason: `Hard invariant failed: ${hardFailure.reason}`, details: hardFailure.details }
+      : { passed: true, reason: 'Hard invariants passed; see score dimensions for capability signal.' },
+    passed: !hardFailure,
+    durationMs: Date.now() - started,
+    agentDurationMs,
+    usage,
+    diagnostics,
+    score: { hardFailed: Boolean(hardFailure), score, maxScore, dimensions },
+  };
+  return hardFailure ? diagnoseFailure(base, probe, judgeModel) : base;
+}
+
+export async function judgedReflectorScored(
+  id: string,
+  output: Reflection[] | undefined,
+  probe: Probe,
+  judgeModel: string,
+  started: number,
+  hardChecks: ReflectorCheck[],
+  scoreChecks: ReflectorCheck[],
+  usage?: TokenUsage,
+  agentDurationMs?: number,
+  diagnostics?: ReflectionEvalDiagnostics,
+): Promise<AgentEvalRecord> {
+  const hardFailure = deterministicReflectorFailure(output, hardChecks);
+  const dimensions: EvalScoreDimension[] = scoreChecks.map((check) => {
+    const passed = check.pass(output);
+    return { label: check.label, score: passed ? 1 : 0, maxScore: 1, detail: check.detail?.(output) ?? output };
+  });
+  const score = dimensions.reduce((total, dimension) => total + dimension.score, 0);
+  const maxScore = dimensions.reduce((total, dimension) => total + dimension.maxScore, 0);
+  const base: AgentEvalRecord = {
+    id,
+    agent: 'reflector',
     output: output ?? [],
     judge: hardFailure
       ? { passed: false, reason: `Hard invariant failed: ${hardFailure.reason}`, details: hardFailure.details }
