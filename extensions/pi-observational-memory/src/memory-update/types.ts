@@ -17,4 +17,4 @@ export type MemoryUpdateCtx = {
 
 export type StageOutcome = "continue" | "abort";
 
-export type ResolveMemoryModel = (stage: "observer" | "reflector") => Promise<ResolvedModel | undefined>;
+export type ResolveMemoryModel = (stage: "observer" | "reflector" | "rewrite") => Promise<ResolvedModel | undefined>;

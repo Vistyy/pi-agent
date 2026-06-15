@@ -31,9 +31,11 @@ OM does not schedule compaction. Pi/manual/eval compaction triggers still run; O
     "strategy": "replacement",
     "observeEveryMessages": 32,
     "reflectEveryObservations": 8,
+    "reflectionsPoolMaxTokens": 8000,
     "maxInitialObserveTokens": 100000,
     "observerThinking": "low",
     "reflectorThinking": "low",
+    "rewriteThinking": "low",
     "debugLog": false
   }
 }

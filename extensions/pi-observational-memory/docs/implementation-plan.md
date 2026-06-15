@@ -220,7 +220,7 @@ Tasks:
 
 Goal: bound active reflection memory without per-reflection lifecycle management.
 
-Status: the deterministic rewrite retirement ledger shape exists (`om.reflections.rewritten`), and projection/folding remove retired reflections from active memory while preserving them in ledger lookup for recall. LLM rewrite generation, budget trigger, and validation are still upcoming.
+Status: the deterministic rewrite retirement ledger shape exists (`om.reflections.rewritten`), and projection/folding remove retired reflections from active memory while preserving them in ledger lookup for recall. A first rewrite worker now triggers from active reflection token pressure, asks an LLM for compact normal reflections, validates source ids/content/count, and appends normal reflections plus rewrite audit metadata. Sourced observation expansion, backoff, and real-model tuning are still upcoming.
 
 Design:
 
@@ -237,7 +237,7 @@ if active projection tokens > budget:
 Tasks:
 
 - [x] Add rewrite audit event that retires old active reflection ids.
-- [ ] Add worker path that records new normal reflections plus rewrite audit metadata.
+- [x] Add worker path that records new normal reflections plus rewrite audit metadata.
 - [x] Do not make rewritten reflections a special shape; they are normal reflections with typed `sources`.
 - Start with full rewrite of all current active reflections.
 - Do not add multi-phase rewrite unless evals show one pass is insufficient.

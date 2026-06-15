@@ -81,6 +81,7 @@ export async function runStatusCommand(args: unknown, ctx: any, runtime: Runtime
 			"── Agent cost ──",
 			usageLine("Observer", memoryUsage.observer),
 			usageLine("Reflector", memoryUsage.reflector),
+			usageLine("Rewrite", memoryUsage.rewrite),
 			...(memoryUsage.unknown.requests > 0 ? [usageLine("Unknown", memoryUsage.unknown)] : []),
 		);
 	}
@@ -94,10 +95,11 @@ export async function runStatusCommand(args: unknown, ctx: any, runtime: Runtime
 		if (runtime.compactHookInFlight) lines.push("Compaction hook: running");
 	}
 
-	if (runtime.lastObserverError || runtime.lastReflectorError) {
+	if (runtime.lastObserverError || runtime.lastReflectorError || runtime.lastRewriteError) {
 		lines.push("", "── Last error ──");
 		if (runtime.lastObserverError) lines.push(`Observer: ${runtime.lastObserverError}`);
 		if (runtime.lastReflectorError) lines.push(`Reflector: ${runtime.lastReflectorError}`);
+		if (runtime.lastRewriteError) lines.push(`Rewrite: ${runtime.lastRewriteError}`);
 	}
 
 	ctx.ui.notify(lines.join("\n"), "info");

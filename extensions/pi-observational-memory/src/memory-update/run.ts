@@ -8,9 +8,11 @@ import type { MemoryUpdateCtx, StageOutcome } from "./types.js";
 
 type ObserverStageModule = typeof import("./observer-stage.js");
 type ReflectorStageModule = typeof import("./reflector-stage.js");
+type RewriteStageModule = typeof import("./rewrite-stage.js");
 
 let observerStageModule: Promise<ObserverStageModule> | undefined;
 let reflectorStageModule: Promise<ReflectorStageModule> | undefined;
+let rewriteStageModule: Promise<RewriteStageModule> | undefined;
 
 function loadObserverStage(): Promise<ObserverStageModule> {
 	return observerStageModule ??= import("./observer-stage.js");
@@ -18,6 +20,10 @@ function loadObserverStage(): Promise<ObserverStageModule> {
 
 function loadReflectorStage(): Promise<ReflectorStageModule> {
 	return reflectorStageModule ??= import("./reflector-stage.js");
+}
+
+function loadRewriteStage(): Promise<RewriteStageModule> {
+	return rewriteStageModule ??= import("./rewrite-stage.js");
 }
 
 async function runTrackedStage(
@@ -94,5 +100,20 @@ export async function runMemoryUpdate(
 			},
 		);
 		if (reflectorOutcome === "abort") return;
+		entries = ctx.sessionManager.getBranch() as Entry[];
+		due = computeMemoryStageDue(entries, runtime);
+	}
+
+	if (due.rewriteDue) {
+		await runTrackedStage(
+			pi,
+			runtime,
+			ctx,
+			"rewrite",
+			async () => {
+				const { runRewriteStage } = await loadRewriteStage();
+				return runRewriteStage(pi, runtime, ctx, resolveModel);
+			},
+		);
 	}
 }

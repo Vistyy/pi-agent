@@ -41,6 +41,7 @@ describe("config", () => {
 			reflectEveryObservations: 8,
 			maxInitialObserveTokens: 100000,
 			observationsPoolMaxTokens: 20000,
+			reflectionsPoolMaxTokens: 8000,
 			observerToolResultSummaryMaxLines: 4,
 			observerToolResultErrorMaxLines: 20,
 			observerToolResultLineMaxChars: 300,
@@ -48,6 +49,7 @@ describe("config", () => {
 			agentMaxTurns: 16,
 			observerThinking: "low",
 			reflectorThinking: "low",
+			rewriteThinking: "low",
 			debugLog: false,
 		});
 		expect(loadConfig(cwd)).toEqual(DEFAULTS);
@@ -61,6 +63,7 @@ describe("config", () => {
 				reflectEveryObservations: 20,
 				maxInitialObserveTokens: 60,
 				observationsPoolMaxTokens: 40,
+				reflectionsPoolMaxTokens: 30,
 				observerToolResultSummaryMaxLines: 2,
 				observerToolResultErrorMaxLines: 10,
 				observerToolResultLineMaxChars: 120,
@@ -69,6 +72,7 @@ describe("config", () => {
 				model: { provider: "anthropic", id: "global", thinking: "medium" },
 				observerThinking: "low",
 				reflectorThinking: "high",
+				rewriteThinking: "medium",
 				debugLog: true,
 			},
 		});
@@ -87,6 +91,7 @@ describe("config", () => {
 			reflectEveryObservations: 20,
 			maxInitialObserveTokens: 60,
 			observationsPoolMaxTokens: 40,
+			reflectionsPoolMaxTokens: 30,
 			observerToolResultSummaryMaxLines: 2,
 			observerToolResultErrorMaxLines: 10,
 			observerToolResultLineMaxChars: 120,
@@ -95,6 +100,7 @@ describe("config", () => {
 			model: { provider: "openai", id: "project", thinking: "low" },
 			observerThinking: "low",
 			reflectorThinking: "high",
+			rewriteThinking: "medium",
 			debugLog: true,
 		});
 	});
@@ -107,6 +113,7 @@ describe("config", () => {
 				reflectEveryObservations: 0,
 				maxInitialObserveTokens: "100000",
 				observationsPoolMaxTokens: "20000",
+				reflectionsPoolMaxTokens: "8000",
 				observerToolResultSummaryMaxLines: "4",
 				observerToolResultErrorMaxLines: -1,
 				observerToolResultLineMaxChars: null,
@@ -115,6 +122,7 @@ describe("config", () => {
 				model: { provider: "anthropic", id: "", thinking: "huge" },
 				observerThinking: "huge",
 				reflectorThinking: 10,
+				rewriteThinking: "huge",
 				debugLog: "true",
 			},
 		});

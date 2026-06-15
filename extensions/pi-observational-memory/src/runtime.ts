@@ -6,7 +6,7 @@ export type ResolveResult =
 
 type NotifyLevel = "warning" | "info" | "error";
 type Notify = (message: string, type?: NotifyLevel) => void;
-export type MemoryUpdatePhase = "observer" | "reflector";
+export type MemoryUpdatePhase = "observer" | "reflector" | "rewrite";
 
 export interface RuntimeCtx {
 	model?: unknown;
@@ -25,6 +25,7 @@ export class Runtime {
 	resolveFailureNotified = false;
 	lastObserverError: string | undefined;
 	lastReflectorError: string | undefined;
+	lastRewriteError: string | undefined;
 
 	ensureConfig(cwd: string): void {
 		if (this.configLoaded) return;
@@ -59,6 +60,7 @@ export class Runtime {
 		this.memoryUpdatePhase = undefined;
 		this.lastObserverError = undefined;
 		this.lastReflectorError = undefined;
+		this.lastRewriteError = undefined;
 		return this.launchTrackedTask(ctx, "memory update", work, () => {
 			this.memoryUpdateInFlight = false;
 			this.memoryUpdatePhase = undefined;
@@ -69,6 +71,7 @@ export class Runtime {
 		const message = error instanceof Error ? error.message : String(error);
 		if (phase === "observer") this.lastObserverError = message;
 		if (phase === "reflector") this.lastReflectorError = message;
+		if (phase === "rewrite") this.lastRewriteError = message;
 		if (ctx.hasUI && ctx.ui) ctx.ui.notify(`Observational memory: ${phase} failed: ${message}`, "warning");
 		return message;
 	}

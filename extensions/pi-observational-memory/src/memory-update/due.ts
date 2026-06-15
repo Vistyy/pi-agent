@@ -2,6 +2,7 @@ import type { Runtime } from "../runtime.js";
 import {
 	foldLedger,
 	latestReflectionReviewEntryIndex,
+	reflectionTokenSum,
 	sourceEntryCountSinceObservationCoverage,
 	type Entry,
 } from "../session-ledger/index.js";
@@ -10,6 +11,7 @@ import { observationsSinceReflectionCoverage } from "./stage-utils.js";
 export type MemoryStageDue = {
 	observerDue: boolean;
 	reflectorDue: boolean;
+	rewriteDue: boolean;
 };
 
 export function computeMemoryStageDue(entries: Entry[], runtime: Runtime): MemoryStageDue {
@@ -20,5 +22,6 @@ export function computeMemoryStageDue(entries: Entry[], runtime: Runtime): Memor
 	return {
 		observerDue: sourceEntryCountSinceObservationCoverage(entries) >= runtime.config.observeEveryMessages,
 		reflectorDue: reflectionWorkCount >= runtime.config.reflectEveryObservations,
+		rewriteDue: reflectionTokenSum(folded.reflections) >= runtime.config.reflectionsPoolMaxTokens,
 	};
 }
