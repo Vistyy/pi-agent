@@ -51,13 +51,14 @@ export async function runStatusCommand(args: unknown, ctx: any, runtime: Runtime
 	const memoryUsage = foldAgentUsage(entries);
 
 	const contextTokens = observationTokenSum(context.observations) + reflectionTokenSum(context.reflections);
+	const activeReflectionTokens = reflectionTokenSum(folded.reflections);
 	const obsProgress = sourceEntryCountSinceObservationCoverage(entries);
 	const reflectionProgress = observationsSinceReflectionCoverage(entries, folded.activeObservations).length;
 	const lines = [
 		"── Memory ──",
 		`Context:      ${context.observations.length.toLocaleString()} observations, ${context.reflections.length.toLocaleString()} reflections`,
 		`Next context: ${nextContext.observations.length.toLocaleString()} observations, ${nextContext.reflections.length.toLocaleString()} reflections`,
-		`Size:         ~${contextTokens.toLocaleString()} / ${runtime.config.observationsPoolMaxTokens.toLocaleString()} tokens`,
+		`Size:         ~${contextTokens.toLocaleString()} context tokens; active reflections ~${activeReflectionTokens.toLocaleString()} / ${runtime.config.reflectionsPoolMaxTokens.toLocaleString()} rewrite tokens`,
 		"",
 		"── Next work ──",
 		`Observe: ${obsProgress.toLocaleString()} / ${runtime.config.observeEveryMessages.toLocaleString()} source entries`,

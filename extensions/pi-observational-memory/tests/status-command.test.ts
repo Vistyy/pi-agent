@@ -27,6 +27,7 @@ function setup(args: { entries: TestEntry[]; runtime?: Partial<Runtime> }) {
 			observeEveryMessages: 10,
 			reflectEveryObservations: 20,
 			observationsPoolMaxTokens: 40,
+			reflectionsPoolMaxTokens: 30,
 		},
 		memoryUpdateInFlight: false,
 		memoryUpdatePhase: undefined,
@@ -54,7 +55,7 @@ describe("/om:status", () => {
 		expect(output).toContain("── Memory ──");
 		expect(output).toContain("Context:      0 observations, 0 reflections");
 		expect(output).toContain("Next context: 0 observations, 0 reflections");
-		expect(output).toContain("Size:         ~0 / 40 tokens");
+		expect(output).toContain("Size:         ~0 context tokens; active reflections ~0 / 30 rewrite tokens");
 		expect(output).toContain("Observe: 0 / 10 source entries");
 		expect(output).toContain("Reflect: 0 / 20 observations");
 		expect(output).not.toContain("Strategy:");
@@ -107,7 +108,7 @@ describe("/om:status", () => {
 		const output = await setup({
 			entries: [],
 			runtime: {
-				config: { strategy: "off", observeEveryMessages: 10, reflectEveryObservations: 20, observationsPoolMaxTokens: 40 },
+				config: { strategy: "off", observeEveryMessages: 10, reflectEveryObservations: 20, observationsPoolMaxTokens: 40, reflectionsPoolMaxTokens: 30 },
 				memoryUpdateInFlight: true,
 				memoryUpdatePhase: "reflector",
 				compactHookInFlight: true,
