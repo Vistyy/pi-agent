@@ -21,7 +21,7 @@ Strategies:
 - `replacement` — default. Replace Pi compaction with an observational-memory summary.
 - `off` — disable memory workers and memory compaction behavior.
 
-OM does not schedule compaction. Pi/manual/eval compaction triggers still run; OM flushes memory at the compaction boundary and can replace the resulting context depending on strategy.
+OM does not schedule compaction. Pi/manual/eval compaction triggers still run; OM renders deterministic memory at the compaction boundary and can replace the resulting context depending on strategy.
 
 ## Useful options
 
@@ -31,22 +31,17 @@ OM does not schedule compaction. Pi/manual/eval compaction triggers still run; O
     "strategy": "replacement",
     "observeEveryMessages": 32,
     "reflectEveryObservations": 8,
-    "emergencyCurateWhenVisibleObservationsOver": 60,
-    "protectRecentObservations": 32,
     "maxInitialObserveTokens": 100000,
     "observerThinking": "low",
     "reflectorThinking": "low",
-    "curatorThinking": "high",
     "debugLog": false
   }
 }
 ```
 
-`protectRecentObservations` keeps the newest active observations out of the curator drop candidate set. Older reviewed observations may be dropped when redundant, superseded, duplicate, routine, or otherwise low-value; pins and follow-up flags keep exact evidence visible when needed.
-
 `maxInitialObserveTokens` prevents expensive backfill when the extension starts on an already-large session. It marks old history covered and observes future turns.
 
-Context projection is decoupled from the observation token pool: incremental compaction materializes recorded reflections and currently visible observations, while full-fold compaction is reserved for deeper replay/drop reconciliation.
+Active context projection renders current reflections only. Observations remain durable ledger evidence for reflector input and recall.
 
 ## Commands
 
@@ -55,26 +50,26 @@ Context projection is decoupled from the observation token pool: incremental com
 
 ## Recall
 
-Memory entries include 12-character ids. Use `recall(id)` when exact source context behind an observation or reflection is needed.
+Memory entries include ids such as `obs_...` and `ref_...`. Use `recall(id)` when exact source context behind an observation or reflection is needed.
 
 ## Lifecycle
 
 ```text
 source entries
-  -> observer: source-backed evidence
-  -> reflector: checkpoint facts backed by observations
-  -> curator: pins, unpins, flags follow-up work, or tombstones reviewed evidence
-  -> projection/rendering: reflections + unreviewed/pinned observations
+  -> observer: source-backed durable observations
+  -> reflector: active facts backed by typed source ids
+  -> projection/rendering: current active reflections
+  -> recall: exact evidence recovery from reflections, observations, and source entries
 ```
 
 Terms:
 
-- Observation = source-backed evidence.
-- Reflection = checkpoint fact backed by observations.
-- Curator action = pin, unpin, follow-up flag, or drop reviewed evidence.
+- Observation = source-backed durable evidence.
+- Reflection = active memory backed by typed source ids.
+- Active memory = current reflections only.
 
 Safety rules:
 
 - Never compact away unobserved source.
-- Never drop an observation unless reflection review has covered it and the curator judges it safe to remove.
+- Observations remain recallable even when hidden from active memory.
 - No-tool worker response must not count as reviewed.

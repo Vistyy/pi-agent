@@ -8,11 +8,9 @@ import type { MemoryUpdateCtx, StageOutcome } from "./types.js";
 
 type ObserverStageModule = typeof import("./observer-stage.js");
 type ReflectorStageModule = typeof import("./reflector-stage.js");
-type CuratorStageModule = typeof import("./curator-stage.js");
 
 let observerStageModule: Promise<ObserverStageModule> | undefined;
 let reflectorStageModule: Promise<ReflectorStageModule> | undefined;
-let curatorStageModule: Promise<CuratorStageModule> | undefined;
 
 function loadObserverStage(): Promise<ObserverStageModule> {
 	return observerStageModule ??= import("./observer-stage.js");
@@ -20,10 +18,6 @@ function loadObserverStage(): Promise<ObserverStageModule> {
 
 function loadReflectorStage(): Promise<ReflectorStageModule> {
 	return reflectorStageModule ??= import("./reflector-stage.js");
-}
-
-function loadCuratorStage(): Promise<CuratorStageModule> {
-	return curatorStageModule ??= import("./curator-stage.js");
 }
 
 async function runTrackedStage(
@@ -88,7 +82,6 @@ export async function runMemoryUpdate(
 		due = computeMemoryStageDue(entries, runtime);
 	}
 
-	let ranReflector = false;
 	if (due.reflectorDue) {
 		const reflectorOutcome = await runTrackedStage(
 			pi,
@@ -101,20 +94,5 @@ export async function runMemoryUpdate(
 			},
 		);
 		if (reflectorOutcome === "abort") return;
-		ranReflector = true;
-		entries = ctx.sessionManager.getBranch() as Entry[];
-		due = computeMemoryStageDue(entries, runtime);
 	}
-
-	if (!ranReflector && !due.curatorEmergencyDue) return;
-	await runTrackedStage(
-		pi,
-		runtime,
-		ctx,
-		"curator",
-		async () => {
-			const { runCuratorStage } = await loadCuratorStage();
-			return runCuratorStage(pi, runtime, ctx, resolveModel);
-		},
-	);
 }

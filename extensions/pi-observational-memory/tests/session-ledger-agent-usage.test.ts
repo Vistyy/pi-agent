@@ -67,25 +67,13 @@ describe("agent usage ledger", () => {
 	it("folds persisted usage by agent and total", () => {
 		const entries: Entry[] = [
 			usageEntry("usage-1", buildAgentUsageRecordedData({ agent: "observer", usage: baseUsage })),
-			usageEntry("usage-2", buildAgentUsageRecordedData({
-				agent: "curator",
-				usage: {
-					input: 50,
-					output: 10,
-					cacheRead: 5,
-					cacheWrite: 1,
-					totalTokens: 66,
-					cost: { input: 0.01, output: 0.02, cacheRead: 0.003, cacheWrite: 0.004, total: 0.037 },
-				},
-			})),
 		];
 
 		const summary = foldAgentUsage(entries);
 
 		expect(summary.observer).toMatchObject({ input: 100, output: 20, cacheRead: 30, cacheWrite: 4, totalTokens: 154, cost: 0.0037, requests: 1 });
-		expect(summary.curator).toMatchObject({ input: 50, output: 10, cacheRead: 5, cacheWrite: 1, totalTokens: 66, cost: 0.037, requests: 1 });
 		expect(summary.reflector.requests).toBe(0);
-		expect(summary.total).toMatchObject({ input: 150, output: 30, cacheRead: 35, cacheWrite: 5, totalTokens: 220, cost: 0.0407, requests: 2 });
+		expect(summary.total).toMatchObject({ input: 100, output: 20, cacheRead: 30, cacheWrite: 4, totalTokens: 154, cost: 0.0037, requests: 1 });
 	});
 
 	it("normalizes malformed values and unknown agents safely", () => {

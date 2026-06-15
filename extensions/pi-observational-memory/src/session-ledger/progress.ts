@@ -1,6 +1,5 @@
 import { estimateEntryTokens } from "../memory/token-estimate.js";
 import {
-	OM_OBSERVATIONS_CURATED,
 	OM_OBSERVATIONS_DROPPED,
 	OM_OBSERVATIONS_RECORDED,
 	OM_REFLECTIONS_RECORDED,
@@ -37,7 +36,7 @@ function isValidCoverageEntry(entry: Entry, customType: MemoryCustomType): entry
 
 	if (customType === OM_OBSERVATIONS_RECORDED) return Array.isArray(entry.data.observations);
 	if (customType === OM_REFLECTIONS_RECORDED) return Array.isArray(entry.data.reflections) && entry.data.reflections.length > 0;
-	if (customType === OM_REFLECTIONS_REVIEWED || customType === OM_OBSERVATIONS_CURATED) return true;
+	if (customType === OM_REFLECTIONS_REVIEWED) return true;
 	return Array.isArray(entry.data.observationIds) && entry.data.observationIds.length > 0;
 }
 
@@ -117,14 +116,6 @@ export function latestReflectionReviewEntryIndex(entries: Entry[]): number {
 export function latestReflectionReviewMarkerId(entries: Entry[]): string | undefined {
 	const index = latestReflectionReviewIndex(entries);
 	return index >= 0 ? entries[index]?.id : undefined;
-}
-
-export function latestCuratorCursorIndex(entries: Entry[]): number {
-	return latestCoverageIndex(entries, OM_OBSERVATIONS_CURATED);
-}
-
-export function latestCuratorCursorMarkerId(entries: Entry[]): string | undefined {
-	return latestCoverageMarkerId(entries, OM_OBSERVATIONS_CURATED);
 }
 
 export function sourceTokensAfterIndex(entries: Entry[], index: number): number {

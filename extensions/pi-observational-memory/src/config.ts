@@ -21,8 +21,6 @@ export interface Config {
 	strategy: MemoryStrategy;
 	observeEveryMessages: number;
 	reflectEveryObservations: number;
-	emergencyCurateWhenVisibleObservationsOver: number;
-	protectRecentObservations: number;
 	maxInitialObserveTokens: number;
 	observationsPoolMaxTokens: number;
 	observerToolResultSummaryMaxLines: number;
@@ -33,7 +31,6 @@ export interface Config {
 	model?: ConfiguredModel;
 	observerThinking?: ModelThinkingLevel;
 	reflectorThinking?: ModelThinkingLevel;
-	curatorThinking?: ModelThinkingLevel;
 	debugLog: boolean;
 }
 
@@ -41,8 +38,6 @@ export const DEFAULTS: Config = {
 	strategy: STRATEGY.replacement,
 	observeEveryMessages: 32,
 	reflectEveryObservations: 8,
-	emergencyCurateWhenVisibleObservationsOver: 60,
-	protectRecentObservations: 32,
 	maxInitialObserveTokens: 100_000,
 	observationsPoolMaxTokens: 20_000,
 	observerToolResultSummaryMaxLines: 4,
@@ -52,7 +47,6 @@ export const DEFAULTS: Config = {
 	agentMaxTurns: 16,
 	observerThinking: "low",
 	reflectorThinking: "low",
-	curatorThinking: "high",
 	debugLog: false,
 };
 
@@ -108,8 +102,6 @@ function normalizeSettingsConfig(value: Record<string, unknown>): Partial<Config
 	const numberKeys = [
 		"observeEveryMessages",
 		"reflectEveryObservations",
-		"emergencyCurateWhenVisibleObservationsOver",
-		"protectRecentObservations",
 		"maxInitialObserveTokens",
 		"observationsPoolMaxTokens",
 		"observerToolResultSummaryMaxLines",
@@ -125,7 +117,6 @@ function normalizeSettingsConfig(value: Record<string, unknown>): Partial<Config
 	if (typeof value.debugLog === "boolean") normalized.debugLog = value.debugLog;
 	if (isThinkingLevel(value.observerThinking)) normalized.observerThinking = value.observerThinking;
 	if (isThinkingLevel(value.reflectorThinking)) normalized.reflectorThinking = value.reflectorThinking;
-	if (isThinkingLevel(value.curatorThinking)) normalized.curatorThinking = value.curatorThinking;
 	const model = normalizeModel(value.model);
 	if (model) normalized.model = model;
 	const observerToolOutputPolicies = normalizeObserverToolOutputPolicies(value.observerToolOutputPolicies);

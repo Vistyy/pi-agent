@@ -73,7 +73,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function agentName(value: unknown): AgentNameWithUnknown {
-	return value === "observer" || value === "reflector" || value === "curator" ? value : "unknown";
+	return value === "observer" || value === "reflector" ? value : "unknown";
 }
 
 export function normalizeUsage(value: unknown): AgentUsageSnapshot {
@@ -107,7 +107,6 @@ export function foldAgentUsage(entries: Entry[]): AgentUsageSummary {
 	const summary: AgentUsageSummary = {
 		observer: emptyTotals(),
 		reflector: emptyTotals(),
-		curator: emptyTotals(),
 		unknown: emptyTotals(),
 		total: emptyTotals(),
 	};

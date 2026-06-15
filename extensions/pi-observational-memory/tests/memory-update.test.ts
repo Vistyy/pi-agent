@@ -4,19 +4,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mockAgents = vi.hoisted(() => ({
 	runObserver: vi.fn(),
 	runReflector: vi.fn(),
-	runCurator: vi.fn(),
 }));
 
 vi.mock("../src/agents/observer/agent.js", () => ({ runObserver: mockAgents.runObserver }));
 vi.mock("../src/agents/reflector/agent.js", () => ({ runReflector: mockAgents.runReflector }));
-vi.mock("../src/agents/curator/agent.js", () => ({ runCurator: mockAgents.runCurator }));
 
 import { ensureObservedBeforeCompaction } from "../src/memory-update/compaction.js";
 import { registerMemoryUpdateHook } from "../src/memory-update/scheduler.js";
 import { Runtime } from "../src/runtime.js";
 import {
 	OM_AGENT_RUN_RECORDED,
-	OM_OBSERVATIONS_CURATED,
 	OM_OBSERVATIONS_DROPPED,
 	OM_OBSERVATIONS_RECORDED,
 	OM_REFLECTIONS_RECORDED,
@@ -26,7 +23,6 @@ import {
 	observation,
 	observationsDroppedEntry,
 	observationsFlaggedEntry,
-	observationsPinnedEntry,
 	observationsRecordedEntry,
 	reflection,
 	reflectionsRecordedEntry,
@@ -39,17 +35,14 @@ import { memoryUpdateApi, type AgentStartHandler, type TurnEndHandler } from "./
 beforeEach(() => {
 	mockAgents.runObserver.mockReset();
 	mockAgents.runReflector.mockReset();
-	mockAgents.runCurator.mockReset();
 	mockAgents.runObserver.mockResolvedValue(undefined);
 	mockAgents.runReflector.mockResolvedValue(undefined);
-	mockAgents.runCurator.mockResolvedValue(undefined);
 });
 
 function setup(args: {
 	entries: TestEntry[];
 	observeEveryMessages?: number;
 	reflectEveryObservations?: number;
-	emergencyCurateWhenVisibleObservationsOver?: number;
 	observationsPoolMaxTokens?: number;
 	maxInitialObserveTokens?: number;
 	strategy?: "replacement" | "off";
@@ -74,18 +67,15 @@ function setup(args: {
 			reflectEveryObservations: args.reflectEveryObservations ?? 1,
 			maxInitialObserveTokens: args.maxInitialObserveTokens ?? 100_000,
 			observationsPoolMaxTokens: args.observationsPoolMaxTokens ?? 100,
-			emergencyCurateWhenVisibleObservationsOver: args.emergencyCurateWhenVisibleObservationsOver ?? 60,
-			protectRecentObservations: 32,
 			agentMaxTurns: 9,
 			model: { provider: "anthropic", id: "memory", thinking: "minimal" },
 		},
 		memoryUpdateInFlight: args.memoryUpdateInFlight ?? false,
 		inFlightObserverStagePromise: args.inFlightObserverStagePromise ?? null,
-		memoryUpdatePhase: undefined as "observer" | "reflector" | "curator" | undefined,
+		memoryUpdatePhase: undefined as "observer" | "reflector" | undefined,
 		resolveFailureNotified: false,
 		lastObserverError: undefined as string | undefined,
 		lastReflectorError: undefined as string | undefined,
-		lastCuratorError: undefined as string | undefined,
 		ensureConfig: vi.fn(),
 		resolveModel: vi.fn(async () => ({ ok: true, model: { reasoning: true }, apiKey: "key", headers: { h: "v" } })),
 		launchMemoryUpdateTask: vi.fn((_ctx, work) => {
@@ -93,11 +83,10 @@ function setup(args: {
 			launchedWork = work;
 			return Promise.resolve();
 		}),
-		recordMemoryUpdateStageError: vi.fn((ctx, phase: "observer" | "reflector" | "curator", error: unknown) => {
+		recordMemoryUpdateStageError: vi.fn((ctx, phase: "observer" | "reflector", error: unknown) => {
 			const message = error instanceof Error ? error.message : String(error);
 			if (phase === "observer") runtime.lastObserverError = message;
 			if (phase === "reflector") runtime.lastReflectorError = message;
-			if (phase === "curator") runtime.lastCuratorError = message;
 			ctx.ui?.notify(`Observational memory: ${phase} failed: ${message}`, "warning");
 			return message;
 		}),
@@ -142,7 +131,6 @@ describe("memory update hook", () => {
 
 		expect(mockAgents.runObserver).toHaveBeenCalledOnce();
 		expect(mockAgents.runReflector).not.toHaveBeenCalled();
-		expect(mockAgents.runCurator).not.toHaveBeenCalled();
 		expect(mockAgents.runObserver.mock.calls[0][0].chunk).toContain("[Source entry id: raw-1]");
 		expect(mockAgents.runObserver.mock.calls[0][0].chunk).not.toContain("[Source entry id: raw-2]");
 		expect(getMemoryAppends()).toEqual([
@@ -292,7 +280,6 @@ describe("memory update hook", () => {
 
 		expect(getMemoryAppends()).toEqual([]);
 		expect(mockAgents.runReflector).not.toHaveBeenCalled();
-		expect(mockAgents.runCurator).not.toHaveBeenCalled();
 	});
 
 	it("model resolution failure skips appending and notifies once", async () => {
@@ -406,27 +393,6 @@ describe("memory update hook", () => {
 		await runLaunchedWork();
 
 		expect(runtime.launchMemoryUpdateTask).not.toHaveBeenCalled();
-		expect(mockAgents.runCurator).not.toHaveBeenCalled();
-	});
-
-
-
-	it("does not run curator from existing reflections without same-run reflection work", async () => {
-		const ref = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
-		const entries = [
-			rawMessage("raw-1", "aaaaaaaa"),
-			observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" }),
-			reflectionsRecordedEntry("om-ref", { reflections: [ref], coversUpToId: "raw-1" }),
-			rawMessage("raw-2", "bbbbbbbb"),
-		];
-		const { fire, runLaunchedWork, getMemoryAppends } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 1 });
-
-		fire();
-		await runLaunchedWork();
-
-		expect(mockAgents.runReflector).not.toHaveBeenCalled();
-		expect(mockAgents.runCurator).not.toHaveBeenCalled();
-		expect(getMemoryAppends()).toEqual([]);
 	});
 
 
@@ -447,20 +413,7 @@ describe("memory update hook", () => {
 		reflectorFailure.fire();
 		await reflectorFailure.runLaunchedWork();
 		expect(reflectorFailure.runtime.lastReflectorError).toBe("reflect failed");
-		expect(mockAgents.runCurator).not.toHaveBeenCalled();
 		expect(reflectorFailure.getMemoryAppends()).toEqual([]);
 
-		mockAgents.runReflector.mockReset();
-		const newRef = reflection("ffffffffffff", ["aaaaaaaaaaaa"]);
-		mockAgents.runReflector.mockResolvedValueOnce([newRef]);
-		mockAgents.runCurator.mockReset();
-		mockAgents.runCurator.mockRejectedValueOnce(new Error("curate failed"));
-		const curatorFailure = setup({ entries: [rawMessage("raw-1", "aaaaaaaa"), observationsRecordedEntry("om-obs", { observations: [obsA], coversUpToId: "raw-1" })], observeEveryMessages: 999 });
-		curatorFailure.fire();
-		await curatorFailure.runLaunchedWork();
-		expect(curatorFailure.runtime.lastCuratorError).toBe("curate failed");
-		expect(curatorFailure.getMemoryAppends()).toEqual([
-			{ customType: OM_REFLECTIONS_RECORDED, data: { reflections: [newRef], coversUpToId: "raw-1" } },
-		]);
 	});
 });

@@ -3,8 +3,6 @@ export const OM_REFLECTIONS_RECORDED = "om.reflections.recorded";
 export const OM_REFLECTIONS_REVIEWED = "om.reflections.reviewed";
 export const OM_OBSERVATIONS_DROPPED = "om.observations.dropped";
 export const OM_OBSERVATIONS_FLAGGED = "om.observations.flagged";
-export const OM_OBSERVATIONS_PINNED = "om.observations.pinned";
-export const OM_OBSERVATIONS_UNPINNED = "om.observations.unpinned";
 export const OM_OBSERVATIONS_CURATED = "om.observations.curated";
 export const OM_FOLDED = "om.folded";
 
@@ -73,24 +71,11 @@ export type ObservationsFlaggedEntryData = {
 	reason: string;
 };
 
-export type ObservationsPinnedEntryData = {
-	observationIds: string[];
-	/** Short one-line explanation for forcing reviewed observations into next context. */
-	reason: string;
-};
-
-export type ObservationsUnpinnedEntryData = {
-	observationIds: string[];
-	/** Short one-line explanation for no longer forcing reviewed observations into next context. */
-	reason: string;
-};
-
 export type ObservationsCuratedEntryData = {
 	coversUpToId: string;
 };
 
 const OBSERVATION_FLAG_REASON_MAX_LENGTH = 240;
-const OBSERVATION_PIN_REASON_MAX_LENGTH = 240;
 
 export type MemoryDetails = {
 	type: typeof OM_FOLDED;
@@ -105,8 +90,6 @@ export type MemoryCustomType =
 	| typeof OM_REFLECTIONS_REVIEWED
 	| typeof OM_OBSERVATIONS_DROPPED
 	| typeof OM_OBSERVATIONS_FLAGGED
-	| typeof OM_OBSERVATIONS_PINNED
-	| typeof OM_OBSERVATIONS_UNPINNED
 	| typeof OM_OBSERVATIONS_CURATED;
 
 export function isNonEmptyString(value: unknown): value is string {
@@ -221,24 +204,6 @@ export function isObservationsFlaggedData(value: unknown): value is Observations
 	return isNonEmptyStringArray(value.observationIds) && isObservationFlagReason(value.reason);
 }
 
-export function normalizeObservationPinReason(value: string): string {
-	return value.replace(/[\r\n]+/g, " ").trim().slice(0, OBSERVATION_PIN_REASON_MAX_LENGTH);
-}
-
-export function isObservationPinReason(value: unknown): value is string {
-	return typeof value === "string" && normalizeObservationPinReason(value).length > 0;
-}
-
-export function isObservationsPinnedData(value: unknown): value is ObservationsPinnedEntryData {
-	if (!isPlainRecord(value)) return false;
-	return isNonEmptyStringArray(value.observationIds) && isObservationPinReason(value.reason);
-}
-
-export function isObservationsUnpinnedData(value: unknown): value is ObservationsUnpinnedEntryData {
-	if (!isPlainRecord(value)) return false;
-	return isNonEmptyStringArray(value.observationIds) && isObservationPinReason(value.reason);
-}
-
 export function isObservationsCuratedData(value: unknown): value is ObservationsCuratedEntryData {
 	if (!isPlainRecord(value)) return false;
 	return isNonEmptyString(value.coversUpToId);
@@ -296,22 +261,6 @@ export function isObservationsFlaggedEntry(entry: Entry): entry is Entry & {
 	return entry.type === "custom" && entry.customType === OM_OBSERVATIONS_FLAGGED && isObservationsFlaggedData(entry.data);
 }
 
-export function isObservationsPinnedEntry(entry: Entry): entry is Entry & {
-	type: "custom";
-	customType: typeof OM_OBSERVATIONS_PINNED;
-	data: ObservationsPinnedEntryData;
-} {
-	return entry.type === "custom" && entry.customType === OM_OBSERVATIONS_PINNED && isObservationsPinnedData(entry.data);
-}
-
-export function isObservationsUnpinnedEntry(entry: Entry): entry is Entry & {
-	type: "custom";
-	customType: typeof OM_OBSERVATIONS_UNPINNED;
-	data: ObservationsUnpinnedEntryData;
-} {
-	return entry.type === "custom" && entry.customType === OM_OBSERVATIONS_UNPINNED && isObservationsUnpinnedData(entry.data);
-}
-
 export function isObservationsCuratedEntry(entry: Entry): entry is Entry & {
 	type: "custom";
 	customType: typeof OM_OBSERVATIONS_CURATED;
@@ -355,24 +304,6 @@ export function buildObservationsFlaggedData(
 ): ObservationsFlaggedEntryData | undefined {
 	const normalizedReason = normalizeObservationFlagReason(reason);
 	if (observationIds.length === 0 || !isObservationFlagReason(normalizedReason)) return undefined;
-	return { observationIds, reason: normalizedReason };
-}
-
-export function buildObservationsPinnedData(
-	observationIds: string[],
-	reason: string,
-): ObservationsPinnedEntryData | undefined {
-	const normalizedReason = normalizeObservationPinReason(reason);
-	if (observationIds.length === 0 || !isObservationPinReason(normalizedReason)) return undefined;
-	return { observationIds, reason: normalizedReason };
-}
-
-export function buildObservationsUnpinnedData(
-	observationIds: string[],
-	reason: string,
-): ObservationsUnpinnedEntryData | undefined {
-	const normalizedReason = normalizeObservationPinReason(reason);
-	if (observationIds.length === 0 || !isObservationPinReason(normalizedReason)) return undefined;
 	return { observationIds, reason: normalizedReason };
 }
 

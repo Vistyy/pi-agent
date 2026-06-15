@@ -39,18 +39,15 @@ describe("config", () => {
 			strategy: STRATEGY.replacement,
 			observeEveryMessages: 32,
 			reflectEveryObservations: 8,
-			emergencyCurateWhenVisibleObservationsOver: 60,
 			maxInitialObserveTokens: 100000,
 			observationsPoolMaxTokens: 20000,
 			observerToolResultSummaryMaxLines: 4,
 			observerToolResultErrorMaxLines: 20,
 			observerToolResultLineMaxChars: 300,
 			observerToolOutputPolicies: { fork: "full-excerpt" },
-			protectRecentObservations: 32,
 			agentMaxTurns: 16,
 			observerThinking: "low",
 			reflectorThinking: "low",
-			curatorThinking: "high",
 			debugLog: false,
 		});
 		expect(loadConfig(cwd)).toEqual(DEFAULTS);
@@ -62,7 +59,6 @@ describe("config", () => {
 				strategy: "replacement",
 				observeEveryMessages: 10,
 				reflectEveryObservations: 20,
-				emergencyCurateWhenVisibleObservationsOver: 90,
 				maxInitialObserveTokens: 60,
 				observationsPoolMaxTokens: 40,
 				observerToolResultSummaryMaxLines: 2,
@@ -73,7 +69,6 @@ describe("config", () => {
 				model: { provider: "anthropic", id: "global", thinking: "medium" },
 				observerThinking: "low",
 				reflectorThinking: "high",
-				curatorThinking: "medium",
 				debugLog: true,
 			},
 		});
@@ -90,7 +85,6 @@ describe("config", () => {
 			strategy: "replacement",
 			observeEveryMessages: 100,
 			reflectEveryObservations: 20,
-			emergencyCurateWhenVisibleObservationsOver: 90,
 			maxInitialObserveTokens: 60,
 			observationsPoolMaxTokens: 40,
 			observerToolResultSummaryMaxLines: 2,
@@ -101,7 +95,6 @@ describe("config", () => {
 			model: { provider: "openai", id: "project", thinking: "low" },
 			observerThinking: "low",
 			reflectorThinking: "high",
-			curatorThinking: "medium",
 			debugLog: true,
 		});
 	});
@@ -112,7 +105,6 @@ describe("config", () => {
 				strategy: "unknown",
 				observeEveryMessages: -1,
 				reflectEveryObservations: 0,
-				emergencyCurateWhenVisibleObservationsOver: "90",
 				maxInitialObserveTokens: "100000",
 				observationsPoolMaxTokens: "20000",
 				observerToolResultSummaryMaxLines: "4",
@@ -123,7 +115,6 @@ describe("config", () => {
 				model: { provider: "anthropic", id: "", thinking: "huge" },
 				observerThinking: "huge",
 				reflectorThinking: 10,
-				curatorThinking: "huge",
 				debugLog: "true",
 			},
 		});

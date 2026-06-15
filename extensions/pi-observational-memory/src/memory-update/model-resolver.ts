@@ -2,7 +2,7 @@ import { debugLog } from "../debug-log.js";
 import { type ResolveResult, type Runtime } from "../runtime.js";
 import type { MemoryUpdateCtx, ResolvedModel } from "./types.js";
 
-export type MemoryStageName = "observer" | "reflector" | "curator";
+export type MemoryStageName = "observer" | "reflector";
 
 export function makeModelResolver(runtime: Runtime, ctx: MemoryUpdateCtx): (stage: MemoryStageName) => Promise<ResolvedModel | undefined> {
 	let cached: ResolveResult | undefined;

@@ -26,7 +26,7 @@ Current direction:
 - Reflection records now use `sources` typed provenance ids and carry `createdAt`.
 - Ledger folding, projection, recall, and tools normalize old records at the read boundary only.
 - Compaction summary/details render active reflections only and do not preserve an active observation pool.
-- Curator tests for pin/stage behavior were deleted as obsolete; curator removal/simplification remains upcoming.
+- Curator runtime path, pin/unpin ledger events, pin config, curator config/status lines, and curator tests/evals were removed.
 - Dropper code and eval routing were removed.
 - Observer input is sanitized and primary-source filtered.
 - Observer tool rendering is policy-based:
@@ -66,7 +66,7 @@ Current implemented `Next context` is:
 current reflections
 ```
 
-Remaining transitional code is mostly curator/drop/follow-up maintenance logic; it no longer defines active projection.
+Remaining transitional code is follow-up/drop maintenance logic; it no longer defines active projection.
 
 Target lifecycle is simpler:
 
@@ -190,15 +190,17 @@ Tasks:
 - [x] Introduce typed memory ids for observations/reflections.
 - [x] Add `createdAt` to reflection records and model-facing rendering.
 - [x] Replace `supportingObservationIds` with a single typed `sources` array in core paths.
-- [ ] Remove remaining pin/unpin state, events, curator projection/status language.
+- [x] Remove remaining pin/unpin state, events, curator projection/status language.
 - [x] Stop showing unreviewed observations in normal active projection.
 - [x] Keep observations in the ledger for reflector input, rewrite input, and recall.
 - [x] Update compaction projection so summary renders active reflections only.
 - [x] Keep compaction hook synchronous work limited to deterministic projection render; observer tail flush remains the intended boundary behavior.
 
-### Stage 3: Reflector simplification and compression-audit replacement
+### Stage 3: Reflector simplification and compression-audit replacement — in progress
 
 Goal: preserve the safety benefits of curator without pinning or multi-phase curator cost.
+
+Status: curator is no longer scheduled or configured, and pin/unpin behavior is gone. Remaining work is to harden the reflector contract/evals and decide whether a minimal compression auditor is still needed.
 
 Tasks:
 
@@ -208,7 +210,7 @@ Tasks:
   - preserve exact paths/commands/errors when they are durable anchors
   - retain stale/current relationships when relevant
   - avoid meta/eval chatter unless it is a durable project decision
-- Remove curator pin/unpin tools and lifecycle.
+- [x] Remove curator pin/unpin tools and lifecycle.
 - Decide whether follow-up/flag behavior remains:
   - preferred minimal form: reflector self-repair through future observations and rewrite
   - fallback: one-call low-thinking compression auditor that can request reflector repair, not pin observations
