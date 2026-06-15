@@ -104,21 +104,25 @@ export async function judgedObserverScored(
   });
   const score = dimensions.reduce((total, dimension) => total + dimension.score, 0);
   const maxScore = dimensions.reduce((total, dimension) => total + dimension.maxScore, 0);
+  const judgeStarted = Date.now();
+  const judged = hardFailure ? undefined : await runJudge(probe, JSON.stringify(output ?? [], null, 2), judgeModel);
   const base: AgentEvalRecord = {
     id,
     agent: 'observer',
     output: output ?? [],
     judge: hardFailure
       ? { passed: false, reason: `Hard invariant failed: ${hardFailure.reason}`, details: hardFailure.details }
-      : { passed: true, reason: 'Hard invariants passed; see score dimensions for capability signal.' },
-    passed: !hardFailure,
+      : judged?.judge,
+    passed: !hardFailure && judged?.run.status === 0 && judged.judge.passed,
     durationMs: Date.now() - started,
     agentDurationMs,
+    judgeDurationMs: hardFailure ? undefined : Date.now() - judgeStarted,
     usage,
+    judgeUsage: judged?.run.usage,
     diagnostics,
     score: { hardFailed: Boolean(hardFailure), score, maxScore, dimensions },
   };
-  return hardFailure ? diagnoseFailure(base, probe, judgeModel) : base;
+  return base.passed ? base : diagnoseFailure(base, probe, judgeModel);
 }
 
 async function judgedReflectionLikeScored(
@@ -141,21 +145,25 @@ async function judgedReflectionLikeScored(
   });
   const score = dimensions.reduce((total, dimension) => total + dimension.score, 0);
   const maxScore = dimensions.reduce((total, dimension) => dimension.maxScore + total, 0);
+  const judgeStarted = Date.now();
+  const judged = hardFailure ? undefined : await runJudge(probe, JSON.stringify(output ?? [], null, 2), judgeModel);
   const base: AgentEvalRecord = {
     id,
     agent,
     output: output ?? [],
     judge: hardFailure
       ? { passed: false, reason: `Hard invariant failed: ${hardFailure.reason}`, details: hardFailure.details }
-      : { passed: true, reason: 'Hard invariants passed; see score dimensions for capability signal.' },
-    passed: !hardFailure,
+      : judged?.judge,
+    passed: !hardFailure && judged?.run.status === 0 && judged.judge.passed,
     durationMs: Date.now() - started,
     agentDurationMs,
+    judgeDurationMs: hardFailure ? undefined : Date.now() - judgeStarted,
     usage,
+    judgeUsage: judged?.run.usage,
     diagnostics,
     score: { hardFailed: Boolean(hardFailure), score, maxScore, dimensions },
   };
-  return hardFailure ? diagnoseFailure(base, probe, judgeModel) : base;
+  return base.passed ? base : diagnoseFailure(base, probe, judgeModel);
 }
 
 export async function judgedReflectorScored(

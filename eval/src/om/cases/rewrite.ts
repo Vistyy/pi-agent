@@ -2,7 +2,7 @@ import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import type { AgentEvalRecord, Reflection } from '../types.js';
 import { createUsageCollector, loadOmAgents, ref, resolveModel } from '../runner.js';
 import { judgedRewriteScored, reflectorForbidsAny, reflectorMaxCount, reflectorRequiresAll, reflectorSourceIdsAllowed } from '../diagnostics.js';
-import { realRewrite40, realRewrite120 } from './real-session-fixtures.js';
+import { realRewrite40, realRewrite80, realRewrite120 } from './real-session-fixtures.js';
 
 async function runRewriteCase(modelSpec: string, thinkingLevel: ModelThinkingLevel, reflections: Reflection[]) {
   const auth = await resolveModel(modelSpec);
@@ -104,6 +104,15 @@ export async function rewriteRealGiga40(modelSpec: string, judgeModel: string, t
   ]);
 }
 
+export async function rewriteRealGiga80(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  return realRewriteFixtureCase('rewrite-real-giga-80', realRewrite80, modelSpec, judgeModel, thinkingLevel, [
+    reflectorRequiresAll('curator'),
+    reflectorRequiresAll('pin'),
+    reflectorRequiresAll('compaction'),
+    reflectorRequiresAll('validation'),
+  ]);
+}
+
 export async function rewriteRealGiga120(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   return realRewriteFixtureCase('rewrite-real-giga-120', realRewrite120, modelSpec, judgeModel, thinkingLevel, [
     reflectorRequiresAll('curator'),
@@ -112,6 +121,7 @@ export async function rewriteRealGiga120(modelSpec: string, judgeModel: string, 
     reflectorRequiresAll('validation'),
   ]);
 }
+(rewriteRealGiga120 as any).suite = 'stress';
 
 export async function rewriteDeferredTaskRetention(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   const started = Date.now();

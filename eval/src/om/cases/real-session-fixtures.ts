@@ -1371,7 +1371,7 @@ export const realRewrite120 = [
   {
     "id": "ref_83fc614ab9e2",
     "kind": "reflection",
-    "content": "The current curator eval set is still too synthetic/clean to prove giga-session behavior; Stage 6 should harden recall + curator evals from real sessions, starting with the hard slice from `2026-06-11T14-02-51-854Z_019eb6fe-2e4e-732f-b744-4b2cb3123d70.jsonl`, and the broader next tiers are historical/session-derived slices, 50-150 observation stress cases with stale/duplicate/contradictory history, and end-to-end observer→reflector→curator replay evals.",
+    "content": "The current curator eval set is still too synthetic/clean to prove giga-session behavior; Stage 6 should harden recall + curator evals from real sessions, starting with the hard slice from `2026-06-11T14-02-51-854Z_019eb6fe-2e4e-732f-b744-4b2cb3123d70.jsonl`, and the broader next tiers are historical/session-derived slices, 50-150 observation stress cases with stale/duplicate/contradictory history, and end-to-end observer\u2192reflector\u2192curator replay evals.",
     "sources": [
       "obs_21ce429aff6f",
       "obs_1b844a08b342",
@@ -1835,7 +1835,7 @@ export const realRewrite120 = [
   {
     "id": "ref_da0b50d0e8d3",
     "kind": "reflection",
-    "content": "With pricing instrumentation in place, all five benchmarked candidate models passed hard-4: `openrouter/nvidia/nemotron-3-ultra-550b-a55b` low 127.6s/$0.1515, `openrouter/x-ai/grok-4.3` low 178.0s/$0.1110, `openrouter/xiaomi/mimo-v2.5` low 352.4s/$0.0228, `alibaba/qwen3.7-plus` xhigh 946.1s/$0.0808, `openrouter/minimax/minimax-m3` low 609.0s/$0.0699; `gpt-5.4-mini` low is still the best overall balance, with estimated hard-4 cost ~$0.08–$0.09 total, fastest is nemotron, and cheapest is mimo-v2.5.",
+    "content": "With pricing instrumentation in place, all five benchmarked candidate models passed hard-4: `openrouter/nvidia/nemotron-3-ultra-550b-a55b` low 127.6s/$0.1515, `openrouter/x-ai/grok-4.3` low 178.0s/$0.1110, `openrouter/xiaomi/mimo-v2.5` low 352.4s/$0.0228, `alibaba/qwen3.7-plus` xhigh 946.1s/$0.0808, `openrouter/minimax/minimax-m3` low 609.0s/$0.0699; `gpt-5.4-mini` low is still the best overall balance, with estimated hard-4 cost ~$0.08\u2013$0.09 total, fastest is nemotron, and cheapest is mimo-v2.5.",
     "sources": [
       "obs_7c9325ed0d25",
       "obs_a6406aaa393d"
@@ -1854,7 +1854,7 @@ export const realRewrite120 = [
   {
     "id": "ref_7a8984f2e414",
     "kind": "reflection",
-    "content": "In `src/agents/curator/agent.ts`, curator phase input filtering now derives `priorActionIds` from the current run’s pinned/flagged/unpinned/dropped results, filters `unpin`/`unlinked-preserve`/`preserve` against those ids, and returns the initial result when a phase has no candidates.",
+    "content": "In `src/agents/curator/agent.ts`, curator phase input filtering now derives `priorActionIds` from the current run\u2019s pinned/flagged/unpinned/dropped results, filters `unpin`/`unlinked-preserve`/`preserve` against those ids, and returns the initial result when a phase has no candidates.",
     "sources": [
       "obs_234cc7b94a23"
     ],
@@ -1885,7 +1885,7 @@ export const realRewrite120 = [
   {
     "id": "ref_32b5bdd7c87a",
     "kind": "reflection",
-    "content": "The user now wants curator latency cut further even though token/price is acceptable; hard-4 timings are ~11.6s review / 4.3s unpin / 5.1s unlinked-preserve / 9.3s preserve, and `unpin` + `unlinked-preserve` are mostly independent after review so they can run in parallel, saving about 4s average (~7–8s best case) with `preserve` last.",
+    "content": "The user now wants curator latency cut further even though token/price is acceptable; hard-4 timings are ~11.6s review / 4.3s unpin / 5.1s unlinked-preserve / 9.3s preserve, and `unpin` + `unlinked-preserve` are mostly independent after review so they can run in parallel, saving about 4s average (~7\u20138s best case) with `preserve` last.",
     "sources": [
       "obs_1af698b3972c",
       "obs_207093b5725c",
@@ -2263,5 +2263,847 @@ export const realRewrite120 = [
       "obs_40e1815c97d5"
     ],
     "createdAt": "2026-06-14T16:13:46.574Z"
+  }
+] as const;
+
+export const realRewrite80 = [
+  {
+    "id": "ref_5667e86027ac",
+    "kind": "reflection",
+    "content": "Docs now define the curator vocabulary as pin/unpin reviewed observations, with no separate cover event yet; dropped tombstones remain the hard suppression mechanism, and next-context observations are unreviewed plus pinned reviewed minus dropped.",
+    "sources": [
+      "obs_e55f1bfba9e0",
+      "obs_b68b796ed883",
+      "obs_ab55b7d2b2ce"
+    ],
+    "createdAt": "2026-06-11T21:48:37.954Z"
+  },
+  {
+    "id": "ref_8c567deba8d3",
+    "kind": "reflection",
+    "content": "Reflector scheduling now uses `unreviewed observations + pending flagged follow-ups >= reflectEveryObservations` and not a special single-flag trigger; `pendingFlagsAfterIndex` and `latestReflectionReviewEntryIndex(entries)` let later reflection review implicitly resolve covered follow-ups, replacing the older `flagged reviewed observations` wording.",
+    "sources": [
+      "obs_279d9a3f5692",
+      "obs_c60398bae8d9",
+      "obs_b432243e2efb",
+      "obs_3c2acb0f0a4b",
+      "obs_df2d9eb1b110"
+    ],
+    "createdAt": "2026-06-11T21:48:37.954Z"
+  },
+  {
+    "id": "ref_967c944447bd",
+    "kind": "reflection",
+    "content": "The pin/unpin visibility-state change was committed as `2d20a03` (`Add observation pin visibility state`) after `pnpm test && pnpm run typecheck` passed with 21 test files and 164 tests.",
+    "sources": [
+      "obs_9e428d479c30"
+    ],
+    "createdAt": "2026-06-11T21:48:37.954Z"
+  },
+  {
+    "id": "ref_615a577bdb6e",
+    "kind": "reflection",
+    "content": "New curator skeleton at `src/agents/curator/{agent.ts,prompts.ts}` exposes `pin_observations`, `unpin_observations`, `flag_observations`, `drop_observations`, and `mark_no_actions`, keeps per-item partial-success/accepted-rejected behavior, and should replace dropper only via the staged migration `add curator alongside dropper -> validate -> switch scheduler -> delete dropper once coverage is equivalent`; `tests/curator.test.ts` covers the new behavior.",
+    "sources": [
+      "obs_1f35a2eb1910",
+      "obs_5173a468ef30",
+      "obs_012903e32b70",
+      "obs_8ad8e6a1f4f6"
+    ],
+    "createdAt": "2026-06-11T21:56:23.292Z"
+  },
+  {
+    "id": "ref_032500566769",
+    "kind": "reflection",
+    "content": "Adding `curator` to `MemoryAgentName` first caused typecheck errors (`src/agents/curator/agent.ts` `curator` not assignable to `MemoryAgentName | undefined`); fixing `src/runtime.ts` and `src/session-ledger/agent-usage.ts` usage summaries made `pnpm test && pnpm run typecheck` pass, and the skeleton was committed as `7a1704c` (`Add curator agent skeleton`).",
+    "sources": [
+      "obs_fcc3e67ab7c6",
+      "obs_4ad8829b3ba2",
+      "obs_b679bf1effe8"
+    ],
+    "createdAt": "2026-06-11T21:56:23.292Z"
+  },
+  {
+    "id": "ref_98a9c83a1870",
+    "kind": "reflection",
+    "content": "Implementation-safety ranking is Curator > Reflector > Observer because curator controls evidence visibility/irreversibility; semantic-authorship ranking remains Reflector > Curator > Observer.",
+    "sources": [
+      "obs_e469d5070648"
+    ],
+    "createdAt": "2026-06-11T21:56:23.292Z"
+  },
+  {
+    "id": "ref_37923d9c3900",
+    "kind": "reflection",
+    "content": "Curator eval scaffolding belongs in `/home/syzom/.pi/agent/eval`; the OM runner there is `/home/syzom/.pi/agent/eval/src/om-agent-evals.ts`, it already contains OM agent eval records/runners and treats `curator` as a valid agent, and the earlier `tests/evals/curator` placeholder under `pi-observational-memory` is stale/deferred.",
+    "sources": [
+      "obs_7c823bbd2e13",
+      "obs_622773b6a6b4",
+      "obs_dd29aa1c2bf0",
+      "obs_e5976d843440",
+      "obs_50808b3aa72a"
+    ],
+    "createdAt": "2026-06-12T09:36:11.039Z"
+  },
+  {
+    "id": "ref_11d7504befe1",
+    "kind": "reflection",
+    "content": "Current curator eval coverage in `/home/syzom/.pi/agent/eval/src/om-agent-evals.ts` includes `curator-flags-missing-exact-detail`, `curator-unpins-stale-pinned-failure`, `curator-drops-noise-keeps-preference`, `curator-keeps-stale-trap-evidence`, `curator-mixed-reviewed-pool`, `curator-minimal-pin-pressure`, and `curator-contradictory-reflection`; the user wants realistic/harder scenarios and a baseline run, not softballs.",
+    "sources": [
+      "obs_1064bcef941d",
+      "obs_7741ee1475fe",
+      "obs_08fdaafec144"
+    ],
+    "createdAt": "2026-06-12T09:36:11.039Z"
+  },
+  {
+    "id": "ref_284e68047855",
+    "kind": "reflection",
+    "content": "Stage 3 simplifications are user-approved: `visibilityProjection(entries, projection)` must require an explicit projection, `classifyObservationsByReview()` needs an explicit no-review fast path, and status text should say `unreviewed` instead of `pending`.",
+    "sources": [
+      "obs_62b855c195be"
+    ],
+    "createdAt": "2026-06-12T09:36:11.039Z"
+  },
+  {
+    "id": "ref_f263e0bee2ca",
+    "kind": "reflection",
+    "content": "Curator now allows multiple action-tool calls per pass; each call must contain the complete batch for that action type, `mark_no_actions` is ignored after any action, pin/unpin/flag/drop return `terminate: false`, and same-run conflicts remove dropped ids from pin/unpin/flag batches (`b3e33eb`, `Allow curator multi-action passes`).",
+    "sources": [
+      "obs_6f58dd475a56",
+      "obs_517107f0fb4a",
+      "obs_5149d283fd61",
+      "obs_bd29cd295c72"
+    ],
+    "createdAt": "2026-06-12T11:15:27.407Z"
+  },
+  {
+    "id": "ref_6238e8920c5c",
+    "kind": "reflection",
+    "content": "Curator evals in `/home/syzom/.pi/agent/eval/src/om-agent-evals.ts` were updated to allow multiple action types in one pass, judge each JSON array independently, and loosen one-shot-only wording in several scenarios.",
+    "sources": [
+      "obs_5de75673cbf7"
+    ],
+    "createdAt": "2026-06-12T11:15:27.407Z"
+  },
+  {
+    "id": "ref_644fa77958d6",
+    "kind": "reflection",
+    "content": "Curator baseline run `pnpm om-agent-evals --only curator --thinking high --out runs/curator-baseline-20260612-130808` in `/home/syzom/.pi/agent/eval` scored 4/8 and failed `curator-flags-missing-exact-detail` because the curator pinned `cccccccccccc`/`bbbbbbbbbbbb` even though exact details were already reflected; `src/agents/curator/prompts.ts` was then tightened so exact paths/commands/settings are not pinned merely because they are exact when current reflections already preserve them, stale pinned failures are unpinned when later evidence shows the failure is fixed, and newer passing validation evidence proving a pinned failure is stale must be kept.",
+    "sources": [
+      "obs_0fadbf4068a1",
+      "obs_9a86dd17cae0"
+    ],
+    "createdAt": "2026-06-12T11:15:27.407Z"
+  },
+  {
+    "id": "ref_52d4870f535b",
+    "kind": "reflection",
+    "content": "Later curator baseline run in `/home/syzom/.pi/agent/eval` (`pnpm om-agent-evals --only curator --thinking high --out runs/curator-baseline-20260612-130808`) reached 5/8 passed; `curator-flags-missing-exact-detail` and `curator-mixed-reviewed-pool` passed, while `curator-drops-noise-keeps-preference` still failed because the curator did not preserve `cccccccccccc` as a durable preference/current constraint and also dropped durable blocker ids.",
+    "sources": [
+      "obs_0fadbf4068a1",
+      "obs_a70c042de806",
+      "obs_5d3f714e475c"
+    ],
+    "createdAt": "2026-06-12T11:23:07.007Z"
+  },
+  {
+    "id": "ref_80ece23f5143",
+    "kind": "reflection",
+    "content": "`/home/syzom/.pi/agent/eval/src/om-agent-evals.ts` now fails fast on deterministic invariants via `curatorIds(...)`, `deterministicCuratorFailure(...)`, and `judgedCurator(...)` before LLM judging; `curator-flags-missing-exact-detail` requires exact blocker ids not be dropped and at least one to be pinned/flagged, `curator-unpins-stale-pinned-failure` requires `aaaaaaaaaaaa` in `unpinned` and forbids dropping `bbbbbbbbbbbb`, `curator-drops-noise-keeps-preference` forbids dropping `cccccccccccc` and only allows noise drops, and `curator-keeps-stale-trap-evidence` forbids dropping `aaaaaaaaaaaa`/`bbbbbbbbbbbb`/`dddddddddddd` and requires pin/flag of stale trap evidence.",
+    "sources": [
+      "obs_067728812524",
+      "obs_11b7b78d3474"
+    ],
+    "createdAt": "2026-06-12T11:23:07.007Z"
+  },
+  {
+    "id": "ref_ad247211087f",
+    "kind": "reflection",
+    "content": "`/home/syzom/.pi/agent/eval/src/om-agent-evals.ts` also converted `curator-mixed-reviewed-pool` to forbid dropping stale/current trap evidence and require pin/flag of stale/current evidence, `curator-minimal-pin-pressure` to forbid dropping durable constraints/blockers and cap drops at 3, and `curator-contradictory-reflection` to forbid pinning or dropping already-reflected exact details.",
+    "sources": [
+      "obs_e7b0ffdf48b2"
+    ],
+    "createdAt": "2026-06-12T11:23:07.007Z"
+  },
+  {
+    "id": "ref_fd5f8a166b1d",
+    "kind": "reflection",
+    "content": "User approved the curator follow-up plan: allow multiple action-tool calls per pass, add same-run conflict rules, tighten deterministic curator tests/rubrics, strengthen exact-detail omission guidance, then rerun curator baseline evals.",
+    "sources": [
+      "obs_88aa34bfd301"
+    ],
+    "createdAt": "2026-06-12T12:58:30.019Z"
+  },
+  {
+    "id": "ref_366501a3db8f",
+    "kind": "reflection",
+    "content": "The user rejected `skipJudgeOnDeterministicPass`; deterministic checks may only short-circuit failures or membership/cap invariants, and successful curator evals still go to the LLM judge.",
+    "sources": [
+      "obs_1499fd4d2c2e",
+      "obs_e8f7cf936878"
+    ],
+    "createdAt": "2026-06-12T12:58:30.019Z"
+  },
+  {
+    "id": "ref_73ef1142813d",
+    "kind": "reflection",
+    "content": "Curator eval rubrics were rewritten to be more semantic and less JSON-membership-oriented, and the baseline run `pnpm om-agent-evals --only curator --thinking high --out runs/curator-baseline-deterministic-20260612-133757` in `/home/syzom/.pi/agent/eval` still failed `curator-drops-noise-keeps-preference` because the answer did not distinguish transient noise from durable preference.",
+    "sources": [
+      "obs_f43bf23ac85f",
+      "obs_bcb9d47b3f5b"
+    ],
+    "createdAt": "2026-06-12T12:58:30.019Z"
+  },
+  {
+    "id": "ref_a7faaebd7507",
+    "kind": "reflection",
+    "content": "`src/agents/curator/agent.ts`'s `candidateObservationIds`/`contextObservations` split is still incomplete: `normalizeObservationIds` remains at line 137, and `pnpm test tests/curator.test.ts` still fails 9/10 curator tests because prompt/output say `REVIEWED OBSERVATIONS` instead of `ACTION CANDIDATES` / `READ-ONLY CONTEXT OBSERVATIONS`.",
+    "sources": [
+      "obs_11591673b5bc",
+      "obs_af309755f6d0"
+    ],
+    "createdAt": "2026-06-12T17:32:12.466Z"
+  },
+  {
+    "id": "ref_e6e1bf3de27d",
+    "kind": "reflection",
+    "content": "`src/agents/common.ts` still uses `normalizeAllowedIdsStrict`, so observer `record_observations` is all-or-nothing on any invalid `sourceEntryId`, and `src/agents/observer/agent.ts` only returns a generic missing/invalid-source rejection; the fork review warned this silent failure can make source entries look covered when they were not.",
+    "sources": [
+      "obs_8f7fe144cfe0",
+      "obs_53499ba1a110"
+    ],
+    "createdAt": "2026-06-12T17:32:12.466Z"
+  },
+  {
+    "id": "ref_34a796c130e6",
+    "kind": "reflection",
+    "content": "`docs/implementation-plan.md` still frames the redesign as Stage 1 compaction observer-only sync flush, and the current plan still points to Stage 5 work after curator candidate enforcement: add observer rejection feedback, define curator cursor/curate scheduling, add `curateEveryReviewedObservations` / `emergencyCurateWhenVisibleObservationsOver` / `curatorThinking`, write `curator-stage.ts`, and update `run.ts` / `anyMemoryUpdateStageDue` / `runtime.ts`.",
+    "sources": [
+      "obs_53499ba1a110",
+      "obs_9d8bb7e66a44"
+    ],
+    "createdAt": "2026-06-12T17:32:12.466Z"
+  },
+  {
+    "id": "ref_dfe07134eb8e",
+    "kind": "reflection",
+    "content": "`src/agents/observer/agent.ts` now rejects invalid batches with exact rejected sourceEntryIds/reasons (`rejectedDetails`, `missing: invalid_source_entry_id`-style feedback) instead of only a generic count; `tests/observer.test.ts` covers invented ids being rejected with no observations; docs say invalid observations do not advance coverage, sources stay uncovered unless validly observed or explicitly marked no-observations, and same-run observer retry is deferred; committed as `8a9c619` (`Report observer source id rejections`).",
+    "sources": [
+      "obs_426c27dec4a9",
+      "obs_294a4000cf1c",
+      "obs_55086a56b4a1",
+      "obs_07b910e101d8"
+    ],
+    "createdAt": "2026-06-12T17:40:23.939Z"
+  },
+  {
+    "id": "ref_0de191cd48ed",
+    "kind": "reflection",
+    "content": "`OM_OBSERVATIONS_CURATED` / `om.observations.curated` now exists with `coversUpToId`; `src/session-ledger/progress.ts` adds `latestCuratorCursorIndex()` and `latestCuratorCursorMarkerId()`, and fixtures/tests track curator cursor coverage independently from reflection-review coverage.",
+    "sources": [
+      "obs_b85ff70df321",
+      "obs_23480f36bf08",
+      "obs_eebbaff880d2",
+      "obs_38b10203db14",
+      "obs_b1fc893ea1f5"
+    ],
+    "createdAt": "2026-06-12T17:40:23.939Z"
+  },
+  {
+    "id": "ref_45b55b95a951",
+    "kind": "reflection",
+    "content": "Curator now keeps the existing per-item partial-success pattern: it splits `ACTION CANDIDATES` from `READ-ONLY CONTEXT OBSERVATIONS`, only `candidateObservationIds` may mutate, and invalid multi-id calls return accepted/rejected ids with exact reasons instead of failing wholesale.",
+    "sources": [
+      "obs_012903e32b70",
+      "obs_254844d08bac",
+      "obs_11591673b5bc"
+    ],
+    "createdAt": "2026-06-12T17:57:15.843Z"
+  },
+  {
+    "id": "ref_af5a68f55266",
+    "kind": "reflection",
+    "content": "Observer and reflector tool calls are still one-shot within a run; there is no retry-within-run path for `record_observations`/`mark_observed_no_observations` or `record_reflections`/`mark_reviewed_no_reflections`.",
+    "sources": [
+      "obs_463db4839053"
+    ],
+    "createdAt": "2026-06-12T17:57:15.843Z"
+  },
+  {
+    "id": "ref_dca4732e82e1",
+    "kind": "reflection",
+    "content": "The earlier observer|reflector|dropper-only memory-update boundary is obsolete: `src/runtime.ts` now tracks `MemoryUpdatePhase = \"observer\" | \"reflector\" | \"curator\" | \"dropper\"` plus `lastCuratorError`, and `src/memory-update/types.ts` / `run.ts` were widened so `ResolveMemoryModel` can resolve curator models.",
+    "sources": [
+      "obs_0bb6495940e2",
+      "obs_1c0bbfd26dda"
+    ],
+    "createdAt": "2026-06-12T18:15:48.123Z"
+  },
+  {
+    "id": "ref_ebbd7473b6f3",
+    "kind": "reflection",
+    "content": "`src/memory-update/run.ts` now routes the normal post-reflector path through `runCuratorStage(...)` (`loadCuratorStage()`, no active-observation threshold in `anyMemoryUpdateStageDue`), and the `0f2d408` curator wiring is validated by `pnpm test` (23 files/180 tests) plus `pnpm run typecheck`.",
+    "sources": [
+      "obs_9042faaad753",
+      "obs_1c0bbfd26dda",
+      "obs_9bae90605739"
+    ],
+    "createdAt": "2026-06-12T18:15:48.123Z"
+  },
+  {
+    "id": "ref_29b4c796fe4d",
+    "kind": "reflection",
+    "content": "For the dropper cleanup, the user explicitly wants no compat shims or dead code; `run.ts` no longer schedules the dropper normally, but `src/runtime.ts` still keeps dropper phase/error state and repo grep still finds dropper docs/files (including `src/agents/dropper/agent.ts`), so the remaining refs are cleanup-only targets.",
+    "sources": [
+      "obs_ec783e84afd3",
+      "obs_fd22161e65b6",
+      "obs_ec0e17aa709e",
+      "obs_c761c5eae37f"
+    ],
+    "createdAt": "2026-06-12T18:15:48.123Z"
+  },
+  {
+    "id": "ref_0b489aef18b7",
+    "kind": "reflection",
+    "content": "Flagged reviewed observations are already included in `activeObservations`, so the reflector sees them in both the main list and the flagged follow-up section; the main risk is token volume, not missing context.",
+    "sources": [
+      "obs_04db9a6255f1"
+    ],
+    "createdAt": "2026-06-12T18:15:48.123Z"
+  },
+  {
+    "id": "ref_c0bf435880e1",
+    "kind": "reflection",
+    "content": "The live curator agent now enforces `candidateObservationIds`/`contextObservations` and rejects non-candidate ids with `not_action_candidate`.",
+    "sources": [
+      "obs_11591673b5bc",
+      "obs_1a3163b549c2"
+    ],
+    "createdAt": "2026-06-12T18:15:48.123Z"
+  },
+  {
+    "id": "ref_e65029f5b0b0",
+    "kind": "reflection",
+    "content": "Curator memory update stage was added in commit `160598b`; it waits for both observation coverage and reflection review coverage, uses reviewed observations since the last `om.observations.curated` cursor as `candidateObservationIds` with older reviewed items as read-only `contextObservations`, and advances the curator cursor only when `runCurator(...)` returns tool output.",
+    "sources": [
+      "obs_afcefa7b472d",
+      "obs_893c5f5a65a1",
+      "obs_fdfe8bbcc84e",
+      "obs_52bd5bf0b790"
+    ],
+    "createdAt": "2026-06-12T20:12:20.974Z"
+  },
+  {
+    "id": "ref_92ebf0ffb0cf",
+    "kind": "reflection",
+    "content": "Curator now has an independent emergency-pressure path in `src/memory-update/run.ts`: `anyMemoryUpdateStageDue()` fires when `nextContextProjection(entries, fullProjection(entries)).observations.length > runtime.config.emergencyCurateWhenVisibleObservationsOver`, so `runMemoryUpdate()` can run curator even without reflector work and pass all visible reviewed observations as `candidateObservationIds`; `/om:status` shows `Curate: <visible> / <threshold> visible observations emergency` and `Reviewed since curator cursor`.",
+    "sources": [
+      "obs_a2c4ad6f39ba",
+      "obs_c971221c77ea",
+      "obs_0f6b1e089cca"
+    ],
+    "createdAt": "2026-06-12T20:12:20.974Z"
+  },
+  {
+    "id": "ref_74461bd1bb62",
+    "kind": "reflection",
+    "content": "Curator baseline rerun in `/home/syzom/.pi/agent/eval` passed `8/8` with `pnpm om-agent-evals --only curator --thinking high --out runs/curator-after-dropper-removal-20260612-215538`, and the user said eval runs are not meant to be committed.",
+    "sources": [
+      "obs_f1deaf82e0d7"
+    ],
+    "createdAt": "2026-06-12T20:12:20.974Z"
+  },
+  {
+    "id": "ref_d4aa249948d9",
+    "kind": "reflection",
+    "content": "On the real `openai-codex/gpt-5.4-mini` provider, curator `gpt-5.4-mini-low` passed 8/8 at ~48.9s/22,022 tokens while `gpt-5.4-mini-high` also passed 8/8 but used ~215.9s/46,834 tokens, so `low` is the preferred setting.",
+    "sources": [
+      "obs_3efc15cc9092"
+    ],
+    "createdAt": "2026-06-12T21:22:00.641Z"
+  },
+  {
+    "id": "ref_83fc614ab9e2",
+    "kind": "reflection",
+    "content": "The current curator eval set is still too synthetic/clean to prove giga-session behavior; Stage 6 should harden recall + curator evals from real sessions, starting with the hard slice from `2026-06-11T14-02-51-854Z_019eb6fe-2e4e-732f-b744-4b2cb3123d70.jsonl`, and the broader next tiers are historical/session-derived slices, 50-150 observation stress cases with stale/duplicate/contradictory history, and end-to-end observer\u2192reflector\u2192curator replay evals.",
+    "sources": [
+      "obs_21ce429aff6f",
+      "obs_1b844a08b342",
+      "obs_f0fb884c310a"
+    ],
+    "createdAt": "2026-06-12T21:22:00.641Z"
+  },
+  {
+    "id": "ref_4101589720a6",
+    "kind": "reflection",
+    "content": "After the emergency-scheduler rerun, `curator-flags-missing-exact-detail` was clarified to accept paraphrased reasons when the pinned/flagged ids already contain the exact blocker evidence (`src/db/migrate.ts:88` and `PRAGMA journal_mode=WAL`), and pinning `aaaaaaaaaaaa` plus flagging `bbbbbbbbbbbb` is now a pass (`e25d77e`).",
+    "sources": [
+      "obs_18e1bf61a576",
+      "obs_647436f18330",
+      "obs_f34f54c70283"
+    ],
+    "createdAt": "2026-06-12T21:22:00.641Z"
+  },
+  {
+    "id": "ref_49d4c11bd16c",
+    "kind": "reflection",
+    "content": "Dropper cleanup is now fully removed from `pi-observational-memory`: dropper files/tests were deleted, config/runtime/types/status/docs were pruned to curator-only state, validation passed with no remaining `dropper` refs, and the removal was committed as `f463f21`.",
+    "sources": [
+      "obs_8f046fc1b17a",
+      "obs_889800d7e483",
+      "obs_de2fb0182bdd",
+      "obs_d71bf02c0dbc",
+      "obs_6e72ce4dd58c",
+      "obs_630cb09eeb93"
+    ],
+    "createdAt": "2026-06-12T22:09:04.573Z"
+  },
+  {
+    "id": "ref_ef85a4d29ebe",
+    "kind": "reflection",
+    "content": "The emergency curator threshold was lowered from 120 to 60 in `src/config.ts` and `README.md`, `tests/config.test.ts` was updated, and validation passed before commit `d2a2ae600469`.",
+    "sources": [
+      "obs_1f9199f6ad0f",
+      "obs_7edd5d095013",
+      "obs_d2a2ae600469",
+      "obs_e01b9eca54c5"
+    ],
+    "createdAt": "2026-06-12T22:09:04.573Z"
+  },
+  {
+    "id": "ref_a8f856ede880",
+    "kind": "reflection",
+    "content": "Removed dropper eval coverage was remapped to curator evals in `/home/syzom/.pi/agent/eval/src/om-agent-evals.ts`: `dropperHardSafety` -> `curatorDropsNoiseKeepsPreference` / `curatorMixedReviewedPool` / `curatorKeepsStaleTrapEvidence`, `dropperKeepsUnreflectedTrap` -> `curatorKeepsStaleTrapEvidence` / `curatorContradictoryReflection`, and `dropperDropsRepeatedNoise` -> `curatorDropsNoiseKeepsPreference` / `curatorMinimalPin` / `curatorMixedReviewedPool`; `b553a95` removed dropper eval routing/cases and validation passed.",
+    "sources": [
+      "obs_69d45b2b6556",
+      "obs_7edd5d095013",
+      "obs_d2a2ae600469",
+      "obs_e01b9eca54c5"
+    ],
+    "createdAt": "2026-06-12T22:09:04.573Z"
+  },
+  {
+    "id": "ref_271d77f39320",
+    "kind": "reflection",
+    "content": "The user wants eval rollout to proceed in checkpoints rather than one giant pass, so hard-eval work is being split by harness type with three agent hard evals (`curator-hard-schema-stale-noise`, `observer-hard-schema-mess`, `reflector-hard-repair-flag`) before recall/e2e.",
+    "sources": [
+      "obs_06b7953aa1be",
+      "obs_f17c6563ab75"
+    ],
+    "createdAt": "2026-06-12T22:09:04.573Z"
+  },
+  {
+    "id": "ref_ff31d8bb54bf",
+    "kind": "reflection",
+    "content": "Current OM eval inventory is mostly weak smoke tests with no hard historical agent evals yet; the current hard evals are still scaffold-only because they all pass `gpt-5.4-mini-low/high`, so next hardening should start with a larger curator eval plus diagnostic failure-prompt plumbing, and smoke evals should later be pruned to at most 1 observer / 1 reflector / 2 curator.",
+    "sources": [
+      "obs_9d134d10f074",
+      "obs_8e2c25c0a110",
+      "obs_8410a3985546",
+      "obs_22a1612ca6ad"
+    ],
+    "createdAt": "2026-06-12T22:09:04.573Z"
+  },
+  {
+    "id": "ref_a32ccee0379f",
+    "kind": "reflection",
+    "content": "Phased curator is implemented as three sequential phases (`protect`, `retire-pins`, `drop`) via `runCuratorPhased()`, and the eval runner exposes it only through eval-only `--curator-phased`; the user rejected any permanent option-flagged mode.",
+    "sources": [
+      "obs_26f8528d247c",
+      "obs_991ac1b82c47",
+      "obs_3df9c1483b12",
+      "obs_574fb03ed022",
+      "obs_befed23d8ad3"
+    ],
+    "createdAt": "2026-06-13T10:32:38.383Z"
+  },
+  {
+    "id": "ref_587ebafeb8d6",
+    "kind": "reflection",
+    "content": "Curator evals should be pruned before reruns, keeping 4 hard cases to run under both low and high thinking to sharpen failure signal.",
+    "sources": [
+      "obs_d76a207325c2",
+      "obs_e2f784e367a8"
+    ],
+    "createdAt": "2026-06-13T10:32:38.383Z"
+  },
+  {
+    "id": "ref_963fb54bf974",
+    "kind": "reflection",
+    "content": "Same-session phased curator reuse was skipped as too complex; `runCuratorPhased()` now reduces repeated context with `filterCuratorArgs(...)`/`idsMatching(...)`/`likelyPinRetirementEvidenceIds(...)`, feeding retire-phase only original pinned ids plus likely pin-retirement evidence and drop-phase only non-protected candidate ids.",
+    "sources": [
+      "obs_6c6fa6076405",
+      "obs_259ba69debb7"
+    ],
+    "createdAt": "2026-06-13T14:38:21.400Z"
+  },
+  {
+    "id": "ref_2c060a2a2fab",
+    "kind": "reflection",
+    "content": "Curator is now inventory-first: `src/agents/curator/prompts.ts` requires an evidence inventory before action tools, and the non-mutating `record_inventory`/`recordInventory` tool is prepended before the action tools/`mark_no_actions` and returns `mustPreserve`, `needsFollowUp`, `stalePinCandidates`, and `safeDropCandidates`.",
+    "sources": [
+      "obs_79047d0e69e5",
+      "obs_70389f4bb4fa",
+      "obs_f329f6085983"
+    ],
+    "createdAt": "2026-06-13T14:38:21.400Z"
+  },
+  {
+    "id": "ref_cb9038d348a2",
+    "kind": "reflection",
+    "content": "Hard-4 comparison showed phased low 1/4 versus single-pass low/high 0/4, and `curator-brutal-historical-pressure` still missed `c00000000005`, so phasing only helps interference and larger pools still need stronger evidence inventory behavior.",
+    "sources": [
+      "obs_95f29c4d40fc",
+      "obs_b3b4f52c3f6d",
+      "obs_475754cb28f2"
+    ],
+    "createdAt": "2026-06-13T14:38:21.400Z"
+  },
+  {
+    "id": "ref_d116b8ffa5ee",
+    "kind": "reflection",
+    "content": "A new inventory-only rerun is underway in `/home/syzom/.pi/agent/eval` for `SchemaStaleNoise` and `Brutal` using `openai-codex/gpt-5.4-mini` low.",
+    "sources": [
+      "obs_85af09980006"
+    ],
+    "createdAt": "2026-06-13T14:38:21.400Z"
+  },
+  {
+    "id": "ref_09c783c09120",
+    "kind": "reflection",
+    "content": "The preferred curator design is now two phases: phase 1 audits reflection coverage and phase 2 performs actions from that audit, replacing the earlier per-action phasing; the user also wants tool vs no-tool phase-1 comparison.",
+    "sources": [
+      "obs_91df8c22841f",
+      "obs_b7327203299c"
+    ],
+    "createdAt": "2026-06-13T15:01:34.676Z"
+  },
+  {
+    "id": "ref_ba7e3b1c999c",
+    "kind": "reflection",
+    "content": "Curator coverage-audit support now exists in `src/agents/curator/{prompts.ts,agent.ts}` and the eval runner via `CURATOR_COVERAGE_AUDIT_PHASE`/`CURATOR_ACTIONS_FROM_AUDIT_PHASE`, `runCuratorCoverageAuditPhased(args, mode: \"tool\" | \"text\" = \"tool\")`, `record_coverage_audit`/`submit_audit`, and `--curator-coverage-tool`/`--curator-coverage-text`; phase 2 uses `auditText` as a checklist, validation passed, but the two-call path was weak and too expensive (~58k tokens vs ~37k inventory, ~44.5k phased, ~19.8k single-pass).",
+    "sources": [
+      "obs_e04ffb07a2b1",
+      "obs_177915b385c2",
+      "obs_61c59e5443a9",
+      "obs_b226f018c700",
+      "obs_678bc522a68a",
+      "obs_cc3bf79b9519"
+    ],
+    "createdAt": "2026-06-13T15:01:34.676Z"
+  },
+  {
+    "id": "ref_011ea3b8b4ea",
+    "kind": "reflection",
+    "content": "The no-tool phase-1 audit variant is blocked because `runMemoryAgentLoop()` returns `Promise<void>` and discards stream events, so text capture needs a new extraction path.",
+    "sources": [
+      "obs_b7327203299c"
+    ],
+    "createdAt": "2026-06-13T15:01:34.676Z"
+  },
+  {
+    "id": "ref_8c391f532e46",
+    "kind": "reflection",
+    "content": "The inventory-first hard-4 rerun `runs/curator-hard4-schema-inventory-low-20260613-162910` scored 1/4 (~76.2s, ~37.0k tokens), fixing `curator-hard-schema-stale-noise` but still missing buried exact corrective atoms and confusing related evidence with same-scope evidence, confirming coverage auditing as the main curator failure mode.",
+    "sources": [
+      "obs_fcd8d5b8314e",
+      "obs_340733e478e5"
+    ],
+    "createdAt": "2026-06-13T15:01:34.676Z"
+  },
+  {
+    "id": "ref_57d004940777",
+    "kind": "reflection",
+    "content": "Curator hard-eval rubrics were tightened to mechanical conditions after LLM-judge false negatives/array confusion, especially for `curator-hard-schema-stale-noise`, `curator-unpin-trap`, and `curator-contradictory-reflections`.",
+    "sources": [
+      "obs_5d0572ceaaeb",
+      "obs_7ce88d79a148"
+    ],
+    "createdAt": "2026-06-13T15:01:34.676Z"
+  },
+  {
+    "id": "ref_3cc96ce5ff68",
+    "kind": "reflection",
+    "content": "The user asked to revert to inventory and rerun the eval to avoid overfitting; the experimental phased/coverage-audit curator paths were then removed, leaving `CURATOR_SYSTEM` plus the inventory-first single-pass `runCuratorPass`/`runCurator` path.",
+    "sources": [
+      "obs_ae7b093342dc",
+      "obs_15d3848ab668"
+    ],
+    "createdAt": "2026-06-13T15:14:46.767Z"
+  },
+  {
+    "id": "ref_805b50b485db",
+    "kind": "reflection",
+    "content": "Coverage-audit tool/text modes were judged too expensive (~58k tokens) versus inventory (~37k), phased reduced (~44.5k), and single-pass (~19.8k).",
+    "sources": [
+      "obs_cc3bf79b9519"
+    ],
+    "createdAt": "2026-06-13T15:14:46.767Z"
+  },
+  {
+    "id": "ref_a3a26742eb8b",
+    "kind": "reflection",
+    "content": "Curator does not block compaction; `runtime.memoryUpdateInFlight` and `runtime.compactHookInFlight` are independent booleans, so status can show both `Memory update: running (curator)` and `Compaction hook: running` at once.",
+    "sources": [
+      "obs_cd9fca3406d0"
+    ],
+    "createdAt": "2026-06-13T15:14:46.767Z"
+  },
+  {
+    "id": "ref_d3a7d9a622d9",
+    "kind": "reflection",
+    "content": "The user said eval runs in `/home/syzom/.pi/agent/eval` are not meant to be committed, even when reruns pass.",
+    "sources": [
+      "obs_f1deaf82e0d7"
+    ],
+    "createdAt": "2026-06-13T15:52:58.324Z"
+  },
+  {
+    "id": "ref_49a0a15886b2",
+    "kind": "reflection",
+    "content": "The user wants OM evals to capture actual evaluated-model token spend and timing for all agents, and `/home/syzom/.pi/agent/eval/src/om-agent-evals.ts` now records `usage`, `agentDurationMs`, `judgeUsage`, `judgeDurationMs`, and `durationMs` (committed as `d106b1a`).",
+    "sources": [
+      "obs_687d003695a1",
+      "obs_346bb8a077ba",
+      "obs_6175f89fbd1c",
+      "obs_ba9afb9a3e4d"
+    ],
+    "createdAt": "2026-06-13T15:52:58.324Z"
+  },
+  {
+    "id": "ref_33be4e9431dd",
+    "kind": "reflection",
+    "content": "Curator comparison must use `openai-codex/gpt-5.4-mini`; the earlier `openai/gpt-5.4-mini` runs were bogus and produced no model calls / 0 tokens.",
+    "sources": [
+      "obs_6cca657d826a",
+      "obs_3efc15cc9092"
+    ],
+    "createdAt": "2026-06-13T15:52:58.324Z"
+  },
+  {
+    "id": "ref_3b7d79fcc232",
+    "kind": "reflection",
+    "content": "The latest simplification edits in `src/runtime.ts`, `src/debug-log.ts`, `src/memory-update/stage-utils.ts`, and `src/memory-update/run.ts` have not yet been revalidated.",
+    "sources": [
+      "obs_d5fb11687986"
+    ],
+    "createdAt": "2026-06-13T15:52:58.324Z"
+  },
+  {
+    "id": "ref_4bdc21a5b224",
+    "kind": "reflection",
+    "content": "Commit `47a96cc` finalized the runtime simplification and validation (`pnpm test` + `pnpm typecheck`, 20 files/165 tests), superseding the earlier unvalidated state.",
+    "sources": [
+      "obs_00b3494bca2f",
+      "obs_c01b50b803fc"
+    ],
+    "createdAt": "2026-06-13T16:08:44.014Z"
+  },
+  {
+    "id": "ref_88ebf857a6ed",
+    "kind": "reflection",
+    "content": "`src/runtime.ts` no longer owns transient compaction observations/reflections; they moved to `src/memory-update/compaction-state.ts` (`WeakMap<Runtime, CompactionTransientMemory>`), `observer-stage.ts`/`reflector-stage.ts` now append through helpers, `src/memory-update/compaction.ts` exports `ensureObservedBeforeCompaction(...)` that waits on `runtime.inFlightObserverStagePromise` before any `compaction-observer-flush-*`, `src/memory-update/scheduler.ts` now owns hook registration/launch scheduling, and `src/memory-update/run.ts` was pared back from the old `ensureMemoryUpdatedBeforeCompaction`/`appendAgentRunEntry` shape around exported `MemoryStageName`.",
+    "sources": [
+      "obs_9f637c2a0db3",
+      "obs_bf6dbb0409ae",
+      "obs_8c32b1b18121",
+      "obs_711baa21a2b9",
+      "obs_5667be214e1d"
+    ],
+    "createdAt": "2026-06-13T16:08:44.014Z"
+  },
+  {
+    "id": "ref_b3f4faba054c",
+    "kind": "reflection",
+    "content": "The user asked for four follow-up refactors after the runtime simplification: rename `ensureMemoryUpdatedBeforeCompaction` to `ensureObservedBeforeCompaction`, split `run.ts`, move transient compaction state out of `Runtime`, and collapse `appendAgentRunEntry`/stage wrappers further.",
+    "sources": [
+      "obs_6804a42a75ae"
+    ],
+    "createdAt": "2026-06-13T16:08:44.014Z"
+  },
+  {
+    "id": "ref_63f346a37ae3",
+    "kind": "reflection",
+    "content": "Follow-up cleanup commit `80e7a76` (`Clarify memory update orchestration modules`) moved stage-pressure logic into `src/memory-update/due.ts` as `computeMemoryStageDue(entries, runtime)` (deriving `observerDue`/`reflectorDue`/`curatorEmergencyDue` from `foldLedger(...pendingFlagsAfterIndex: latestReflectionReviewEntryIndex(entries))`, `observationsSinceReflectionCoverage(...)`, and `nextContextProjection(...).observations.length`), moved `makeModelResolver`/`MemoryStageName` into `src/memory-update/model-resolver.ts`, deleted the dead `src/hooks/memory-update.ts` barrel, removed `anyMemoryUpdateStageDue()` so `scheduler.ts` checks the due booleans directly, and passed `pnpm typecheck && pnpm test` (20 files, 165 tests).",
+    "sources": [
+      "obs_65cfe64d464f",
+      "obs_bc96250c6ac4",
+      "obs_d723497910f2",
+      "obs_3210edf9940e",
+      "obs_ab3e96138434",
+      "obs_d7182fd9df8a"
+    ],
+    "createdAt": "2026-06-13T18:03:02.240Z"
+  },
+  {
+    "id": "ref_082792b6844a",
+    "kind": "reflection",
+    "content": "User wants diagnostics first before further curator prompt/projection changes; related clump work is deferred.",
+    "sources": [
+      "obs_79cc79043c26",
+      "obs_3ea38b576060"
+    ],
+    "createdAt": "2026-06-13T18:32:02.983Z"
+  },
+  {
+    "id": "ref_81c1c18d6e36",
+    "kind": "reflection",
+    "content": "Curator failure-diagnostics changes were committed as `a5efa0f`; eval diagnostics now carry inventory/observation/reflection/action-id summaries, and `record_inventory` feeds eval-only `onInventory` capture for diagnosis.",
+    "sources": [
+      "obs_3edf7224c17f",
+      "obs_b1ecb854643b",
+      "obs_af261623644d",
+      "obs_0abc264c0385"
+    ],
+    "createdAt": "2026-06-13T18:32:02.983Z"
+  },
+  {
+    "id": "ref_e4e6c649d67e",
+    "kind": "reflection",
+    "content": "The diagnostics-enabled `--only curatorBrutal` low rerun on `openai-codex/gpt-5.4-mini` was still 0/3 (24,443 total tokens; 1,902 judge tokens; 17,768 diagnosis tokens), and the current curator blocker is still inventory not being enforced into actions: protected ids can land in `safeDropCandidates`, while `mustPreserve`/`needsFollowUp` ids still aren't reliably pinned/flagged.",
+    "sources": [
+      "obs_dc660378d6c3",
+      "obs_3a08233a54c2",
+      "obs_057472a1c31d"
+    ],
+    "createdAt": "2026-06-13T18:32:02.983Z"
+  },
+  {
+    "id": "ref_b36a837cb046",
+    "kind": "reflection",
+    "content": "User now wants curator split into two calls: call 1 captures a plain prose review from the input, call 2 feeds input+review back in before action tools, with same-run drop safety check; the fork recommends `completeSimple` for review capture and `runMemoryAgentLoop` for the action phase.",
+    "sources": [
+      "obs_81731a5a9124",
+      "obs_5433c6e1abb1",
+      "obs_b64240931366"
+    ],
+    "createdAt": "2026-06-13T19:15:44.723Z"
+  },
+  {
+    "id": "ref_20177b0f0345",
+    "kind": "reflection",
+    "content": "The user wants to compare curator input with vs. without `UNLINKED READ-ONLY CONTEXT OBSERVATIONS`; `src/agents/curator/agent.ts` now has `clumpedRender` (`flat`/`clumped`/`clumped-full`) via `buildClumpedUserText(...)`, which groups linked action/context observations and can optionally include unlinked read-only context, and `/home/syzom/.pi/agent/eval` has matching `CuratorVariant`/`--curator-variant` support defaulting to `flat`.",
+    "sources": [
+      "obs_c7a0950de3a1",
+      "obs_faa408f1df83",
+      "obs_f7ffe23e47a2",
+      "obs_a5f4fc346b07"
+    ],
+    "createdAt": "2026-06-13T19:15:44.723Z"
+  },
+  {
+    "id": "ref_10aff7cc8e6e",
+    "kind": "reflection",
+    "content": "The live curator path has removed `record_inventory` and its inventory-capture plumbing, replacing the earlier inventory-first live path; the prompt now centers clumped auditing of linked/unlinked candidates and preservation actions before cleanup, and the only tools left are `pin_observations`, `unpin_observations`, `flag_observations`, `drop_observations`, and `mark_no_actions`.",
+    "sources": [
+      "obs_3cc30233bf94",
+      "obs_b2732b18232e"
+    ],
+    "createdAt": "2026-06-13T19:15:44.723Z"
+  },
+  {
+    "id": "ref_e1b9e73073df",
+    "kind": "reflection",
+    "content": "The eval-repo inventory-capture cleanup is still unfinished because the `src/om-agent-evals.ts` strip edit failed with no output/code 1.",
+    "sources": [
+      "obs_27b381b1de2a"
+    ],
+    "createdAt": "2026-06-13T19:15:44.723Z"
+  },
+  {
+    "id": "ref_e8b859e56552",
+    "kind": "reflection",
+    "content": "Curator is currently implemented as a two-call clumped-input flow in `src/agents/curator/{agent.ts,prompts.ts}` and `src/agents/common.ts`: `runCuratorReview()` + `CURATOR_REVIEW_SYSTEM` + `onAssistantText` capture a prose coverage review from assistant text, then the action phase feeds that review back in; validation passed and the change was still uncommitted.",
+    "sources": [
+      "obs_3dc438ec363a",
+      "obs_963260700867"
+    ],
+    "createdAt": "2026-06-13T20:03:57.193Z"
+  },
+  {
+    "id": "ref_4c48a2d59ece",
+    "kind": "reflection",
+    "content": "The new curator drop safety rule ignores `drop_observations` ids already pinned, flagged, or unpinned earlier in the same run when selecting drop candidates.",
+    "sources": [
+      "obs_4c48a2d59ece"
+    ],
+    "createdAt": "2026-06-13T20:03:57.193Z"
+  },
+  {
+    "id": "ref_77affabf6dda",
+    "kind": "reflection",
+    "content": "In `/home/syzom/.pi/agent/eval/src/om-agent-evals.ts`, the curator judge input now passes `actionIds: curatorActionIdSummary(output)` plus `raw: output ?? {}` and tells the judge to use `actionIds` for membership checks, replacing the earlier raw pinned/flagged-array inspection that caused array-confusion false negatives.",
+    "sources": [
+      "obs_11f4faa76eea",
+      "obs_2c6c16368fbc"
+    ],
+    "createdAt": "2026-06-13T20:03:57.193Z"
+  },
+  {
+    "id": "ref_330ec9a07266",
+    "kind": "reflection",
+    "content": "In `/home/syzom/.pi/agent/eval/src/om-agent-evals.ts`, hard curator cases now use deterministic checks only for pass/fail: if deterministic invariants pass, `judgedCurator()` returns the deterministic record directly and no longer sends the case to the LLM judge.",
+    "sources": [
+      "obs_7cc98f0b916f"
+    ],
+    "createdAt": "2026-06-13T20:03:57.193Z"
+  },
+  {
+    "id": "ref_0666215785ba",
+    "kind": "reflection",
+    "content": "Curator drop selection now ignores ids already pinned, flagged, or unpinned earlier in the same run when choosing drop candidates.",
+    "sources": [
+      "obs_4c48a2d59ece"
+    ],
+    "createdAt": "2026-06-13T20:53:14.454Z"
+  },
+  {
+    "id": "ref_f05cd7ba22c4",
+    "kind": "reflection",
+    "content": "The earlier inventory-only curator path has been superseded by a third `unlinked-preserve` pass after unpin and before final preserve+cleanup, limited to candidates not cited by any current reflection; it made `runs/curator-hard-schema-unlinked-phase-low-20260613-223359` and `runs/curator-brutal-unlinked-phase-low-20260613-223435` pass 4/4, but at high cost (~13.2k schema tokens / ~96.7k brute tokens).",
+    "sources": [
+      "obs_b8576f898622",
+      "obs_261a07ea4d4b"
+    ],
+    "createdAt": "2026-06-13T20:53:14.454Z"
+  },
+  {
+    "id": "ref_cbf37577f8cb",
+    "kind": "reflection",
+    "content": "The user wants the current curator changes committed as a passing base before rerunning the 4 curator evals with `deepseek-v4-flash` on high thinking.",
+    "sources": [
+      "obs_9ffcea5b38a8"
+    ],
+    "createdAt": "2026-06-13T20:53:14.454Z"
+  },
+  {
+    "id": "ref_3e831d6f47f8",
+    "kind": "reflection",
+    "content": "Current curator review flow is committed as `95fb4f4` (`Add phased curator review flow`); the `deepseek/deepseek-v4-flash` high hard-4 runs (`runs/curator-hard-schema-deepseek-v4-flash-high-20260613-224049`, `runs/curator-brutal-deepseek-v4-flash-high-20260613-224239`) passed 4/4 but were rejected as too latency-heavy (`schema` 109s/53,306 tokens; `brutal` 361s/211,538 tokens).",
+    "sources": [
+      "obs_e9d7d71c82e0",
+      "obs_515a88908873"
+    ],
+    "createdAt": "2026-06-13T21:40:32.153Z"
+  },
+  {
+    "id": "ref_da0b50d0e8d3",
+    "kind": "reflection",
+    "content": "With pricing instrumentation in place, all five benchmarked candidate models passed hard-4: `openrouter/nvidia/nemotron-3-ultra-550b-a55b` low 127.6s/$0.1515, `openrouter/x-ai/grok-4.3` low 178.0s/$0.1110, `openrouter/xiaomi/mimo-v2.5` low 352.4s/$0.0228, `alibaba/qwen3.7-plus` xhigh 946.1s/$0.0808, `openrouter/minimax/minimax-m3` low 609.0s/$0.0699; `gpt-5.4-mini` low is still the best overall balance, with estimated hard-4 cost ~$0.08\u2013$0.09 total, fastest is nemotron, and cheapest is mimo-v2.5.",
+    "sources": [
+      "obs_7c9325ed0d25",
+      "obs_a6406aaa393d"
+    ],
+    "createdAt": "2026-06-13T21:40:32.153Z"
+  },
+  {
+    "id": "ref_8dff582a1bf1",
+    "kind": "reflection",
+    "content": "The user wants to keep the current curator approach because it behaves well but is slow/token-heavy, and the first optimization targets are reducing repeated context between phases and skipping phases with no candidates.",
+    "sources": [
+      "obs_536c3641ae56"
+    ],
+    "createdAt": "2026-06-13T22:29:57.726Z"
   }
 ] as const;
