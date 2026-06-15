@@ -10,7 +10,6 @@ import {
 	latestCoverageMarkerId,
 	type Entry,
 } from "../session-ledger/index.js";
-import { appendTransientCompactionReflections } from "./compaction-state.js";
 import { commonAgentArgs, observationsSinceReflectionCoverage } from "./stage-utils.js";
 import type { MemoryUpdateCtx, ResolveMemoryModel, StageOutcome } from "./types.js";
 
@@ -69,6 +68,5 @@ export async function runReflectorStage(
 	const data = buildReflectionsRecordedData(reflections, observationCoverageId);
 	if (!data) return "continue";
 	pi.appendEntry(OM_REFLECTIONS_RECORDED, data);
-	appendTransientCompactionReflections(runtime, reflections);
 	return "continue";
 }

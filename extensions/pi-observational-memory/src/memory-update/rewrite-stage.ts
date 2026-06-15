@@ -11,7 +11,6 @@ import {
 	reflectionTokenSum,
 	type Entry,
 } from "../session-ledger/index.js";
-import { appendTransientCompactionReflections } from "./compaction-state.js";
 import { commonAgentArgs } from "./stage-utils.js";
 import type { MemoryUpdateCtx, ResolveMemoryModel, StageOutcome } from "./types.js";
 
@@ -69,6 +68,5 @@ export async function runRewriteStage(
 	runtime.rewriteSkippedActiveIds = undefined;
 	pi.appendEntry(OM_REFLECTIONS_RECORDED, recordedData);
 	pi.appendEntry(OM_REFLECTIONS_REWRITTEN, rewrittenData);
-	appendTransientCompactionReflections(runtime, result.reflections);
 	return "continue";
 }

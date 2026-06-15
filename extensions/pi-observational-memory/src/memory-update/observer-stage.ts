@@ -17,7 +17,6 @@ import {
 	type Entry,
 } from "../session-ledger/index.js";
 import { sourceEntriesAfter } from "./source-entries.js";
-import { appendTransientCompactionObservations } from "./compaction-state.js";
 import { commonAgentArgs } from "./stage-utils.js";
 import type { MemoryUpdateCtx, ResolveMemoryModel, StageOutcome } from "./types.js";
 
@@ -106,7 +105,6 @@ export async function runObserverStage(
 		coversUpToId,
 	});
 	pi.appendEntry(OM_OBSERVATIONS_RECORDED, data);
-	appendTransientCompactionObservations(runtime, observations);
 	debugLog("observer.appended", { count: observations.length, coversUpToId });
 	if (ctx.hasUI) ctx.ui?.notify(
 		observations.length === 0
