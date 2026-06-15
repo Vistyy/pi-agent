@@ -1,19 +1,21 @@
-import { observerHardFutureIntent, observerHardSchemaMess, observerHardSessionCorrectionNoise, observerHardSessionIntentProvenance, observerHardStateStaleBlocker, observerHardStateVsProvenance, observerHardToolEvidenceBoundary } from './observer.js';
-import { reflectorExactAnchorSurvivesNoise, reflectorFlagAlreadyCoveredDoesNotLoop, reflectorHardCompression, reflectorHardRepairFlag, reflectorRetractsNoLongerTrue, reflectorReviewedZero, reflectorSupersessionRelation } from './reflector.js';
+import { observerExactLanguageFutureIntent, observerRealSessionScaleOmSimplification, observerStateStaleBlocker, observerToolEvidenceBoundary, observerZeroDurableRestraint } from './observer.js';
+import { reflectorExactAnchorRetention, reflectorRealSessionConstraintsAndState, reflectorRestraintAlreadyCovered, reflectorStaleCurrentReconciliation, reflectorSupersessionRelation } from './reflector.js';
+import { rewriteDeferredTaskRetention, rewriteOmMigrationCompression, rewriteStaleRelationshipPreservation, rewriteUserConstraintsBundle, rewriteValidationStatusConsolidation } from './rewrite.js';
 
 export const allCases = [
-  observerHardStateStaleBlocker,
-  reflectorHardCompression,
+  observerStateStaleBlocker,
+  observerToolEvidenceBoundary,
+  observerExactLanguageFutureIntent,
+  observerRealSessionScaleOmSimplification,
+  observerZeroDurableRestraint,
+  reflectorStaleCurrentReconciliation,
+  reflectorExactAnchorRetention,
   reflectorSupersessionRelation,
-  reflectorReviewedZero,
-  observerHardSchemaMess,
-  observerHardToolEvidenceBoundary,
-  observerHardStateVsProvenance,
-  observerHardFutureIntent,
-  observerHardSessionCorrectionNoise,
-  observerHardSessionIntentProvenance,
-  reflectorHardRepairFlag,
-  reflectorRetractsNoLongerTrue,
-  reflectorExactAnchorSurvivesNoise,
-  reflectorFlagAlreadyCoveredDoesNotLoop,
+  reflectorRestraintAlreadyCovered,
+  reflectorRealSessionConstraintsAndState,
+  rewriteOmMigrationCompression,
+  rewriteStaleRelationshipPreservation,
+  rewriteValidationStatusConsolidation,
+  rewriteUserConstraintsBundle,
+  rewriteDeferredTaskRetention,
 ];

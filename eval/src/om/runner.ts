@@ -10,7 +10,8 @@ export async function loadOmAgents(): Promise<OmAgents> {
   const base = new URL('../../../extensions/pi-observational-memory/src/agents/', import.meta.url);
   const observer = await import(new URL('observer/agent.ts', base).href) as { runObserver: OmAgents['runObserver'] };
   const reflector = await import(new URL('reflector/agent.ts', base).href) as { runReflector: OmAgents['runReflector'] };
-  omAgents = { runObserver: observer.runObserver, runReflector: reflector.runReflector };
+  const rewrite = await import(new URL('rewrite/agent.ts', base).href) as { runRewrite: OmAgents['runRewrite'] };
+  omAgents = { runObserver: observer.runObserver, runReflector: reflector.runReflector, runRewrite: rewrite.runRewrite };
   return omAgents;
 }
 

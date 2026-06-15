@@ -121,7 +121,8 @@ export async function judgedObserverScored(
   return hardFailure ? diagnoseFailure(base, probe, judgeModel) : base;
 }
 
-export async function judgedReflectorScored(
+async function judgedReflectionLikeScored(
+  agent: 'reflector' | 'rewrite',
   id: string,
   output: Reflection[] | undefined,
   probe: Probe,
@@ -139,10 +140,10 @@ export async function judgedReflectorScored(
     return { label: check.label, score: passed ? 1 : 0, maxScore: 1, detail: check.detail?.(output) ?? output };
   });
   const score = dimensions.reduce((total, dimension) => total + dimension.score, 0);
-  const maxScore = dimensions.reduce((total, dimension) => total + dimension.maxScore, 0);
+  const maxScore = dimensions.reduce((total, dimension) => dimension.maxScore + total, 0);
   const base: AgentEvalRecord = {
     id,
-    agent: 'reflector',
+    agent,
     output: output ?? [],
     judge: hardFailure
       ? { passed: false, reason: `Hard invariant failed: ${hardFailure.reason}`, details: hardFailure.details }
@@ -155,4 +156,34 @@ export async function judgedReflectorScored(
     score: { hardFailed: Boolean(hardFailure), score, maxScore, dimensions },
   };
   return hardFailure ? diagnoseFailure(base, probe, judgeModel) : base;
+}
+
+export async function judgedReflectorScored(
+  id: string,
+  output: Reflection[] | undefined,
+  probe: Probe,
+  judgeModel: string,
+  started: number,
+  hardChecks: ReflectorCheck[],
+  scoreChecks: ReflectorCheck[],
+  usage?: TokenUsage,
+  agentDurationMs?: number,
+  diagnostics?: ReflectionEvalDiagnostics,
+): Promise<AgentEvalRecord> {
+  return judgedReflectionLikeScored('reflector', id, output, probe, judgeModel, started, hardChecks, scoreChecks, usage, agentDurationMs, diagnostics);
+}
+
+export async function judgedRewriteScored(
+  id: string,
+  output: Reflection[] | undefined,
+  probe: Probe,
+  judgeModel: string,
+  started: number,
+  hardChecks: ReflectorCheck[],
+  scoreChecks: ReflectorCheck[],
+  usage?: TokenUsage,
+  agentDurationMs?: number,
+  diagnostics?: ReflectionEvalDiagnostics,
+): Promise<AgentEvalRecord> {
+  return judgedReflectionLikeScored('rewrite', id, output, probe, judgeModel, started, hardChecks, scoreChecks, usage, agentDurationMs, diagnostics);
 }

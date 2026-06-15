@@ -1,418 +1,118 @@
 import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import type { AgentEvalRecord } from '../types.js';
-import { createUsageCollector, loadOmAgents, obs, resolveModel } from '../runner.js';
-import { runPiSdk } from '../../lib/pi.js';
-import { judgedObserverScored, observerForbidsAny, observerForbidsSourceIds, observerMaxCount, observerRequiresAll, observerText } from '../diagnostics.js';
+import { createUsageCollector, loadOmAgents, resolveModel } from '../runner.js';
+import { judgedObserverScored, observerForbidsAny, observerForbidsSourceIds, observerMaxCount, observerRequiresAll } from '../diagnostics.js';
 
-async function loadObserverSystemPrompt(): Promise<string> {
-  const base = new URL('../../../../extensions/pi-observational-memory/src/agents/observer/prompts.ts', import.meta.url);
-  const prompts = await import(base.href) as { OBSERVER_SYSTEM: string };
-  return prompts.OBSERVER_SYSTEM;
-}
-
-function observerChurnDiagnosticPrompt(chunk: string, output: unknown, observerSystem: string): string {
-  return `We are debugging observer observation-recording behavior in an eval. This is not an accusation; treat it as an investigation into what instruction or context shaped your choice.
-
-Original observer chunk:
-${chunk}
-
-Recorded observations:
-${JSON.stringify(output, null, 2)}
-
-Mismatch:
-You recorded observations about file updates (src/config.ts, tests/config.test.ts, docs/README.md) as durable facts. The intended behavior is to preserve compact project/user outcomes, not process activity.
-
-Observer rules you were given:
-${observerSystem}
-
-Please analyze the decision. Why did these file-update breadcrumbs feel like durable evidence? Was a rule unclear, too weak, or contradicted by another rule? Was the input structure (explicit source entry ids, timestamps, successful edit/write text, assistant summary) pushing toward recording them?
-
-Answer as a concise debugging report, not as an apology.`;
-}
-
-async function diagnoseObserverChurn(modelSpec: string, chunk: string, output: unknown) {
-  const text = observerText(output as any);
-  if (!text.includes('src/config.ts') && !text.includes('tests/config.test.ts') && !text.includes('docs/README.md')) return undefined;
-  const observerSystem = await loadObserverSystemPrompt();
-  const prompt = observerChurnDiagnosticPrompt(chunk, output, observerSystem);
-  const run = await runPiSdk(prompt, { model: modelSpec, systemPrompt: 'Concise diagnostic analyst. Explain causes, not apologies.', thinkingLevel: 'low', maxAgentTurns: 1 });
-  return { prompt, answer: run.stdout, usage: run.usage, durationMs: run.durationMs };
-}
-
-export async function observerHardStateStaleBlocker(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
-  const started = Date.now();
+async function runObserverCase(modelSpec: string, thinkingLevel: ModelThinkingLevel, chunk: string, allowedSourceEntryIds: string[], priorReflections: string[] = []) {
   const auth = await resolveModel(modelSpec);
-  const chunk = [
-    '[Source entry id: user-a] 2026-06-07 10:00 User: Earlier I said Redis for job state, but reject that now. Current rule: use SQLite at /tmp/jobs.db.',
-    '[Source entry id: assistant-b] 2026-06-07 10:03 Assistant: Ran `npm run migrate -- --dry-run`; result was `Error: SQLITE_BUSY at src/db/migrate.ts:88`.',
-    '[Source entry id: user-c] 2026-06-07 10:04 User: That SQLITE_BUSY is the blocker. Keep WAL enabled via `PRAGMA journal_mode=WAL`.',
-    '[Source entry id: assistant-d] 2026-06-07 10:05 Assistant: I changed the parser entrypoint from src/parser.ts to src/parser/index.ts.',
-    '[Source entry id: tool-e] 2026-06-07 10:06 Tool result: npm test failed: FAIL tests/parser-regression.test.ts > keeps CRLF offsets. Expected column 17, received column 16.',
-    '[Source entry id: user-f] 2026-06-07 10:07 User: Do not call that fixed. The CRLF offset failure is still unresolved.',
-    '[Source entry id: assistant-g] 2026-06-07 10:08 Assistant: Okay.',
-  ].join('\n');
   const { runObserver } = await loadOmAgents();
   const usage = createUsageCollector();
   const agentStarted = Date.now();
-  const output = await runObserver({
-    ...auth,
-    priorReflections: ['[rrrrrrrrrrrr] User requires exact current-vs-stale relationships.'],
-    priorObservations: [],
-    chunk,
-    allowedSourceEntryIds: ['user-a', 'assistant-b', 'user-c', 'assistant-d', 'tool-e', 'user-f', 'assistant-g'],
-    thinkingLevel,
-    maxTurns: 6,
-    onUsage: usage.onUsage,
-  });
-  const agentDurationMs = Date.now() - agentStarted;
-  return judgedObserverScored('observer-hard-state-stale-blocker', output, {
-    id: 'observer-hard-state-stale-blocker',
-    question: 'Did the observer preserve current-vs-stale state, assistant/tool evidence, exact blockers, and unresolved status without acknowledgement noise?',
-    rubric: {
-      pass_if: [
-        'Output preserves Redis as rejected/stale and SQLite at /tmp/jobs.db as current.',
-        'Output preserves npm run migrate -- --dry-run, SQLITE_BUSY at src/db/migrate.ts:88, and PRAGMA journal_mode=WAL.',
-        'Output preserves assistant-authored parser entrypoint change from src/parser.ts to src/parser/index.ts.',
-        'Output preserves tests/parser-regression.test.ts CRLF offset failure with expected column 17 and received column 16, and marks it unresolved/not fixed.',
-        'Output excludes final acknowledgement noise.',
-      ],
-      fail_if: [
-        'Output treats Redis as current or CRLF offsets as fixed.',
-        'Output omits any exact blocker path, command, test name, or expected/received values.',
-        'Output ignores assistant/tool evidence because it was not user-authored.',
-        'Output includes source id assistant-g or a standalone acknowledgement observation.',
-      ],
-    },
-  }, judgeModel, started, [
-    observerForbidsSourceIds('assistant-g'),
-  ], [
-    observerRequiresAll('SQLite', '/tmp/jobs.db'),
-    observerRequiresAll('SQLITE_BUSY', 'src/db/migrate.ts:88'),
-    observerRequiresAll('PRAGMA journal_mode=WAL'),
-    observerRequiresAll('src/parser.ts', 'src/parser/index.ts'),
-    observerRequiresAll('tests/parser-regression.test.ts', '17', '16'),
-    observerMaxCount(5),
-  ], usage.total, agentDurationMs);
+  const output = await runObserver({ ...auth, priorReflections, priorObservations: [], chunk, allowedSourceEntryIds, thinkingLevel, maxTurns: 6, onUsage: usage.onUsage });
+  return { output, usage, agentDurationMs: Date.now() - agentStarted };
 }
 
-export async function observerHardSchemaMess(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+export async function observerStateStaleBlocker(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   const started = Date.now();
-  const auth = await resolveModel(modelSpec);
-  const chunk = [
-    '[Source entry id: user-schema-a] User: For the durable ledger we agreed on the custom event `om.observations.flagged`. It has `observationIds` and a bounded one-line `reason`; do not turn this into a generic follow-up marker.',
-    '[Source entry id: assistant-schema-b] Assistant: I will update docs to say flagged observations request corrective/additional reflections, not mutation of old reflections.',
-    '[Source entry id: user-schema-c] User: Also keep the future reflection lifecycle names exact: `om.reflections.deprecated` and `om.reflections.superseded`. They are proposed future events, not implemented yet.',
-    '[Source entry id: tool-schema-d] Tool result: grep also shows stale older notes mentioning dropper soft threshold, additive mode, and reflectorThinking xhigh; those are not the current schema names.',
-    '[Source entry id: user-schema-e] User: The important part is not just "there are flags". The exact API/event names are the memory: om.observations.flagged, reason, om.reflections.deprecated, om.reflections.superseded.',
-    '[Source entry id: assistant-schema-f] Assistant: Okay, noted.'
-  ].join('\n');
-  const { runObserver } = await loadOmAgents();
-  const usage = createUsageCollector();
-  const agentStarted = Date.now();
-  const output = await runObserver({
-    ...auth,
-    priorReflections: ['[ref_rrrrrrrrrrrr] Memory lifecycle has reflector follow-up flags and future active-memory rewrite work.'],
-    priorObservations: [],
-    chunk,
-    allowedSourceEntryIds: ['user-schema-a', 'assistant-schema-b', 'user-schema-c', 'tool-schema-d', 'user-schema-e', 'assistant-schema-f'],
-    thinkingLevel,
-    maxTurns: 6,
-    onUsage: usage.onUsage,
-  });
-  const agentDurationMs = Date.now() - agentStarted;
-  return judgedObserverScored('observer-hard-schema-mess', output, {
-    id: 'observer-hard-schema-mess',
-    question: 'Did the observer preserve exact durable schema/API/event names from a messy source chunk while avoiding stale cleanup distractions?',
-    rubric: {
-      pass_if: [
-        'Output preserves the exact event name om.observations.flagged.',
-        'Output preserves that om.observations.flagged has observationIds and a bounded one-line reason field.',
-        'Output preserves exact future event names om.reflections.deprecated and om.reflections.superseded and marks them as proposed/future, not implemented current behavior.',
-        'Output does not elevate stale cleanup details like additive mode, dropper soft threshold, or reflectorThinking xhigh as the main current schema facts.',
-        'Output cites only valid source ids and excludes assistant-schema-f acknowledgement noise.'
-      ],
-      fail_if: [
-        'Output paraphrases the schema as generic flags without exact event names.',
-        'Output omits reason or either reflection lifecycle event name.',
-        'Output treats deprecated/superseded reflection events as already implemented current behavior.',
-        'Output invents source ids or records the final acknowledgement as a durable observation.'
-      ],
-    },
-  }, judgeModel, started, [
-    observerForbidsSourceIds('assistant-schema-f'),
-  ], [
-    observerRequiresAll('om.observations.flagged'),
-    observerRequiresAll('observationIds', 'reason'),
-    observerRequiresAll('om.reflections.deprecated', 'om.reflections.superseded'),
-    { label: 'marks stale schema terms as not current', pass: (output) => observerText(output).includes('stale') && (observerText(output).includes('not current') || observerText(output).includes('not the current')), detail: (output) => observerText(output) },
-  ], usage.total, agentDurationMs);
+  const entries = [
+    ['user-a', '2026-06-07 10:00 User: Earlier I said Redis for job state, but reject that now. Current rule: use SQLite at /tmp/jobs.db.'],
+    ['assistant-b', '2026-06-07 10:03 Assistant: Ran `npm run migrate -- --dry-run`; result was `Error: SQLITE_BUSY at src/db/migrate.ts:88`.'],
+    ['user-c', '2026-06-07 10:04 User: That SQLITE_BUSY is the blocker. Keep WAL enabled via `PRAGMA journal_mode=WAL`.'],
+    ['assistant-d', '2026-06-07 10:05 Assistant: I changed the parser entrypoint from src/parser.ts to src/parser/index.ts.'],
+    ['tool-e', '2026-06-07 10:06 Tool result: npm test failed: FAIL tests/parser-regression.test.ts > keeps CRLF offsets. Expected column 17, received column 16.'],
+    ['user-f', '2026-06-07 10:07 User: Do not call that fixed. The CRLF offset failure is still unresolved.'],
+    ['assistant-g', '2026-06-07 10:08 Assistant: Okay.'],
+  ];
+  const chunk = entries.map(([id, text]) => `[Source entry id: ${id}] ${text}`).join('\n');
+  const { output, usage, agentDurationMs } = await runObserverCase(modelSpec, thinkingLevel, chunk, entries.map(([id]) => id), ['[ref_rrrrrrrrrrrr] User requires exact current-vs-stale relationships.']);
+  return judgedObserverScored('observer-state-stale-blocker', output, {
+    id: 'observer-state-stale-blocker',
+    question: 'Preserve current/stale state, exact blockers, tool evidence, and unresolved status without acknowledgement noise.',
+    rubric: { pass_if: ['Redis rejected and SQLite /tmp/jobs.db current.', 'SQLITE_BUSY path/command and WAL requirement retained.', 'Parser entrypoint change and CRLF test failure retained with unresolved status.'], fail_if: ['Stale Redis treated current.', 'CRLF failure called fixed.', 'Exact command/path/test values lost.', 'Ack recorded as durable memory.'] },
+  }, judgeModel, started, [observerForbidsSourceIds('assistant-g')], [observerRequiresAll('SQLite', '/tmp/jobs.db'), observerRequiresAll('SQLITE_BUSY', 'src/db/migrate.ts:88'), observerRequiresAll('PRAGMA journal_mode=WAL'), observerRequiresAll('src/parser.ts', 'src/parser/index.ts'), observerRequiresAll('tests/parser-regression.test.ts', '17', '16'), observerMaxCount(5)], usage.total, agentDurationMs);
 }
 
-
-export async function observerHardToolEvidenceBoundary(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+export async function observerToolEvidenceBoundary(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   const started = Date.now();
-  const auth = await resolveModel(modelSpec);
   const chunk = [
     '[Source entry id: user-tool-a] [User @ 2026-06-11 20:00]: Current route: src/app/api/[org]/route.ts for org-scoped endpoints.',
-    '[Source entry id: tool-tool-b]\n[Tool evidence: bash @ 2026-06-11 20:01]\nstatus: error\noutput_chars: 420\ninput: pnpm test tests/api-org.test.ts\nexitCode: 1\noutput_omitted: false\nexcerpt:\nFAIL tests/api-org.test.ts > org-scoped > missing header\nExpected 401\nReceived 200',
-    '[Source entry id: assistant-tool-c] [Assistant @ 2026-06-11 20:02]: The missing-header test needs a middleware fix before the org API route can be called done.',
-    '[Source entry id: tool-tool-d]\n[Tool evidence: read @ 2026-06-11 20:03]\nstatus: ok\noutput_chars: 18234\ninput: src/app/api/[org]/route.ts\noutput_omitted: true (policy)\nexcerpt:\n[output omitted by observer policy]',
+    '[Source entry id: tool-tool-b]\n[Tool evidence: bash @ 2026-06-11 20:01]\nstatus: error\ninput: pnpm test tests/api-org.test.ts\nexitCode: 1\noutput_omitted: false\nexcerpt:\nFAIL tests/api-org.test.ts > org-scoped > missing header\nExpected 401\nReceived 200',
+    '[Source entry id: tool-tool-d]\n[Tool evidence: read @ 2026-06-11 20:03]\nstatus: ok\ninput: src/app/api/[org]/route.ts\noutput_omitted: true (policy)\nexcerpt:\n[output omitted by observer policy]',
     '[Source entry id: user-tool-e] [User @ 2026-06-11 20:04]: Use JWT not session. Add org-id claim. Keep the test blocked until the header is served.',
-    '[Source entry id: user-success-a] [User @ 2026-06-11 23:00]: The db helper module is exported as `createDbClient` from src/db/client.ts and takes options `{ url, maxRetries, logQueries }`. For this handoff, remember what validation proves about its defaults.',
-    '[Source entry id: tool-success-b]\n[Tool evidence: bash @ 2026-06-11 23:01]\nstatus: ok\noutput_chars: 240\ninput: pnpm test tests/db-client.test.ts\nexitCode: 0\noutput_omitted: false\nexcerpt:\nPASS tests/db-client.test.ts > createDbClient defaults maxRetries to 3\nPASS tests/db-client.test.ts > createDbClient disables logQueries by default',
-    '[Source entry id: user-budget-a] [User @ 2026-06-11 22:00]: If validation fails, keep the exact failing file. Otherwise do not infer failure from tool metadata.',
-    '[Source entry id: tool-budget-b]\n[Tool evidence: bash @ 2026-06-11 22:01]\nstatus: ok\noutput_chars: 1200\ninput: pnpm test tests/parser.test.ts\nexitCode: 0\noutput_omitted: true (length)\nexcerpt:\nPASS tests/parser.test.ts\nPASS tests/parser-regression.test.ts\n… [truncated middle 24 lines]\nDone.',
-    '[Source entry id: tool-budget-c]\n[Tool evidence: bash @ 2026-06-11 22:02]\nstatus: error\noutput_chars: 2400\ninput: pnpm test tests/auth-refresh.test.ts\nexitCode: 1\noutput_omitted: true (length)\nexcerpt:\n[output omitted because observer input budget was exhausted]',
+    '[Source entry id: user-success-a] [User @ 2026-06-11 23:00]: The db helper module is exported as `createDbClient` from src/db/client.ts and takes options `{ url, maxRetries, logQueries }`.',
+    '[Source entry id: tool-success-b]\n[Tool evidence: bash @ 2026-06-11 23:01]\nstatus: ok\ninput: pnpm test tests/db-client.test.ts\nexitCode: 0\noutput_omitted: false\nexcerpt:\nPASS tests/db-client.test.ts > createDbClient defaults maxRetries to 3\nPASS tests/db-client.test.ts > createDbClient disables logQueries by default',
+    '[Source entry id: tool-budget-c]\n[Tool evidence: bash @ 2026-06-11 22:02]\nstatus: error\ninput: pnpm test tests/auth-refresh.test.ts\nexitCode: 1\noutput_omitted: true (length)\nexcerpt:\n[output omitted because observer input budget was exhausted]',
     '[Source entry id: assistant-budget-d] [Assistant @ 2026-06-11 22:03]: I need to rerun auth with a larger excerpt before claiming the exact failure.',
   ].join('\n\n');
-  const { runObserver } = await loadOmAgents();
-  const usage = createUsageCollector();
-  const agentStarted = Date.now();
-  const output = await runObserver({
-    ...auth,
-    priorReflections: [],
-    priorObservations: [],
-    chunk,
-    allowedSourceEntryIds: ['user-tool-a', 'tool-tool-b', 'assistant-tool-c', 'tool-tool-d', 'user-tool-e', 'user-success-a', 'tool-success-b', 'user-budget-a', 'tool-budget-b', 'tool-budget-c', 'assistant-budget-d'],
-    thinkingLevel,
-    maxTurns: 6,
-    onUsage: usage.onUsage,
-  });
-  const agentDurationMs = Date.now() - agentStarted;
-  return judgedObserverScored('observer-hard-tool-evidence-boundary', output, {
-    id: 'observer-hard-tool-evidence-boundary',
-    question: 'Did the observer preserve actionable tool evidence while ignoring raw read snippets and omitted evidence?',
-    rubric: {
-      pass_if: [
-        'Output preserves org route, failing api-org test with 401/200, middleware/header blocker, JWT decision, and org-id claim.',
-        'Output preserves createDbClient API details and the explicitly requested validation result: tests/db-client.test.ts proves maxRetries defaults to 3 and logQueries is disabled by default.',
-        'Output may preserve parser test pass and auth-refresh rerun/larger excerpt need, but must not invent the omitted auth-refresh failure.',
-        'Output does not record read success, output metadata, or file import/export snippets as durable facts.',
-      ],
-      fail_if: [
-        'Output omits required failing or passing test evidence.',
-        'Output records raw read excerpt implementation details such as Auth import/createOrgRoute/export default handler.',
-        'Output invents a specific auth-refresh failure not visible in the chunk or records output omitted markers as memory.',
-      ],
-    },
-  }, judgeModel, started, [
-    observerForbidsAny('imports `Auth`', 'import { Auth', 'createOrgRoute', 'export default function handler', 'output_chars', 'output_omitted', 'output omitted by observer policy'),
-  ], [
-    observerRequiresAll('tests/api-org.test.ts'),
-    observerRequiresAll('401', '200'),
-    observerRequiresAll('JWT', 'org-id'),
-    observerRequiresAll('createDbClient', 'src/db/client.ts'),
-    observerRequiresAll('url', 'maxRetries', 'logQueries'),
-    observerRequiresAll('maxRetries', '3', 'logQueries'),
-    observerRequiresAll('tests/db-client.test.ts'),
-    observerMaxCount(8),
-  ], usage.total, agentDurationMs);
+  const ids = ['user-tool-a', 'tool-tool-b', 'tool-tool-d', 'user-tool-e', 'user-success-a', 'tool-success-b', 'tool-budget-c', 'assistant-budget-d'];
+  const { output, usage, agentDurationMs } = await runObserverCase(modelSpec, thinkingLevel, chunk, ids);
+  return judgedObserverScored('observer-tool-evidence-boundary', output, {
+    id: 'observer-tool-evidence-boundary',
+    question: 'Preserve actionable visible tool evidence while avoiding omitted read/output metadata and invented failures.',
+    rubric: { pass_if: ['Route/test/JWT/org-id failure retained.', 'createDbClient API and passing default validation retained.', 'No invented auth-refresh failure from omitted output.'], fail_if: ['Records omitted read snippets or output metadata.', 'Invents exact auth-refresh failure.', 'Drops visible pass/fail evidence.'] },
+  }, judgeModel, started, [observerForbidsAny('output_omitted', 'output omitted by observer policy', 'input budget was exhausted')], [observerRequiresAll('tests/api-org.test.ts', '401', '200'), observerRequiresAll('JWT', 'org-id'), observerRequiresAll('createDbClient', 'src/db/client.ts'), observerRequiresAll('maxRetries', '3', 'logQueries'), observerMaxCount(7)], usage.total, agentDurationMs);
 }
 
-export async function observerHardStateVsProvenance(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+export async function observerExactLanguageFutureIntent(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   const started = Date.now();
-  const auth = await resolveModel(modelSpec);
   const chunk = [
-    '[Source entry id: user-state-a] [User @ 2026-06-11 21:00]: Revert the config key to `emergencyCurateWhenVisibleObservationsOver`; do not keep the older `dropWhenActiveObservationsOver` soft-trigger wording.',
-    '[Source entry id: tool-state-b]\n[Tool evidence: edit @ 2026-06-11 21:01]\nstatus: ok\noutput_chars: 78\ninput: src/config.ts\noutput_omitted: true (policy)\nexcerpt:\n[output omitted by observer policy]',
-    '[Source entry id: tool-state-c]\n[Tool evidence: edit @ 2026-06-11 21:02]\nstatus: ok\noutput_chars: 84\ninput: tests/config.test.ts\noutput_omitted: true (policy)\nexcerpt:\n[output omitted by observer policy]',
-    '[Source entry id: tool-state-d]\n[Tool evidence: write @ 2026-06-11 21:04]\nstatus: ok\noutput_chars: 42\ninput: docs/README.md\noutput_omitted: true (policy)\nexcerpt:\n[output omitted by observer policy]',
-    '[Source entry id: assistant-state-e] [Assistant @ 2026-06-11 21:05]: Reverted the config key and updated tests/docs to match.',
-    '[Source entry id: user-prov-a] [User @ 2026-06-12 08:00]: For the migration handoff, remember the exact files touched and anything still missing.',
-    '[Source entry id: tool-prov-b]\n[Tool evidence: edit @ 2026-06-12 08:01]\nstatus: ok\noutput_chars: 61\ninput: src/db/migrate.ts\noutput_omitted: true (policy)\nexcerpt:\n[output omitted by observer policy]',
-    '[Source entry id: tool-prov-c]\n[Tool evidence: edit @ 2026-06-12 08:02]\nstatus: ok\noutput_chars: 72\ninput: tests/db-migrate.test.ts\noutput_omitted: true (policy)\nexcerpt:\n[output omitted by observer policy]',
-    '[Source entry id: assistant-prov-d] [Assistant @ 2026-06-12 08:03]: Migration handoff touched src/db/migrate.ts and tests/db-migrate.test.ts; docs/migrations.md is still TODO.',
-  ].join('\n\n');
-  const { runObserver } = await loadOmAgents();
-  const usage = createUsageCollector();
-  const agentStarted = Date.now();
-  const output = await runObserver({
-    ...auth,
-    priorReflections: ['[ref_rrrrrrrrrrrr] Active memory projection renders current reflections only, not old observation-pool pressure.'],
-    priorObservations: [],
-    chunk,
-    allowedSourceEntryIds: ['user-state-a', 'tool-state-b', 'tool-state-c', 'tool-state-d', 'assistant-state-e', 'user-prov-a', 'tool-prov-b', 'tool-prov-c', 'assistant-prov-d'],
-    thinkingLevel,
-    maxTurns: 6,
-    onUsage: usage.onUsage,
-  });
-  const agentDurationMs = Date.now() - agentStarted;
-  const diagnostics = await diagnoseObserverChurn(modelSpec, chunk, output ?? []);
-  return judgedObserverScored('observer-hard-state-vs-provenance', output, {
-    id: 'observer-hard-state-vs-provenance',
-    question: 'Did the observer distinguish ordinary workflow breadcrumbs from explicitly future-relevant provenance?',
-    rubric: {
-      pass_if: [
-        'Output preserves emergencyCurateWhenVisibleObservationsOver as current and dropWhenActiveObservationsOver as stale/rejected.',
-        'Output does not preserve ordinary state-change file-update breadcrumbs for src/config.ts, tests/config.test.ts, or docs/README.md.',
-        'Output preserves explicit migration handoff provenance: src/db/migrate.ts and tests/db-migrate.test.ts were touched and docs/migrations.md is TODO.',
-      ],
-      fail_if: [
-        'Output records ordinary config/test/docs update breadcrumbs as memory.',
-        'Output omits explicit migration handoff touched files or docs TODO.',
-        'Output invents missing work from absent tool output.',
-      ],
-    },
-  }, judgeModel, started, [
-    observerForbidsAny('tests/config.test.ts', 'docs/README.md', 'Successfully replaced', 'Successfully wrote', 'were updated', 'was updated', 'were edited', 'was written', 'output omitted by observer policy'),
-  ], [
-    observerRequiresAll('emergencyCurateWhenVisibleObservationsOver', 'dropWhenActiveObservationsOver'),
-    observerRequiresAll('src/db/migrate.ts', 'tests/db-migrate.test.ts'),
-    observerRequiresAll('docs/migrations.md', 'TODO'),
-    observerMaxCount(4),
-  ], usage.total, agentDurationMs, diagnostics);
+    '[Source entry id: user-schema-a] User: For the durable ledger we agreed on the custom event `om.observations.flagged`. It has `observationIds` and a bounded one-line `reason`; do not turn this into a generic follow-up marker.',
+    '[Source entry id: user-schema-c] User: Also keep the future reflection lifecycle names exact: `om.reflections.deprecated` and `om.reflections.superseded`. They are proposed future events, not implemented yet.',
+    '[Source entry id: tool-schema-d] Tool result: grep also shows stale older notes mentioning dropper soft threshold, additive mode, and reflectorThinking xhigh; those are not the current schema names.',
+    '[Source entry id: user-future-a] User: Next finish the observer provenance policy, then add deterministic checks for observer evals. Maybe revisit docs cleanup if evals still look noisy.',
+    '[Source entry id: assistant-f] Assistant: Okay, noted.',
+  ].join('\n');
+  const ids = ['user-schema-a', 'user-schema-c', 'tool-schema-d', 'user-future-a', 'assistant-f'];
+  const { output, usage, agentDurationMs } = await runObserverCase(modelSpec, thinkingLevel, chunk, ids);
+  return judgedObserverScored('observer-exact-language-future-intent', output, {
+    id: 'observer-exact-language-future-intent',
+    question: 'Preserve exact API/event names and future/tentative sequencing without promoting stale distractions.',
+    rubric: { pass_if: ['Exact event/field names retained.', 'Deprecated/superseded are proposed future, not implemented.', 'Observer provenance policy precedes deterministic checks; docs cleanup tentative.'], fail_if: ['Generic flags replace exact names.', 'Future events treated implemented.', 'Maybe docs cleanup treated immediate/approved.'] },
+  }, judgeModel, started, [observerForbidsSourceIds('assistant-f')], [observerRequiresAll('om.observations.flagged', 'observationIds', 'reason'), observerRequiresAll('om.reflections.deprecated', 'om.reflections.superseded'), observerRequiresAll('proposed'), observerRequiresAll('observer provenance policy', 'deterministic'), observerRequiresAll('docs cleanup'), observerMaxCount(5)], usage.total, agentDurationMs);
 }
 
-export async function observerHardFutureIntent(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+export async function observerRealSessionScaleOmSimplification(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   const started = Date.now();
-  const auth = await resolveModel(modelSpec);
   const chunk = [
-    '[Source entry id: user-future-a] [User @ 2026-06-12 09:00]: For OM, next we should finish the observer provenance policy, then add deterministic checks for observer evals. After that, maybe revisit docs cleanup if the evals still look noisy.',
-    '[Source entry id: assistant-future-b] [Assistant @ 2026-06-12 09:01]: Agreed. I will handle policy first, deterministic checks second, and leave docs cleanup tentative/later.',
+    '[Source entry id: s1] [User @ 2026-06-14T21:00] after these tasks i want to look at OM/fork combo, where thanks to instant compaction and always on memory we can send compacted context to forked agents instead of full context, and having to pay the full uncached input price. do not look into it too deeply now.',
+    '[Source entry id: s2] [Tool evidence: edit] status: ok input: extensions/pi-observational-memory/docs/implementation-plan.md excerpt: Successfully replaced 1 block(s).',
+    '[Source entry id: s3] [Assistant] Added deferred OM + fork note to implementation-plan.md.',
+    '[Source entry id: s4] [User] User confirmed the migration should fully refactor to the new typed-id shape with no long-lived shims; compatibility only at boundaries, not parallel legacy core paths.',
+    '[Source entry id: s5] [Assistant] Implemented typed ids in src/memory/ids.ts, src/session-ledger/types.ts, fold.ts, recall.ts.',
+    '[Source entry id: s6] [Tool evidence: bash] status: ok input: cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test exitCode: 0 excerpt: Test Files 19 passed; Tests 149 passed.',
+    '[Source entry id: s7] [User] Delete curator.test.ts and curator-stage.test.ts; they preserve obsolete pin/curator behavior. Keep typed ids, reflection-only active memory, recall traversal, compaction-hook behavior, and status/view outputs.',
+    '[Source entry id: s8] [Tool evidence: bash] status: error input: pnpm test -- tests/session-ledger-fold.test.ts tests/session-ledger-render-summary.test.ts exitCode: 1 excerpt: 9 failing files / 29 failing tests; compaction-hook.test.ts is a main hotspot.',
+    '[Source entry id: s9] [Assistant] Later validation passed after memory-update.test.ts edit: cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test passed with 19 test files / 149 tests.',
+    '[Source entry id: s10] [User] Rewrite input should stay reflections-only for now; do not include source observations in rewrite input.',
+    '[Source entry id: s11] [Assistant] Committed 666a1c5 Keep rewrite input reflection-only; transitive ref -> ref -> obs recall traversal is preserved.',
+    '[Source entry id: s12] [Tool evidence: read] status: ok input: eval/src/om/cases/curator.ts output_omitted: true excerpt: [output omitted by observer policy]',
+    '[Source entry id: s13] [Assistant] eval/src/om is curator-free and no longer references supportingObservationIds.',
+    '[Source entry id: s14] [User] Nice.',
   ].join('\n\n');
-  const { runObserver } = await loadOmAgents();
-  const usage = createUsageCollector();
-  const agentStarted = Date.now();
-  const output = await runObserver({
-    ...auth,
-    priorReflections: [],
-    priorObservations: [],
-    chunk,
-    allowedSourceEntryIds: ['user-future-a', 'assistant-future-b'],
-    thinkingLevel,
-    maxTurns: 6,
-    onUsage: usage.onUsage,
-  });
-  const agentDurationMs = Date.now() - agentStarted;
-  return judgedObserverScored('observer-hard-future-intent', output, {
-    id: 'observer-hard-future-intent',
-    question: 'Did the observer preserve explicit future work, sequencing, and uncertainty?',
-    rubric: {
-      pass_if: [
-        'Output preserves observer provenance policy as the next/first work.',
-        'Output preserves deterministic observer eval checks as later/second work.',
-        'Output preserves docs cleanup as tentative/maybe/later and conditional on noisy evals.',
-        'Output does not turn tentative docs cleanup into approved immediate work.',
-      ],
-      fail_if: [
-        'Output omits the sequence between provenance policy and deterministic checks.',
-        'Output omits uncertainty/conditional status for docs cleanup.',
-        'Output invents completed implementation work.',
-      ],
-    },
-  }, judgeModel, started, [], [
-    observerRequiresAll('observer provenance policy'),
-    observerRequiresAll('deterministic'),
-    observerRequiresAll('docs cleanup'),
-    observerMaxCount(3),
-  ], usage.total, agentDurationMs);
+  const ids = Array.from({ length: 14 }, (_, i) => `s${i + 1}`);
+  const { output, usage, agentDurationMs } = await runObserverCase(modelSpec, thinkingLevel, chunk, ids);
+  return judgedObserverScored('observer-real-session-scale-om-simplification', output, {
+    id: 'observer-real-session-scale-om-simplification',
+    question: 'From realistic noisy OM work, retain durable decisions, validation transitions, and deferred work without workflow receipts.',
+    rubric: { pass_if: ['Deferred OM+fork task retained with do-not-investigate-now.', 'Typed-id/no-shim boundary compatibility decision retained.', 'Curator tests deletion rationale and reflection-only kept coverage retained.', 'Failed then passed validation chronology retained.', 'Rewrite input reflections-only retained.'], fail_if: ['Treats deferred OM+fork as immediate.', 'Says tests only failed or only passed without chronology.', 'Records edit/read receipts as durable facts.', 'Includes output omitted policy noise.'] },
+  }, judgeModel, started, [observerForbidsAny('Successfully replaced', 'output omitted by observer policy', 'Nice')], [observerRequiresAll('OM', 'fork', 'do not look into it too deeply'), observerRequiresAll('typed-id', 'no long-lived shims'), observerRequiresAll('curator.test.ts', 'curator-stage.test.ts'), observerRequiresAll('9 failing files', '29 failing tests'), observerRequiresAll('19 test files', '149 tests'), observerRequiresAll('reflections-only'), observerMaxCount(8)], usage.total, agentDurationMs);
 }
 
-
-export async function observerHardSessionCorrectionNoise(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+export async function observerZeroDurableRestraint(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   const started = Date.now();
-  const auth = await resolveModel(modelSpec);
   const chunk = [
-    '[Source entry id: user-session-a] [User @ 2026-06-12 10:00]: Earlier I said Redis for all queue state. Reject that. Current split: SQLite at /tmp/jobs.db for job state, Redis only for distributed locks.',
-    '[Source entry id: tool-session-b]\n[Tool evidence: edit @ 2026-06-12 10:01]\nstatus: ok\noutput_chars: 64\ninput: src/queue/config.ts\noutput_omitted: true (policy)\nexcerpt:\n[output omitted by observer policy]',
-    '[Source entry id: assistant-session-c] [Assistant @ 2026-06-12 10:02]: Updated queue config and tests to match the split.',
-    '[Source entry id: user-session-d] [User @ 2026-06-12 10:03]: Also new requirement: enable WAL with `PRAGMA journal_mode=WAL` before migrations. Keep the previous /tmp/jobs.db path, do not restate it unless needed.',
-    '[Source entry id: tool-session-e]\n[Tool evidence: bash @ 2026-06-12 10:04]\nstatus: error\noutput_chars: 180\ninput: pnpm test tests/queue-migrate.test.ts\nexitCode: 1\noutput_omitted: false\nexcerpt:\nFAIL tests/queue-migrate.test.ts > queue migrate > busy database\nError: SQLITE_BUSY at src/db/migrate.ts:88',
-    '[Source entry id: user-session-f] [User @ 2026-06-12 10:05]: That SQLITE_BUSY is unresolved. Do not call migration fixed.',
-    '[Source entry id: assistant-session-g] [Assistant @ 2026-06-12 10:06]: Okay.',
-  ].join('\n\n');
-  const { runObserver } = await loadOmAgents();
-  const usage = createUsageCollector();
-  const agentStarted = Date.now();
-  const output = await runObserver({
-    ...auth,
-    priorReflections: ['[rrrrrrrrrrrr] Queue state previously used Redis for all state, but this may be stale.'],
-    priorObservations: [],
-    chunk,
-    allowedSourceEntryIds: ['user-session-a', 'tool-session-b', 'assistant-session-c', 'user-session-d', 'tool-session-e', 'user-session-f', 'assistant-session-g'],
-    thinkingLevel,
-    maxTurns: 6,
-    onUsage: usage.onUsage,
-  });
-  const agentDurationMs = Date.now() - agentStarted;
-  return judgedObserverScored('observer-hard-session-correction-noise', output, {
-    id: 'observer-hard-session-correction-noise',
-    question: 'Did the observer preserve durable queue/migration state while ignoring edit/ack workflow noise?',
-    rubric: {
-      pass_if: [
-        'Output preserves latest split: SQLite /tmp/jobs.db for job state and Redis only for distributed locks.',
-        'Output preserves WAL requirement and unresolved SQLITE_BUSY at src/db/migrate.ts:88 from tests/queue-migrate.test.ts.',
-        'Output does not record edit/test-update workflow breadcrumbs or final acknowledgement noise.',
-      ],
-      fail_if: [
-        'Output treats Redis-for-all-state as current.',
-        'Output says migration is fixed.',
-        'Output records successful edit/update workflow as memory.',
-      ],
-    },
-  }, judgeModel, started, [
-    observerForbidsSourceIds('assistant-session-g'),
-    observerForbidsAny('Updated queue config', 'tests to match', 'output omitted by observer policy', 'migration fixed'),
-  ], [
-    observerRequiresAll('SQLite', '/tmp/jobs.db'),
-    observerRequiresAll('job state'),
-    observerRequiresAll('Redis', 'distributed locks'),
-    observerRequiresAll('PRAGMA journal_mode=WAL'),
-    observerRequiresAll('tests/queue-migrate.test.ts', 'SQLITE_BUSY', 'src/db/migrate.ts:88'),
-    observerMaxCount(5),
-  ], usage.total, agentDurationMs);
-}
-
-export async function observerHardSessionIntentProvenance(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
-  const started = Date.now();
-  const auth = await resolveModel(modelSpec);
-  const chunk = [
-    '[Source entry id: user-intent-a] [User @ 2026-06-12 13:00]: For the sidecar, use Go. API must be REST over HTTP, not gRPC. No framework for v1; stdlib only unless I approve chi/gin later.',
-    '[Source entry id: user-intent-b] [User @ 2026-06-12 13:03]: For the migration handoff, remember exact touched files and missing docs.',
-    '[Source entry id: tool-intent-c]\n[Tool evidence: edit @ 2026-06-12 13:04]\nstatus: ok\noutput_chars: 61\ninput: src/db/migrate.ts\noutput_omitted: true (policy)\nexcerpt:\n[output omitted by observer policy]',
-    '[Source entry id: tool-intent-d]\n[Tool evidence: edit @ 2026-06-12 13:05]\nstatus: ok\noutput_chars: 72\ninput: tests/db-migrate.test.ts\noutput_omitted: true (policy)\nexcerpt:\n[output omitted by observer policy]',
-    '[Source entry id: assistant-intent-e] [Assistant @ 2026-06-12 13:06]: Migration handoff touched src/db/migrate.ts and tests/db-migrate.test.ts; docs/migrations.md is still TODO.',
-    '[Source entry id: user-intent-f] [User @ 2026-06-12 13:07]: no, cache path is /tmp/om-cache, not ~/.cache/om.',
-    '[Source entry id: assistant-intent-g] [Assistant @ 2026-06-12 13:08]: Sounds good.',
-  ].join('\n\n');
-  const { runObserver } = await loadOmAgents();
-  const usage = createUsageCollector();
-  const agentStarted = Date.now();
-  const output = await runObserver({
-    ...auth,
-    priorReflections: ['[rrrrrrrrrrrr] Cache path was previously assumed to be ~/.cache/om.'],
-    priorObservations: [],
-    chunk,
-    allowedSourceEntryIds: ['user-intent-a', 'user-intent-b', 'tool-intent-c', 'tool-intent-d', 'assistant-intent-e', 'user-intent-f', 'assistant-intent-g'],
-    thinkingLevel,
-    maxTurns: 6,
-    onUsage: usage.onUsage,
-  });
-  const agentDurationMs = Date.now() - agentStarted;
-  return judgedObserverScored('observer-hard-session-intent-provenance', output, {
-    id: 'observer-hard-session-intent-provenance',
-    question: 'Did the observer preserve mixed constraints, explicit provenance, and terse correction without workflow noise?',
-    rubric: {
-      pass_if: [
-        'Output preserves Go/REST/no-framework sidecar constraints.',
-        'Output preserves explicit migration handoff files and docs TODO.',
-        'Output preserves /tmp/om-cache as current and ~/.cache/om as stale/rejected.',
-      ],
-      fail_if: [
-        'Output omits any independent sidecar constraint.',
-        'Output records successful edit receipts instead of handoff provenance.',
-        'Output discards terse cache correction.',
-      ],
-    },
-  }, judgeModel, started, [
-    observerForbidsSourceIds('assistant-intent-g'),
-    observerForbidsAny('output omitted by observer policy', 'Successfully replaced'),
-  ], [
-    observerRequiresAll('Go'),
-    observerRequiresAll('REST', 'HTTP', 'gRPC'),
-    observerRequiresAll('stdlib'),
-    observerRequiresAll('src/db/migrate.ts', 'tests/db-migrate.test.ts', 'docs/migrations.md', 'TODO'),
-    observerRequiresAll('/tmp/om-cache', '~/.cache/om'),
-    observerMaxCount(6),
-  ], usage.total, agentDurationMs);
+    '[Source entry id: z1] [Assistant] I will inspect the files first.',
+    '[Source entry id: z2] [Tool evidence: read] status: ok input: src/foo.ts output_omitted: true excerpt: [output omitted by observer policy]',
+    '[Source entry id: z3] [Tool evidence: bash] status: ok input: pnpm test exitCode: 0 excerpt: Test Files 3 passed; Tests 12 passed.',
+    '[Source entry id: z4] [Assistant] Tests passed.',
+    '[Source entry id: z5] [User] thanks',
+    '[Source entry id: z6] [Assistant] You are welcome.',
+  ].join('\n');
+  const ids = ['z1', 'z2', 'z3', 'z4', 'z5', 'z6'];
+  const { output, usage, agentDurationMs } = await runObserverCase(modelSpec, thinkingLevel, chunk, ids);
+  return judgedObserverScored('observer-zero-durable-restraint', output, {
+    id: 'observer-zero-durable-restraint',
+    question: 'Avoid recording durable observations when the chunk is only workflow noise, read receipts, generic passing tests, and acknowledgements.',
+    rubric: { pass_if: ['No observations recorded.'], fail_if: ['Any durable observation is recorded for generic workflow noise.'] },
+  }, judgeModel, started, [observerMaxCount(0)], [], usage.total, agentDurationMs);
 }
