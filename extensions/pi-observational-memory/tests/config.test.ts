@@ -49,7 +49,7 @@ describe("config", () => {
 			protectRecentObservations: 32,
 			agentMaxTurns: 16,
 			observerThinking: "low",
-			reflectorThinking: "xhigh",
+			reflectorThinking: "low",
 			curatorThinking: "high",
 			debugLog: false,
 		});

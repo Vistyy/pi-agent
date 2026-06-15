@@ -51,7 +51,7 @@ export const DEFAULTS: Config = {
 	observerToolOutputPolicies: { fork: "full-excerpt" },
 	agentMaxTurns: 16,
 	observerThinking: "low",
-	reflectorThinking: "xhigh",
+	reflectorThinking: "low",
 	curatorThinking: "high",
 	debugLog: false,
 };
