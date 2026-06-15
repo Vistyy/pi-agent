@@ -1,6 +1,6 @@
 import { runJudge } from '../lib/judge.js';
 import type { Probe, TokenUsage } from '../lib/types.js';
-import type { AgentEvalRecord, CuratorActionResult, CuratorCheck, CuratorEvalDiagnostics, EvalScoreDimension, Observation, ObserverCheck, Reflection } from './types.js';
+import type { AgentEvalRecord, EvalScoreDimension, Observation, ObserverCheck } from './types.js';
 
 export async function diagnoseFailure(record: AgentEvalRecord, probe: Probe, judgeModel: string): Promise<AgentEvalRecord> {
   if (record.passed) return record;
@@ -78,131 +78,6 @@ export async function judgedObserverScored(
     id,
     agent: 'observer',
     output: output ?? [],
-    judge: hardFailure
-      ? { passed: false, reason: `Hard invariant failed: ${hardFailure.reason}`, details: hardFailure.details }
-      : { passed: true, reason: 'Hard invariants passed; see score dimensions for capability signal.' },
-    passed: !hardFailure,
-    durationMs: Date.now() - started,
-    agentDurationMs,
-    usage,
-    diagnostics,
-    score: { hardFailed: Boolean(hardFailure), score, maxScore, dimensions },
-  };
-  return hardFailure ? diagnoseFailure(base, probe, judgeModel) : base;
-}
-
-export function curatorIds(output: CuratorActionResult | undefined, key: keyof CuratorActionResult): string[] {
-  const value = output?.[key];
-  if (!value) return [];
-  if (key === 'dropped') return value as string[];
-  return (value as Array<{ observationIds: string[] }>).flatMap((batch) => batch.observationIds);
-}
-
-export function curatorEvalDiagnostics(args: {
-  observations: Observation[];
-  reflections: Reflection[];
-  pinnedObservationIds?: string[];
-  flaggedObservationIds?: string[];
-  protectedObservationIds?: string[];
-  maxDropsAllowed?: number;
-  phaseMetrics?: unknown[];
-}): CuratorEvalDiagnostics {
-  return args;
-}
-
-export function missingIds(output: CuratorActionResult | undefined, actionKeys: Array<keyof CuratorActionResult>, expectedIds: string[]): string[] {
-  const actual = new Set(actionKeys.flatMap((key) => curatorIds(output, key)));
-  return expectedIds.filter((id) => !actual.has(id));
-}
-
-export function forbiddenIds(output: CuratorActionResult | undefined, actionKeys: Array<keyof CuratorActionResult>, forbidden: string[]): string[] {
-  const forbiddenSet = new Set(forbidden);
-  return actionKeys.flatMap((key) => curatorIds(output, key).filter((id) => forbiddenSet.has(id)).map((id) => `${key}:${id}`));
-}
-
-export function unexpectedIds(output: CuratorActionResult | undefined, actionKey: keyof CuratorActionResult, allowed: string[]): string[] {
-  const allowedSet = new Set(allowed);
-  return curatorIds(output, actionKey).filter((id) => !allowedSet.has(id));
-}
-
-export function curatorActionIdSummary(output: CuratorActionResult | undefined): Record<string, string[]> {
-  return {
-    pinned: curatorIds(output, 'pinned'),
-    unpinned: curatorIds(output, 'unpinned'),
-    flagged: curatorIds(output, 'flagged'),
-    dropped: curatorIds(output, 'dropped'),
-  };
-}
-
-function deterministicCuratorFailure(output: CuratorActionResult | undefined, checks: CuratorCheck[]): { reason: string; details: unknown[] } | undefined {
-  const failed = checks.filter((check) => !check.pass(output)).map((check) => ({ label: check.label, detail: check.detail?.(output) ?? curatorActionIdSummary(output) }));
-  return failed.length ? { reason: failed.map((check) => check.label).join('; '), details: failed } : undefined;
-}
-
-function deterministicCuratorRecord(
-  id: string,
-  output: CuratorActionResult | undefined,
-  started: number,
-  checks: CuratorCheck[],
-  usage?: TokenUsage,
-  agentDurationMs?: number,
-  diagnostics?: CuratorEvalDiagnostics,
-): AgentEvalRecord {
-  const deterministicFailure = deterministicCuratorFailure(output, checks);
-  return {
-    id,
-    agent: 'curator',
-    output: output ?? {},
-    judge: deterministicFailure
-      ? { passed: false, reason: `Deterministic invariant failed: ${deterministicFailure.reason}`, details: deterministicFailure.details }
-      : { passed: true, reason: 'Deterministic invariants passed.' },
-    passed: !deterministicFailure,
-    durationMs: Date.now() - started,
-    agentDurationMs,
-    usage,
-    diagnostics,
-  };
-}
-
-export async function judgedCurator(
-  id: string,
-  output: CuratorActionResult | undefined,
-  probe: Probe,
-  judgeModel: string,
-  started: number,
-  checks: CuratorCheck[],
-  usage?: TokenUsage,
-  agentDurationMs?: number,
-  diagnostics?: CuratorEvalDiagnostics,
-): Promise<AgentEvalRecord> {
-  const deterministic = deterministicCuratorRecord(id, output, started, checks, usage, agentDurationMs, diagnostics);
-  if (!deterministic.passed) return diagnoseFailure(deterministic, probe, judgeModel);
-  return deterministic;
-}
-
-export async function judgedCuratorScored(
-  id: string,
-  output: CuratorActionResult | undefined,
-  probe: Probe,
-  judgeModel: string,
-  started: number,
-  hardChecks: CuratorCheck[],
-  scoreChecks: CuratorCheck[],
-  usage?: TokenUsage,
-  agentDurationMs?: number,
-  diagnostics?: CuratorEvalDiagnostics,
-): Promise<AgentEvalRecord> {
-  const hardFailure = deterministicCuratorFailure(output, hardChecks);
-  const dimensions: EvalScoreDimension[] = scoreChecks.map((check) => {
-    const passed = check.pass(output);
-    return { label: check.label, score: passed ? 1 : 0, maxScore: 1, detail: check.detail?.(output) ?? curatorActionIdSummary(output) };
-  });
-  const score = dimensions.reduce((total, dimension) => total + dimension.score, 0);
-  const maxScore = dimensions.reduce((total, dimension) => total + dimension.maxScore, 0);
-  const base: AgentEvalRecord = {
-    id,
-    agent: 'curator',
-    output: output ?? {},
     judge: hardFailure
       ? { passed: false, reason: `Hard invariant failed: ${hardFailure.reason}`, details: hardFailure.details }
       : { passed: true, reason: 'Hard invariants passed; see score dimensions for capability signal.' },

@@ -31,7 +31,7 @@ export async function main() {
   for (const c of cases) {
     try { records.push(await c(args.model, args.judgeModel, args.thinkingLevel)); }
     catch (error) {
-      records.push({ id: c.name, agent: c.name.startsWith('observer') ? 'observer' : c.name.startsWith('reflector') ? 'reflector' : 'curator', output: undefined, passed: false, durationMs: 0, error: error instanceof Error ? (error.stack ?? error.message) : String(error) });
+      records.push({ id: c.name, agent: c.name.startsWith('observer') ? 'observer' : 'reflector', output: undefined, passed: false, durationMs: 0, error: error instanceof Error ? (error.stack ?? error.message) : String(error) });
     }
     fs.writeFileSync(path.join(args.outDir, 'results.partial.json'), JSON.stringify(records, null, 2));
   }

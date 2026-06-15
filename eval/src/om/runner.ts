@@ -10,14 +10,8 @@ export async function loadOmAgents(): Promise<OmAgents> {
   const base = new URL('../../../extensions/pi-observational-memory/src/agents/', import.meta.url);
   const observer = await import(new URL('observer/agent.ts', base).href) as { runObserver: OmAgents['runObserver'] };
   const reflector = await import(new URL('reflector/agent.ts', base).href) as { runReflector: OmAgents['runReflector'] };
-  const curator = await import(new URL('curator/agent.ts', base).href) as { runCurator: OmAgents['runCurator'] };
-  omAgents = { runObserver: observer.runObserver, runReflector: reflector.runReflector, runCurator: curator.runCurator };
+  omAgents = { runObserver: observer.runObserver, runReflector: reflector.runReflector };
   return omAgents;
-}
-
-export async function loadCuratorRunner(): Promise<OmAgents['runCurator']> {
-  const agents = await loadOmAgents();
-  return agents.runCurator;
 }
 
 function parseModelSpec(spec: string): [provider: string, id: string] {
@@ -39,11 +33,16 @@ export async function resolveModel(spec: string): Promise<{ model: Model<any>; a
 }
 
 export function obs(id: string, content: string, timestamp: string, tokenCount = 20): Observation {
-  return { id, content, timestamp, sourceEntryIds: [`src-${id}`], tokenCount };
+  return { id: id.startsWith('obs_') ? id : `obs_${id}`, content, timestamp, sourceEntryIds: [`src-${id}`], tokenCount };
 }
 
-export function ref(id: string, content: string, supportingObservationIds: string[]): Reflection {
-  return { id, content, supportingObservationIds, tokenCount: Math.ceil(content.length / 4) };
+export function ref(id: string, content: string, sources: string[]): Reflection {
+  return {
+    id: id.startsWith('ref_') ? id : `ref_${id}`,
+    content,
+    sources: sources.map((source) => source.startsWith('obs_') || source.startsWith('ref_') ? source : `obs_${source}`),
+    tokenCount: Math.ceil(content.length / 4),
+  };
 }
 
 function addCost(total: TokenUsage, usage: TokenUsage): void {

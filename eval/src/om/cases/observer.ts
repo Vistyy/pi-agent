@@ -1,6 +1,6 @@
 import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import type { AgentEvalRecord } from '../types.js';
-import { createUsageCollector, loadCuratorRunner, loadOmAgents, obs, ref, resolveModel } from '../runner.js';
+import { createUsageCollector, loadOmAgents, obs, resolveModel } from '../runner.js';
 import { runPiSdk } from '../../lib/pi.js';
 import { judgedObserverScored, observerForbidsAny, observerForbidsSourceIds, observerMaxCount, observerRequiresAll, observerText } from '../diagnostics.js';
 
@@ -111,7 +111,7 @@ export async function observerHardSchemaMess(modelSpec: string, judgeModel: stri
   const agentStarted = Date.now();
   const output = await runObserver({
     ...auth,
-    priorReflections: ['[rrrrrrrrrrrr] Memory lifecycle has curator follow-up flags and future reflection deprecation/supersession work.'],
+    priorReflections: ['[ref_rrrrrrrrrrrr] Memory lifecycle has reflector follow-up flags and future active-memory rewrite work.'],
     priorObservations: [],
     chunk,
     allowedSourceEntryIds: ['user-schema-a', 'assistant-schema-b', 'user-schema-c', 'tool-schema-d', 'user-schema-e', 'assistant-schema-f'],
@@ -228,7 +228,7 @@ export async function observerHardStateVsProvenance(modelSpec: string, judgeMode
   const agentStarted = Date.now();
   const output = await runObserver({
     ...auth,
-    priorReflections: ['[rrrrrrrrrrrr] Curator emergency pressure uses visible observations, not old dropper soft thresholds.'],
+    priorReflections: ['[ref_rrrrrrrrrrrr] Active memory projection renders current reflections only, not old observation-pool pressure.'],
     priorObservations: [],
     chunk,
     allowedSourceEntryIds: ['user-state-a', 'tool-state-b', 'tool-state-c', 'tool-state-d', 'assistant-state-e', 'user-prov-a', 'tool-prov-b', 'tool-prov-c', 'assistant-prov-d'],

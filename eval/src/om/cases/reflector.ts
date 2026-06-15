@@ -1,7 +1,7 @@
 import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import type { AgentEvalRecord } from '../types.js';
-import { createUsageCollector, loadCuratorRunner, loadOmAgents, obs, ref, resolveModel } from '../runner.js';
-import { curatorActionIdSummary, curatorEvalDiagnostics, curatorIds, forbiddenIds, judged, judgedCurator, missingIds, unexpectedIds } from '../diagnostics.js';
+import { createUsageCollector, loadOmAgents, obs, ref, resolveModel } from '../runner.js';
+import { judged } from '../diagnostics.js';
 
 export async function reflectorHardCompression(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   const started = Date.now();
