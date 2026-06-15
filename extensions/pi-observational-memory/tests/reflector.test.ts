@@ -104,10 +104,10 @@ describe("reflector agent", () => {
 		expect(result?.map((item) => item.content)).toEqual(["New durable fact."]);
 	});
 
-	it("returns empty array when explicitly marked reviewed with no reflections", async () => {
+	it("returns empty array when explicitly recorded with no reflections", async () => {
 		const loop = fakeAgentLoop(async (_prompts, context) => {
-			expect(context.tools.map((tool) => tool.name)).toEqual(["record_reflections", "mark_reviewed_no_reflections"]);
-			await context.tools[1].execute("tool-1", {});
+			expect(context.tools.map((tool) => tool.name)).toEqual(["record_reflections"]);
+			await context.tools[0].execute("tool-1", { reflections: [] });
 		});
 		await expect(runReflector({ ...baseArgs, agentLoop: loop })).resolves.toEqual([]);
 	});

@@ -23,19 +23,16 @@ interface RunReflectorArgs {
 	onUsage?: (usage: MemoryAgentUsage) => void;
 }
 
-const MarkReviewedNoReflectionsSchema = Type.Object({});
-
 const RecordReflectionsSchema = Type.Object({
 	reflections: Type.Array(
 		Type.Object({
 			content: Type.String({ minLength: 1 }),
 			sources: Type.Array(Type.String({ minLength: 1 }), { minItems: 1 }),
 		}),
-		{ minItems: 1 },
+		{},
 	),
 });
 
-type MarkReviewedNoReflectionsArgs = Static<typeof MarkReviewedNoReflectionsSchema>;
 type RecordReflectionsArgs = Static<typeof RecordReflectionsSchema>;
 
 export function summarizeSupportIdCounts(reflections: readonly Reflection[]): {
@@ -90,30 +87,16 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 	let rejectedReflectionCount = 0;
 	let rejectedEmptyOrMultilineContentCount = 0;
 	let rejectedInvalidSupportIdsCount = 0;
-	let reviewedNoReflectionsCallCount = 0;
-
-	const markReviewedNoReflections: AgentTool<typeof MarkReviewedNoReflectionsSchema> = {
-		name: "mark_reviewed_no_reflections",
-		label: "Mark reviewed",
-		description: "Mark this observation set reviewed when no durable reflections should be added. This tool call terminates the run.",
-		parameters: MarkReviewedNoReflectionsSchema,
-		execute: async (_id, _params: MarkReviewedNoReflectionsArgs) => {
-			reviewedNoReflectionsCallCount++;
-			return {
-				content: [{ type: "text", text: "Marked reviewed with no new reflections." }],
-				details: { reviewed: true },
-				terminate: true,
-			};
-		},
-	};
+	let recordedEmpty = false;
 
 	const recordReflections: AgentTool<typeof RecordReflectionsSchema> = {
 		name: "record_reflections",
 		label: "Record reflections",
-		description: "Record one complete batch of new durable reflections with source observation ids. This tool call terminates the run.",
+		description: "Record one complete batch of new durable reflections with source observation ids. Use an empty reflections array when no durable reflections should be added. This tool call terminates the run.",
 		parameters: RecordReflectionsSchema,
 		execute: async (_id, params: RecordReflectionsArgs) => {
 			toolCallCount++;
+			recordedEmpty ||= params.reflections.length === 0;
 			rawProposedReflectionCount += params.reflections.length;
 			let added = 0;
 			let duplicates = 0;
@@ -152,7 +135,7 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 		},
 	};
 
-	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nCURRENT OBSERVATIONS:\n${joinOrEmpty(observations.map(observationToSummaryLine))}\n\nReview these observations. Call record_reflections once with every durable new reflection, or mark_reviewed_no_reflections if none should be added.`;
+	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nCURRENT OBSERVATIONS:\n${joinOrEmpty(observations.map(observationToSummaryLine))}\n\nReview these observations. Call record_reflections once with every durable new reflection, or with an empty reflections array if none should be added.`;
 	debugLog("reflector.prompt", {
 		reflectionCount: reflections.length,
 		observationCount: observations.length,
@@ -168,15 +151,14 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 		thinkingLevel: args.thinkingLevel,
 		systemPrompt: REFLECTOR_SYSTEM,
 		userText,
-		tools: [recordReflections as AgentTool<any>, markReviewedNoReflections as AgentTool<any>],
+		tools: [recordReflections as AgentTool<any>],
 		agentName: "reflector",
 		onUsage: args.onUsage,
 	});
 	const acceptedReflections = Array.from(accumulated.values());
 	debugLog("reflector.result", {
-		reason: acceptedReflections.length > 0 ? "accepted_nonempty" : reviewedNoReflectionsCallCount > 0 ? "reviewed_no_reflections" : toolCallCount === 0 ? "no_tool_call" : "all_filtered",
+		reason: acceptedReflections.length > 0 ? "accepted_nonempty" : recordedEmpty ? "recorded_empty" : toolCallCount === 0 ? "no_tool_call" : "all_filtered",
 		toolCallCount,
-		reviewedNoReflectionsCallCount,
 		rawProposedReflectionCount,
 		acceptedReflectionCount,
 		duplicateReflectionCount,
@@ -186,5 +168,5 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 		acceptedSupportIdCounts: summarizeSupportIdCounts(acceptedReflections),
 	});
 	if (acceptedReflections.length > 0) return acceptedReflections;
-	return reviewedNoReflectionsCallCount > 0 ? [] : undefined;
+	return recordedEmpty ? [] : undefined;
 }

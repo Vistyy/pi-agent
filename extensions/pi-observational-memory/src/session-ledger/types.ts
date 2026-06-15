@@ -55,10 +55,7 @@ export type ReflectionsRecordedEntryData = {
 
 export type ReflectionsRewrittenEntryData = {
 	retiredReflectionIds: string[];
-	newReflectionIds: string[];
-	retainedSourceIds: string[];
-	discardedReflectionIds: string[];
-	discardedSummary: string;
+	summary?: string;
 };
 
 export type MemoryDetails = {
@@ -79,10 +76,6 @@ export function isNonEmptyString(value: unknown): value is string {
 
 export function isNonEmptyStringArray(value: unknown): value is string[] {
 	return Array.isArray(value) && value.length > 0 && value.every(isNonEmptyString);
-}
-
-function isStringArray(value: unknown): value is string[] {
-	return Array.isArray(value) && value.every(isNonEmptyString);
 }
 
 export function isMemoryId(value: unknown): value is string {
@@ -168,13 +161,7 @@ export function isReflectionsRecordedData(value: unknown): value is ReflectionsR
 
 export function isReflectionsRewrittenData(value: unknown): value is ReflectionsRewrittenEntryData {
 	if (!isPlainRecord(value)) return false;
-	return (
-		isNonEmptyStringArray(value.retiredReflectionIds) &&
-		isNonEmptyStringArray(value.newReflectionIds) &&
-		isNonEmptyStringArray(value.retainedSourceIds) &&
-		isStringArray(value.discardedReflectionIds) &&
-		isNonEmptyString(value.discardedSummary)
-	);
+	return isNonEmptyStringArray(value.retiredReflectionIds) && (value.summary === undefined || isNonEmptyString(value.summary));
 }
 
 export function isMemoryDetails(value: unknown): value is MemoryDetails {

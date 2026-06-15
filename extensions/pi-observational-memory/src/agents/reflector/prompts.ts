@@ -16,4 +16,4 @@ Rules:
 - when reflecting blockers, decisions, or corrections, keep exact supporting paths, commands, errors, ids, and values needed to act later
 - every reflection must cite source observation ids from the input
 - do not duplicate existing reflections
-- if review finds no durable reflection to add, call mark_reviewed_no_reflections`;
+- if review finds no durable reflection to add, call record_reflections with an empty reflections array`;

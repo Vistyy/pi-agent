@@ -78,7 +78,6 @@ function setup(args: {
 		resolveFailureNotified: false,
 		lastObserverError: undefined as string | undefined,
 		lastReflectorError: undefined as string | undefined,
-		lastRewriteError: undefined as string | undefined,
 		ensureConfig: vi.fn(),
 		resolveModel: vi.fn(async () => ({ ok: true, model: { reasoning: true }, apiKey: "key", headers: { h: "v" } })),
 		launchMemoryUpdateTask: vi.fn((_ctx, work) => {
@@ -90,7 +89,6 @@ function setup(args: {
 			const message = error instanceof Error ? error.message : String(error);
 			if (phase === "observer") runtime.lastObserverError = message;
 			if (phase === "reflector") runtime.lastReflectorError = message;
-			if (phase === "rewrite") runtime.lastRewriteError = message;
 			ctx.ui?.notify(`Observational memory: ${phase} failed: ${message}`, "warning");
 			return message;
 		}),
@@ -364,16 +362,5 @@ describe("memory update hook", () => {
 		await reflectorFailure.runLaunchedWork();
 		expect(reflectorFailure.runtime.lastReflectorError).toBe("reflect failed");
 		expect(reflectorFailure.getMemoryAppends()).toEqual([]);
-
-		mockAgents.runReflector.mockReset();
-		mockAgents.runReflector.mockResolvedValue(undefined);
-		mockAgents.runRewrite.mockReset();
-		mockAgents.runRewrite.mockRejectedValueOnce(new Error("rewrite failed"));
-		const rewriteRefs = ["eeeeeeeeeeee", "eeeeeeeeeee1", "eeeeeeeeeee2", "eeeeeeeeeee3", "eeeeeeeeeee4"].map((id) => reflection(id, ["aaaaaaaaaaaa"], { content: `Old active reflection ${id} with enough text to exceed budget.` }));
-		const rewriteFailure = setup({ entries: [rawMessage("raw-1", "aaaaaaaa"), reflectionsRecordedEntry("om-ref", { reflections: rewriteRefs, coversUpToId: "raw-1" })], observeEveryMessages: 999, reflectEveryObservations: 999, reflectionsPoolMaxTokens: 1 });
-		rewriteFailure.fire();
-		await rewriteFailure.runLaunchedWork();
-		expect(rewriteFailure.runtime.lastRewriteError).toBe("rewrite failed");
-		expect(rewriteFailure.getMemoryAppends()).toEqual([]);
 	});
 });

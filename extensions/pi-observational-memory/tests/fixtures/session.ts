@@ -191,10 +191,7 @@ export function reflectionsRewrittenEntry(
 	id: string,
 	args: {
 		retiredReflectionIds: string[];
-		newReflectionIds: string[];
-		retainedSourceIds: string[];
-		discardedReflectionIds: string[];
-		discardedSummary: string;
+		summary?: string;
 	},
 	overrides: Partial<TestEntry> = {},
 ): TestEntry {

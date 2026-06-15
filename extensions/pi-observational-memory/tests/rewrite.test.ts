@@ -14,20 +14,15 @@ describe("rewrite agent", () => {
 		const content = "User needs exact paths and blocker commands preserved.";
 		const loop = fakeAgentLoop(async (_prompts, context) => {
 			await context.tools[0].execute("tool-1", {
-				discardedSummary: "Merged duplicate verbose details.",
+				summary: "Merged duplicate verbose details.",
 				reflections: [{ content, sources: [oldB.id, oldA.id, "obs_111111111111"] }],
 			});
 		});
 
 		const result = await runRewrite({ ...baseArgs, agentLoop: loop });
 
-		expect(result).toMatchObject({
-			retiredReflectionIds: [oldA.id, oldB.id],
-			newReflectionIds: [`ref_${hashId(content)}`],
-			retainedSourceIds: [oldA.id, "obs_111111111111", oldB.id],
-			discardedReflectionIds: [],
-			discardedSummary: "Merged duplicate verbose details.",
-		});
+		expect(result?.summary).toBe("Merged duplicate verbose details.");
+		expect(result?.reflections[0].id).toBe(`ref_${hashId(content)}`);
 		expect(result?.reflections.map(({ content, sources }) => ({ content, sources }))).toEqual([
 			{ content, sources: [oldA.id, "obs_111111111111", oldB.id] },
 		]);
@@ -36,7 +31,7 @@ describe("rewrite agent", () => {
 	it("rejects invented sources and multiline content", async () => {
 		const loop = fakeAgentLoop(async (_prompts, context) => {
 			await context.tools[0].execute("tool-1", {
-				discardedSummary: "Invalid proposals.",
+				summary: "Invalid proposals.",
 				reflections: [
 					{ content: "Invented source", sources: ["obs_missing0000"] },
 					{ content: "Two\nlines", sources: [oldA.id] },
@@ -51,7 +46,7 @@ describe("rewrite agent", () => {
 		const content = "Compact rewritten fact.";
 		const loop = fakeAgentLoop(async (_prompts, context) => {
 			await context.tools[0].execute("tool-1", {
-				discardedSummary: "Merged duplicate proposal.",
+				summary: "Merged duplicate proposal.",
 				reflections: [
 					{ content, sources: [oldA.id] },
 					{ content, sources: [oldB.id] },
@@ -68,7 +63,7 @@ describe("rewrite agent", () => {
 	it("returns undefined for no-op cases", async () => {
 		await expect(runRewrite({ ...baseArgs, reflections: [] })).resolves.toBeUndefined();
 		await expect(runRewrite({ ...baseArgs, agentLoop: fakeAgentLoop(async (_prompts, context) => {
-			await context.tools[1].execute("tool-1", {});
+			await context.tools[0].execute("tool-1", { reflections: [] });
 		}) })).resolves.toBeUndefined();
 		await expect(runRewrite({ ...baseArgs, agentLoop: fakeAgentLoop(() => {}) })).resolves.toBeUndefined();
 	});

@@ -31,25 +31,25 @@ describe("session-ledger type guards and builders", () => {
 		expect(isObservationsRecordedData({ observations: [obs], coversUpToId: "raw-1" })).toBe(true);
 		expect(isReflectionsRecordedData({ reflections: [ref], coversUpToId: "raw-1" })).toBe(true);
 		expect(isReflectionsRecordedData({ reflections: [], coversUpToId: "raw-1" })).toBe(true);
-		expect(isReflectionsRewrittenData({ retiredReflectionIds: [ref.id], newReflectionIds: ["ref_ffffffffffff"], retainedSourceIds: [ref.id], discardedReflectionIds: [], discardedSummary: "merged" })).toBe(true);
+		expect(isReflectionsRewrittenData({ retiredReflectionIds: [ref.id], summary: "merged" })).toBe(true);
 	});
 
 	it("rejects invalid ledger data", () => {
 		expect(isObservationsRecordedData({ observations: [], coversUpToId: "raw-1" })).toBe(true);
 		expect(isReflectionsRecordedData({ reflections: [{ ...ref, sources: [] }], coversUpToId: "raw-1" })).toBe(false);
-		expect(isReflectionsRewrittenData({ retiredReflectionIds: [], newReflectionIds: [], retainedSourceIds: [], discardedReflectionIds: [], discardedSummary: "" })).toBe(false);
+		expect(isReflectionsRewrittenData({ retiredReflectionIds: [], summary: "" })).toBe(false);
 	});
 
 	it("builders return marker data", () => {
 		expect(buildObservationsRecordedData([], "raw-1")).toEqual({ observations: [], coversUpToId: "raw-1" });
 		expect(buildReflectionsRecordedData([], "raw-1")).toEqual({ reflections: [], coversUpToId: "raw-1" });
-		expect(buildReflectionsRewrittenData({ retiredReflectionIds: [ref.id], newReflectionIds: ["ref_ffffffffffff"], retainedSourceIds: [ref.id], discardedReflectionIds: [], discardedSummary: "merged" })).toBeDefined();
+		expect(buildReflectionsRewrittenData({ retiredReflectionIds: [ref.id], summary: "merged" })).toBeDefined();
 	});
 
 	it("recognizes memory entries and details", () => {
 		expect(isObservationsRecordedEntry(observationsRecordedEntry("om-obs", { observations: [obs], coversUpToId: "raw-1" }))).toBe(true);
 		expect(isReflectionsRecordedEntry(reflectionsRecordedEntry("om-ref", { reflections: [ref], coversUpToId: "raw-1" }))).toBe(true);
-		expect(isReflectionsRewrittenEntry(reflectionsRewrittenEntry("om-rw", { retiredReflectionIds: [ref.id], newReflectionIds: ["ref_ffffffffffff"], retainedSourceIds: [ref.id], discardedReflectionIds: [], discardedSummary: "merged" }))).toBe(true);
+		expect(isReflectionsRewrittenEntry(reflectionsRewrittenEntry("om-rw", { retiredReflectionIds: [ref.id], summary: "merged" }))).toBe(true);
 		expect(isMemoryDetails(memoryDetails({ observations: [obs], reflections: [ref] }))).toBe(true);
 		expect(isReflection({ ...ref, sources: undefined })).toBe(false);
 	});

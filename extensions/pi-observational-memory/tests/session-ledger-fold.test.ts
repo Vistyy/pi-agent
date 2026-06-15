@@ -41,7 +41,7 @@ describe("session-ledger folding", () => {
 		const folded = foldLedger([
 			reflectionsRecordedEntry("om-old", { reflections: [oldRef], coversUpToId: "raw-1" }),
 			reflectionsRecordedEntry("om-new", { reflections: [newRef], coversUpToId: "raw-1" }),
-			reflectionsRewrittenEntry("om-rw", { retiredReflectionIds: [oldRef.id], newReflectionIds: [newRef.id], retainedSourceIds: [oldRef.id], discardedReflectionIds: [], discardedSummary: "merged" }),
+			reflectionsRewrittenEntry("om-rw", { retiredReflectionIds: [oldRef.id], summary: "merged" }),
 		]);
 
 		expect(folded.reflections.map((ref) => ref.id)).toEqual([newRef.id]);

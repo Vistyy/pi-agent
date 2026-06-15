@@ -62,11 +62,8 @@ export async function runRewriteStage(
 
 	const recordedData = buildReflectionsRecordedData(result.reflections, entries.at(-1)?.id ?? "rewrite");
 	const rewrittenData = buildReflectionsRewrittenData({
-		retiredReflectionIds: result.retiredReflectionIds,
-		newReflectionIds: result.newReflectionIds,
-		retainedSourceIds: result.retainedSourceIds,
-		discardedReflectionIds: result.discardedReflectionIds,
-		discardedSummary: result.discardedSummary,
+		retiredReflectionIds: activeReflectionIds,
+		summary: result.summary,
 	});
 	if (!recordedData || !rewrittenData) return "continue";
 	runtime.rewriteSkippedActiveIds = undefined;

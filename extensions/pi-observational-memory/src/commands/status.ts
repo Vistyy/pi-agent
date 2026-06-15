@@ -92,11 +92,10 @@ export async function runStatusCommand(args: unknown, ctx: any, runtime: Runtime
 		if (runtime.compactHookInFlight) lines.push("Compaction hook: running");
 	}
 
-	if (runtime.lastObserverError || runtime.lastReflectorError || runtime.lastRewriteError) {
+	if (runtime.lastObserverError || runtime.lastReflectorError) {
 		lines.push("", "── Last error ──");
 		if (runtime.lastObserverError) lines.push(`Observer: ${runtime.lastObserverError}`);
 		if (runtime.lastReflectorError) lines.push(`Reflector: ${runtime.lastReflectorError}`);
-		if (runtime.lastRewriteError) lines.push(`Rewrite: ${runtime.lastRewriteError}`);
 	}
 
 	ctx.ui.notify(lines.join("\n"), "info");

@@ -13,4 +13,4 @@ Rules:
 - keep exact anchors when they are needed to act later
 - every reflection must cite source ids from the input; sources may be old ref_* ids or underlying obs_* ids
 - do not invent source ids
-- if the current active set is already compact and useful, call mark_no_rewrites`;
+- if the current active set is already compact and useful, call record_rewritten_reflections with an empty reflections array`;

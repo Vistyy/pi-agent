@@ -61,7 +61,7 @@ Compatibility is only at read boundaries:
 old ledger record -> normalize or ignore -> new internal model
 ```
 
-Core fold/projection/recall/coverage code should use one shape. Do not keep parallel legacy projection, legacy pinning behavior, or feature-flagged old lifecycle paths.
+Core fold/projection/recall code should use one shape. Do not keep parallel legacy projection, legacy pinning behavior, or feature-flagged old lifecycle paths.
 
 ## Typed ids
 
@@ -112,12 +112,12 @@ Normal reflector may read current reflections for context, but cites observation
 
 Responsibilities:
 
-- consume unreviewed observations and current reflections
+- consume observations not yet covered by reflection coverage and current reflections
 - emit current active reflections sourced to `obs_*`
 - preserve exact paths, commands, errors, ids, config names, and user constraints when they are durable anchors
 - preserve stale/current relationships when relevant
 - avoid meta/eval chatter unless it is a durable project decision
-- mark observations reviewed only through successful reflection/no-reflection review
+- advance reflection coverage with `om.reflections.recorded`, including empty reflection batches when no durable memory should be added
 
 Normal reflector does not:
 
@@ -137,7 +137,7 @@ Default projection includes no observations:
 active memory = current active reflections
 ```
 
-No raw/unreviewed fallback by default. If reflector lag or failures prove unsafe in evals or real sessions, add an explicit emergency fallback later. Do not silently reintroduce observation projection.
+No raw-observation fallback by default. If reflector lag or failures prove unsafe in evals or real sessions, add an explicit emergency fallback later. Do not silently reintroduce observation projection.
 
 ## Pinning and curator
 
@@ -148,8 +148,8 @@ Remove current curator responsibilities tied to pinning:
 ```text
 pin
 unpin
-pinned reviewed observations
-visible reviewed observation pressure
+pinned observations
+visible observation pressure
 ```
 
 Preferred replacement:
@@ -202,10 +202,7 @@ Rewritten reflections are normal reflections. The rewrite event carries retireme
 interface ReflectionsRewrittenEvent {
   id: string; // rw_*
   retiredReflectionIds: string[];
-  newReflectionIds: string[];
-  retainedSourceIds: string[];
-  discardedReflectionIds: string[];
-  discardedSummary: string;
+  summary?: string;
   failure?: undefined;
 }
 ```
@@ -223,14 +220,6 @@ interface ReflectionsRewriteFailedEvent {
 
 Hidden audit metadata is not rendered in active memory by default.
 
-Accounting rule:
-
-```text
-retiredReflectionIds = retained old ref sources ∪ discardedReflectionIds
-```
-
-Where retained old ref sources are `ref_*` ids cited by new reflections or listed in `retainedSourceIds`.
-
 ## Rewrite validation
 
 Validator is deterministic. Bad output no-ops.
@@ -243,7 +232,6 @@ Hard checks:
 - every new reflection has at least one source
 - no invented sources
 - no retired id outside active candidate set
-- retired-id accounting holds
 - content is non-empty and single-line
 - content length under limit
 - reflection count under limit
