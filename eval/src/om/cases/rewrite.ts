@@ -2,6 +2,7 @@ import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import type { AgentEvalRecord, Reflection } from '../types.js';
 import { createUsageCollector, loadOmAgents, ref, resolveModel } from '../runner.js';
 import { judgedRewriteScored, reflectorForbidsAny, reflectorMaxCount, reflectorRequiresAll, reflectorSourceIdsAllowed } from '../diagnostics.js';
+import { realRewrite40, realRewrite120 } from './real-session-fixtures.js';
 
 async function runRewriteCase(modelSpec: string, thinkingLevel: ModelThinkingLevel, reflections: Reflection[]) {
   const auth = await resolveModel(modelSpec);
@@ -81,6 +82,35 @@ export async function rewriteUserConstraintsBundle(modelSpec: string, judgeModel
     question: 'Bundle durable user/project constraints compactly without changing their scope.',
     rubric: { pass_if: ['OM simplification preference retained.', 'pnpm retained.', 'evidence discipline retained.', 'No long-lived shims/boundary compatibility retained.', 'Test cleanup not mechanical retained.'], fail_if: ['Drops a high-priority user constraint.', 'Overgeneralizes no-shim rule outside intended scope.', 'Invents sources.'] },
   }, judgeModel, started, [reflectorSourceIdsAllowed(allowedSources(reflections))], [reflectorRequiresAll('simplifications'), reflectorRequiresAll('pnpm'), reflectorRequiresAll('verify'), reflectorRequiresAll('no long-lived shims'), reflectorRequiresAll('real test cleanup'), reflectorMaxCount(4)], usage.total, agentDurationMs, { reflections });
+}
+
+async function realRewriteFixtureCase(id: string, fixture: readonly any[], modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel, scoreChecks: ReturnType<typeof reflectorRequiresAll>[]): Promise<AgentEvalRecord> {
+  const started = Date.now();
+  const reflections = fixture.map((reflection) => ({ ...reflection }));
+  const { output, usage, agentDurationMs } = await runRewriteCase(modelSpec, thinkingLevel, reflections);
+  return judgedRewriteScored(id, output, {
+    id,
+    question: `Rewrite ${fixture.length} real active reflections mined from the giga OM session into a smaller current memory set.`,
+    rubric: { pass_if: ['Preserves current durable decisions, implementation state, validation facts, and stale/current relationships.', 'Substantially compresses the input.', 'Uses only allowed source ids.'], fail_if: ['Invents sources.', 'Drops central current project state.', 'Resurrects stale behavior as current.', 'Fails to compress.'] },
+  }, judgeModel, started, [reflectorSourceIdsAllowed(allowedSources(reflections))], [...scoreChecks, reflectorMaxCount(Math.max(8, Math.ceil(fixture.length / 4)))], usage.total, agentDurationMs, { reflections });
+}
+
+export async function rewriteRealGiga40(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  return realRewriteFixtureCase('rewrite-real-giga-40', realRewrite40, modelSpec, judgeModel, thinkingLevel, [
+    reflectorRequiresAll('pi-observational-memory'),
+    reflectorRequiresAll('dropper'),
+    reflectorRequiresAll('compaction'),
+    reflectorRequiresAll('pnpm test'),
+  ]);
+}
+
+export async function rewriteRealGiga120(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  return realRewriteFixtureCase('rewrite-real-giga-120', realRewrite120, modelSpec, judgeModel, thinkingLevel, [
+    reflectorRequiresAll('curator'),
+    reflectorRequiresAll('pin'),
+    reflectorRequiresAll('compaction'),
+    reflectorRequiresAll('validation'),
+  ]);
 }
 
 export async function rewriteDeferredTaskRetention(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {

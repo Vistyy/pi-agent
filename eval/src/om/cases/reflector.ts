@@ -2,6 +2,7 @@ import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import type { AgentEvalRecord } from '../types.js';
 import { createUsageCollector, loadOmAgents, obs, ref, resolveModel } from '../runner.js';
 import { judgedReflectorScored, reflectorForbidsAny, reflectorMaxCount, reflectorRequiresAll, reflectorSourceIdsAllowed } from '../diagnostics.js';
+import { realReflector8, realReflector16 } from './real-session-fixtures.js';
 
 async function runReflectorCase(modelSpec: string, thinkingLevel: ModelThinkingLevel, args: Record<string, unknown>) {
   const auth = await resolveModel(modelSpec);
@@ -70,6 +71,33 @@ export async function reflectorRestraintAlreadyCovered(modelSpec: string, judgeM
     question: 'Avoid duplicate/noisy reflections for acknowledgement-only observations and evidence already covered by current reflections.',
     rubric: { pass_if: ['Output empty or at most one genuinely corrective reflection.', 'No duplicate of existing config reflection.', 'No thanks/okay reflection.'], fail_if: ['Duplicates covered config fact.', 'Records acknowledgement noise.'] },
   }, judgeModel, started, [reflectorForbidsAny('okay', 'thanks'), reflectorMaxCount(1), reflectorSourceIdsAllowed([...observations.map((o) => o.id), ...reflections.map((r) => r.id)])], [], usage.total, agentDurationMs, { observations, reflections });
+}
+
+async function realReflectorFixtureCase(id: string, fixture: readonly any[], modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel, scoreChecks: ReturnType<typeof reflectorRequiresAll>[]): Promise<AgentEvalRecord> {
+  const started = Date.now();
+  const observations = fixture.map((observation) => ({ ...observation }));
+  const { output, usage, agentDurationMs } = await runReflectorCase(modelSpec, thinkingLevel, { reflections: [], observations });
+  return judgedReflectorScored(id, output, {
+    id,
+    question: `Synthesize durable reflections from ${fixture.length} real recorded observations mined from the giga OM session.`,
+    rubric: { pass_if: ['Keeps durable user/project decisions and exact implementation/validation anchors.', 'Avoids acknowledgement and tool-receipt noise.', 'Uses only allowed source ids.'], fail_if: ['Invents sources.', 'Drops main durable session decisions.', 'Creates bloated duplicate reflections.'] },
+  }, judgeModel, started, [reflectorSourceIdsAllowed(observations.map((o) => o.id))], [...scoreChecks, reflectorMaxCount(Math.ceil(fixture.length / 2))], usage.total, agentDurationMs, { observations });
+}
+
+export async function reflectorRealGiga8(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  return realReflectorFixtureCase('reflector-real-giga-8', realReflector8, modelSpec, judgeModel, thinkingLevel, [
+    reflectorRequiresAll('pi-observational-memory'),
+    reflectorRequiresAll('dropper'),
+    reflectorRequiresAll('compaction'),
+  ]);
+}
+
+export async function reflectorRealGiga16(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  return realReflectorFixtureCase('reflector-real-giga-16', realReflector16, modelSpec, judgeModel, thinkingLevel, [
+    reflectorRequiresAll('dropper'),
+    reflectorRequiresAll('reflectorThinking'),
+    reflectorRequiresAll('pnpm test'),
+  ]);
 }
 
 export async function reflectorRealSessionConstraintsAndState(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {

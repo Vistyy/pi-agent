@@ -1,21 +1,27 @@
-import { observerExactLanguageFutureIntent, observerRealSessionScaleOmSimplification, observerStateStaleBlocker, observerToolEvidenceBoundary, observerZeroDurableRestraint } from './observer.js';
-import { reflectorExactAnchorRetention, reflectorRealSessionConstraintsAndState, reflectorRestraintAlreadyCovered, reflectorStaleCurrentReconciliation, reflectorSupersessionRelation } from './reflector.js';
-import { rewriteDeferredTaskRetention, rewriteOmMigrationCompression, rewriteStaleRelationshipPreservation, rewriteUserConstraintsBundle, rewriteValidationStatusConsolidation } from './rewrite.js';
+import { observerExactLanguageFutureIntent, observerRealGiga32, observerRealGiga64, observerRealGiga96, observerStateStaleBlocker, observerToolEvidenceBoundary, observerZeroDurableRestraint } from './observer.js';
+import { reflectorExactAnchorRetention, reflectorRealGiga8, reflectorRealGiga16, reflectorRealSessionConstraintsAndState, reflectorRestraintAlreadyCovered, reflectorStaleCurrentReconciliation, reflectorSupersessionRelation } from './reflector.js';
+import { rewriteDeferredTaskRetention, rewriteOmMigrationCompression, rewriteRealGiga40, rewriteRealGiga120, rewriteStaleRelationshipPreservation, rewriteUserConstraintsBundle, rewriteValidationStatusConsolidation } from './rewrite.js';
 
 export const allCases = [
   observerStateStaleBlocker,
   observerToolEvidenceBoundary,
   observerExactLanguageFutureIntent,
-  observerRealSessionScaleOmSimplification,
+  observerRealGiga32,
+  observerRealGiga64,
+  observerRealGiga96,
   observerZeroDurableRestraint,
   reflectorStaleCurrentReconciliation,
   reflectorExactAnchorRetention,
   reflectorSupersessionRelation,
   reflectorRestraintAlreadyCovered,
+  reflectorRealGiga8,
+  reflectorRealGiga16,
   reflectorRealSessionConstraintsAndState,
   rewriteOmMigrationCompression,
   rewriteStaleRelationshipPreservation,
   rewriteValidationStatusConsolidation,
   rewriteUserConstraintsBundle,
+  rewriteRealGiga40,
+  rewriteRealGiga120,
   rewriteDeferredTaskRetention,
 ];

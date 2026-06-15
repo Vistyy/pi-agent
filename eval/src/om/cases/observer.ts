@@ -2,6 +2,7 @@ import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import type { AgentEvalRecord } from '../types.js';
 import { createUsageCollector, loadOmAgents, resolveModel } from '../runner.js';
 import { judgedObserverScored, observerForbidsAny, observerForbidsSourceIds, observerMaxCount, observerRequiresAll } from '../diagnostics.js';
+import { realObserver32, realObserver64, realObserver96 } from './real-session-fixtures.js';
 
 async function runObserverCase(modelSpec: string, thinkingLevel: ModelThinkingLevel, chunk: string, allowedSourceEntryIds: string[], priorReflections: string[] = []) {
   const auth = await resolveModel(modelSpec);
@@ -96,6 +97,48 @@ export async function observerRealSessionScaleOmSimplification(modelSpec: string
     question: 'From realistic noisy OM work, retain durable decisions, validation transitions, and deferred work without workflow receipts.',
     rubric: { pass_if: ['Deferred OM+fork task retained with do-not-investigate-now.', 'Typed-id/no-shim boundary compatibility decision retained.', 'Curator tests deletion rationale and reflection-only kept coverage retained.', 'Failed then passed validation chronology retained.', 'Rewrite input reflections-only retained.'], fail_if: ['Treats deferred OM+fork as immediate.', 'Says tests only failed or only passed without chronology.', 'Records edit/read receipts as durable facts.', 'Includes output omitted policy noise.'] },
   }, judgeModel, started, [observerForbidsAny('Successfully replaced', 'output omitted by observer policy', 'Nice')], [observerRequiresAll('OM', 'fork', 'do not look into it too deeply'), observerRequiresAll('typed-id', 'no long-lived shims'), observerRequiresAll('curator.test.ts', 'curator-stage.test.ts'), observerRequiresAll('9 failing files', '29 failing tests'), observerRequiresAll('19 test files', '149 tests'), observerRequiresAll('reflections-only'), observerMaxCount(8)], usage.total, agentDurationMs);
+}
+
+type RealObserverFixture = { readonly count: number; readonly chunk: string; readonly allowedSourceEntryIds: readonly string[] };
+
+async function realObserverFixtureCase(id: string, fixture: RealObserverFixture, modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel, scoreChecks: ReturnType<typeof observerRequiresAll>[]): Promise<AgentEvalRecord> {
+  const started = Date.now();
+  const { output, usage, agentDurationMs } = await runObserverCase(modelSpec, thinkingLevel, fixture.chunk, [...fixture.allowedSourceEntryIds]);
+  return judgedObserverScored(id, output, {
+    id,
+    question: `Extract durable OM facts from a real giga-session observer chunk with ${fixture.count} serialized source entries.`,
+    rubric: { pass_if: ['Keeps durable user decisions, implementation state, validation blockers/results, and exact anchors from a real noisy session slice.'], fail_if: ['Records omitted-output/read/write receipts as facts.', 'Loses the main durable decisions or validation state.', 'Treats stale proposals as current.'] },
+  }, judgeModel, started, [observerForbidsAny('output omitted by observer policy', 'Successfully replaced', 'Successfully wrote')], [...scoreChecks, observerMaxCount(Math.ceil(fixture.count / 4))], usage.total, agentDurationMs, { sourceEntryCount: fixture.count });
+}
+
+export async function observerRealGiga32(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  return realObserverFixtureCase('observer-real-giga-32', realObserver32, modelSpec, judgeModel, thinkingLevel, [
+    observerRequiresAll('pi-observational-memory'),
+    observerRequiresAll('observations', 'noisy'),
+    observerRequiresAll('dropper'),
+    observerRequiresAll('compaction'),
+    observerRequiresAll('recall'),
+  ]);
+}
+
+export async function observerRealGiga64(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  return realObserverFixtureCase('observer-real-giga-64', realObserver64, modelSpec, judgeModel, thinkingLevel, [
+    observerRequiresAll('verify'),
+    observerRequiresAll('evidence'),
+    observerRequiresAll('dropper'),
+    observerRequiresAll('reflectorThinking'),
+    observerRequiresAll('pnpm test'),
+  ]);
+}
+
+export async function observerRealGiga96(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  return realObserverFixtureCase('observer-real-giga-96', realObserver96, modelSpec, judgeModel, thinkingLevel, [
+    observerRequiresAll('memory-update.test.ts'),
+    observerRequiresAll('status-command.test.ts'),
+    observerRequiresAll('pnpm test'),
+    observerRequiresAll('typecheck'),
+    observerRequiresAll('curator'),
+  ]);
 }
 
 export async function observerZeroDurableRestraint(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
