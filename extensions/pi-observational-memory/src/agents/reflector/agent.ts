@@ -3,7 +3,7 @@ import type { Model, ModelThinkingLevel } from "@earendil-works/pi-ai";
 import { debugLog } from "../../debug-log.js";
 import { estimateStringTokens } from "../../memory/token-estimate.js";
 import { observationToSummaryLine, reflectionToSummaryLine, type Observation, type Reflection } from "../../session-ledger/index.js";
-import { joinOrEmpty, runMemoryAgentLoop } from "../common.js";
+import { joinOrEmpty, runMemoryAgentLoop, type MemoryAgentUsage } from "../common.js";
 import { reflectionRecordTool } from "../record-tool.js";
 import { REFLECTOR_SYSTEM } from "./prompts.js";
 
@@ -17,6 +17,7 @@ interface RunReflectorArgs {
 	agentLoop?: typeof agentLoop;
 	maxTurns?: number;
 	thinkingLevel?: ModelThinkingLevel;
+	onUsage?: (usage: MemoryAgentUsage) => void;
 }
 
 export async function runReflector(args: RunReflectorArgs): Promise<Reflection[] | undefined> {
@@ -54,6 +55,7 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 		userText,
 		tools: [recorder.tool as AgentTool<any>],
 		agentName: "reflector",
+		onUsage: args.onUsage,
 	});
 	const acceptedReflections = recorder.accepted();
 	debugLog("reflector.result", {

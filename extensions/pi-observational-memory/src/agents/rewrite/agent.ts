@@ -3,7 +3,7 @@ import type { Model, ModelThinkingLevel } from "@earendil-works/pi-ai";
 import { debugLog } from "../../debug-log.js";
 import { estimateStringTokens } from "../../memory/token-estimate.js";
 import { reflectionToSummaryLine, type Reflection } from "../../session-ledger/index.js";
-import { joinOrEmpty, runMemoryAgentLoop } from "../common.js";
+import { joinOrEmpty, runMemoryAgentLoop, type MemoryAgentUsage } from "../common.js";
 import { reflectionRecordTool } from "../record-tool.js";
 import { REWRITE_SYSTEM } from "./prompts.js";
 
@@ -21,6 +21,7 @@ interface RunRewriteArgs {
 	agentLoop?: typeof agentLoop;
 	maxTurns?: number;
 	thinkingLevel?: ModelThinkingLevel;
+	onUsage?: (usage: MemoryAgentUsage) => void;
 }
 
 export async function runRewrite(args: RunRewriteArgs): Promise<RewriteResult | undefined> {
@@ -51,6 +52,7 @@ export async function runRewrite(args: RunRewriteArgs): Promise<RewriteResult | 
 		userText,
 		tools: [recorder.tool as AgentTool<any>],
 		agentName: "rewrite",
+		onUsage: args.onUsage,
 	});
 
 	const accepted = recorder.accepted();
