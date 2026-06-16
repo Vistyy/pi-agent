@@ -1,5 +1,6 @@
 import { StringEnum, Type } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { buildUsageRecordedData, PI_USAGE_RECORDED } from "../../pi-cost/src/types.js";
 import { EFFORT_LEVELS, loadConfig, type ForkConfig } from "./config.js";
 import { type ForkDetails, type ForkEffort, type ForkEffortSource, type ForkEffortState, type ForkResult, emptyUsage, isResultError } from "./core/types.js";
 import { getResultSummaryText } from "./child-events/index.js";
@@ -53,6 +54,24 @@ function buildForkSessionSnapshotJsonl(
 
 function makeDetails(results: ForkResult[]): ForkDetails {
   return { results };
+}
+
+function recordForkUsage(pi: ExtensionAPI, result: ForkResult): void {
+  pi.appendEntry(PI_USAGE_RECORDED, buildUsageRecordedData({
+    extension: "fork",
+    agent: "child-agent",
+    operation: "fork",
+    tags: result.effort?.selected ? { effort: result.effort.selected } : undefined,
+    model: { provider: result.provider, id: result.model },
+    usage: {
+      input: result.usage.input,
+      output: result.usage.output,
+      cacheRead: result.usage.cacheRead,
+      cacheWrite: result.usage.cacheWrite,
+      totalTokens: result.usage.input + result.usage.output + result.usage.cacheRead + result.usage.cacheWrite,
+      cost: result.usage.cost,
+    },
+  }));
 }
 
 function resolveEffortState(
@@ -172,6 +191,8 @@ export function registerForkTool(pi: ExtensionAPI): void {
         effort,
         resolveContextWindow: (provider, model) => resolveModelContextWindow(ctx.modelRegistry, provider, model),
       });
+
+      recordForkUsage(pi, result);
 
       if (isResultError(result)) {
         return {
