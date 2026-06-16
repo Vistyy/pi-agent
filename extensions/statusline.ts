@@ -34,7 +34,7 @@ export default function statusline(pi: ExtensionAPI) {
           const model = segment(theme.fg("accent", "π"), theme.fg("text", `${ctx.model?.id ?? "no model"}:${shortThinking(thinkingLevel)}`));
           const ctxPct = contextUsage?.percent != null ? segment(theme.fg("dim", "ctx"), theme.fg(contextUsage.percent >= 80 ? "warning" : "muted", `${Math.round(contextUsage.percent)}%`)) : undefined;
           const ctxFull = contextUsage?.tokens != null
-            ? segment(theme.fg("dim", "ctx"), theme.fg(contextUsage.percent != null && contextUsage.percent >= 80 ? "warning" : "muted", `${fmt(contextUsage.tokens)}/${fmt(contextUsage.contextWindow)}`))
+            ? segment(theme.fg("dim", "ctx"), theme.fg(contextUsage.percent != null && contextUsage.percent >= 80 ? "warning" : "muted", `${Math.round(contextUsage.percent ?? 0)}%/${fmt(contextUsage.contextWindow)}`))
             : ctxPct;
           const cwdSeg = segment(theme.fg("dim", "cwd"), theme.fg("muted", formatCwd(ctx.cwd)));
           const gitFull = branch ? segment(theme.fg("dim", "git"), theme.fg("success", `${branch}${git ? ` ${git}` : ""}`)) : undefined;
