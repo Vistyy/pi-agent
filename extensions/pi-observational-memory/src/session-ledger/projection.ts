@@ -220,11 +220,10 @@ export function buildNextCompactionProjection(
 	entries: Entry[],
 	firstKeptEntryId: string,
 	config: CompactionProjectionConfig,
-	seed: Projection = { observations: [], reflections: [] },
-	recentObservedTail: Observation[] = [],
+	options: { seed?: Projection; recentObservedTail?: Observation[] } = {},
 ): CompactionProjection {
-	const incrementalProjection = buildIncrementalCompactionProjection(entries, mergeProjection(compactedProjection(entries), seed));
-	const tail = recentObservationTail(recentObservedTail, config);
+	const incrementalProjection = buildIncrementalCompactionProjection(entries, mergeProjection(compactedProjection(entries), options.seed ?? { observations: [], reflections: [] }));
+	const tail = recentObservationTail(options.recentObservedTail ?? [], config);
 	if (!shouldFullFold(incrementalProjection, config)) {
 		return withCompactionDetails({ ...nextContextProjection(entries, incrementalProjection), observations: tail }, incrementalProjection, false);
 	}

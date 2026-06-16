@@ -67,7 +67,7 @@ describe("session-ledger projections", () => {
 			rawMessage("raw-1", "source"),
 			observationsRecordedEntry("om-obs", { observations: [oldObs], coversUpToId: "raw-1" }),
 			reflectionsRecordedEntry("om-ref", { reflections: [ref], coversUpToId: "raw-1" }),
-		], "raw-1", { observationsPoolMaxTokens: 999, recentObservationTailMaxCount: 1 }, undefined, [tailA, tailB]);
+		], "raw-1", { observationsPoolMaxTokens: 999, recentObservationTailMaxCount: 1 }, { recentObservedTail: [tailA, tailB] });
 
 		expect(projection.observations).toEqual([tailA]);
 		expect(projection.details.observations).toEqual([]);

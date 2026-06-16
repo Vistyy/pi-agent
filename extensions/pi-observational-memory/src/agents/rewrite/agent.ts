@@ -4,10 +4,10 @@ import { Type } from "@earendil-works/pi-ai";
 import type { Static } from "typebox";
 import { debugLog } from "../../debug-log.js";
 import { hashId, reflectionId } from "../../memory/ids.js";
-import { truncateRecordContent } from "../../memory/record-content.js";
 import { estimateStringTokens } from "../../memory/token-estimate.js";
 import { reflectionToSummaryLine, type Reflection } from "../../session-ledger/index.js";
 import { joinOrEmpty, normalizeAllowedIdsStrict, runMemoryAgentLoop, type MemoryAgentUsage } from "../common.js";
+import { normalizeReflectionContent } from "../reflection-content.js";
 import { REWRITE_SYSTEM } from "./prompts.js";
 
 export type RewriteResult = {
@@ -38,12 +38,6 @@ const RecordRewrittenReflectionsSchema = Type.Object({
 });
 
 type RecordRewrittenReflectionsArgs = Static<typeof RecordRewrittenReflectionsSchema>;
-
-function normalizeReflectionContent(content: string): string | undefined {
-	const normalized = truncateRecordContent(content.trim());
-	if (!normalized || /\r|\n/.test(normalized)) return undefined;
-	return normalized;
-}
 
 export async function runRewrite(args: RunRewriteArgs): Promise<RewriteResult | undefined> {
 	const { model, apiKey, headers, reflections, signal } = args;

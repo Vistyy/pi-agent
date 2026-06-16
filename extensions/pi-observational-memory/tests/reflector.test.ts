@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
 	normalizeSourceIds,
 	runReflector,
-	summarizeSupportIdCounts,
 } from "../src/agents/reflector/agent.js";
 import { hashId } from "../src/memory/ids.js";
 import { fakeAgentLoop } from "./fixtures/agent-loop.js";
@@ -30,28 +29,6 @@ describe("reflector agent", () => {
 		expect(userText).toContain("[obs_aaaaaaaaaaaa]");
 		expect(userText).toContain("Observation aaaaaaaaaaaa");
 		expect(userText).not.toContain("coverage:");
-	});
-
-	it("summarizes accepted reflection support-id counts without exposing ids", () => {
-		expect(summarizeSupportIdCounts([])).toEqual({
-			reflectionCount: 0,
-			totalSupportIds: 0,
-			minSupportIds: 0,
-			maxSupportIds: 0,
-			averageSupportIds: 0,
-			histogram: {},
-		});
-		expect(summarizeSupportIdCounts([
-			reflection("rrrrrrrrrrr1", ["aaaaaaaaaaaa"]),
-			reflection("rrrrrrrrrrr2", ["aaaaaaaaaaaa", "bbbbbbbbbbbb", "cccccccccccc"]),
-		])).toEqual({
-			reflectionCount: 2,
-			totalSupportIds: 4,
-			minSupportIds: 1,
-			maxSupportIds: 3,
-			averageSupportIds: 2,
-			histogram: { "1": 1, "3": 1 },
-		});
 	});
 
 	it("normalizes source observation ids by active observation order", () => {

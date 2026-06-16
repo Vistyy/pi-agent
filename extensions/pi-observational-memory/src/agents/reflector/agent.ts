@@ -4,8 +4,8 @@ import { Type } from "@earendil-works/pi-ai";
 import type { Static } from "typebox";
 import { debugLog } from "../../debug-log.js";
 import { hashId, reflectionId } from "../../memory/ids.js";
+import { normalizeReflectionContent } from "../reflection-content.js";
 import { joinOrEmpty, normalizeAllowedIdsStrict, runMemoryAgentLoop, type MemoryAgentUsage } from "../common.js";
-import { truncateRecordContent } from "../../memory/record-content.js";
 import { REFLECTOR_SYSTEM } from "./prompts.js";
 import { estimateStringTokens } from "../../memory/token-estimate.js";
 import { observationToSummaryLine, reflectionToSummaryLine, type Observation, type Reflection } from "../../session-ledger/index.js";
@@ -35,38 +35,7 @@ const RecordReflectionsSchema = Type.Object({
 
 type RecordReflectionsArgs = Static<typeof RecordReflectionsSchema>;
 
-export function summarizeSupportIdCounts(reflections: readonly Reflection[]): {
-	reflectionCount: number;
-	totalSupportIds: number;
-	minSupportIds: number;
-	maxSupportIds: number;
-	averageSupportIds: number;
-	histogram: Record<string, number>;
-} {
-	if (reflections.length === 0) {
-		return { reflectionCount: 0, totalSupportIds: 0, minSupportIds: 0, maxSupportIds: 0, averageSupportIds: 0, histogram: {} };
-	}
-	const counts = reflections.map((reflection) => reflection.sources.length);
-	const totalSupportIds = counts.reduce((sum, count) => sum + count, 0);
-	const histogram: Record<string, number> = {};
-	for (const count of counts) histogram[String(count)] = (histogram[String(count)] ?? 0) + 1;
-	return {
-		reflectionCount: reflections.length,
-		totalSupportIds,
-		minSupportIds: Math.min(...counts),
-		maxSupportIds: Math.max(...counts),
-		averageSupportIds: totalSupportIds / reflections.length,
-		histogram,
-	};
-}
-
 export const normalizeSourceIds = normalizeAllowedIdsStrict;
-
-function normalizeReflectionContent(content: string): string | undefined {
-	const normalized = truncateRecordContent(content.trim());
-	if (!normalized || /\r|\n/.test(normalized)) return undefined;
-	return normalized;
-}
 
 export async function runReflector(args: RunReflectorArgs): Promise<Reflection[] | undefined> {
 	const { model, apiKey, headers, reflections, observations, signal } = args;
@@ -80,13 +49,7 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 	const allowedObservationIds = observations.map((observation) => observation.id);
 	const existingReflectionIds = new Set(reflections.map((reflection) => reflection.id));
 	const accumulated = new Map<string, Reflection>();
-	let toolCallCount = 0;
-	let rawProposedReflectionCount = 0;
-	let acceptedReflectionCount = 0;
-	let duplicateReflectionCount = 0;
-	let rejectedReflectionCount = 0;
-	let rejectedEmptyOrMultilineContentCount = 0;
-	let rejectedInvalidSupportIdsCount = 0;
+	let toolCalled = false;
 	let recordedEmpty = false;
 
 	const recordReflections: AgentTool<typeof RecordReflectionsSchema> = {
@@ -95,9 +58,8 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 		description: "Record one complete batch of new durable reflections with source observation ids. Use an empty reflections array when the pending observations add no durable active-memory value. This tool call terminates the run.",
 		parameters: RecordReflectionsSchema,
 		execute: async (_id, params: RecordReflectionsArgs) => {
-			toolCallCount++;
+			toolCalled = true;
 			recordedEmpty ||= params.reflections.length === 0;
-			rawProposedReflectionCount += params.reflections.length;
 			let added = 0;
 			let duplicates = 0;
 			let rejected = 0;
@@ -106,8 +68,6 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 				const sourceIds = normalizeSourceIds(proposal.sources, allowedObservationIds);
 				if (!content || !sourceIds) {
 					rejected++;
-					if (!content) rejectedEmptyOrMultilineContentCount++;
-					if (!sourceIds) rejectedInvalidSupportIdsCount++;
 					continue;
 				}
 				const id = reflectionId(hashId(content));
@@ -124,9 +84,6 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 				});
 				added++;
 			}
-			acceptedReflectionCount += added;
-			duplicateReflectionCount += duplicates;
-			rejectedReflectionCount += rejected;
 			return {
 				content: [{ type: "text", text: `Recorded ${added} reflection${added === 1 ? "" : "s"}; ${duplicates} duplicate${duplicates === 1 ? "" : "s"}; ${rejected} rejected. Total this run: ${accumulated.size}.` }],
 				details: { added, duplicates, rejected, total: accumulated.size },
@@ -157,15 +114,8 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 	});
 	const acceptedReflections = Array.from(accumulated.values());
 	debugLog("reflector.result", {
-		reason: acceptedReflections.length > 0 ? "accepted_nonempty" : recordedEmpty ? "recorded_empty" : toolCallCount === 0 ? "no_tool_call" : "all_filtered",
-		toolCallCount,
-		rawProposedReflectionCount,
-		acceptedReflectionCount,
-		duplicateReflectionCount,
-		rejectedReflectionCount,
-		rejectedEmptyOrMultilineContentCount,
-		rejectedInvalidSupportIdsCount,
-		acceptedSupportIdCounts: summarizeSupportIdCounts(acceptedReflections),
+		reason: acceptedReflections.length > 0 ? "accepted_nonempty" : recordedEmpty ? "recorded_empty" : toolCalled ? "all_filtered" : "no_tool_call",
+		acceptedCount: acceptedReflections.length,
 	});
 	if (acceptedReflections.length > 0) return acceptedReflections;
 	return recordedEmpty ? [] : undefined;

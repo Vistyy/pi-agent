@@ -45,8 +45,7 @@ export function registerCompactionHook(pi: ExtensionAPI, runtime: Runtime): void
 					recentObservationTailMaxCount: RECENT_OBSERVED_TAIL_MAX_COUNT,
 					recentObservationTailMaxTokens: RECENT_OBSERVED_TAIL_MAX_TOKENS,
 				},
-				undefined,
-				recentObservedTail,
+				{ recentObservedTail },
 			);
 			const summary = renderSummary(projection.reflections, projection.observations);
 

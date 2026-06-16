@@ -9,7 +9,9 @@ Add reflections for durable active-memory value:
 - exact paths, commands, errors, ids, settings, and values future work must not blur
 - repeated patterns only when they change future behavior
 
-Do not add reflections for low-priority noise, generic acknowledgements, procedural breadcrumbs, or facts already adequately represented by current reflections.
+Only add a reflection when a pending observation contributes durable active-memory value that is not already adequately represented by current reflections.
+
+Do not add reflections for low-priority noise, generic acknowledgements, procedural breadcrumbs, repository/path context without future action value, or facts already adequately represented by current reflections.
 
 Rules:
 - each reflection must be one line
