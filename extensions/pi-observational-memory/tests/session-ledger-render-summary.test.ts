@@ -32,7 +32,8 @@ describe("session-ledger summary rendering", () => {
 
 		const summary = renderSummary([], [obs]);
 
-		expect(summary).toContain("## Recent observed tail pending reflection");
+		expect(summary).toContain("## Compaction handoff observations");
+		expect(summary).toContain("temporary bridge context until the reflector catches up");
 		expect(summary).toContain("[obs_aaaaaaaaaaaa]");
 	});
 

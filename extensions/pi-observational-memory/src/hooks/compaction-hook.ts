@@ -6,8 +6,8 @@ import type { Runtime } from "../runtime.js";
 import { buildNextCompactionProjection, renderSummary, type Entry } from "../session-ledger/index.js";
 
 const DEFAULT_OBSERVATIONS_POOL_MAX_TOKENS = 20_000;
-const RECENT_OBSERVED_TAIL_MAX_COUNT = 8;
-const RECENT_OBSERVED_TAIL_MAX_TOKENS = 1_000;
+const COMPACTION_HANDOFF_OBSERVATION_MAX_COUNT = 8;
+const COMPACTION_HANDOFF_OBSERVATION_MAX_TOKENS = 1_000;
 
 function observationsPoolMaxTokens(runtime: Runtime): number {
 	const value = (runtime.config as { observationsPoolMaxTokens?: unknown }).observationsPoolMaxTokens;
@@ -34,7 +34,7 @@ export function registerCompactionHook(pi: ExtensionAPI, runtime: Runtime): void
 			if (runtime.config.strategy === STRATEGY.off) return;
 			const { preparation } = event;
 			const { firstKeptEntryId, tokensBefore } = preparation;
-			const recentObservedTail = await ensureObservedBeforeCompaction(pi, runtime, ctx, { firstKeptEntryId });
+			const compactionHandoffObservations = await ensureObservedBeforeCompaction(pi, runtime, ctx, { firstKeptEntryId });
 			if (runtime.config.strategy !== STRATEGY.replacement) return;
 			const branchEntries = ctx.sessionManager.getBranch() as Entry[];
 			const projection = buildNextCompactionProjection(
@@ -42,10 +42,10 @@ export function registerCompactionHook(pi: ExtensionAPI, runtime: Runtime): void
 				firstKeptEntryId,
 				{
 					observationsPoolMaxTokens: observationsPoolMaxTokens(runtime),
-					recentObservationTailMaxCount: RECENT_OBSERVED_TAIL_MAX_COUNT,
-					recentObservationTailMaxTokens: RECENT_OBSERVED_TAIL_MAX_TOKENS,
+					compactionHandoffObservationMaxCount: COMPACTION_HANDOFF_OBSERVATION_MAX_COUNT,
+					compactionHandoffObservationMaxTokens: COMPACTION_HANDOFF_OBSERVATION_MAX_TOKENS,
 				},
-				{ recentObservedTail },
+				{ compactionHandoffObservations },
 			);
 			const summary = renderSummary(projection.reflections, projection.observations);
 

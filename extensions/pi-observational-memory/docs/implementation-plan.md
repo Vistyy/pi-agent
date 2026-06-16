@@ -107,25 +107,26 @@ before source entries disappear:
   force observer on disappearing tail
 then render:
   current active reflections
-  + tiny recent observed tail pending reflection
+  + compaction handoff observations from the forced flush, if any
 ```
 
-The flushed tail is a continuity patch, not normal observation projection.
+Compaction handoff observations are a continuity patch, not normal active memory. They bridge the gap where compaction removes source turns before the async reflector has converted newly flushed observations into reflections.
 
-Rules for flushed tail:
+Rules for compaction handoff observations:
 
 - include only observations produced by the forced compaction safety observe
+- run only when source entries being cut from context are not already covered by observation coverage
 - include only observations whose source entries are being cut from context
 - hard cap count/tokens
-- label clearly as pending reflection
+- label clearly as temporary bridge context pending reflection
 - do not include the whole unreflected backlog
-- remove once reflector covers it or on normal projection
+- do not appear in normal context projection
 
 Current status:
 
 - Observer-only compaction safety flush is implemented.
 - Normal projection is reflection-only.
-- Remaining work: add the tiny flushed observation tail to compaction projection.
+- The tiny flushed observation handoff is rendered in compaction projection only.
 
 ### Recall
 

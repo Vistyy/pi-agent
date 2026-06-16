@@ -18,13 +18,13 @@ export function reflectionToSummaryLine(reflection: Reflection): string {
 	return `[${reflection.id}] ${reflection.content}`;
 }
 
-export function renderSummary(reflections: Reflection[], observations: Observation[] = []): string {
-	if (reflections.length === 0 && observations.length === 0) return "";
+export function renderSummary(reflections: Reflection[], compactionHandoffObservations: Observation[] = []): string {
+	if (reflections.length === 0 && compactionHandoffObservations.length === 0) return "";
 
 	const sections = [CONTEXT_USAGE_INSTRUCTIONS];
 	if (reflections.length > 0) sections.push(`## Reflections\n${reflections.map(reflectionToSummaryLine).join("\n")}`);
-	if (observations.length > 0) {
-		sections.push(`## Recent observed tail pending reflection\nThese facts were extracted from source turns removed by compaction. They are temporary until reflected.\n${observations.map(observationToSummaryLine).join("\n")}`);
+	if (compactionHandoffObservations.length > 0) {
+		sections.push(`## Compaction handoff observations\nThese facts were extracted from source turns that compaction removed before they were reflected. They are temporary bridge context until the reflector catches up.\n${compactionHandoffObservations.map(observationToSummaryLine).join("\n")}`);
 	}
 	return sections.join("\n\n");
 }

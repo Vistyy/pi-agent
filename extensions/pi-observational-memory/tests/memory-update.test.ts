@@ -140,6 +140,21 @@ describe("memory update hook", () => {
 		]);
 	});
 
+	it("skips compaction safety observe when compacted source entries are already observed", async () => {
+		const obs = observation("bbbbbbbbbbbb", { sourceEntryIds: ["raw-1"] });
+		const entries = [
+			rawMessage("raw-1", "aaaa"),
+			observationsRecordedEntry("om-obs", { observations: [obs], coversUpToId: "raw-1" }),
+			rawMessage("raw-2", "bbbb"),
+		];
+		const { pi, runtime, ctx, getMemoryAppends } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 999 });
+
+		await expect(ensureObservedBeforeCompaction(pi as never, runtime as Runtime, ctx as never, { firstKeptEntryId: "raw-2" })).resolves.toEqual([]);
+
+		expect(mockAgents.runObserver).not.toHaveBeenCalled();
+		expect(getMemoryAppends()).toEqual([]);
+	});
+
 	it("does not wait for non-observer memory updates before compaction safety observe", async () => {
 		const obs = observation("bbbbbbbbbbbb", { sourceEntryIds: ["raw-1"] });
 		mockAgents.runObserver.mockResolvedValueOnce([obs]);

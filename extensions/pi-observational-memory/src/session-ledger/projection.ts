@@ -23,8 +23,8 @@ export type NextContextProjection = Projection;
 
 export type CompactionProjectionConfig = {
 	observationsPoolMaxTokens: number;
-	recentObservationTailMaxCount?: number;
-	recentObservationTailMaxTokens?: number;
+	compactionHandoffObservationMaxCount?: number;
+	compactionHandoffObservationMaxTokens?: number;
 };
 
 export type CompactionProjection = Projection & {
@@ -186,9 +186,9 @@ function buildFullFoldCompactionProjection(entries: Entry[], firstKeptEntryId: s
 	return fullProjection(entries, firstKeptEntryId);
 }
 
-function recentObservationTail(observations: Observation[], config: CompactionProjectionConfig): Observation[] {
-	const maxCount = config.recentObservationTailMaxCount ?? 8;
-	const maxTokens = config.recentObservationTailMaxTokens ?? 1_000;
+function compactionHandoffObservations(observations: Observation[], config: CompactionProjectionConfig): Observation[] {
+	const maxCount = config.compactionHandoffObservationMaxCount ?? 8;
+	const maxTokens = config.compactionHandoffObservationMaxTokens ?? 1_000;
 	const tail: Observation[] = [];
 	let tokens = 0;
 	for (const observation of observations.slice(0, maxCount)) {
@@ -220,13 +220,13 @@ export function buildNextCompactionProjection(
 	entries: Entry[],
 	firstKeptEntryId: string,
 	config: CompactionProjectionConfig,
-	options: { seed?: Projection; recentObservedTail?: Observation[] } = {},
+	options: { seed?: Projection; compactionHandoffObservations?: Observation[] } = {},
 ): CompactionProjection {
 	const incrementalProjection = buildIncrementalCompactionProjection(entries, mergeProjection(compactedProjection(entries), options.seed ?? { observations: [], reflections: [] }));
-	const tail = recentObservationTail(options.recentObservedTail ?? [], config);
+	const handoffObservations = compactionHandoffObservations(options.compactionHandoffObservations ?? [], config);
 	if (!shouldFullFold(incrementalProjection, config)) {
-		return withCompactionDetails({ ...nextContextProjection(entries, incrementalProjection), observations: tail }, incrementalProjection, false);
+		return withCompactionDetails({ ...nextContextProjection(entries, incrementalProjection), observations: handoffObservations }, incrementalProjection, false);
 	}
 	const fullFoldProjection = buildFullFoldCompactionProjection(entries, firstKeptEntryId);
-	return withCompactionDetails({ ...nextContextProjection(entries, fullFoldProjection), observations: tail }, fullFoldProjection, true);
+	return withCompactionDetails({ ...nextContextProjection(entries, fullFoldProjection), observations: handoffObservations }, fullFoldProjection, true);
 }
