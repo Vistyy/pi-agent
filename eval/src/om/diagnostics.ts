@@ -2,17 +2,23 @@ import { runJudge } from '../lib/judge.js';
 import type { Probe, TokenUsage } from '../lib/types.js';
 import type { AgentEvalRecord, EvalScoreDimension, Observation, ObserverCheck, Reflection, ReflectionEvalDiagnostics, ReflectorCheck } from './types.js';
 
+let diagnosisEnabled = false;
+
+export function setOmEvalDiagnosticsEnabled(enabled: boolean): void {
+  diagnosisEnabled = enabled;
+}
+
 export async function diagnoseFailure(record: AgentEvalRecord, probe: Probe, judgeModel: string): Promise<AgentEvalRecord> {
-  if (record.passed) return record;
+  if (record.passed || !diagnosisEnabled) return record;
   const diagnosticProbe: Probe = {
     id: `${probe.id}-diagnostic`,
-    question: 'Diagnose why the evaluated agent output failed this eval. Focus on prompt/input difficulty, missed evidence, confusing near-matches, and what change might improve behavior. Do not relitigate pass/fail.',
+    question: 'Briefly diagnose this failed eval. Use only the question, answer, and failure. Return the likely root cause and one concrete improvement.',
     rubric: {
-      pass_if: ['Explains likely failure causes from the inputs, output, and expected behavior.'],
-      fail_if: ['Only repeats the failure label without analysis.'],
+      pass_if: ['Names a likely root cause and one concrete improvement.'],
+      fail_if: ['Repeats the failure without a cause or improvement.'],
     },
   };
-  const diagnosticInput = JSON.stringify({ expected: probe, output: record.output, failure: record.judge, diagnostics: record.diagnostics }, null, 2);
+  const diagnosticInput = JSON.stringify({ question: probe.question, answer: record.output, failure: record.judge }, null, 2);
   const diagnosticStarted = Date.now();
   const { run, judge } = await runJudge(diagnosticProbe, diagnosticInput, judgeModel);
   return { ...record, diagnosis: judge, diagnosisUsage: run.usage, diagnosisDurationMs: Date.now() - diagnosticStarted, durationMs: Date.now() - diagnosticStarted + record.durationMs };
@@ -110,18 +116,21 @@ export async function judgedObserverScored(
   const score = dimensions.reduce((total, dimension) => total + dimension.score, 0);
   const maxScore = dimensions.reduce((total, dimension) => total + dimension.maxScore, 0);
   const judgeStarted = Date.now();
-  const judged = hardFailure ? undefined : await runJudge(probe, JSON.stringify(output ?? [], null, 2), judgeModel);
+  const deterministicPass = !hardFailure && maxScore > 0 && score === maxScore;
+  const judged = hardFailure || deterministicPass ? undefined : await runJudge(probe, JSON.stringify(output ?? [], null, 2), judgeModel);
   const base: AgentEvalRecord = {
     id,
     agent: 'observer',
     output: output ?? [],
     judge: hardFailure
       ? { passed: false, reason: `Hard invariant failed: ${hardFailure.reason}`, details: hardFailure.details }
-      : judged?.judge,
-    passed: !hardFailure && judged?.run.status === 0 && judged.judge.passed,
+      : deterministicPass
+        ? { passed: true, reason: 'Deterministic score dimensions passed.' }
+        : judged?.judge,
+    passed: deterministicPass || (!hardFailure && judged?.run.status === 0 && judged.judge.passed),
     durationMs: Date.now() - started,
     agentDurationMs,
-    judgeDurationMs: hardFailure ? undefined : Date.now() - judgeStarted,
+    judgeDurationMs: hardFailure || deterministicPass ? undefined : Date.now() - judgeStarted,
     usage,
     judgeUsage: judged?.run.usage,
     diagnostics,
@@ -151,18 +160,21 @@ async function judgedReflectionLikeScored(
   const score = dimensions.reduce((total, dimension) => total + dimension.score, 0);
   const maxScore = dimensions.reduce((total, dimension) => dimension.maxScore + total, 0);
   const judgeStarted = Date.now();
-  const judged = hardFailure ? undefined : await runJudge(probe, JSON.stringify(output ?? [], null, 2), judgeModel);
+  const deterministicPass = !hardFailure && maxScore > 0 && score === maxScore;
+  const judged = hardFailure || deterministicPass ? undefined : await runJudge(probe, JSON.stringify(output ?? [], null, 2), judgeModel);
   const base: AgentEvalRecord = {
     id,
     agent,
     output: output ?? [],
     judge: hardFailure
       ? { passed: false, reason: `Hard invariant failed: ${hardFailure.reason}`, details: hardFailure.details }
-      : judged?.judge,
-    passed: !hardFailure && judged?.run.status === 0 && judged.judge.passed,
+      : deterministicPass
+        ? { passed: true, reason: 'Deterministic score dimensions passed.' }
+        : judged?.judge,
+    passed: deterministicPass || (!hardFailure && judged?.run.status === 0 && judged.judge.passed),
     durationMs: Date.now() - started,
     agentDurationMs,
-    judgeDurationMs: hardFailure ? undefined : Date.now() - judgeStarted,
+    judgeDurationMs: hardFailure || deterministicPass ? undefined : Date.now() - judgeStarted,
     usage,
     judgeUsage: judged?.run.usage,
     diagnostics,

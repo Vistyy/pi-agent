@@ -5,8 +5,9 @@ import { DEFAULT_MODEL } from '../lib/pi.js';
 import type { AgentEvalRecord } from './types.js';
 import { sumDuration, sumUsage } from './runner.js';
 import { allCases } from './cases/index.js';
+import { setOmEvalDiagnosticsEnabled } from './diagnostics.js';
 
-type Args = { model: string; judgeModel: string; outDir: string; thinkingLevel: ModelThinkingLevel; only?: string; suite: 'baseline' | 'stress' | 'all'; caseTimeoutMs: number };
+type Args = { model: string; judgeModel: string; outDir: string; thinkingLevel: ModelThinkingLevel; only?: string; suite: 'baseline' | 'stress' | 'all'; caseTimeoutMs: number; diagnose: boolean };
 
 function parseArgs(): Args {
   const args = process.argv.slice(2);
@@ -22,11 +23,13 @@ function parseArgs(): Args {
     only: get('--only'),
     suite: (get('--suite', 'baseline') ?? 'baseline') as Args['suite'],
     caseTimeoutMs: Number(get('--case-timeout-ms', '600000') ?? '600000'),
+    diagnose: args.includes('--diagnose'),
   };
 }
 
 export async function main() {
   const args = parseArgs();
+  setOmEvalDiagnosticsEnabled(args.diagnose);
   fs.mkdirSync(args.outDir, { recursive: true });
   const suiteCases = allCases.filter((c: any) => args.suite === 'all' || (c.suite ?? 'baseline') === args.suite);
   const cases = args.only ? suiteCases.filter((c) => c.name.includes(args.only!)) : suiteCases;
