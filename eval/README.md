@@ -9,7 +9,7 @@ src/cli/                 executable wrappers; these are the only files that call
 src/lib/                 shared suite runner, judge, Pi SDK helpers, fixtures, summaries
 src/om/                  observational-memory agent evals
   agent-evals.ts         OM agent eval CLI implementation
-  cases/                 observer, reflector, curator cases
+  cases/                 observer, reflector, rewrite, recall, e2e cases
   diagnostics.ts         judge/deterministic diagnostics
   runner.ts              model loading, OM agent loading, usage helpers
 src/fork/                pi-fork evals
@@ -59,7 +59,7 @@ suites/memory/multi-compact
 ```bash
 pnpm eval                  # generic YAML/session suite runner
 pnpm session-memory        # compare clean / OM replacement / original extension on a suite
-pnpm om-agent-evals        # direct OM observer/reflector/curator agent evals
+pnpm om-agent-evals        # direct OM observer/reflector/rewrite/recall/e2e agent evals
 pnpm fork-agent-evals      # direct fork tool-selection evals
 pnpm fork-prompt-evals     # fork child prompt evals
 pnpm mine-historical       # mine candidate probes from a historical session
@@ -87,10 +87,10 @@ pnpm session-memory -- om-replacement --out runs/memory-om-replacement-001 \
 OM agent evals:
 
 ```bash
-pnpm om-agent-evals --only curatorBrutal --thinking low \
+pnpm om-agent-evals --only reflectorRealSessionConstraintsAndState --thinking low \
   --model openai-codex/gpt-5.4-mini \
   --judge-model openai-codex/gpt-5.4-mini \
-  --out runs/curator-brutal-mini-low
+  --out runs/reflector-real-session-constraints-mini-low
 ```
 
 Fork evals:
@@ -123,6 +123,8 @@ judgeUsage
 diagnosisUsage
 score
 maxScore
+byAgent
+perCase
 ```
 
 For scored OM agent evals, `passed` means hard safety/invariant checks passed. The score measures retained useful detail, provenance, and completeness. A score miss is not automatically an unsafe failure.

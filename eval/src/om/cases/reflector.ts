@@ -3,6 +3,7 @@ import type { AgentEvalRecord } from '../types.js';
 import { createUsageCollector, loadOmAgents, obs, ref, resolveModel } from '../runner.js';
 import { judgedReflectorScored, reflectorForbidsAny, reflectorMaxCount, reflectorRequiresAll, reflectorSourceIdsAllowed } from '../diagnostics.js';
 import { realReflector8, realReflector16 } from './real-session-fixtures.js';
+import { realReflector16 as realReflector16v2 } from './real-session-fixtures-v2.js';
 
 async function runReflectorCase(modelSpec: string, thinkingLevel: ModelThinkingLevel, args: Record<string, unknown>) {
   const auth = await resolveModel(modelSpec);
@@ -109,6 +110,20 @@ export async function reflectorRealGiga16(modelSpec: string, judgeModel: string,
     reflectorRequiresAll('23 files', '155 tests'),
     reflectorRequiresAll('pnpm approve-builds --all'),
     reflectorRequiresAll('stuckCursorMaxRetries: 3'),
+  ]);
+}
+
+export async function reflectorRealGiga16v2(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  return realReflectorFixtureCase('reflector-real-giga-16-v2', realReflector16v2, modelSpec, judgeModel, thinkingLevel, [
+    reflectorRequiresAll('reflectorThinking', 'low'),
+    reflectorRequiresAll('pinning'),
+    reflectorRequiresAll('observations are durable evidence'),
+    reflectorRequiresAll('active projection', 'current reflections'),
+    reflectorRequiresAll('near-instant', 'non-rewriting'),
+    reflectorRequiresAll('typed provenance ids', 'sources'),
+    reflectorRequiresAll('full active-memory rewrite'),
+    reflectorRequiresAll('reflectionsPoolMaxTokens'),
+    reflectorRequiresAll('recall', 'provenance'),
   ]);
 }
 

@@ -3,6 +3,7 @@ import type { AgentEvalRecord } from '../types.js';
 import { createUsageCollector, loadOmAgents, resolveModel } from '../runner.js';
 import { judgedObserverScored, observerForbidsAny, observerForbidsSourceIds, observerMaxCount, observerRequiresAll, observerSourceIdsAllowed } from '../diagnostics.js';
 import { realObserver32, realObserver64, realObserver96 } from './real-session-fixtures.js';
+import { realObserver64 as realObserver64v2 } from './real-session-fixtures-v2.js';
 
 async function runObserverCase(modelSpec: string, thinkingLevel: ModelThinkingLevel, chunk: string, allowedSourceEntryIds: string[], priorReflections: string[] = []) {
   const auth = await resolveModel(modelSpec);
@@ -145,6 +146,19 @@ export async function observerRealGiga96(modelSpec: string, judgeModel: string, 
     observerRequiresAll('dropWhenActiveObservationsOver'),
     observerRequiresAll('pnpm test'),
     observerRequiresAll('typecheck'),
+  ]);
+}
+
+export async function observerRealGiga64v2(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  return realObserverFixtureCase('observer-real-giga-64-v2', realObserver64v2, modelSpec, judgeModel, thinkingLevel, [
+    observerRequiresAll('judgedCuratorScored'),
+    observerRequiresAll('eval/src/om/diagnostics.ts', 'eval/src/om/cases/curator.ts'),
+    observerRequiresAll('hard checks', 'score dimensions'),
+    observerRequiresAll('pnpm run typecheck'),
+    observerRequiresAll('curator', '95.5s'),
+    observerRequiresAll('reflector', 'normalizeAllowedIdsStrict'),
+    observerRequiresAll('giga session', '613 live observations', '178 live reflections'),
+    observerRequiresAll('reflectorThinking', 'low'),
   ]);
 }
 

@@ -1,8 +1,8 @@
 import { e2eObserverReflectorRewriteRecall } from './e2e.js';
-import { observerExactLanguageFutureIntent, observerRealGiga32, observerRealGiga64, observerRealGiga96, observerStateStaleBlocker, observerToolEvidenceBoundary, observerZeroDurableRestraint } from './observer.js';
-import { reflectorExactAnchorRetention, reflectorRealGiga8, reflectorRealGiga16, reflectorRealSessionConstraintsAndState, reflectorRestraintAlreadyCovered, reflectorStaleCurrentReconciliation, reflectorSupersessionRelation } from './reflector.js';
+import { observerExactLanguageFutureIntent, observerRealGiga32, observerRealGiga64, observerRealGiga64v2, observerRealGiga96, observerStateStaleBlocker, observerToolEvidenceBoundary, observerZeroDurableRestraint } from './observer.js';
+import { reflectorExactAnchorRetention, reflectorRealGiga8, reflectorRealGiga16, reflectorRealGiga16v2, reflectorRealSessionConstraintsAndState, reflectorRestraintAlreadyCovered, reflectorStaleCurrentReconciliation, reflectorSupersessionRelation } from './reflector.js';
 import { recallActiveObservation, recallNotFound, recallPartialMissingSource, recallReflectionChain, recallRetiredReflectionDirectly, recallThroughRetiredReflection } from './recall.js';
-import { rewriteDeferredTaskRetention, rewriteOmMigrationCompression, rewriteRealGiga40, rewriteRealGiga80, rewriteRealGiga120, rewriteStaleRelationshipPreservation, rewriteUserConstraintsBundle, rewriteValidationStatusConsolidation } from './rewrite.js';
+import { rewriteDeferredTaskRetention, rewriteOmMigrationCompression, rewriteRealGiga40, rewriteRealGiga40v2, rewriteRealGiga80, rewriteRealGiga120, rewriteStaleRelationshipPreservation, rewriteUserConstraintsBundle, rewriteValidationStatusConsolidation } from './rewrite.js';
 
 (observerRealGiga96 as any).suite = 'stress';
 (rewriteRealGiga120 as any).suite = 'stress';
@@ -14,6 +14,7 @@ export const allCases = [
   observerExactLanguageFutureIntent,
   observerRealGiga32,
   observerRealGiga64,
+  observerRealGiga64v2,
   observerZeroDurableRestraint,
   reflectorStaleCurrentReconciliation,
   reflectorExactAnchorRetention,
@@ -21,6 +22,7 @@ export const allCases = [
   reflectorRestraintAlreadyCovered,
   reflectorRealGiga8,
   reflectorRealGiga16,
+  reflectorRealGiga16v2,
   reflectorRealSessionConstraintsAndState,
   rewriteOmMigrationCompression,
   rewriteStaleRelationshipPreservation,
@@ -28,6 +30,7 @@ export const allCases = [
   rewriteUserConstraintsBundle,
   rewriteRealGiga40,
   rewriteRealGiga80,
+  rewriteRealGiga40v2,
   rewriteDeferredTaskRetention,
   recallActiveObservation,
   recallReflectionChain,

@@ -3,6 +3,7 @@ import type { AgentEvalRecord, Reflection } from '../types.js';
 import { createUsageCollector, loadOmAgents, ref, resolveModel } from '../runner.js';
 import { judgedRewriteScored, reflectorForbidsAny, reflectorMaxCount, reflectorRequiresAll, reflectorSourceIdsAllowed } from '../diagnostics.js';
 import { realRewrite40, realRewrite80, realRewrite120 } from './real-session-fixtures.js';
+import { realRewrite40 as realRewrite40v2 } from './real-session-fixtures-v2.js';
 
 async function runRewriteCase(modelSpec: string, thinkingLevel: ModelThinkingLevel, reflections: Reflection[]) {
   const auth = await resolveModel(modelSpec);
@@ -130,6 +131,22 @@ export async function rewriteRealGiga120(modelSpec: string, judgeModel: string, 
     reflectorRequiresAll('compaction flush', 'observer-only'),
     reflectorRequiresAll('recall'),
     reflectorRequiresAll('validation'),
+  ]);
+}
+
+export async function rewriteRealGiga40v2(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  return realRewriteFixtureCase('rewrite-real-giga-40-v2', realRewrite40v2, modelSpec, judgeModel, thinkingLevel, [
+    reflectorRequiresAll('OM', 'fork'),
+    reflectorRequiresAll('judgedCuratorScored'),
+    reflectorRequiresAll('curator'),
+    reflectorRequiresAll('supportingObservationIds'),
+    reflectorRequiresAll('reflectorThinking', 'low'),
+    reflectorRequiresAll('observations are durable evidence'),
+    reflectorRequiresAll('pin', 'unpin'),
+    reflectorRequiresAll('reflection-only'),
+    reflectorRequiresAll('typed provenance ids', 'sources'),
+    reflectorRequiresAll('full active-memory rewrite'),
+    reflectorRequiresAll('recall'),
   ]);
 }
 (rewriteRealGiga120 as any).suite = 'stress';
