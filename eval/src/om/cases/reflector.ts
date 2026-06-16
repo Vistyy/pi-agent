@@ -79,8 +79,8 @@ async function realReflectorFixtureCase(id: string, fixture: readonly any[], mod
   const { output, usage, agentDurationMs } = await runReflectorCase(modelSpec, thinkingLevel, { reflections: [], observations });
   return judgedReflectorScored(id, output, {
     id,
-    question: `Synthesize durable reflections from ${fixture.length} real recorded observations mined from the giga OM session.`,
-    rubric: { pass_if: ['Keeps durable user/project decisions and exact implementation/validation anchors.', 'Avoids acknowledgement and tool-receipt noise.', 'Uses only allowed source ids.'], fail_if: ['Invents sources.', 'Drops main durable session decisions.', 'Creates bloated duplicate reflections.'] },
+    question: `Distill the durable active-memory value from ${fixture.length} real recorded observations mined from the giga OM session. Compress related observations; do not produce one reflection per observation unless each observation carries distinct durable value.`,
+    rubric: { pass_if: ['Keeps the main durable user/project decisions and exact implementation/validation anchors present in the observations.', 'Compresses related observations without requiring one reflection per observation.', 'Avoids acknowledgement and tool-receipt noise.'], fail_if: ['Drops the main durable decisions or anchors present in the observations.', 'Creates bloated duplicate reflections.', 'Records acknowledgement/tool-receipt noise as durable memory.'] },
   }, judgeModel, started, [reflectorSourceIdsAllowed(observations.map((o) => o.id))], [...scoreChecks, reflectorMaxCount(Math.ceil(fixture.length / 2))], usage.total, agentDurationMs, { observations });
 }
 

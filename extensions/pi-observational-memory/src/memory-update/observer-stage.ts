@@ -12,6 +12,7 @@ import {
 	sourceTokensSinceObservationCoverage,
 	sourceEntryCountSinceObservationCoverage,
 	type Entry,
+	type Observation,
 } from "../session-ledger/index.js";
 import { sourceEntriesAfter } from "./source-entries.js";
 import { commonAgentArgs } from "./stage-utils.js";
@@ -23,6 +24,7 @@ export async function runObserverStage(
 	ctx: MemoryUpdateCtx,
 	resolveModel: ResolveMemoryModel,
 	forceObserveBeforeEntryId?: string,
+	onRecordedObservations?: (observations: Observation[]) => void,
 ): Promise<StageOutcome> {
 	const entries = ctx.sessionManager.getBranch() as Entry[];
 	const tokens = sourceTokensSinceObservationCoverage(entries);
@@ -88,6 +90,7 @@ export async function runObserverStage(
 
 	const data = buildObservationsRecordedData(observations, coversUpToId);
 	if (!data) return "continue";
+	onRecordedObservations?.(data.observations);
 	debugLog(observations.length === 0 ? "observer.reviewed_empty" : "observer.records", {
 		count: observations.length,
 		observationTokens: observationTokenSum(observations),

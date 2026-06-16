@@ -6,6 +6,8 @@ import type { Runtime } from "../runtime.js";
 import { buildNextCompactionProjection, renderSummary, type Entry } from "../session-ledger/index.js";
 
 const DEFAULT_OBSERVATIONS_POOL_MAX_TOKENS = 20_000;
+const RECENT_OBSERVED_TAIL_MAX_COUNT = 8;
+const RECENT_OBSERVED_TAIL_MAX_TOKENS = 1_000;
 
 function observationsPoolMaxTokens(runtime: Runtime): number {
 	const value = (runtime.config as { observationsPoolMaxTokens?: unknown }).observationsPoolMaxTokens;
@@ -32,13 +34,19 @@ export function registerCompactionHook(pi: ExtensionAPI, runtime: Runtime): void
 			if (runtime.config.strategy === STRATEGY.off) return;
 			const { preparation } = event;
 			const { firstKeptEntryId, tokensBefore } = preparation;
-			await ensureObservedBeforeCompaction(pi, runtime, ctx, { firstKeptEntryId });
+			const recentObservedTail = await ensureObservedBeforeCompaction(pi, runtime, ctx, { firstKeptEntryId });
 			if (runtime.config.strategy !== STRATEGY.replacement) return;
 			const branchEntries = ctx.sessionManager.getBranch() as Entry[];
 			const projection = buildNextCompactionProjection(
 				branchEntries,
 				firstKeptEntryId,
-				{ observationsPoolMaxTokens: observationsPoolMaxTokens(runtime) },
+				{
+					observationsPoolMaxTokens: observationsPoolMaxTokens(runtime),
+					recentObservationTailMaxCount: RECENT_OBSERVED_TAIL_MAX_COUNT,
+					recentObservationTailMaxTokens: RECENT_OBSERVED_TAIL_MAX_TOKENS,
+				},
+				undefined,
+				recentObservedTail,
 			);
 			const summary = renderSummary(projection.reflections, projection.observations);
 

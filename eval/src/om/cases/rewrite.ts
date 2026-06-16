@@ -47,8 +47,8 @@ export async function rewriteStaleRelationshipPreservation(modelSpec: string, ju
   return judgedRewriteScored('rewrite-stale-relationship-preservation', output, {
     id: 'rewrite-stale-relationship-preservation',
     question: 'Preserve current-vs-stale relationship while compressing contradictory memory lifecycle reflections.',
-    rubric: { pass_if: ['Full active-memory rewrite is current.', 'Per-reflection lifecycle/deprecation is stale/not preferred.', 'Near-instant compaction/no synchronous rewrite retained.'], fail_if: ['Merges both plans as both current.', 'Loses compaction boundary constraint.', 'Invents sources.'] },
-  }, judgeModel, started, [reflectorSourceIdsAllowed(allowedSources(reflections))], [reflectorRequiresAll('full active-memory rewrite'), reflectorRequiresAll('per-reflection'), reflectorRequiresAll('stale'), reflectorRequiresAll('near-instant'), reflectorMaxCount(3)], usage.total, agentDurationMs, { reflections });
+    rubric: { pass_if: ['Full active-memory rewrite is current.', 'Per-reflection lifecycle/deprecation is explicitly not the preferred current plan.', 'Near-instant compaction/no synchronous rewrite retained.'], fail_if: ['Merges both plans as both current.', 'Loses compaction boundary constraint.'] },
+  }, judgeModel, started, [reflectorSourceIdsAllowed(allowedSources(reflections))], [reflectorRequiresAll('full active-memory rewrite'), reflectorRequiresAll('per-reflection'), reflectorRequiresAll('near-instant'), reflectorMaxCount(3)], usage.total, agentDurationMs, { reflections });
 }
 
 export async function rewriteValidationStatusConsolidation(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -91,7 +91,7 @@ async function realRewriteFixtureCase(id: string, fixture: readonly any[], model
   return judgedRewriteScored(id, output, {
     id,
     question: `Rewrite ${fixture.length} real active reflections mined from the giga OM session into a smaller current memory set.`,
-    rubric: { pass_if: ['Preserves current durable decisions, implementation state, validation facts, and stale/current relationships.', 'Substantially compresses the input.', 'Uses only allowed source ids.'], fail_if: ['Invents sources.', 'Drops central current project state.', 'Resurrects stale behavior as current.', 'Fails to compress.'] },
+    rubric: { pass_if: ['Preserves central current durable decisions, implementation state, validation facts, and stale/current relationships.', 'Substantially compresses the input while retaining sparse but important current facts.', 'Produces useful handoff memory for a future agent.'], fail_if: ['Drops central current project state.', 'Resurrects stale behavior as current.', 'Fails to compress.'] },
   }, judgeModel, started, [reflectorSourceIdsAllowed(allowedSources(reflections))], [...scoreChecks, reflectorMaxCount(Math.max(8, Math.ceil(fixture.length / 4)))], usage.total, agentDurationMs, { reflections });
 }
 

@@ -77,6 +77,14 @@ describe("runObserver", () => {
 		expect(observations?.[0].content).toBe("Same content");
 	});
 
+	it("returns an empty batch when record_observations is called with no observations", async () => {
+		const loop = fakeAgentLoop(async (_prompts, context) => {
+			await context.tools[0].execute("tool-1", { observations: [] });
+		});
+
+		await expect(runObserver({ ...baseArgs, agentLoop: loop })).resolves.toEqual([]);
+	});
+
 	it("returns undefined when no tool call records observations", async () => {
 		const loop = fakeAgentLoop(() => {});
 		await expect(runObserver({ ...baseArgs, agentLoop: loop })).resolves.toBeUndefined();

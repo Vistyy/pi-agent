@@ -146,7 +146,7 @@ describe("memory update hook", () => {
 		const entries = [rawMessage("raw-1", "aaaa"), rawMessage("raw-2", "bbbb")];
 		const { pi, runtime, ctx } = setup({ entries, memoryUpdateInFlight: true, observeEveryMessages: 999, reflectEveryObservations: 999 });
 
-		await expect(ensureObservedBeforeCompaction(pi as never, runtime as Runtime, ctx as never, { firstKeptEntryId: "raw-2" })).resolves.toBeUndefined();
+		await expect(ensureObservedBeforeCompaction(pi as never, runtime as Runtime, ctx as never, { firstKeptEntryId: "raw-2" })).resolves.toEqual([obs]);
 
 		expect(mockAgents.runObserver).toHaveBeenCalledOnce();
 	});

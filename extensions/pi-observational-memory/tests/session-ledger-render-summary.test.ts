@@ -25,14 +25,15 @@ describe("session-ledger summary rendering", () => {
 		expect(summary).toContain("## Reflections\n[ref_eeeeeeeeeeee] User prefers source-backed memory.");
 	});
 
-	it("does not render observations into active memory summaries", () => {
+	it("renders passed observations as a recent compaction tail", () => {
 		const obs = observation("aaaaaaaaaaaa", {
 			content: "Typecheck failed: Command `pnpm run typecheck`; Error: TS2322 at src/config.ts:47; unresolved.",
 		});
 
 		const summary = renderSummary([], [obs]);
 
-		expect(summary).toBe("");
+		expect(summary).toContain("## Recent observed tail pending reflection");
+		expect(summary).toContain("[obs_aaaaaaaaaaaa]");
 	});
 
 	it("keeps raw provenance metadata out of the compact summary", () => {

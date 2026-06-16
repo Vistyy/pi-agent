@@ -57,4 +57,20 @@ describe("session-ledger projections", () => {
 		expect(projection.details.observations).toEqual([]);
 		expect(projection.details.reflections).toEqual([ref]);
 	});
+
+	it("compaction projection can include only a bounded recent observed tail", () => {
+		const oldObs = observation("aaaaaaaaaaaa");
+		const tailA = observation("bbbbbbbbbbbb", { content: "Tail A" });
+		const tailB = observation("cccccccccccc", { content: "Tail B" });
+		const ref = reflection("eeeeeeeeeeee", [oldObs.id]);
+		const projection = buildNextCompactionProjection([
+			rawMessage("raw-1", "source"),
+			observationsRecordedEntry("om-obs", { observations: [oldObs], coversUpToId: "raw-1" }),
+			reflectionsRecordedEntry("om-ref", { reflections: [ref], coversUpToId: "raw-1" }),
+		], "raw-1", { observationsPoolMaxTokens: 999, recentObservationTailMaxCount: 1 }, undefined, [tailA, tailB]);
+
+		expect(projection.observations).toEqual([tailA]);
+		expect(projection.details.observations).toEqual([]);
+		expect(projection.details.reflections).toEqual([ref]);
+	});
 });

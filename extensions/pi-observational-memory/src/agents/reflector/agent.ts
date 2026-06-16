@@ -92,7 +92,7 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 	const recordReflections: AgentTool<typeof RecordReflectionsSchema> = {
 		name: "record_reflections",
 		label: "Record reflections",
-		description: "Record one complete batch of new durable reflections with source observation ids. Use an empty reflections array when no durable reflections should be added. This tool call terminates the run.",
+		description: "Record one complete batch of new durable reflections with source observation ids. Use an empty reflections array when the pending observations add no durable active-memory value. This tool call terminates the run.",
 		parameters: RecordReflectionsSchema,
 		execute: async (_id, params: RecordReflectionsArgs) => {
 			toolCallCount++;
@@ -135,7 +135,7 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 		},
 	};
 
-	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nCURRENT OBSERVATIONS:\n${joinOrEmpty(observations.map(observationToSummaryLine))}\n\nReview these observations. Call record_reflections once with every durable new reflection, or with an empty reflections array if none should be added.`;
+	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nPENDING OBSERVATIONS:\n${joinOrEmpty(observations.map(observationToSummaryLine))}\n\nSynthesize the pending observations into active memory. Call record_reflections once with every durable new reflection, or with an empty reflections array if the pending observations add no durable active-memory value.`;
 	debugLog("reflector.prompt", {
 		reflectionCount: reflections.length,
 		observationCount: observations.length,

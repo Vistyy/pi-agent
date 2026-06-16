@@ -23,6 +23,8 @@ export type NextContextProjection = Projection;
 
 export type CompactionProjectionConfig = {
 	observationsPoolMaxTokens: number;
+	recentObservationTailMaxCount?: number;
+	recentObservationTailMaxTokens?: number;
 };
 
 export type CompactionProjection = Projection & {
@@ -184,6 +186,20 @@ function buildFullFoldCompactionProjection(entries: Entry[], firstKeptEntryId: s
 	return fullProjection(entries, firstKeptEntryId);
 }
 
+function recentObservationTail(observations: Observation[], config: CompactionProjectionConfig): Observation[] {
+	const maxCount = config.recentObservationTailMaxCount ?? 8;
+	const maxTokens = config.recentObservationTailMaxTokens ?? 1_000;
+	const tail: Observation[] = [];
+	let tokens = 0;
+	for (const observation of observations.slice(0, maxCount)) {
+		const nextTokens = Math.ceil(observation.content.length / 4);
+		if (tail.length > 0 && tokens + nextTokens > maxTokens) break;
+		tail.push(observation);
+		tokens += nextTokens;
+	}
+	return tail;
+}
+
 function withCompactionDetails(context: Projection, detailsProjection: Projection, fullFold: boolean): CompactionProjection {
 	const details: MemoryDetails = {
 		type: OM_FOLDED,
@@ -205,9 +221,13 @@ export function buildNextCompactionProjection(
 	firstKeptEntryId: string,
 	config: CompactionProjectionConfig,
 	seed: Projection = { observations: [], reflections: [] },
+	recentObservedTail: Observation[] = [],
 ): CompactionProjection {
 	const incrementalProjection = buildIncrementalCompactionProjection(entries, mergeProjection(compactedProjection(entries), seed));
-	if (!shouldFullFold(incrementalProjection, config)) return withCompactionDetails(nextContextProjection(entries, incrementalProjection), incrementalProjection, false);
+	const tail = recentObservationTail(recentObservedTail, config);
+	if (!shouldFullFold(incrementalProjection, config)) {
+		return withCompactionDetails({ ...nextContextProjection(entries, incrementalProjection), observations: tail }, incrementalProjection, false);
+	}
 	const fullFoldProjection = buildFullFoldCompactionProjection(entries, firstKeptEntryId);
-	return withCompactionDetails(nextContextProjection(entries, fullFoldProjection), fullFoldProjection, true);
+	return withCompactionDetails({ ...nextContextProjection(entries, fullFoldProjection), observations: tail }, fullFoldProjection, true);
 }

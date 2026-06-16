@@ -23,9 +23,6 @@ interface RunObserverArgs {
 
 export const OBSERVATION_TIMESTAMP_PATTERN = "^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$";
 
-const MarkObservedNoObservationsSchema = Type.Object({});
-type MarkObservedNoObservationsArgs = Static<typeof MarkObservedNoObservationsSchema>;
-
 const RecordObservationsSchema = Type.Object({
 	observations: Type.Array(
 		Type.Object({
@@ -107,27 +104,18 @@ export async function runObserver(args: RunObserverArgs): Promise<Observation[] 
 	if (!conversation) return undefined;
 
 	const accumulated = new Map<string, Observation>();
-	let reviewedNoObservations = false;
-
-	const markObservedNoObservations: AgentTool<typeof MarkObservedNoObservationsSchema> = {
-		name: "mark_observed_no_observations",
-		label: "Mark observed",
-		description: "Mark this chunk observed when it contains no durable observations to record. This tool call terminates the run.",
-		parameters: MarkObservedNoObservationsSchema,
-		execute: async (_id, _params: MarkObservedNoObservationsArgs) => {
-			reviewedNoObservations = true;
-			return { content: [{ type: "text", text: "Marked chunk observed with no durable observations." }], details: { reviewed: true }, terminate: true };
-		},
-	};
+	let recordedEmpty = false;
 
 	const recordObservations: AgentTool<typeof RecordObservationsSchema> = {
 		name: "record_observations",
 		label: "Record observations",
 		description:
 			"Record one complete batch of observations distilled from the conversation chunk. " +
+			"Use an empty observations array when the chunk contains no durable observations. " +
 			"This tool call terminates the run, so include every durable observation to keep in this single call.",
 		parameters: RecordObservationsSchema,
 		execute: async (_id, params: RecordObservationsArgs) => {
+			recordedEmpty ||= params.observations.length === 0;
 			let added = 0;
 			let duplicates = 0;
 			let rejected = 0;
@@ -172,7 +160,7 @@ export async function runObserver(args: RunObserverArgs): Promise<Observation[] 
 	const now = nowTimestamp();
 	const userText = `Current local time: ${now}
 
-Compress the following new conversation chunk into observations. If it contains durable observations, call record_observations once with every durable observation to keep. If it contains no durable observations, call mark_observed_no_observations. Prefer inline conversation timestamps when assigning times; fall back to the current local time above only if no message timestamp applies.
+Compress the following new conversation chunk into observations. Call record_observations once with every durable observation to keep, or with an empty observations array if the chunk contains no durable observations. Prefer inline conversation timestamps when assigning times; fall back to the current local time above only if no message timestamp applies.
 
 NEW CONVERSATION CHUNK:
 ${conversation}`;
@@ -187,11 +175,11 @@ ${conversation}`;
 		thinkingLevel: args.thinkingLevel,
 		systemPrompt: OBSERVER_SYSTEM,
 		userText,
-		tools: [recordObservations as AgentTool<any>, markObservedNoObservations as AgentTool<any>],
+		tools: [recordObservations as AgentTool<any>],
 		agentName: "observer",
 		onUsage: args.onUsage,
 	});
 
-	if (accumulated.size === 0) return reviewedNoObservations ? [] : undefined;
+	if (accumulated.size === 0) return recordedEmpty ? [] : undefined;
 	return Array.from(accumulated.values());
 }

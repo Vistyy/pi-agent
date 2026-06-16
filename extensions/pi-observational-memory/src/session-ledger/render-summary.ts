@@ -18,8 +18,13 @@ export function reflectionToSummaryLine(reflection: Reflection): string {
 	return `[${reflection.id}] ${reflection.content}`;
 }
 
-export function renderSummary(reflections: Reflection[], _observations: Observation[] = []): string {
-	if (reflections.length === 0) return "";
+export function renderSummary(reflections: Reflection[], observations: Observation[] = []): string {
+	if (reflections.length === 0 && observations.length === 0) return "";
 
-	return [CONTEXT_USAGE_INSTRUCTIONS, `## Reflections\n${reflections.map(reflectionToSummaryLine).join("\n")}`].join("\n\n");
+	const sections = [CONTEXT_USAGE_INSTRUCTIONS];
+	if (reflections.length > 0) sections.push(`## Reflections\n${reflections.map(reflectionToSummaryLine).join("\n")}`);
+	if (observations.length > 0) {
+		sections.push(`## Recent observed tail pending reflection\nThese facts were extracted from source turns removed by compaction. They are temporary until reflected.\n${observations.map(observationToSummaryLine).join("\n")}`);
+	}
+	return sections.join("\n\n");
 }
