@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { recallMemorySources, type Entry, type Observation, type Reflection } from "../src/session-ledger/recall.js";
-import { OM_OBSERVATIONS_RECORDED, OM_REFLECTIONS_RECORDED } from "../src/session-ledger/types.js";
+import { OM_OBSERVATIONS_RECORDED, OM_REFLECTIONS_RECORDED, OM_REFLECTIONS_REWRITTEN } from "../src/session-ledger/types.js";
 
 const OBS_1 = "obs_aaaaaaaaaaaa";
 const OBS_2 = "obs_bbbbbbbbbbbb";
@@ -30,6 +30,10 @@ function observationsEntry(id: string, observations: Observation[], coversUpToId
 
 function reflectionsEntry(id: string, reflections: Reflection[], coversUpToId = "src-1"): Entry {
 	return { type: "custom", id, timestamp: "2026-05-19T00:00:00.000Z", customType: OM_REFLECTIONS_RECORDED, data: { reflections, coversUpToId } };
+}
+
+function reflectionsRewrittenEntry(id: string, retiredReflectionIds: string[]): Entry {
+	return { type: "custom", id, customType: OM_REFLECTIONS_REWRITTEN, data: { retiredReflectionIds, summary: "merged" } };
 }
 
 describe("session-ledger recall", () => {
@@ -89,6 +93,44 @@ describe("session-ledger recall", () => {
 		expect(result.status).toBe("found");
 		if (result.status !== "found") return;
 		expect(result.reflections.map((match) => match.reflection.id)).toEqual([REF_2]);
+		expect(result.observations.map((match) => match.observation.id)).toEqual([OBS_1]);
+		expect(result.sourceEntries.map((entry) => entry.id)).toEqual(["src-1"]);
+		expect(result.partial).toBe(false);
+	});
+
+	it("recalls through rewritten retired reflection chains", () => {
+		const entries = [
+			sourceEntry("src-1"),
+			observationsEntry("obs-entry-1", [observation(OBS_1, ["src-1"])]),
+			reflectionsEntry("ref-entry-1", [reflection(REF_1, [OBS_1])]),
+			reflectionsRewrittenEntry("rewrite-entry-1", [REF_1]),
+			reflectionsEntry("ref-entry-2", [reflection(REF_2, [REF_1])]),
+		];
+
+		const result = recallMemorySources(entries, REF_2);
+
+		expect(result.status).toBe("found");
+		if (result.status !== "found") return;
+		expect(result.reflections.map((match) => match.reflection.id)).toEqual([REF_2]);
+		expect(result.observations.map((match) => match.observation.id)).toEqual([OBS_1]);
+		expect(result.sourceEntries.map((entry) => entry.id)).toEqual(["src-1"]);
+		expect(result.partial).toBe(false);
+	});
+
+	it("recalls retired reflections directly for evidence lookup", () => {
+		const entries = [
+			sourceEntry("src-1"),
+			observationsEntry("obs-entry-1", [observation(OBS_1, ["src-1"])]),
+			reflectionsEntry("ref-entry-1", [reflection(REF_1, [OBS_1])]),
+			reflectionsRewrittenEntry("rewrite-entry-1", [REF_1]),
+		];
+
+		const result = recallMemorySources(entries, REF_1);
+
+		expect(result.status).toBe("found");
+		if (result.status !== "found") return;
+		expect(result.kind).toBe("reflection");
+		expect(result.reflections.map((match) => match.reflection.id)).toEqual([REF_1]);
 		expect(result.observations.map((match) => match.observation.id)).toEqual([OBS_1]);
 		expect(result.sourceEntries.map((entry) => entry.id)).toEqual(["src-1"]);
 		expect(result.partial).toBe(false);
