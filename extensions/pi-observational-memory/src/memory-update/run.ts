@@ -1,9 +1,9 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { debugLog } from "../debug-log.js";
-import type { Runtime } from "../runtime.js";
+import type { MemoryUpdatePhase, Runtime } from "../runtime.js";
 import type { Entry } from "../session-ledger/index.js";
 import { computeMemoryStageWork } from "./due.js";
-import { makeModelResolver, type MemoryStageName } from "./model-resolver.js";
+import { makeModelResolver } from "./model-resolver.js";
 import type { MemoryUpdateCtx, StageOutcome } from "./types.js";
 
 type ObserverStageModule = typeof import("./observer-stage.js");
@@ -30,7 +30,7 @@ async function runTrackedStage(
 	_pi: ExtensionAPI,
 	runtime: Runtime,
 	ctx: MemoryUpdateCtx,
-	stage: MemoryStageName,
+	stage: MemoryUpdatePhase,
 	run: () => Promise<StageOutcome>,
 ): Promise<StageOutcome> {
 	runtime.memoryUpdatePhase = stage;

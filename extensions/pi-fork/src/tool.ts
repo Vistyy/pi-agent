@@ -1,6 +1,6 @@
 import { StringEnum, Type } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { buildUsageRecordedData, PI_USAGE_RECORDED } from "../../pi-cost/src/types.js";
+import { buildUsageRecordedData, PI_USAGE_RECORDED } from "./usage.js";
 import { EFFORT_LEVELS, loadConfig, type ForkConfig } from "./config.js";
 import { type ForkDetails, type ForkEffort, type ForkEffortSource, type ForkEffortState, type ForkResult, emptyUsage, isResultError } from "./core/types.js";
 import { getResultSummaryText } from "./child-events/index.js";

@@ -8,7 +8,7 @@ vi.mock("../src/config.js", async (importOriginal) => {
   return { ...actual, loadConfig: () => ({ extensions: [], environment: {}, tools: null, offline: true, costFooter: true, defaultEffort: "balanced" }) };
 });
 
-import { PI_USAGE_RECORDED } from "../../pi-cost/src/types.js";
+import { PI_USAGE_RECORDED } from "../src/usage.js";
 import { registerForkTool } from "../src/tool.js";
 
 describe("fork tool usage recording", () => {

@@ -1,4 +1,4 @@
-import type { ResolveResult } from "../runtime.js";
+import type { MemoryUpdatePhase, ResolveResult } from "../runtime.js";
 
 export type ResolvedModel = Extract<ResolveResult, { ok: true }>;
 
@@ -17,4 +17,4 @@ export type MemoryUpdateCtx = {
 
 export type StageOutcome = "continue" | "abort";
 
-export type ResolveMemoryModel = (stage: "observer" | "reflector" | "rewrite") => Promise<ResolvedModel | undefined>;
+export type ResolveMemoryModel = (stage: MemoryUpdatePhase) => Promise<ResolvedModel | undefined>;
