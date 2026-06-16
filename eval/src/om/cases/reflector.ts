@@ -87,16 +87,28 @@ async function realReflectorFixtureCase(id: string, fixture: readonly any[], mod
 export async function reflectorRealGiga8(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   return realReflectorFixtureCase('reflector-real-giga-8', realReflector8, modelSpec, judgeModel, thinkingLevel, [
     reflectorRequiresAll('pi-observational-memory'),
-    reflectorRequiresAll('dropper'),
-    reflectorRequiresAll('compaction'),
+    reflectorRequiresAll('@docs/ARCHITECTURE_FINDINGS.md', '@docs/future-work.md'),
+    reflectorRequiresAll('80-observation cap'),
+    reflectorRequiresAll('recall tool', 'model evals'),
+    reflectorRequiresAll('progressive', 'compaction', '@extensions/pi-fork/'),
+    reflectorRequiresAll('/home/syzom/.pi/agent/AGENTS.md'),
+    reflectorRequiresAll('mutable factual claims', 'verify'),
+    reflectorRequiresAll('OpenAI', 'Anthropic'),
   ]);
 }
 
 export async function reflectorRealGiga16(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   return realReflectorFixtureCase('reflector-real-giga-16', realReflector16, modelSpec, judgeModel, thinkingLevel, [
-    reflectorRequiresAll('dropper'),
-    reflectorRequiresAll('reflectorThinking'),
-    reflectorRequiresAll('pnpm test'),
+    reflectorRequiresAll('/home/syzom/.pi/agent/extensions/pi-observational-memory'),
+    reflectorRequiresAll('STRATEGY', 'additive', 'replacement', 'off'),
+    reflectorRequiresAll('dropWhenActiveObservationsOver: 80'),
+    reflectorRequiresAll('reflectorThinking', 'xhigh'),
+    reflectorRequiresAll('dropSoftActiveObservationsOver: 30'),
+    reflectorRequiresAll('overSoftTarget', 'softDropsAllowed'),
+    reflectorRequiresAll('tests/dropper-pool.test.ts', 'tests/config.test.ts', 'tests/memory-update.test.ts', 'tests/status-command.test.ts'),
+    reflectorRequiresAll('23 files', '155 tests'),
+    reflectorRequiresAll('pnpm approve-builds --all'),
+    reflectorRequiresAll('stuckCursorMaxRetries: 3'),
   ]);
 }
 

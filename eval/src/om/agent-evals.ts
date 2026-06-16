@@ -42,6 +42,23 @@ export async function main() {
     fs.writeFileSync(path.join(args.outDir, 'results.partial.json'), JSON.stringify(records, null, 2));
   }
   const scoredRecords = records.filter((r) => r.score);
+  const byAgent = Object.fromEntries(['observer', 'reflector', 'rewrite', 'recall', 'e2e'].map((agent) => {
+    const agentRecords = records.filter((record) => record.agent === agent);
+    return [agent, {
+      passed: agentRecords.filter((record) => record.passed).length,
+      total: agentRecords.length,
+      agentDurationMs: sumDuration(agentRecords, 'agentDurationMs'),
+      usage: sumUsage(agentRecords, 'usage'),
+    }];
+  }).filter(([, value]) => (value as { total: number }).total > 0));
+  const perCase = records.map((record) => ({
+    id: record.id,
+    agent: record.agent,
+    passed: record.passed,
+    agentDurationMs: record.agentDurationMs ?? 0,
+    usage: record.usage ?? {},
+    score: record.score ? { score: record.score.score, maxScore: record.score.maxScore, hardFailed: record.score.hardFailed } : undefined,
+  }));
   const summary = {
     passed: records.filter((r) => r.passed).length,
     total: records.length,
@@ -55,6 +72,8 @@ export async function main() {
     usage: sumUsage(records, 'usage'),
     judgeUsage: sumUsage(records, 'judgeUsage'),
     diagnosisUsage: sumUsage(records, 'diagnosisUsage'),
+    byAgent,
+    perCase,
   };
   fs.writeFileSync(path.join(args.outDir, 'results.json'), JSON.stringify(records, null, 2));
   fs.writeFileSync(path.join(args.outDir, 'summary.json'), JSON.stringify(summary, null, 2));

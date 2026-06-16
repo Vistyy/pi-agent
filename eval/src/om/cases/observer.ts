@@ -1,7 +1,7 @@
 import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import type { AgentEvalRecord } from '../types.js';
 import { createUsageCollector, loadOmAgents, resolveModel } from '../runner.js';
-import { judgedObserverScored, observerForbidsAny, observerForbidsSourceIds, observerMaxCount, observerRequiresAll } from '../diagnostics.js';
+import { judgedObserverScored, observerForbidsAny, observerForbidsSourceIds, observerMaxCount, observerRequiresAll, observerSourceIdsAllowed } from '../diagnostics.js';
 import { realObserver32, realObserver64, realObserver96 } from './real-session-fixtures.js';
 
 async function runObserverCase(modelSpec: string, thinkingLevel: ModelThinkingLevel, chunk: string, allowedSourceEntryIds: string[], priorReflections: string[] = []) {
@@ -108,26 +108,31 @@ async function realObserverFixtureCase(id: string, fixture: RealObserverFixture,
     id,
     question: `Extract durable OM facts from a real giga-session observer chunk with ${fixture.count} serialized source entries.`,
     rubric: { pass_if: ['Keeps durable user decisions, implementation state, validation blockers/results, and exact anchors from a real noisy session slice.'], fail_if: ['Records omitted-output/read/write receipts as facts.', 'Loses the main durable decisions or validation state.', 'Treats stale proposals as current.'] },
-  }, judgeModel, started, [observerForbidsAny('output omitted by observer policy', 'Successfully replaced', 'Successfully wrote')], [...scoreChecks, observerMaxCount(Math.ceil(fixture.count / 4))], usage.total, agentDurationMs, { sourceEntryCount: fixture.count });
+  }, judgeModel, started, [observerSourceIdsAllowed([...fixture.allowedSourceEntryIds]), observerForbidsAny('output omitted by observer policy', 'Successfully replaced', 'Successfully wrote', '[thinking omitted]')], [...scoreChecks, observerMaxCount(Math.ceil(fixture.count / 5))], usage.total, agentDurationMs, { sourceEntryCount: fixture.count });
 }
 
 export async function observerRealGiga32(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   return realObserverFixtureCase('observer-real-giga-32', realObserver32, modelSpec, judgeModel, thinkingLevel, [
-    observerRequiresAll('pi-observational-memory'),
+    observerRequiresAll('@docs/ARCHITECTURE_FINDINGS.md', '@docs/future-work.md'),
     observerRequiresAll('observations', 'noisy'),
-    observerRequiresAll('dropper'),
-    observerRequiresAll('compaction'),
-    observerRequiresAll('recall'),
+    observerRequiresAll('80 observations cap'),
+    observerRequiresAll('dropper', 'aggressive'),
+    observerRequiresAll('compaction', 'progressive', '@extensions/pi-fork/'),
+    observerRequiresAll('recall', 'model evals'),
+    observerRequiresAll('reflectorThinking', 'high'),
+    observerRequiresAll('/home/syzom/.pi/agent/AGENTS.md'),
+    observerRequiresAll('mutable factual claims', 'verify'),
   ]);
 }
 
 export async function observerRealGiga64(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   return realObserverFixtureCase('observer-real-giga-64', realObserver64, modelSpec, judgeModel, thinkingLevel, [
-    observerRequiresAll('verify'),
-    observerRequiresAll('evidence'),
-    observerRequiresAll('dropper'),
-    observerRequiresAll('reflectorThinking'),
+    observerRequiresAll('/home/syzom/.pi/agent/AGENTS.md'),
+    observerRequiresAll('Evidence discipline'),
+    observerRequiresAll('mutable factual claims', 'verify'),
+    observerRequiresAll('OpenAI', 'Anthropic'),
     observerRequiresAll('pnpm test'),
+    observerRequiresAll('AGENTS.md'),
   ]);
 }
 
@@ -135,9 +140,11 @@ export async function observerRealGiga96(modelSpec: string, judgeModel: string, 
   return realObserverFixtureCase('observer-real-giga-96', realObserver96, modelSpec, judgeModel, thinkingLevel, [
     observerRequiresAll('memory-update.test.ts'),
     observerRequiresAll('status-command.test.ts'),
+    observerRequiresAll('runs dropper from existing reflections'),
+    observerRequiresAll('dropSoftActiveObservationsOver'),
+    observerRequiresAll('dropWhenActiveObservationsOver'),
     observerRequiresAll('pnpm test'),
     observerRequiresAll('typecheck'),
-    observerRequiresAll('curator'),
   ]);
 }
 

@@ -55,6 +55,11 @@ export function observerForbidsSourceIds(...ids: string[]): ObserverCheck {
   return { label: `forbids source ids ${ids.join(', ')}`, pass: (output) => ids.every((id) => !observerSourceIds(output).includes(id)), detail: (output) => observerSourceIds(output) };
 }
 
+export function observerSourceIdsAllowed(allowedIds: string[]): ObserverCheck {
+  const allowed = new Set(allowedIds);
+  return { label: `source ids limited to ${allowedIds.join(', ')}`, pass: (output) => observerSourceIds(output).every((id) => allowed.has(id)), detail: (output) => observerSourceIds(output) };
+}
+
 function deterministicReflectorFailure(output: Reflection[] | undefined, checks: ReflectorCheck[]): { reason: string; details: unknown[] } | undefined {
   const failed = checks.filter((check) => !check.pass(output)).map((check) => ({ label: check.label, detail: check.detail?.(output) ?? output }));
   return failed.length ? { reason: failed.map((check) => check.label).join('; '), details: failed } : undefined;

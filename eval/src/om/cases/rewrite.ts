@@ -97,27 +97,38 @@ async function realRewriteFixtureCase(id: string, fixture: readonly any[], model
 
 export async function rewriteRealGiga40(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   return realRewriteFixtureCase('rewrite-real-giga-40', realRewrite40, modelSpec, judgeModel, thinkingLevel, [
-    reflectorRequiresAll('pi-observational-memory'),
-    reflectorRequiresAll('dropper'),
-    reflectorRequiresAll('compaction'),
-    reflectorRequiresAll('pnpm test'),
+    reflectorRequiresAll('/home/syzom/.pi/agent/extensions/pi-observational-memory'),
+    reflectorRequiresAll('@docs/ARCHITECTURE_FINDINGS.md', '@docs/future-work.md'),
+    reflectorRequiresAll('80-observation cap'),
+    reflectorRequiresAll('reflectorThinking', 'xhigh', 'high'),
+    reflectorRequiresAll('/home/syzom/.pi/agent/AGENTS.md'),
+    reflectorRequiresAll('dropSoftActiveObservationsOver: 30'),
+    reflectorRequiresAll('overSoftTarget', 'softDropsAllowed'),
+    reflectorRequiresAll('stuckCursorMaxRetries: 3'),
+    reflectorRequiresAll('pnpm test', 'pnpm run typecheck'),
   ]);
 }
 
 export async function rewriteRealGiga80(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   return realRewriteFixtureCase('rewrite-real-giga-80', realRewrite80, modelSpec, judgeModel, thinkingLevel, [
-    reflectorRequiresAll('curator'),
-    reflectorRequiresAll('pin'),
-    reflectorRequiresAll('compaction'),
+    reflectorRequiresAll('reviewed', 'visible'),
+    reflectorRequiresAll('visibilityProjection'),
+    reflectorRequiresAll('tests/session-ledger-projection.test.ts'),
+    reflectorRequiresAll('Remove additive mode'),
+    reflectorRequiresAll('STRATEGY.additive'),
+    reflectorRequiresAll('compaction flush', 'observer-only'),
+    reflectorRequiresAll('recall', 'unit-test lookup mechanics', 'model decision'),
     reflectorRequiresAll('validation'),
   ]);
 }
 
 export async function rewriteRealGiga120(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   return realRewriteFixtureCase('rewrite-real-giga-120', realRewrite120, modelSpec, judgeModel, thinkingLevel, [
-    reflectorRequiresAll('curator'),
-    reflectorRequiresAll('pin'),
-    reflectorRequiresAll('compaction'),
+    reflectorRequiresAll('reviewed', 'visible'),
+    reflectorRequiresAll('visibilityProjection'),
+    reflectorRequiresAll('Remove additive mode'),
+    reflectorRequiresAll('compaction flush', 'observer-only'),
+    reflectorRequiresAll('recall'),
     reflectorRequiresAll('validation'),
   ]);
 }
