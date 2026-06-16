@@ -57,7 +57,7 @@ export async function runReflectorStage(
 	const reflections = await runReflector({
 		...commonAgentArgs(pi, runtime, resolved, runtime.config.reflectorThinking),
 		reflections: folded.reflections,
-		observations: folded.activeObservations,
+		observations: unreflectedObservations,
 	});
 	if (!reflections) {
 		debugLog("reflector.no_tool_output", { observationCoverageId });

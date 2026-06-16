@@ -233,6 +233,8 @@ describe("memory update hook", () => {
 			maxTurns: 9,
 			thinkingLevel: "minimal",
 		}));
+		expect(mockAgents.runObserver.mock.calls[0][0]).not.toHaveProperty("priorReflections");
+		expect(mockAgents.runObserver.mock.calls[0][0]).not.toHaveProperty("priorObservations");
 		expect(pi.appendEntry).toHaveBeenCalledWith(OM_OBSERVATIONS_RECORDED, { observations: [obs], coversUpToId: "raw-1" });
 	});
 
@@ -328,6 +330,28 @@ describe("memory update hook", () => {
 
 		expect(mockAgents.runReflector).toHaveBeenCalledWith(expect.objectContaining({ observations: [obsA], maxTurns: 9, thinkingLevel: "minimal" }));
 		expect(pi.appendEntry).toHaveBeenCalledWith(OM_REFLECTIONS_RECORDED, { reflections: [newRef], coversUpToId: "raw-1" });
+	});
+
+	it("passes only unreflected observations to the reflector", async () => {
+		const oldRef = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
+		const newRef = reflection("ffffffffffff", ["bbbbbbbbbbbb"]);
+		mockAgents.runReflector.mockResolvedValueOnce([newRef]);
+		const entries = [
+			rawMessage("raw-1", "aaaaaaaa"),
+			observationsRecordedEntry("om-obs-old", { observations: [obsA], coversUpToId: "raw-1" }),
+			reflectionsRecordedEntry("om-ref-old", { reflections: [oldRef], coversUpToId: "raw-1" }),
+			rawMessage("raw-2", "bbbbbbbb"),
+			observationsRecordedEntry("om-obs-new", { observations: [obsB], coversUpToId: "raw-2" }),
+		];
+		const { fire, runLaunchedWork } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 1 });
+
+		fire();
+		await runLaunchedWork();
+
+		expect(mockAgents.runReflector).toHaveBeenCalledWith(expect.objectContaining({
+			reflections: [oldRef],
+			observations: [obsB],
+		}));
 	});
 
 	it("does not launch only because the old active observation pool threshold is exceeded", async () => {

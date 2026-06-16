@@ -24,6 +24,6 @@ Avoid:
 - raw read/file excerpts as durable facts unless surrounding context makes those excerpt details semantically important
 - routine chatter, generic acknowledgements, low-information status, and trivially re-derivable details
 - separate observations for each step when one state/intent observation is enough
-- restating facts already present unless the new chunk materially changes them
+- duplicating claims from earlier in the same chunk
 
 If nothing is worth preserving, call mark_observed_no_observations`;

@@ -3,7 +3,7 @@ import type { Model, ModelThinkingLevel } from "@earendil-works/pi-ai";
 import { Type } from "@earendil-works/pi-ai";
 import type { Static } from "typebox";
 import { hashId, observationId } from "../../memory/ids.js";
-import { joinOrEmpty, normalizeAllowedIdsStrict, runMemoryAgentLoop, type MemoryAgentUsage } from "../common.js";
+import { normalizeAllowedIdsStrict, runMemoryAgentLoop, type MemoryAgentUsage } from "../common.js";
 import { OBSERVER_SYSTEM } from "./prompts.js";
 import { nowTimestamp, truncateRecordContent } from "../../memory/record-content.js";
 import type { Observation } from "../../session-ledger/index.js";
@@ -12,8 +12,6 @@ interface RunObserverArgs {
 	model: Model<any>;
 	apiKey: string;
 	headers?: Record<string, string>;
-	priorReflections: string[];
-	priorObservations: string[];
 	chunk: string;
 	allowedSourceEntryIds: string[];
 	signal?: AbortSignal;
@@ -104,7 +102,7 @@ function rejectedSourceEntrySummary(rejectedDetails: Array<{ sourceEntryIds: Rej
 }
 
 export async function runObserver(args: RunObserverArgs): Promise<Observation[] | undefined> {
-	const { model, apiKey, headers, priorReflections, priorObservations, chunk, allowedSourceEntryIds, signal } = args;
+	const { model, apiKey, headers, chunk, allowedSourceEntryIds, signal } = args;
 	const conversation = chunk.trim();
 	if (!conversation) return undefined;
 
@@ -174,13 +172,7 @@ export async function runObserver(args: RunObserverArgs): Promise<Observation[] 
 	const now = nowTimestamp();
 	const userText = `Current local time: ${now}
 
-CURRENT REFLECTIONS:
-${joinOrEmpty(priorReflections)}
-
-CURRENT OBSERVATIONS:
-${joinOrEmpty(priorObservations)}
-
-Compress the following new conversation chunk into observations. If it contains durable observations, call record_observations once with every durable observation to keep. If it contains no durable observations, call mark_observed_no_observations. Do not restate facts already present in current reflections or current observations. Prefer inline conversation timestamps when assigning times; fall back to the current local time above only if no message timestamp applies.
+Compress the following new conversation chunk into observations. If it contains durable observations, call record_observations once with every durable observation to keep. If it contains no durable observations, call mark_observed_no_observations. Prefer inline conversation timestamps when assigning times; fall back to the current local time above only if no message timestamp applies.
 
 NEW CONVERSATION CHUNK:
 ${conversation}`;

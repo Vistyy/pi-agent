@@ -7,13 +7,10 @@ import {
 	OM_OBSERVATIONS_RECORDED,
 	buildObservationsRecordedData,
 	entryIndexById,
-	fullProjection,
 	latestCoverageIndex,
 	observationTokenSum,
-	observationToSummaryLine,
 	sourceTokensSinceObservationCoverage,
 	sourceEntryCountSinceObservationCoverage,
-	reflectionToSummaryLine,
 	type Entry,
 } from "../session-ledger/index.js";
 import { sourceEntriesAfter } from "./source-entries.js";
@@ -64,10 +61,6 @@ export async function runObserverStage(
 		return "continue";
 	}
 
-	const memory = fullProjection(entries);
-	const priorReflections = memory.reflections.map(reflectionToSummaryLine);
-	const priorObservations = memory.observations.map(observationToSummaryLine);
-
 	if (ctx.hasUI) ctx.ui?.notify(
 		`Observational memory: observer running on ${sourceEntryCount.toLocaleString()} source entr${sourceEntryCount === 1 ? "y" : "ies"}`,
 		"info",
@@ -77,8 +70,6 @@ export async function runObserverStage(
 		coversUpToId,
 		sourceEntryIds,
 		sourceEntryCount: sourceEntryIds.length,
-		priorReflections: priorReflections.length,
-		priorObservations: priorObservations.length,
 	});
 
 	const resolved = await resolveModel("observer");
@@ -86,8 +77,6 @@ export async function runObserverStage(
 
 	const observations = await runObserver({
 		...commonAgentArgs(pi, runtime, resolved, runtime.config.observerThinking),
-		priorReflections,
-		priorObservations,
 		chunk,
 		allowedSourceEntryIds: sourceEntryIds,
 	});

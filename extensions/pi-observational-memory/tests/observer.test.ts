@@ -18,8 +18,6 @@ describe("runObserver", () => {
 	const baseArgs = {
 		model: {},
 		apiKey: "test",
-		priorReflections: [],
-		priorObservations: [],
 		chunk: "[Source entry id: entry-a]\nUser asked for a memory update.",
 		allowedSourceEntryIds: ["entry-a"],
 	};
