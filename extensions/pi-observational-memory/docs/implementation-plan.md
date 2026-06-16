@@ -1,316 +1,296 @@
-# Implementation plan: lifecycle redesign
+# Implementation plan: bounded handoff memory
 
-## Goals
+## Goal
 
-Make OM less noisy, cheaper, more continuous, and safer around compaction.
+Make OM a cheap, continuous, bounded handoff pipeline:
 
-Current direction:
+```text
+source entries
+  -> observer   extracts durable observations from source-only input
+  -> reflector  synthesizes active reflections from current reflections + pending observations
+  -> rewrite    compresses current reflections into smaller handoff memory
+  -> projection renders active reflections, plus a tiny flushed observation tail after compaction
+  -> recall     recovers exact evidence from obs_*/ref_* ids when needed
+```
 
-1. Keep observer work closed for this pass unless real-session regressions reappear.
-2. Treat observations as durable background evidence, not active memory.
-3. Make active memory mostly current reflections.
-4. Remove pin/unpin and collapse curator into the smallest possible compression-audit role, or fold it into reflector if evals support that.
-5. Replace per-item reflection lifecycle with pressure-triggered full-memory rewrite: rewrite current reflections into a smaller current set, retire the old active set, and keep all old records recallable.
-6. Make the real memory cap apply to projected active memory tokens.
-7. Make recall a required safety path for exact evidence recovery.
-8. Prefer low reasoning for observer/reflector/rewrite/auditor unless evals prove otherwise.
+Core constraints:
 
-## Completed this redesign pass
+- No OM agent receives full raw history by default.
+- Observations are durable evidence, not normal active context.
+- Reflections are active memory.
+- Rewrite is the only intentional lossy compression step.
+- Recall is the evidence path for exact details.
+- Compaction stays near-instant and must not synchronously run reflector/rewrite.
+
+## Stage contracts
+
+### Observer
+
+Role: source chunk -> durable evidence observations.
+
+Contract:
+
+- Input is the serialized source chunk only.
+- No prior reflections or prior observations in model input.
+- Output observations must be directly source-backed and cite source entry ids.
+- Generic validation/tool receipts are not durable memory unless they prove a named result, blocker, current/stale status, or user-requested fact.
+- Observer is intentionally dumb/extractive; dedupe and synthesis belong downstream.
+
+Current status:
+
+- Source-only observer stage is implemented.
+- Remaining cleanup: simplify prompt/tool contract and remove stale prior-memory wording.
+
+### Reflector
+
+Role: current reflections + pending observations -> active memory reflections.
+
+Contract:
+
+- Input is current active reflections plus only unreflected/pending observations.
+- It must not receive the full observation pool.
+- It emits new active reflections sourced to observation ids.
+- It should preserve user constraints, decisions, current state, blockers, exact anchors, and stale/current relationships.
+- It may emit no reflections when pending observations add no durable active-memory value.
+
+Current status:
+
+- Pending-only observation input is implemented.
+- Remaining cleanup: simplify prompt and remove review-era/impossible empty-array wording.
+
+### Rewrite
+
+Role: current reflections -> smaller active handoff memory.
+
+Contract:
+
+- Input is current active reflections only.
+- Output is normal `ref_*` reflections with typed `sources`.
+- Retired reflections stay recallable.
+- Invalid or low-quality rewrite no-ops and retires nothing.
+- Prompt should frame the task as handoff memory for a future LLM, not as generic dedupe.
+
+Rewrite must include, when present:
+
+- current user constraints, preferences, decisions, and corrections
+- active project state
+- unresolved blockers, deferred tasks, and next work
+- exact identifiers needed to act later: paths, commands, errors, ids, settings, schema/API names
+- stale/rejected/superseded relationships needed to avoid mistakes
+- source ids sufficient for recall traversal
+
+Rewrite should drop:
+
+- duplicate or near-duplicate facts
+- stale facts not needed to explain current truth
+- procedural breadcrumbs
+- generic acknowledgements
+- validation receipts that do not affect future action
+
+Current status:
+
+- Rewrite worker, retirement event, backoff, and recall-through-ref chains are implemented.
+- Remaining cleanup: rewrite prompt as handoff memory; harden evals against sparse critical fact loss and stale/current loss.
+
+### Projection and compaction
+
+Normal active context:
+
+```text
+current active reflections only
+```
+
+Compaction boundary behavior:
+
+```text
+before source entries disappear:
+  force observer on disappearing tail
+then render:
+  current active reflections
+  + tiny recent observed tail pending reflection
+```
+
+The flushed tail is a continuity patch, not normal observation projection.
+
+Rules for flushed tail:
+
+- include only observations produced by the forced compaction safety observe
+- include only observations whose source entries are being cut from context
+- hard cap count/tokens
+- label clearly as pending reflection
+- do not include the whole unreflected backlog
+- remove once reflector covers it or on normal projection
+
+Current status:
+
+- Observer-only compaction safety flush is implemented.
+- Normal projection is reflection-only.
+- Remaining work: add the tiny flushed observation tail to compaction projection.
+
+### Recall
+
+Role: exact evidence recovery.
+
+Contract:
+
+- Recall is assistant-facing, not exposed to OM agents by default.
+- Recall must traverse:
+
+```text
+ref_* -> source ref_* -> obs_* -> source entries
+ref_* -> obs_* -> source entries
+obs_* -> source entries
+```
+
+- Use active memory for orientation; use recall for exact evidence before acting on exact paths, commands, errors, API names, stale/current fixes, or pass/fail claims.
+
+Current status:
+
+- Typed ids and ref/obs traversal exist.
+- Remaining work: polish recall wording and tests for rewritten-reflection output.
+
+## Prompt design rules
+
+Apply to observer, reflector, and rewrite:
+
+1. State the handoff role: who consumes the output and why.
+2. Prefer include-shaped instructions over long negative lists.
+3. Keep negative rules only where they prevent observed failure modes.
+4. Remove stale architecture terms: curator, pinning, reviewed/unreviewed, dropper, follow-up flags.
+5. Do not ask the model to reason about hidden context it no longer receives.
+6. Keep tool contracts honest: prompts must not ask for schema-invalid outputs.
+
+## Input-bound rules
+
+- Observer: source chunk only.
+- Reflector: current reflections + pending observations only.
+- Rewrite: current reflections only, with a deterministic cap if needed.
+- Recall: exact id traversal with bounded excerpts.
+
+Planned tests:
+
+- observer call has no prior reflections/observations
+- reflector receives pending observations, not all active observations
+- rewrite receives active reflections only
+- compaction projection includes only just-flushed tail observations
+- normal projection never includes observations
+
+## Eval hardening
+
+Evals must enforce the architecture contract, not reward plausible summaries.
+
+Pass condition target:
+
+```text
+deterministic invariants pass
++ semantic judge pass
++ score threshold
+```
+
+Needed rubric fixes:
+
+- Reflector real cases must not expect one reflection per observation.
+- Replace output-count expectations with explicit fact coverage.
+- Replace literal keyword checks (`stale`, `deferred`) with semantic checks.
+- Rewrite cases must test sparse but critical fact retention, not just compression size.
+- Observer cases must test source-only extraction, generic-validation restraint, and proposal-vs-current distinction.
+
+Needed hard cases:
+
+- validation noise near a meaningful decision
+- stale plan followed by accepted current correction
+- pending observation already covered by current reflection
+- pending observation supersedes a current reflection
+- rewrite with sparse critical user constraint among noisy dominant theme
+- rewrite preserving stale/current chain and recall provenance
+- compaction tail continuity after forced observer flush
+
+## Telemetry and status
+
+Track enough real-session data to tune cost and quality.
+
+Per stage:
+
+- input counts: source entries, current reflections, pending observations
+- output counts: observations/reflections
+- token usage: input/output/cache/cost
+- duration
+- no-op/failure reason
+
+Rewrite-specific:
+
+- active reflection tokens / budget
+- input reflection count
+- output reflection count
+- retired count
+- compression ratio
+- no-op/backoff reason
+
+Status should expose:
+
+```text
+Pending reflection observations: N
+Rewrite pressure: X / Y tokens
+Recent compaction tail: N, when present
+Last observer/reflector/rewrite cost
+```
+
+## Completed work
 
 - Additive mode removed; default strategy is `replacement`.
-- Compaction uses an observer-only safety flush and does not block on full OM catchup.
-- Context projection is reflection-only; reviewed/unreviewed active-memory state was removed.
-- Observations are hidden from active context projection; active projection renders current reflections only.
-- Follow-up flags, observation drops, and separate reflection-reviewed events were removed.
-- Typed memory ids are implemented for new records: `obs_*` observations and `ref_*` reflections.
-- Reflection records now use `sources` typed provenance ids and carry `createdAt`.
-- Ledger folding, projection, recall, and tools normalize old records at the read boundary only.
-- Compaction summary/details render active reflections only and do not preserve an active observation pool.
-- Curator runtime path, pin/unpin ledger events, pin config, curator config/status lines, and curator tests/evals were removed.
-- Dropper code and eval routing were removed.
-- Observer input is sanitized and primary-source filtered.
-- Observer tool rendering is policy-based:
-  - unknown/generic successful tools are metadata-only by default
-  - mutation tools inherit metadata-only unless configured otherwise
-  - bash and errors use bounded excerpts
-  - configured delegation tools such as `fork` can use `full-excerpt`
-  - long lines are capped by `observerToolResultLineMaxChars`
-- Observer hard evals are done for this pass:
-  - 7-case scored hard suite exists
-  - hard checks distinguish unsafe failures from score/completeness misses
-  - current mini-low baseline passes hard checks
-  - future observer eval hardening is deferred unless real sessions show regressions
-- Curator evals use hard-check + partial-score semantics.
-- Reflector default thinking is `low`; current small reflector eval baseline passes at low with much lower cost than xhigh.
+- Typed ids implemented: `obs_*`, `ref_*`, typed `sources`.
+- Reflection records carry `createdAt`.
+- Legacy ledger/session records normalize at read boundary only.
+- Observations hidden from normal active context projection.
+- Active projection renders current reflections only.
+- Curator, pin/unpin, follow-up flags, dropped observations, and reviewed markers removed from runtime/evals.
+- Reflector default thinking is `low`.
+- Rewrite worker and `om.reflections.rewritten` retirement event implemented.
+- Rewrite backoff for unchanged failed/no-op active sets implemented.
+- Recall traverses typed observation/reflection provenance.
+- Observer source serialization is policy-based and bounded.
+- Observer stage now sends source chunk only.
+- Reflector stage now sends pending/unreflected observations only.
+- Real-session OM eval fixtures and low-thinking suite exist.
+- Judge-based OM eval scoring exists, but rubrics need hardening.
 
-## Current lifecycle
+## Next work, recommended order
 
-Current implemented lifecycle:
+1. Simplify observer prompt/tool contract.
+   - Remove `mark_observed_no_observations`.
+   - Use `record_observations({ observations: [] })` for no durable observations.
+   - Remove stale prior-memory and fork/delegation special-case wording.
 
-```text
-source entries
-  ↓
-observer
-  records typed observations as durable evidence
-  ↓
-reflector
-  records typed active reflections or an empty reflection coverage marker
-  ↓
-projection
-  renders current active reflections only
-```
+2. Simplify reflector prompt.
+   - Remove review-era wording.
+   - Remove impossible empty-array instruction if schema remains non-empty.
+   - Clarify current-reflections + pending-observations contract.
 
-Current implemented `Next context` is:
+3. Reframe rewrite prompt as handoff memory.
+   - Use include-shaped handoff sections/criteria.
+   - Add sparse-critical-fact safeguard.
+   - Avoid count-band requirements unless evals prove necessary.
 
-```text
-current reflections
-```
+4. Add compaction flushed observation tail.
+   - Return/track observations created by forced compaction safety observe.
+   - Render only that bounded tail in compaction projection.
+   - Add tests for normal projection vs compaction projection.
 
-The obsolete follow-up/drop/review maintenance paths have been removed.
+5. Harden eval rubrics.
+   - Remove reflector count bias.
+   - Add semantic judge expectations for stale/current, deferred tasks, exact anchors, and sparse critical facts.
+   - Require judge pass plus score threshold.
 
-Target lifecycle:
+6. Add telemetry/status improvements.
+   - Make real cost/quality tuning visible.
 
-```text
-source entries
-  ↓
-observer
-  records observations as durable evidence in the ledger
-  ↓
-reflector
-  records active reflections backed by observation ids
-  ↓
-projection
-  renders current active reflections only
-  ↓
-rewrite, when projected memory exceeds budget
-  rewrites all current reflections into a smaller active reflection set
-  retires the rewritten active set from projection
-  preserves provenance through typed source ids
-  ↓
-recall
-  recovers retired reflections, observations, and source entries when exact evidence is needed
-```
-
-Target active memory is:
-
-```text
-current active reflections
-```
-
-Observations are not active memory. They remain durable background evidence for reflector and recall; rewrite input is active reflections only for now.
-No pinned observation pool. No normal raw-observation visibility. If reflector lag/failure proves unsafe, add an explicit small emergency raw tail later; do not assume one by default.
-
-## Observer source input: current contract
-
-Observer coverage advances over source ledger entries, but observer model input now renders only primary `message` entries.
-
-Rendered message roles:
-
-| Source | Behavior |
-|---|---|
-| user message | included, capped per entry |
-| assistant message | included, thinking redacted, capped per entry |
-| tool result | included as sanitized tool evidence |
-| bash execution | included as sanitized command/output evidence |
-| unsupported/derived roles | skipped |
-
-Skipped as observer model input:
-
-```text
-compaction
-branch_summary
-custom_message
-custom/branch/compaction message roles
-```
-
-If a chunk has only skipped entries, observer coverage advances with zero observations so the cursor does not stall.
-Observations may cite only rendered source ids.
-
-Current defaults:
-
-```text
-observerToolResultSummaryMaxLines = 4
-observerToolResultErrorMaxLines = 20
-observerToolResultLineMaxChars = 300
-observerToolOutputPolicies = { fork: "full-excerpt" }
-```
-
-## Next planned work
-
-### Stage 1: Design spec for reflection-only active memory — done
-
-Goal: write down the target architecture before more code churn.
-
-Status: `docs/reflection-only-memory-design.md` now captures the reflection-only target, boundary-only legacy compatibility, typed ids, projection rules, rewrite plan, recall policy, and staged removal plan.
-
-Decisions already made for the next design:
-
-- Observations are durable evidence, not active projected memory.
-- Pin/unpin should be removed completely, not merely de-emphasized.
-- Curator should be removed, folded into reflector, or reduced to a single minimal compression-auditor role.
-- Active projection should be current reflections only.
-- Memory pressure should use projected active-memory tokens, not observation count and not the old `observationsPoolMaxTokens` semantics.
-- Compaction should stay near-instant: observer-only tail flush at compaction boundary, no synchronous reflector/curator/rewrite.
-- Rewrite should be background maintenance triggered before compaction when active memory exceeds budget.
-- Rewrite should be safe-by-default: invalid/low-quality rewrite means no-op and retires nothing.
-- No backcompat requirement for pin/unpin behavior in this redesign.
-
-Open architectural questions to settle in the spec:
-
-1. Exact typed id format, e.g. `obs_...`, `ref_...`, maybe `src_...` later.
-2. Exact reflection record shape. Preferred direction:
-   ```ts
-   Reflection {
-     id: string;
-     content: string;
-     sources: string[]; // typed ids, usually obs_* and for rewrite ref_* too
-     createdAt: string;
-   }
-   ```
-3. Normal reflector provenance rule:
-   - normal reflector may read current reflections for context
-   - normal reflector cites observations only
-   - rewrite may cite observations and old reflections
-   - only rewrite retires old active reflections
-4. Raw observation fallback:
-   - none by default
-   - if reflector lag/failure proves unsafe, add an explicit emergency fallback later rather than silently projecting observations
-5. Hidden rewrite audit manifest:
-   - rewrite records retained vs discarded retired reflections for audit/debug
-   - discarded retired reflections are not rendered in active memory
-   - no semantic/search recall is planned; active memory must retain useful handles
-6. Exact status language for ledger vs active memory vs recallable retired memory.
-
-### Stage 2: Data model and projection rewrite — done
-
-Goal: make projection reflect the new architecture.
-
-Tasks:
-
-- [x] Introduce typed memory ids for observations/reflections.
-- [x] Add `createdAt` to reflection records and model-facing rendering.
-- [x] Replace `supportingObservationIds` with a single typed `sources` array in core paths.
-- [x] Remove remaining pin/unpin state, events, curator projection/status language.
-- [x] Stop showing observations in normal active projection.
-- [x] Keep observations in the ledger for reflector input and recall.
-- [x] Update compaction projection so summary renders active reflections only.
-- [x] Keep compaction hook synchronous work limited to deterministic projection render; observer tail flush remains the intended boundary behavior.
-
-### Stage 3: Reflector simplification and compression-audit replacement — mostly done
-
-Goal: preserve the safety benefits of curator without pinning or multi-phase curator cost.
-
-Status: curator is no longer scheduled or configured, pin/unpin behavior is gone, follow-up flags/drop/review events are gone, reflector prompt coverage heuristics were removed, and the reflector model-facing record tool uses `sources` instead of legacy `supportingObservationIds`. OM eval infrastructure no longer loads or references the deleted curator agent. Remaining work is final eval hardening against real models.
-
-Tasks:
-
-- Redefine reflector contract:
-  - consume observations not yet covered by reflection coverage and current reflections
-  - emit active reflection records sourced to observation ids
-  - preserve exact paths/commands/errors when they are durable anchors
-  - retain stale/current relationships when relevant
-  - avoid meta/eval chatter unless it is a durable project decision
-- [x] Remove curator pin/unpin tools and lifecycle.
-- [x] Remove follow-up/flag behavior from runtime paths.
-- Ensure old curator safety cases are represented in future reflector/rewrite evals.
-
-### Stage 4: Full active-memory rewrite — started
-
-Goal: bound active reflection memory without per-reflection lifecycle management.
-
-Status: the deterministic rewrite retirement ledger shape exists (`om.reflections.rewritten`), and projection/folding remove retired reflections from active memory while preserving them in ledger lookup for recall. A rewrite worker triggers from active reflection token pressure, asks an LLM for compact normal reflections, validates source ids/content/count, and appends normal reflections plus a minimal rewrite retirement event. Runtime backoff skips repeated rewrite attempts for an unchanged failed/no-op active set. Real-model tuning is still upcoming. Rewrite input intentionally remains active reflections only for now; source observations are recallable but not injected into rewrite context to avoid unbounded or misleading partial evidence.
-
-Design:
-
-```text
-if active projection tokens > budget:
-  deterministically build bounded rewrite input from all current active reflections
-  ask LLM for a smaller set of normal reflection records
-  mechanically validate output
-  if valid: append rewrite event that records new reflections and retires rewritten active reflection ids
-  if invalid: no-op, keep old active memory
-```
-
-Tasks:
-
-- [x] Add rewrite audit event that retires old active reflection ids.
-- [x] Add worker path that records new normal reflections plus minimal retirement metadata.
-- [x] Recall through ref-to-ref chains so rewritten reflections can recover underlying observations.
-- [x] Do not make rewritten reflections a special shape; they are normal reflections with typed `sources`.
-- Start with full rewrite of all current active reflections.
-- Do not add multi-phase rewrite unless evals show one pass is insufficient.
-- Add minimal hidden rewrite audit metadata:
-  ```ts
-  {
-    retiredReflectionIds: string[];
-    summary?: string;
-  }
-  ```
-- Do not render rewrite summaries in active memory by default.
-- On invalid/low-quality rewrite, no-op and retire nothing.
-- After rewrite failure/no-op, back off for the unchanged active reflection set; status reports active-memory pressure.
-- Deterministic responsibilities:
-  - pressure trigger and token accounting
-  - rewrite input selection and hard caps
-  - typed id validation
-  - max reflection count/length validation
-  - no invented sources
-  - no retirement outside candidate set
-  - apply/no-op semantics
-  - retired id accounting: retired ids equal retained old-ref sources plus discarded ids
-- LLM responsibilities:
-  - semantic grouping
-  - dense current synthesis
-  - stale/current conflict resolution from evidence
-  - exact anchor retention
-  - dropping redundant/meta/noisy active memory
-
-### Stage 5: Recall as required evidence path
-
-Goal: make hidden observations and retired reflections safely recoverable.
-
-Tasks:
-
-- Ensure recall can traverse:
-  ```text
-  ref_* -> source ref_* -> obs_* -> source entries
-  ref_* -> obs_* -> source entries
-  obs_* -> source entries
-  ```
-- Improve recall output so provenance chains and timestamps are clear.
-- Add agent policy text: use active memory for orientation, recall for exact evidence.
-- Require recall before relying on exact paths, commands, errors, API names, stale/current fixes, or pass/fail claims from memory.
-- Add unit tests for recall traversal before model evals.
-
-### Stage 6: Hard realistic evals
-
-Goal: prove the new architecture before trusting it.
-
-Do this after the design/data/projection path is clear, not first.
-
-Eval targets:
-
-- Reflector replaces old curator safety:
-  - current blockers are not lost
-  - unresolved is not marked fixed
-  - stale/current relationship is preserved
-  - exact anchors survive as reflection text or recallable ids
-- Rewrite quality:
-  - 30-100 overlapping/noisy/stale reflections rewrite to a small current set
-  - exact current decisions are retained
-  - meta/eval chatter is removed unless durable
-  - invalid rewrite no-ops
-  - provenance ids are valid and sufficient for recall
-- Recall behavior:
-  - model decides to recall when exact evidence is required
-  - model uses recalled source correctly
-- End-to-end:
-  - use historical/giga-session slices
-  - track hard failures, partial scores, token cost, latency, active memory size, and retained exact evidence
+7. Optional later: structured reflection categories.
+   - Defer data-model change unless one-line reflections plus better prompts/evals are insufficient.
 
 ## Deferred / conditional
 
-- More observer eval hardening only if real sessions show observer regressions.
-- Per-reflection deprecation/supersession is not the preferred path; use full active-memory rewrite unless evals prove item-level lifecycle is necessary.
-- More config knobs only after evals prove a single policy is insufficient.
-- After planned lifecycle/eval work, look at OM + fork interaction: use instant compaction and always-on memory to send compacted context to forked agents instead of full context, avoiding full uncached input cost.
+- Exposing recall to OM agents is not planned. Static bounded input remains preferred.
+- Semantic/search retrieval for reflector is not planned. Current reflections should carry active state; recall is for assistant evidence recovery.
+- Per-reflection deprecation/supersession is not preferred; use full active-memory rewrite unless evals prove item-level lifecycle is necessary.
+- More config knobs only after evals prove a single policy insufficient.
+- Later follow-up: OM + fork interaction using instant compaction/always-on memory to send compacted context to forked agents instead of full context.
