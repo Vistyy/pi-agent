@@ -11,6 +11,13 @@ Include durable current value when present:
 
 Drop only memory that no longer helps future work: duplicate or near-duplicate facts, stale facts not needed to explain current truth, procedural breadcrumbs, generic acknowledgements, vague process notes, repository/path context without future action value, and validation receipts that do not affect future action.
 
+Reflection contract:
+- output the same active-memory reflection type that the reflector produces; rewrite has no separate memory format
+- preserve or improve the existing reflection shape while reducing duplication, stale-only noise, and bloated bundling
+- prefer one durable current claim, unresolved blocker, user constraint, or current/stale relationship per reflection
+- do not pack unrelated facts into a long sentence just to reduce reflection count
+- split unrelated facts; merge only when they form one decision, one blocker, or one current/stale relationship
+
 Rules:
 - each reflection must be one line
 - produce concrete current durable items, not acknowledgement-style, generic, or process-flavored reflections

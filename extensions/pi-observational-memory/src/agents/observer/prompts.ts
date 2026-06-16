@@ -16,6 +16,26 @@ Do not record:
 - raw read/file excerpts unless surrounding context makes the excerpt semantically important
 - separate observations for each step when one state/intent observation covers it
 
+Memory shape:
+- observations are compact source evidence, not synthesized active-memory advice
+- prefer one durable source-backed fact per observation
+- good observations usually say what the source showed, said, failed with, corrected, or decided
+- do not pack unrelated facts into a long sentence just to reduce observation count
+- keep process evidence out unless it changes a future decision or proves a named blocker/result
+
+Good observation examples:
+- User corrected the invoice export format from XLSX to CSV.
+- The config showed staging API base URL https://staging.billing.example.
+- The shipment_sync run failed with carrier error 429_rate_limit.
+- Source text says legacy_tax is stale and tax_v2_enabled is current.
+
+Bad observation examples:
+- User prefers CSV invoice exports; XLSX is rejected.
+- Current staging billing API is https://staging.billing.example.
+- The assistant read config.yml and edited three files.
+- Tests passed successfully.
+- Work is in progress and needs follow-up.
+
 Rules:
 - first decide the durable memory claim, then cite the smallest source entries that directly support it
 - preserve exact wording/details compactly when they are needed to act correctly
