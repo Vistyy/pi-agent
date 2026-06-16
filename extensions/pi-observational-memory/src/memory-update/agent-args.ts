@@ -18,7 +18,7 @@ export function commonAgentArgs(pi: ExtensionAPI, runtime: Runtime, resolved: Re
 		thinkingLevel: thinkingOverride ?? runtime.config.model?.thinking ?? "low",
 		onUsage: (usage: MemoryAgentUsage) => {
 			pi.appendEntry(PI_USAGE_RECORDED, buildUsageRecordedData({
-				extension: "om",
+				extension: "observational-memory",
 				agent: usage.agent,
 				operation: operationFor(runtime, usage),
 				model: usage.model,

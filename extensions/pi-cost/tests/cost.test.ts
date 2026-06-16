@@ -17,7 +17,7 @@ const omEntry = {
 	type: "custom",
 	customType: PI_USAGE_RECORDED,
 	data: buildUsageRecordedData({
-		extension: "om",
+		extension: "observational-memory",
 		agent: "observer",
 		operation: "memory-update",
 		model: { provider: "openai", id: "mini" },
@@ -44,7 +44,7 @@ describe("pi-cost", () => {
 		expect(cost.main.cost).toBe(0.1);
 		expect(cost.extensionsTotal.cost).toBe(0.5);
 		expect(cost.total.cost).toBeCloseTo(0.6);
-		expect(cost.extensions.get("om")?.agents.get("observer")?.cost).toBe(0.2);
+		expect(cost.extensions.get("observational-memory")?.agents.get("observer")?.cost).toBe(0.2);
 		expect(cost.extensions.get("fork")?.tags.get("effort")?.get("deep")?.cost).toBe(0.3);
 	});
 
@@ -58,7 +58,7 @@ describe("pi-cost", () => {
 
 		const output = notify.mock.calls[0][0] as string;
 		expect(output).toContain("Total:");
-		expect(output).toContain("om:");
+		expect(output).toContain("observational-memory:");
 		expect(output).toContain("Tag effort");
 		expect(output).toContain("deep:");
 	});
