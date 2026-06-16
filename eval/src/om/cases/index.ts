@@ -1,3 +1,4 @@
+import { e2eObserverReflectorRewriteRecall } from './e2e.js';
 import { observerExactLanguageFutureIntent, observerRealGiga32, observerRealGiga64, observerRealGiga96, observerStateStaleBlocker, observerToolEvidenceBoundary, observerZeroDurableRestraint } from './observer.js';
 import { reflectorExactAnchorRetention, reflectorRealGiga8, reflectorRealGiga16, reflectorRealSessionConstraintsAndState, reflectorRestraintAlreadyCovered, reflectorStaleCurrentReconciliation, reflectorSupersessionRelation } from './reflector.js';
 import { recallActiveObservation, recallNotFound, recallPartialMissingSource, recallReflectionChain, recallRetiredReflectionDirectly, recallThroughRetiredReflection } from './recall.js';
@@ -33,6 +34,7 @@ export const allCases = [
   recallRetiredReflectionDirectly,
   recallPartialMissingSource,
   recallNotFound,
+  e2eObserverReflectorRewriteRecall,
   observerRealGiga96,
   rewriteRealGiga120,
 ];
