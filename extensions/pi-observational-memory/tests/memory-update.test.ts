@@ -15,7 +15,6 @@ import { ensureObservedBeforeCompaction } from "../src/memory-update/compaction.
 import { registerMemoryUpdateHook } from "../src/memory-update/scheduler.js";
 import { Runtime } from "../src/runtime.js";
 import {
-	OM_AGENT_RUN_RECORDED,
 	OM_OBSERVATIONS_RECORDED,
 	OM_REFLECTIONS_RECORDED,
 	OM_REFLECTIONS_REWRITTEN,
@@ -113,8 +112,7 @@ function setup(args: {
 		getEntries: () => entries,
 		getAppends: () => appendEntry.mock.calls.map(([customType, data]) => ({ customType, data })),
 		getMemoryAppends: () => appendEntry.mock.calls
-			.map(([customType, data]) => ({ customType, data }))
-			.filter((entry) => entry.customType !== OM_AGENT_RUN_RECORDED),
+			.map(([customType, data]) => ({ customType, data })),
 	};
 }
 

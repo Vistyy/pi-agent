@@ -3,7 +3,7 @@ import { STRATEGY } from "../config.js";
 import { debugSessionMetadata, withDebugLogContext } from "../debug-log.js";
 import type { Runtime } from "../runtime.js";
 import type { Entry } from "../session-ledger/index.js";
-import { computeMemoryStageDue } from "./due.js";
+import { computeMemoryStageWork } from "./due.js";
 import { runMemoryUpdate } from "./run.js";
 import type { MemoryUpdateCtx } from "./types.js";
 
@@ -22,8 +22,8 @@ function maybeLaunchMemoryUpdate(pi: ExtensionAPI, runtime: Runtime, ctx: Memory
 	if (runtime.memoryUpdateInFlight) return;
 
 	const entries = ctx.sessionManager.getBranch() as Entry[];
-	const due = computeMemoryStageDue(entries, runtime);
-	if (!due.observerDue && !due.reflectorDue && !due.rewriteDue) return;
+	const work = computeMemoryStageWork(entries, runtime);
+	if (work.observerWork.length === 0 && work.reflectorWork.length === 0 && work.rewriteWork.length === 0) return;
 
 	const runId = `memory-update-${Date.now().toString(36)}-${Math.random().toString(16).slice(2, 8)}`;
 	const sessionMetadata = debugSessionMetadata(ctx);

@@ -19,28 +19,23 @@ export type Entry = {
 	firstKeptEntryId?: string;
 };
 
-export type MemoryRecordKind = "observation" | "reflection";
-
 export type MemoryRecordBase = {
 	id: string;
-	kind: MemoryRecordKind;
 	content: string;
 	createdAt: string;
-	sources: string[];
 };
 
 export type Observation = MemoryRecordBase & {
-	id: string;
 	kind: "observation";
 	/** Observation event time. Kept separately while prompts/status still render observation timestamps. */
 	timestamp: string;
-	/** Source ledger entry ids. Mirrors sources until source entries get typed ids. */
+	/** Source ledger entry ids. */
 	sourceEntryIds: string[];
 };
 
 export type Reflection = MemoryRecordBase & {
-	id: string;
 	kind: "reflection";
+	sources: string[];
 };
 
 export type ObservationsRecordedEntryData = {
@@ -101,7 +96,6 @@ export function normalizeObservation(value: unknown): Observation | undefined {
 		kind: "observation",
 		content: value.content,
 		createdAt: isNonEmptyString(value.createdAt) ? value.createdAt : value.timestamp,
-		sources: value.sourceEntryIds,
 		timestamp: value.timestamp,
 		sourceEntryIds: value.sourceEntryIds,
 	};

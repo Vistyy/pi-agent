@@ -1,18 +1,13 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { runObserver } from "../agents/observer/agent.js";
 import { STRATEGY } from "../config.js";
 import { debugLog, debugSessionMetadata, withDebugLogContext } from "../debug-log.js";
+import { serializeObserverSourceEntries } from "../memory/serialization/observer.js";
 import type { Runtime } from "../runtime.js";
-import { OM_AGENT_RUN_RECORDED, OM_OBSERVATIONS_RECORDED, entryIndexById, latestCoverageIndex, type Entry, type Observation } from "../session-ledger/index.js";
-import { makeModelResolver, type MemoryStageName } from "./model-resolver.js";
-import { sourceEntriesAfter } from "./source-entries.js";
-import type { MemoryUpdateCtx, ResolvedModel, StageOutcome } from "./types.js";
-
-type ObserverStageModule = typeof import("./observer-stage.js");
-let observerStageModule: Promise<ObserverStageModule> | undefined;
-
-function loadObserverStage(): Promise<ObserverStageModule> {
-	return observerStageModule ??= import("./observer-stage.js");
-}
+import { OM_OBSERVATIONS_RECORDED, buildObservationsRecordedData, entryIndexById, foldLedger, sourceEntriesAfterIndex, type Entry, type Observation } from "../session-ledger/index.js";
+import { commonAgentArgs } from "./agent-args.js";
+import { makeModelResolver } from "./model-resolver.js";
+import type { MemoryUpdateCtx } from "./types.js";
 
 export async function ensureObservedBeforeCompaction(
 	pi: ExtensionAPI,
@@ -25,10 +20,10 @@ export async function ensureObservedBeforeCompaction(
 	if (runtime.inFlightObserverStagePromise) await runtime.inFlightObserverStagePromise;
 	const entries = ctx.sessionManager.getBranch() as Entry[];
 	const firstKeptIndex = entryIndexById(entries).get(options.firstKeptEntryId ?? "");
-	const lastCoverageIdx = latestCoverageIndex(entries, OM_OBSERVATIONS_RECORDED);
-	const hasUnobservedCompactedPrefix = firstKeptIndex !== undefined
-		&& sourceEntriesAfter(entries, lastCoverageIdx, firstKeptIndex).length > 0;
-	if (!hasUnobservedCompactedPrefix) return [];
+	if (firstKeptIndex === undefined) return [];
+	const folded = foldLedger(entries);
+	const sourceEntries = sourceEntriesAfterIndex(entries, folded.lastObservationCoverageIndex, firstKeptIndex);
+	if (sourceEntries.length === 0) return [];
 	const runId = `compaction-observer-flush-${Date.now().toString(36)}-${Math.random().toString(16).slice(2, 8)}`;
 	const sessionMetadata = debugSessionMetadata(ctx);
 	return withDebugLogContext({
@@ -36,41 +31,47 @@ export async function ensureObservedBeforeCompaction(
 		cwd: ctx.cwd,
 		...sessionMetadata,
 		runId,
-	}, async () => {
-		const resolveModel = makeModelResolver(runtime, ctx);
-		return runCompactionObserverFlush(pi, runtime, ctx, resolveModel, options.firstKeptEntryId);
-	});
+	}, async () => runCompactionObserverFlush(pi, runtime, ctx, sourceEntries));
 }
 
 async function runCompactionObserverFlush(
 	pi: ExtensionAPI,
 	runtime: Runtime,
 	ctx: MemoryUpdateCtx,
-	resolveModel: (stage: MemoryStageName) => Promise<ResolvedModel | undefined>,
-	firstKeptEntryId: string | undefined,
+	sourceEntries: Entry[],
 ): Promise<Observation[]> {
-	const stage: MemoryStageName = "observer";
-	const started = Date.now();
-	let outcome: StageOutcome = "abort";
-	let reason: string | undefined;
 	try {
-		const flushedObservations: Observation[] = [];
-		const { runObserverStage } = await loadObserverStage();
-		outcome = await runObserverStage(pi, runtime, ctx, resolveModel, firstKeptEntryId, (observations) => {
-			flushedObservations.push(...observations);
+		const coversUpToId = sourceEntries.at(-1)?.id;
+		if (!coversUpToId) return [];
+		const { text: chunk, sourceEntryIds } = serializeObserverSourceEntries(sourceEntries, {
+			toolResultSummaryMaxLines: runtime.config.observerToolResultSummaryMaxLines,
+			toolResultErrorMaxLines: runtime.config.observerToolResultErrorMaxLines,
+			toolResultLineMaxChars: runtime.config.observerToolResultLineMaxChars,
+			toolOutputPolicies: runtime.config.observerToolOutputPolicies,
 		});
-		return flushedObservations;
+		if (!chunk.trim() || sourceEntryIds.length === 0) {
+			const data = buildObservationsRecordedData([], coversUpToId);
+			if (data) pi.appendEntry(OM_OBSERVATIONS_RECORDED, data);
+			debugLog("observer.compaction_flush_unrenderable", { coversUpToId });
+			return [];
+		}
+
+		const resolveModel = makeModelResolver(runtime, ctx);
+		const resolved = await resolveModel("observer");
+		if (!resolved) return [];
+		const observations = await runObserver({
+			...commonAgentArgs(pi, runtime, resolved, runtime.config.observerThinking),
+			chunk,
+			allowedSourceEntryIds: sourceEntryIds,
+		});
+		if (!observations) return [];
+		const data = buildObservationsRecordedData(observations, coversUpToId);
+		if (!data) return [];
+		pi.appendEntry(OM_OBSERVATIONS_RECORDED, data);
+		return data.observations;
 	} catch (error) {
-		reason = runtime.recordMemoryUpdateStageError(ctx, stage, error);
-		debugLog(`${stage}.error`, { errorMessage: reason });
+		const reason = runtime.recordMemoryUpdateStageError(ctx, "observer", error);
+		debugLog("observer.error", { errorMessage: reason });
 		return [];
-	} finally {
-		pi.appendEntry(OM_AGENT_RUN_RECORDED, {
-			schemaVersion: 1,
-			agent: stage,
-			status: outcome === "abort" ? "error" : "ok",
-			reason,
-			durationMs: Date.now() - started,
-		});
 	}
 }

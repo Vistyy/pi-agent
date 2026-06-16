@@ -3,14 +3,13 @@ import { runReflector } from "../agents/reflector/agent.js";
 import { debugLog } from "../debug-log.js";
 import type { Runtime } from "../runtime.js";
 import {
-	OM_OBSERVATIONS_RECORDED,
 	OM_REFLECTIONS_RECORDED,
 	buildReflectionsRecordedData,
 	foldLedger,
-	latestCoverageMarkerId,
 	type Entry,
+	type Observation,
 } from "../session-ledger/index.js";
-import { commonAgentArgs, observationsSinceReflectionCoverage } from "./stage-utils.js";
+import { commonAgentArgs } from "./agent-args.js";
 import type { MemoryUpdateCtx, ResolveMemoryModel, StageOutcome } from "./types.js";
 
 export async function runReflectorStage(
@@ -18,18 +17,19 @@ export async function runReflectorStage(
 	runtime: Runtime,
 	ctx: MemoryUpdateCtx,
 	resolveModel: ResolveMemoryModel,
+	workObservations?: Observation[],
 ): Promise<StageOutcome> {
 	const entries = ctx.sessionManager.getBranch() as Entry[];
-	const observationCoverageId = latestCoverageMarkerId(entries, OM_OBSERVATIONS_RECORDED);
+	const folded = foldLedger(entries);
+	const unreflectedObservations = workObservations ?? folded.unreflectedObservations;
+	const observationCoverageId = folded.lastObservationCoverageId;
 	if (!observationCoverageId) {
 		debugLog("reflector.skip", { reason: "no_observation_coverage" });
 		return "continue";
 	}
 
-	const folded = foldLedger(entries);
-	const unreflectedObservations = observationsSinceReflectionCoverage(entries, folded.observations);
 	const reflectionWorkCount = unreflectedObservations.length;
-	if (reflectionWorkCount < runtime.config.reflectEveryObservations) {
+	if (!workObservations && reflectionWorkCount < runtime.config.reflectEveryObservations) {
 		debugLog("reflector.skip", {
 			reason: "below_observation_threshold",
 			unreflectedObservationCount: unreflectedObservations.length,

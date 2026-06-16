@@ -3,7 +3,7 @@ import type { Model, ModelThinkingLevel } from "@earendil-works/pi-ai";
 import { Type } from "@earendil-works/pi-ai";
 import type { Static } from "typebox";
 import { hashId, observationId } from "../../memory/ids.js";
-import { normalizeAllowedIdsStrict, runMemoryAgentLoop, type MemoryAgentUsage } from "../common.js";
+import { normalizeAllowedIdsStrict, runMemoryAgentLoop } from "../common.js";
 import { OBSERVER_SYSTEM } from "./prompts.js";
 import { nowTimestamp, truncateRecordContent } from "../../memory/record-content.js";
 import type { Observation } from "../../session-ledger/index.js";
@@ -18,7 +18,6 @@ interface RunObserverArgs {
 	agentLoop?: typeof agentLoop;
 	maxTurns?: number;
 	thinkingLevel?: ModelThinkingLevel;
-	onUsage?: (usage: MemoryAgentUsage) => void;
 }
 
 export const OBSERVATION_TIMESTAMP_PATTERN = "^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$";
@@ -138,7 +137,6 @@ export async function runObserver(args: RunObserverArgs): Promise<Observation[] 
 					kind: "observation",
 					content,
 					createdAt: obs.timestamp,
-					sources: sourceEntryIds.accepted,
 					timestamp: obs.timestamp,
 					sourceEntryIds: sourceEntryIds.accepted,
 				});
@@ -177,7 +175,6 @@ ${conversation}`;
 		userText,
 		tools: [recordObservations as AgentTool<any>],
 		agentName: "observer",
-		onUsage: args.onUsage,
 	});
 
 	if (accumulated.size === 0) return recordedEmpty ? [] : undefined;

@@ -1,21 +1,18 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { runObserver } from "../agents/observer/agent.js";
 import { debugLog } from "../debug-log.js";
+import { estimateEntryTokens } from "../memory/token-estimate.js";
 import { serializeObserverSourceEntries } from "../memory/serialization/observer.js";
 import type { Runtime } from "../runtime.js";
 import {
 	OM_OBSERVATIONS_RECORDED,
 	buildObservationsRecordedData,
-	entryIndexById,
-	latestCoverageIndex,
+	foldLedger,
 	observationTokenSum,
-	sourceTokensSinceObservationCoverage,
-	sourceEntryCountSinceObservationCoverage,
+	sourceEntriesAfterIndex,
 	type Entry,
-	type Observation,
 } from "../session-ledger/index.js";
-import { sourceEntriesAfter } from "./source-entries.js";
-import { commonAgentArgs } from "./stage-utils.js";
+import { commonAgentArgs } from "./agent-args.js";
 import type { MemoryUpdateCtx, ResolveMemoryModel, StageOutcome } from "./types.js";
 
 export async function runObserverStage(
@@ -23,23 +20,19 @@ export async function runObserverStage(
 	runtime: Runtime,
 	ctx: MemoryUpdateCtx,
 	resolveModel: ResolveMemoryModel,
-	forceObserveBeforeEntryId?: string,
-	onRecordedObservations?: (observations: Observation[]) => void,
+	workEntries?: Entry[],
 ): Promise<StageOutcome> {
 	const entries = ctx.sessionManager.getBranch() as Entry[];
-	const tokens = sourceTokensSinceObservationCoverage(entries);
-	const lastCoverageIdx = latestCoverageIndex(entries, OM_OBSERVATIONS_RECORDED);
-	const boundaryIdx = forceObserveBeforeEntryId ? entryIndexById(entries).get(forceObserveBeforeEntryId) : undefined;
-	const sourceEntryCount = boundaryIdx === undefined
-		? sourceEntryCountSinceObservationCoverage(entries)
-		: sourceEntriesAfter(entries, lastCoverageIdx, boundaryIdx).length;
+	const folded = foldLedger(entries);
+	const chunkEntries = workEntries ?? sourceEntriesAfterIndex(entries, folded.lastObservationCoverageIndex);
+	const sourceEntryCount = chunkEntries.length;
 	if (sourceEntryCount === 0) return "continue";
-	if (boundaryIdx === undefined && sourceEntryCount < runtime.config.observeEveryMessages) return "continue";
+	if (!workEntries && sourceEntryCount < runtime.config.observeEveryMessages) return "continue";
 
-	const chunkEntries = sourceEntriesAfter(entries, lastCoverageIdx, boundaryIdx);
 	const coversUpToId = chunkEntries.at(-1)?.id;
 	if (!coversUpToId) return "continue";
-	if (lastCoverageIdx === -1 && tokens > runtime.config.maxInitialObserveTokens) {
+	const tokens = chunkEntries.reduce((sum, entry) => sum + estimateEntryTokens(entry), 0);
+	if (folded.lastObservationCoverageIndex === -1 && tokens > runtime.config.maxInitialObserveTokens) {
 		const data = buildObservationsRecordedData([], coversUpToId);
 		if (data) pi.appendEntry(OM_OBSERVATIONS_RECORDED, data);
 		debugLog("observer.initial_backfill_skipped", { tokens, coversUpToId });
@@ -90,7 +83,6 @@ export async function runObserverStage(
 
 	const data = buildObservationsRecordedData(observations, coversUpToId);
 	if (!data) return "continue";
-	onRecordedObservations?.(data.observations);
 	debugLog(observations.length === 0 ? "observer.reviewed_empty" : "observer.records", {
 		count: observations.length,
 		observationTokens: observationTokenSum(observations),

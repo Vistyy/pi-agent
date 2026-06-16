@@ -18,7 +18,6 @@ export type TestObservation = {
 	kind: "observation";
 	content: string;
 	createdAt: string;
-	sources: string[];
 	timestamp: string;
 	sourceEntryIds: string[];
 };
@@ -129,7 +128,6 @@ export function observation(
 		kind: "observation",
 		content: `Observation ${id}`,
 		createdAt: DEFAULT_TIMESTAMP,
-		sources: sourceEntryIds,
 		timestamp: DEFAULT_TIMESTAMP,
 		sourceEntryIds,
 		...overrides,

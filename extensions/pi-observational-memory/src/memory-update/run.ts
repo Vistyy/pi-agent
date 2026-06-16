@@ -1,8 +1,8 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { debugLog } from "../debug-log.js";
 import type { Runtime } from "../runtime.js";
-import { OM_AGENT_RUN_RECORDED, type Entry } from "../session-ledger/index.js";
-import { computeMemoryStageDue } from "./due.js";
+import type { Entry } from "../session-ledger/index.js";
+import { computeMemoryStageWork } from "./due.js";
 import { makeModelResolver, type MemoryStageName } from "./model-resolver.js";
 import type { MemoryUpdateCtx, StageOutcome } from "./types.js";
 
@@ -27,31 +27,19 @@ function loadRewriteStage(): Promise<RewriteStageModule> {
 }
 
 async function runTrackedStage(
-	pi: ExtensionAPI,
+	_pi: ExtensionAPI,
 	runtime: Runtime,
 	ctx: MemoryUpdateCtx,
 	stage: MemoryStageName,
 	run: () => Promise<StageOutcome>,
 ): Promise<StageOutcome> {
 	runtime.memoryUpdatePhase = stage;
-	const started = Date.now();
-	let outcome: StageOutcome = "abort";
-	let reason: string | undefined;
 	try {
-		outcome = await run();
-		return outcome;
+		return await run();
 	} catch (error) {
-		reason = runtime.recordMemoryUpdateStageError(ctx, stage, error);
+		const reason = runtime.recordMemoryUpdateStageError(ctx, stage, error);
 		debugLog(`${stage}.error`, { errorMessage: reason });
 		return "abort";
-	} finally {
-		pi.appendEntry(OM_AGENT_RUN_RECORDED, {
-			schemaVersion: 1,
-			agent: stage,
-			status: outcome === "abort" ? "error" : "ok",
-			reason,
-			durationMs: Date.now() - started,
-		});
 	}
 }
 
@@ -62,9 +50,9 @@ export async function runMemoryUpdate(
 ): Promise<void> {
 	const resolveModel = makeModelResolver(runtime, ctx);
 	let entries = ctx.sessionManager.getBranch() as Entry[];
-	let due = computeMemoryStageDue(entries, runtime);
+	let work = computeMemoryStageWork(entries, runtime);
 
-	if (due.observerDue) {
+	if (work.observerWork.length > 0) {
 		const observerWork = runTrackedStage(
 			pi,
 			runtime,
@@ -72,7 +60,7 @@ export async function runMemoryUpdate(
 			"observer",
 			async () => {
 				const { runObserverStage } = await loadObserverStage();
-				return runObserverStage(pi, runtime, ctx, resolveModel);
+				return runObserverStage(pi, runtime, ctx, resolveModel, work.observerWork);
 			},
 		);
 		const observerPromise = observerWork.then(() => undefined);
@@ -85,10 +73,10 @@ export async function runMemoryUpdate(
 		}
 		if (observerOutcome === "abort") return;
 		entries = ctx.sessionManager.getBranch() as Entry[];
-		due = computeMemoryStageDue(entries, runtime);
+		work = computeMemoryStageWork(entries, runtime);
 	}
 
-	if (due.reflectorDue) {
+	if (work.reflectorWork.length > 0) {
 		const reflectorOutcome = await runTrackedStage(
 			pi,
 			runtime,
@@ -96,15 +84,15 @@ export async function runMemoryUpdate(
 			"reflector",
 			async () => {
 				const { runReflectorStage } = await loadReflectorStage();
-				return runReflectorStage(pi, runtime, ctx, resolveModel);
+				return runReflectorStage(pi, runtime, ctx, resolveModel, work.reflectorWork);
 			},
 		);
 		if (reflectorOutcome === "abort") return;
 		entries = ctx.sessionManager.getBranch() as Entry[];
-		due = computeMemoryStageDue(entries, runtime);
+		work = computeMemoryStageWork(entries, runtime);
 	}
 
-	if (due.rewriteDue) {
+	if (work.rewriteWork.length > 0) {
 		await runTrackedStage(
 			pi,
 			runtime,

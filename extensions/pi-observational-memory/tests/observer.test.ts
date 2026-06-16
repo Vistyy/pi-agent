@@ -41,7 +41,6 @@ describe("runObserver", () => {
 			kind: "observation",
 			content,
 			createdAt: "2026-05-02 10:30",
-			sources: ["entry-a"],
 			timestamp: "2026-05-02 10:30",
 			sourceEntryIds: ["entry-a"],
 		});

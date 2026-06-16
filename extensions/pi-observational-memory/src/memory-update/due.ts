@@ -2,23 +2,24 @@ import type { Runtime } from "../runtime.js";
 import {
 	foldLedger,
 	reflectionTokenSum,
-	sourceEntryCountSinceObservationCoverage,
+	sourceEntriesAfterIndex,
 	type Entry,
+	type Observation,
+	type Reflection,
 } from "../session-ledger/index.js";
-import { observationsSinceReflectionCoverage } from "./stage-utils.js";
 
-export type MemoryStageDue = {
-	observerDue: boolean;
-	reflectorDue: boolean;
-	rewriteDue: boolean;
+export type MemoryStageWork = {
+	observerWork: Entry[];
+	reflectorWork: Observation[];
+	rewriteWork: Reflection[];
 };
 
-export function computeMemoryStageDue(entries: Entry[], runtime: Runtime): MemoryStageDue {
+export function computeMemoryStageWork(entries: Entry[], runtime: Runtime): MemoryStageWork {
 	const folded = foldLedger(entries);
-	const reflectionWorkCount = observationsSinceReflectionCoverage(entries, folded.observations).length;
+	const observerWork = sourceEntriesAfterIndex(entries, folded.lastObservationCoverageIndex);
 	return {
-		observerDue: sourceEntryCountSinceObservationCoverage(entries) >= runtime.config.observeEveryMessages,
-		reflectorDue: reflectionWorkCount >= runtime.config.reflectEveryObservations,
-		rewriteDue: reflectionTokenSum(folded.reflections) >= runtime.config.reflectionsPoolMaxTokens,
+		observerWork: observerWork.length >= runtime.config.observeEveryMessages ? observerWork : [],
+		reflectorWork: folded.unreflectedObservations.length >= runtime.config.reflectEveryObservations ? folded.unreflectedObservations : [],
+		rewriteWork: reflectionTokenSum(folded.reflections) >= runtime.config.reflectionsPoolMaxTokens ? folded.reflections : [],
 	};
 }

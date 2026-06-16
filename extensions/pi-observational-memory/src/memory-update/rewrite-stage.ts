@@ -11,7 +11,7 @@ import {
 	reflectionTokenSum,
 	type Entry,
 } from "../session-ledger/index.js";
-import { commonAgentArgs } from "./stage-utils.js";
+import { commonAgentArgs } from "./agent-args.js";
 import type { MemoryUpdateCtx, ResolveMemoryModel, StageOutcome } from "./types.js";
 
 const MIN_REWRITE_REFLECTIONS = 5;

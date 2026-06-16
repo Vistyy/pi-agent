@@ -59,7 +59,7 @@ describe("/om:status", () => {
 		expect(output).not.toContain("Strategy:");
 	});
 
-	it("shows context, next context, progress clocks, and total cost", async () => {
+	it("shows context and progress clocks", async () => {
 		const obs = observation("aaaaaaaaaaaa");
 		const ref = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"]);
 		const entries = [
@@ -76,7 +76,6 @@ describe("/om:status", () => {
 		expect(output).not.toContain("Next context:");
 		expect(output).toContain("Observe: 2 / 10 source entries");
 		expect(output).toContain("Reflect: 0 / 20 observations");
-		expect(output).toContain("Total: $0.0000 / 0 requests / 0 tokens");
 	});
 
 	it("shows full details on request", async () => {
@@ -91,7 +90,7 @@ describe("/om:status", () => {
 		expect(output).toContain("── Details ──");
 		expect(output).toContain("Strategy: replacement");
 		expect(output).toContain("Ledger observations: 1 recorded");
-		expect(output).toContain("Source entries since review cursor: 1");
+		expect(output).toContain("Source entries since reflection cursor: 1");
 	});
 
 	it("rejects unsupported status arguments", async () => {

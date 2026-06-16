@@ -1,20 +1,10 @@
 import { agentLoop, type AgentContext, type AgentLoopConfig, type AgentTool } from "@earendil-works/pi-agent-core";
-import { calculateCost, streamSimple, type Message, type Model, type ModelThinkingLevel, type Usage } from "@earendil-works/pi-ai";
+import { calculateCost, streamSimple, type Message, type Model, type ModelThinkingLevel } from "@earendil-works/pi-ai";
 import { AGENT_LOOP_MAX_TOKENS, boundedMaxTokens } from "./model-budget.js";
 import { debugLog } from "../debug-log.js";
 import { estimateStringTokens } from "../memory/token-estimate.js";
 
 export type MemoryAgentName = "observer" | "reflector" | "rewrite";
-
-export type MemoryAgentUsage = {
-	agent: MemoryAgentName | undefined;
-	requestIndex?: number;
-	model?: { provider?: string; id?: string };
-	thinkingLevel?: ModelThinkingLevel;
-	durationMs?: number;
-	stopReason?: string;
-	usage: unknown;
-};
 
 export type MemoryAgentLoopArgs = {
 	model: Model<any>;
@@ -28,7 +18,6 @@ export type MemoryAgentLoopArgs = {
 	userText: string;
 	tools: AgentTool<any>[];
 	agentName?: MemoryAgentName;
-	onUsage?: (usage: MemoryAgentUsage) => void;
 };
 
 export function joinOrEmpty(items: readonly string[]): string {
@@ -99,19 +88,10 @@ export async function runMemoryAgentLoop(args: MemoryAgentLoopArgs): Promise<voi
 		const originalResult = stream.result.bind(stream);
 		stream.result = async () => {
 			const result = await originalResult();
-			const usage = (result as { usage?: Usage }).usage;
+			const usage = (result as { usage?: Parameters<typeof calculateCost>[1] }).usage;
 			if (usage) calculateCost(model, usage);
 			const stopReason = (result as { stopReason?: unknown }).stopReason;
 			const durationMs = Date.now() - requestStarted;
-			if (usage) args.onUsage?.({
-				agent: args.agentName,
-				requestIndex: providerRequestCount,
-				model: { provider: (model as { provider?: string }).provider, id: (model as { id?: string }).id },
-				thinkingLevel,
-				durationMs,
-				stopReason: typeof stopReason === "string" ? stopReason : undefined,
-				usage,
-			});
 			debugLog("memory_agent.provider_result", {
 				agent: args.agentName,
 				requestIndex: providerRequestCount,

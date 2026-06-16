@@ -232,8 +232,8 @@ Status should expose:
 ```text
 Pending reflection observations: N
 Rewrite pressure: X / Y tokens
-Recent compaction tail: N, when present
-Last observer/reflector/rewrite cost
+Recent compaction handoff observations: N, when present
+Last observer/reflector error, when present
 ```
 
 ## Completed work

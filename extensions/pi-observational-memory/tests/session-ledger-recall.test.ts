@@ -17,7 +17,7 @@ function nonSourceEntry(id: string): Entry {
 }
 
 function observation(id: string, sourceEntryIds: string[]): Observation {
-	return { id, kind: "observation", content: `Observation ${id}`, createdAt: "2026-05-19 00:00", sources: sourceEntryIds, timestamp: "2026-05-19 00:00", sourceEntryIds };
+	return { id, kind: "observation", content: `Observation ${id}`, createdAt: "2026-05-19 00:00", timestamp: "2026-05-19 00:00", sourceEntryIds };
 }
 
 function reflection(id: string, sources: string[]): Reflection {
