@@ -33,13 +33,13 @@
         "thinking": "low"
       },
       "balanced": {
-        "provider": "deepseek",
-        "id": "deepseek-v4-pro",
-        "thinking": "high"
+        "provider": "openai-codex",
+        "id": "gpt-5.5",
+        "thinking": "low"
       },
       "deep": {
-        "provider": "openrouter",
-        "id": "minimax/minimax-m3 ",
+        "provider": "openai-codex",
+        "id": "gpt-5.5",
         "thinking": "high"
       }
     }
