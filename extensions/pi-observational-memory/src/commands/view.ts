@@ -1,12 +1,13 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { Runtime } from "../runtime.js";
 import {
-	fullProjection,
+	activeReflections,
+	foldLedger,
 	observationToSummaryLine,
 	reflectionToSummaryLine,
-	contextProjection,
 	type Entry,
-	type Projection,
+	type Observation,
+	type Reflection,
 } from "../session-ledger/index.js";
 
 function firstArg(args: unknown): string | undefined {
@@ -23,13 +24,13 @@ function renderList<T>(items: T[], render: (item: T) => string, empty: string): 
 	return items.length > 0 ? items.map(render).join("\n") : empty;
 }
 
-function renderContentOnlyProjection(projection: Projection, emptyScope: "context" | "recorded"): string {
+function renderContentOnlyMemory(memory: { reflections: Reflection[]; observations: Observation[] }, emptyScope: "context" | "recorded"): string {
 	return [
 		"── Reflections ──",
-		renderList(projection.reflections, reflectionToSummaryLine, `No ${emptyScope} reflections.`),
+		renderList(memory.reflections, reflectionToSummaryLine, `No ${emptyScope} reflections.`),
 		"",
 		"── Observations ──",
-		renderList(projection.observations, observationToSummaryLine, `No ${emptyScope} observations.`),
+		renderList(memory.observations, observationToSummaryLine, `No ${emptyScope} observations.`),
 	].join("\n");
 }
 
@@ -40,22 +41,22 @@ export async function runViewCommand(args: unknown, ctx: any, runtime: Runtime):
 
 	const notifyView = (output: string) => ctx.ui.notify(output, "info");
 
-	if (mode === "full") {
-		notifyView(renderContentOnlyProjection(fullProjection(entries), "recorded"));
+	if (mode === "recorded") {
+		notifyView(renderContentOnlyMemory(foldLedger(entries), "recorded"));
 		return;
 	}
 
 	if (mode && mode !== "context") {
-		ctx.ui.notify("Usage: /om:view [context|full]", "info");
+		ctx.ui.notify("Usage: /om:view [context|recorded]", "info");
 		return;
 	}
 
-	notifyView(renderContentOnlyProjection(contextProjection(entries), "context"));
+	notifyView(renderContentOnlyMemory({ reflections: activeReflections(entries), observations: [] }, "context"));
 }
 
 export function registerViewCommand(pi: ExtensionAPI, runtime: Runtime): void {
 	pi.registerCommand("om:view", {
-		description: "Print observational memory context (context by default, full on request)",
+		description: "Print observational memory context (context by default, recorded on request)",
 		handler: async (args, ctx) => runViewCommand(args, ctx, runtime),
 	});
 }

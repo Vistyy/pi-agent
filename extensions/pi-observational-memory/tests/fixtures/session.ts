@@ -110,15 +110,11 @@ export function compactionEntry(
 
 export function memoryDetails(
 	args: {
-		fullFold?: boolean;
-		observations?: TestObservation[];
 		reflections?: TestReflection[];
 	} = {},
 ): unknown {
 	return {
 		type: OM_FOLDED,
-		fullFold: args.fullFold ?? false,
-		observations: args.observations ?? [],
 		reflections: args.reflections ?? [],
 	};
 }

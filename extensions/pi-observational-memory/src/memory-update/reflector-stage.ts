@@ -27,7 +27,7 @@ export async function runReflectorStage(
 	}
 
 	const folded = foldLedger(entries);
-	const unreflectedObservations = observationsSinceReflectionCoverage(entries, folded.activeObservations);
+	const unreflectedObservations = observationsSinceReflectionCoverage(entries, folded.observations);
 	const reflectionWorkCount = unreflectedObservations.length;
 	if (reflectionWorkCount < runtime.config.reflectEveryObservations) {
 		debugLog("reflector.skip", {
@@ -35,13 +35,13 @@ export async function runReflectorStage(
 			unreflectedObservationCount: unreflectedObservations.length,
 			reflectionWorkCount,
 			reflectEveryObservations: runtime.config.reflectEveryObservations,
-			activeObservationCount: folded.activeObservations.length,
+			observationCount: folded.observations.length,
 		});
 		return "continue";
 	}
 	debugLog("reflector.stage_run", {
 		unreflectedObservationCount: unreflectedObservations.length,
-		activeObservationCount: folded.activeObservations.length,
+		observationCount: folded.observations.length,
 		reflectionWorkCount,
 		reflectionCount: folded.reflections.length,
 		observationCoverageId,

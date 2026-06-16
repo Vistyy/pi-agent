@@ -44,7 +44,6 @@ function setup(args: {
 	observeEveryMessages?: number;
 	reflectEveryObservations?: number;
 	reflectionsPoolMaxTokens?: number;
-	observationsPoolMaxTokens?: number;
 	maxInitialObserveTokens?: number;
 	strategy?: "replacement" | "off";
 	memoryUpdateInFlight?: boolean;
@@ -67,7 +66,6 @@ function setup(args: {
 			observeEveryMessages: args.observeEveryMessages ?? 1,
 			reflectEveryObservations: args.reflectEveryObservations ?? 1,
 			maxInitialObserveTokens: args.maxInitialObserveTokens ?? 100_000,
-			observationsPoolMaxTokens: args.observationsPoolMaxTokens ?? 100,
 			reflectionsPoolMaxTokens: args.reflectionsPoolMaxTokens ?? 100,
 			agentMaxTurns: 9,
 			model: { provider: "anthropic", id: "memory", thinking: "minimal" },

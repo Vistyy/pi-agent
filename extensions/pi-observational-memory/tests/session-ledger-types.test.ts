@@ -50,7 +50,8 @@ describe("session-ledger type guards and builders", () => {
 		expect(isObservationsRecordedEntry(observationsRecordedEntry("om-obs", { observations: [obs], coversUpToId: "raw-1" }))).toBe(true);
 		expect(isReflectionsRecordedEntry(reflectionsRecordedEntry("om-ref", { reflections: [ref], coversUpToId: "raw-1" }))).toBe(true);
 		expect(isReflectionsRewrittenEntry(reflectionsRewrittenEntry("om-rw", { retiredReflectionIds: [ref.id], summary: "merged" }))).toBe(true);
-		expect(isMemoryDetails(memoryDetails({ observations: [obs], reflections: [ref] }))).toBe(true);
+		expect(isMemoryDetails(memoryDetails({ reflections: [ref] }))).toBe(true);
+		expect(isMemoryDetails({ type: "om.folded", fullFold: false, observations: [obs], reflections: [ref] })).toBe(true);
 		expect(isReflection({ ...ref, sources: undefined })).toBe(false);
 	});
 });

@@ -15,7 +15,7 @@ export type MemoryStageDue = {
 
 export function computeMemoryStageDue(entries: Entry[], runtime: Runtime): MemoryStageDue {
 	const folded = foldLedger(entries);
-	const reflectionWorkCount = observationsSinceReflectionCoverage(entries, folded.activeObservations).length;
+	const reflectionWorkCount = observationsSinceReflectionCoverage(entries, folded.observations).length;
 	return {
 		observerDue: sourceEntryCountSinceObservationCoverage(entries) >= runtime.config.observeEveryMessages,
 		reflectorDue: reflectionWorkCount >= runtime.config.reflectEveryObservations,

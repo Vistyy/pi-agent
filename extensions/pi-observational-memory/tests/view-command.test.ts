@@ -52,7 +52,7 @@ describe("/om:view", () => {
 		const entries = [
 			textCustomMessage("raw-1", "aaaa"),
 			observationsRecordedEntry("om-obs", { observations: [observation("bbbbbbbbbbbb")], coversUpToId: "raw-1" }),
-			compactionEntry("cmp", { firstKeptEntryId: "raw-1", details: memoryDetails({ observations: [obs], reflections: [ref] }) }),
+			compactionEntry("cmp", { firstKeptEntryId: "raw-1", details: memoryDetails({ reflections: [ref] }) }),
 		];
 
 		const { output } = await setup(entries).run();
@@ -64,8 +64,8 @@ describe("/om:view", () => {
 		expect(output).not.toContain("obs_bbbbbbbbbbbb");
 	});
 
-	it("full view renders recorded empty states", async () => {
-		const { output } = await setup([]).run("full");
+	it("recorded view renders recorded empty states", async () => {
+		const { output } = await setup([]).run("recorded");
 		const expected = [
 			"── Reflections ──",
 			"No recorded reflections.",
@@ -80,6 +80,6 @@ describe("/om:view", () => {
 	it("rejects unsupported view arguments", async () => {
 		const { output } = await setup([]).run("diff");
 
-		expect(output).toBe("Usage: /om:view [context|full]");
+		expect(output).toBe("Usage: /om:view [context|recorded]");
 	});
 });

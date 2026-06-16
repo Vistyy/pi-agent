@@ -43,12 +43,12 @@ OM does not schedule compaction. Pi/manual/eval compaction triggers still run; O
 
 `maxInitialObserveTokens` prevents expensive backfill when the extension starts on an already-large session. It marks old history covered and observes future turns.
 
-Active context projection renders current reflections only. Observations remain durable ledger evidence for reflector input and recall.
+Active memory renders current reflections only. Observations remain durable ledger evidence for reflector input and recall.
 
 ## Commands
 
 - `/om:status` — show memory state. Use `/om:status full` for ledger/debug details.
-- `/om:view` — show context/full/reviewed memory projection.
+- `/om:view` — show context memory. Use `/om:view recorded` for recorded observations and reflections.
 
 ## Recall
 
@@ -60,7 +60,7 @@ Memory entries include ids such as `obs_...` and `ref_...`. Use `recall(id)` whe
 source entries
   -> observer: source-backed durable observations
   -> reflector: active facts backed by typed source ids
-  -> projection/rendering: current active reflections
+  -> active memory rendering: current active reflections
   -> recall: exact evidence recovery from reflections, observations, and source entries
 ```
 

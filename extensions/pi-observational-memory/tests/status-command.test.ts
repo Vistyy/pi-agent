@@ -26,7 +26,6 @@ function setup(args: { entries: TestEntry[]; runtime?: Partial<Runtime> }) {
 			strategy: "replacement",
 			observeEveryMessages: 10,
 			reflectEveryObservations: 20,
-			observationsPoolMaxTokens: 40,
 			reflectionsPoolMaxTokens: 30,
 		},
 		memoryUpdateInFlight: false,
@@ -52,8 +51,8 @@ describe("/om:status", () => {
 		const output = await setup({ entries: [] }).run();
 
 		expect(output).toContain("── Memory ──");
-		expect(output).toContain("Context:      0 observations, 0 reflections");
-		expect(output).toContain("Next context: 0 observations, 0 reflections");
+		expect(output).toContain("Context:      0 reflections");
+		expect(output).not.toContain("Next context:");
 		expect(output).toContain("Size:         ~0 context tokens; active reflections ~0 / 30 rewrite tokens");
 		expect(output).toContain("Observe: 0 / 10 source entries");
 		expect(output).toContain("Reflect: 0 / 20 observations");
@@ -68,13 +67,13 @@ describe("/om:status", () => {
 			observationsRecordedEntry("om-obs", { observations: [obs], coversUpToId: "raw-1" }),
 			reflectionsRecordedEntry("om-ref", { reflections: [ref], coversUpToId: "raw-1" }),
 			textCustomMessage("raw-2", "bbbbbbbb"),
-			compactionEntry("cmp", { firstKeptEntryId: "raw-2", details: memoryDetails({ observations: [obs], reflections: [ref] }) }),
+			compactionEntry("cmp", { firstKeptEntryId: "raw-2", details: memoryDetails({ reflections: [ref] }) }),
 		];
 
 		const output = await setup({ entries }).run();
 
-		expect(output).toContain("Context:      0 observations, 1 reflections");
-		expect(output).toContain("Next context: 0 observations, 1 reflections");
+		expect(output).toContain("Context:      1 reflections");
+		expect(output).not.toContain("Next context:");
 		expect(output).toContain("Observe: 2 / 10 source entries");
 		expect(output).toContain("Reflect: 0 / 20 observations");
 		expect(output).toContain("Total: $0.0000 / 0 requests / 0 tokens");
@@ -105,7 +104,7 @@ describe("/om:status", () => {
 		const output = await setup({
 			entries: [],
 			runtime: {
-				config: { strategy: "off", observeEveryMessages: 10, reflectEveryObservations: 20, observationsPoolMaxTokens: 40, reflectionsPoolMaxTokens: 30 },
+				config: { strategy: "off", observeEveryMessages: 10, reflectEveryObservations: 20, reflectionsPoolMaxTokens: 30 },
 				memoryUpdateInFlight: true,
 				memoryUpdatePhase: "reflector",
 				compactHookInFlight: true,

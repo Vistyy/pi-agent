@@ -15,9 +15,7 @@ describe("session-ledger folding", () => {
 		const folded = foldLedger(entries);
 
 		expect(folded.observations).toEqual([obs]);
-		expect(folded.activeObservations).toEqual([obs]);
 		expect(folded.reflections).toEqual([ref]);
-		expect(folded.reflectionsById.get(ref.id)).toEqual(ref);
 	});
 
 	it("keeps first valid record for duplicate ids", () => {
@@ -45,7 +43,6 @@ describe("session-ledger folding", () => {
 		]);
 
 		expect(folded.reflections.map((ref) => ref.id)).toEqual([newRef.id]);
-		expect(folded.reflectionsById.get(oldRef.id)).toEqual(oldRef);
 		expect(folded.retiredReflectionIds.has(oldRef.id)).toBe(true);
 	});
 });

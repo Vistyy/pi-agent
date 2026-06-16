@@ -2,12 +2,9 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { observationsSinceReflectionCoverage } from "../memory-update/stage-utils.js";
 import type { Runtime } from "../runtime.js";
 import {
-	contextProjection,
+	activeReflections,
 	foldAgentUsage,
 	foldLedger,
-	fullProjection,
-	nextContextProjection,
-	observationTokenSum,
 	reflectionTokenSum,
 	sourceEntryCountSinceObservationCoverage,
 	sourceEntryCountSinceReflectionReviewCoverage,
@@ -43,19 +40,16 @@ export async function runStatusCommand(args: unknown, ctx: any, runtime: Runtime
 
 	const entries = ctx.sessionManager.getBranch() as Entry[];
 	const folded = foldLedger(entries);
-	const context = contextProjection(entries);
-	const full = fullProjection(entries);
-	const nextContext = nextContextProjection(entries, full);
+	const reflections = activeReflections(entries);
 	const memoryUsage = foldAgentUsage(entries);
 
-	const contextTokens = observationTokenSum(context.observations) + reflectionTokenSum(context.reflections);
-	const activeReflectionTokens = reflectionTokenSum(folded.reflections);
+	const contextTokens = reflectionTokenSum(reflections);
+	const activeReflectionTokens = reflectionTokenSum(reflections);
 	const obsProgress = sourceEntryCountSinceObservationCoverage(entries);
-	const reflectionProgress = observationsSinceReflectionCoverage(entries, folded.activeObservations).length;
+	const reflectionProgress = observationsSinceReflectionCoverage(entries, folded.observations).length;
 	const lines = [
 		"── Memory ──",
-		`Context:      ${context.observations.length.toLocaleString()} observations, ${context.reflections.length.toLocaleString()} reflections`,
-		`Next context: ${nextContext.observations.length.toLocaleString()} observations, ${nextContext.reflections.length.toLocaleString()} reflections`,
+		`Context:      ${reflections.length.toLocaleString()} reflections`,
 		`Size:         ~${contextTokens.toLocaleString()} context tokens; active reflections ~${activeReflectionTokens.toLocaleString()} / ${runtime.config.reflectionsPoolMaxTokens.toLocaleString()} rewrite tokens`,
 		"",
 		"── Next work ──",

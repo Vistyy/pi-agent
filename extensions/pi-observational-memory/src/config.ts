@@ -22,7 +22,6 @@ export interface Config {
 	observeEveryMessages: number;
 	reflectEveryObservations: number;
 	maxInitialObserveTokens: number;
-	observationsPoolMaxTokens: number;
 	reflectionsPoolMaxTokens: number;
 	observerToolResultSummaryMaxLines: number;
 	observerToolResultErrorMaxLines: number;
@@ -41,7 +40,6 @@ export const DEFAULTS: Config = {
 	observeEveryMessages: 32,
 	reflectEveryObservations: 8,
 	maxInitialObserveTokens: 100_000,
-	observationsPoolMaxTokens: 20_000,
 	reflectionsPoolMaxTokens: 8_000,
 	observerToolResultSummaryMaxLines: 4,
 	observerToolResultErrorMaxLines: 20,
@@ -107,7 +105,6 @@ function normalizeSettingsConfig(value: Record<string, unknown>): Partial<Config
 		"observeEveryMessages",
 		"reflectEveryObservations",
 		"maxInitialObserveTokens",
-		"observationsPoolMaxTokens",
 		"reflectionsPoolMaxTokens",
 		"observerToolResultSummaryMaxLines",
 		"observerToolResultErrorMaxLines",

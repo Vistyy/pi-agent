@@ -9,7 +9,7 @@ source entries
   -> observer   extracts durable observations from source-only input
   -> reflector  synthesizes active reflections from current reflections + pending observations
   -> rewrite    compresses current reflections into smaller handoff memory
-  -> projection renders active reflections, plus a tiny flushed observation tail after compaction
+  -> active memory renders reflections, plus temporary compaction handoff observations after a safety flush
   -> recall     recovers exact evidence from obs_*/ref_* ids when needed
 ```
 
@@ -92,7 +92,7 @@ Current status:
 - Rewrite worker, retirement event, backoff, and recall-through-ref chains are implemented.
 - Remaining cleanup: rewrite prompt as handoff memory; harden evals against sparse critical fact loss and stale/current loss.
 
-### Projection and compaction
+### Active memory and compaction
 
 Normal active context:
 
@@ -120,13 +120,13 @@ Rules for compaction handoff observations:
 - hard cap count/tokens
 - label clearly as temporary bridge context pending reflection
 - do not include the whole unreflected backlog
-- do not appear in normal context projection
+- do not appear in normal active memory
 
 Current status:
 
 - Observer-only compaction safety flush is implemented.
-- Normal projection is reflection-only.
-- The tiny flushed observation handoff is rendered in compaction projection only.
+- Normal active memory is reflection-only.
+- The tiny flushed observation handoff is rendered in compaction memory only.
 
 ### Recall
 
@@ -173,8 +173,8 @@ Planned tests:
 - observer call has no prior reflections/observations
 - reflector receives pending observations, not all active observations
 - rewrite receives active reflections only
-- compaction projection includes only just-flushed tail observations
-- normal projection never includes observations
+- compaction memory includes only just-flushed handoff observations
+- normal active memory never includes observations
 
 ## Eval hardening
 
@@ -242,8 +242,8 @@ Last observer/reflector/rewrite cost
 - Typed ids implemented: `obs_*`, `ref_*`, typed `sources`.
 - Reflection records carry `createdAt`.
 - Legacy ledger/session records normalize at read boundary only.
-- Observations hidden from normal active context projection.
-- Active projection renders current reflections only.
+- Observations hidden from normal active memory.
+- Active memory renders current reflections only.
 - Curator, pin/unpin, follow-up flags, dropped observations, and reviewed markers removed from runtime/evals.
 - Reflector default thinking is `low`.
 - Rewrite worker and `om.reflections.rewritten` retirement event implemented.
@@ -274,8 +274,8 @@ Last observer/reflector/rewrite cost
 
 4. Add compaction flushed observation tail.
    - Return/track observations created by forced compaction safety observe.
-   - Render only that bounded tail in compaction projection.
-   - Add tests for normal projection vs compaction projection.
+   - Render only that bounded tail in compaction memory.
+   - Add tests for normal active memory vs compaction memory.
 
 5. Harden eval rubrics.
    - Remove reflector count bias.

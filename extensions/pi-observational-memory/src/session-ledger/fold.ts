@@ -19,14 +19,10 @@ export type FoldLedgerOptions = {
 export type FoldedLedger = {
 	/** All first-valid observation records encountered through the fold boundary. */
 	observations: Observation[];
-	/** Alias kept for reflector input while active observations remain hidden from projection. */
-	activeObservations: Observation[];
 	/** All first-valid reflection records encountered through the fold boundary that have not been retired by rewrite. */
 	reflections: Reflection[];
 	/** Reflection ids retired from active projection by rewrite events. */
 	retiredReflectionIds: Set<string>;
-	/** All first-valid reflection records by id. */
-	reflectionsById: Map<string, Reflection>;
 };
 
 function foldEndIndex(entries: Entry[], upToEntryId: string | undefined): number {
@@ -78,9 +74,7 @@ export function foldLedger(entries: Entry[], options: FoldLedgerOptions = {}): F
 
 	return {
 		observations,
-		activeObservations: observations,
 		reflections,
 		retiredReflectionIds,
-		reflectionsById,
 	};
 }

@@ -60,8 +60,6 @@ export type ReflectionsRewrittenEntryData = {
 
 export type MemoryDetails = {
 	type: typeof OM_FOLDED;
-	fullFold: boolean;
-	observations: Observation[];
 	reflections: Reflection[];
 };
 
@@ -168,9 +166,8 @@ export function isMemoryDetails(value: unknown): value is MemoryDetails {
 	if (!isPlainRecord(value)) return false;
 	return (
 		value.type === OM_FOLDED &&
-		typeof value.fullFold === "boolean" &&
-		Array.isArray(value.observations) &&
-		value.observations.every(isObservation) &&
+		(value.fullFold === undefined || typeof value.fullFold === "boolean") &&
+		(value.observations === undefined || (Array.isArray(value.observations) && value.observations.every(isObservation))) &&
 		Array.isArray(value.reflections) &&
 		value.reflections.every(isReflection)
 	);
