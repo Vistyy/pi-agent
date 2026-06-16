@@ -60,7 +60,7 @@ async function runCompactionObserverFlush(
 		const resolved = await resolveModel("observer");
 		if (!resolved) return [];
 		const observations = await runObserver({
-			...commonAgentArgs(pi, runtime, resolved, runtime.config.observerThinking),
+			...commonAgentArgs(pi, runtime, resolved, runtime.config.observerThinking, "compaction-flush"),
 			chunk,
 			allowedSourceEntryIds: sourceEntryIds,
 		});
