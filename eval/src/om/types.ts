@@ -13,7 +13,7 @@ export type OmAgents = {
 
 export type AgentEvalRecord = {
   id: string;
-  agent: 'observer' | 'reflector' | 'rewrite';
+  agent: 'observer' | 'reflector' | 'rewrite' | 'recall' | 'e2e';
   output: unknown;
   judge?: unknown;
   passed: boolean;

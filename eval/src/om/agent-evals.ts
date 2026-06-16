@@ -37,7 +37,7 @@ export async function main() {
         new Promise<AgentEvalRecord>((_, reject) => setTimeout(() => reject(new Error(`case timed out after ${args.caseTimeoutMs}ms`)), args.caseTimeoutMs)),
       ])); }
     catch (error) {
-      records.push({ id: c.name, agent: c.name.startsWith('observer') ? 'observer' : c.name.startsWith('rewrite') ? 'rewrite' : 'reflector', output: undefined, passed: false, durationMs: 0, error: error instanceof Error ? (error.stack ?? error.message) : String(error) });
+      records.push({ id: c.name, agent: c.name.startsWith('observer') ? 'observer' : c.name.startsWith('rewrite') ? 'rewrite' : c.name.startsWith('recall') ? 'recall' : c.name.startsWith('e2e') ? 'e2e' : 'reflector', output: undefined, passed: false, durationMs: 0, error: error instanceof Error ? (error.stack ?? error.message) : String(error) });
     }
     fs.writeFileSync(path.join(args.outDir, 'results.partial.json'), JSON.stringify(records, null, 2));
   }
@@ -59,6 +59,6 @@ export async function main() {
   fs.writeFileSync(path.join(args.outDir, 'results.json'), JSON.stringify(records, null, 2));
   fs.writeFileSync(path.join(args.outDir, 'summary.json'), JSON.stringify(summary, null, 2));
   console.log(JSON.stringify(summary, null, 2));
-  process.exitCode = summary.passed === summary.total ? 0 : 1;
+  process.exit(summary.passed === summary.total ? 0 : 1);
 }
 
