@@ -6,6 +6,7 @@ import { rewriteDeferredTaskRetention, rewriteOmMigrationCompression, rewriteRea
 
 (observerRealGiga96 as any).suite = 'stress';
 (rewriteRealGiga120 as any).suite = 'stress';
+(e2eObserverReflectorRewriteRecall as any).suite = 'stress';
 
 export const allCases = [
   observerStateStaleBlocker,
