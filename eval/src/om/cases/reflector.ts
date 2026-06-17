@@ -101,9 +101,9 @@ async function realReflectorFixtureCase(id: string, fixture: readonly any[], mod
   const { output, usage, agentDurationMs } = await runReflectorCase(modelSpec, thinkingLevel, { reflections: [], observations });
   return judgedReflectorScored(id, output, {
     id,
-    question: `Distill the durable active-memory value from ${fixture.length} real recorded observations mined from the giga OM session. Compress related observations; do not produce one reflection per observation unless each observation carries distinct durable value.`,
-    rubric: { pass_if: ['Keeps the main durable user/project decisions and exact implementation/validation anchors present in the observations.', 'Compresses related observations without requiring one reflection per observation.', 'Avoids acknowledgement and tool-receipt noise.'], fail_if: ['Drops the main durable decisions or anchors present in the observations.', 'Creates bloated duplicate reflections.', 'Records acknowledgement/tool-receipt noise as durable memory.'] },
-  }, judgeModel, started, [reflectorSourceIdsAllowed(observations.map((o) => o.id))], [...scoreChecks, reflectorMaxCount(Math.ceil(fixture.length / 2))], usage.total, agentDurationMs, { observations });
+    question: `Distill the durable active-memory value from ${fixture.length} real recorded observations mined from the giga OM session. Compress related observations, but keep exact anchors when they define a policy, migration, config/API decision, command, validation result, boundary, trigger, or stale/current relation.`,
+    rubric: { pass_if: ['Keeps the main durable user/project decisions.', 'Preserves exact implementation/config/validation/boundary anchors when those anchors define the active-memory claim.', 'Compresses related observations without broad abstract summaries that lose decision-critical details.', 'Avoids acknowledgement and tool-receipt noise.'], fail_if: ['Drops the main durable decisions or their decision-critical anchors.', 'Treats exact config/path/command/validation details as noise when they define the memory.', 'Creates bloated duplicate reflections.', 'Records acknowledgement/tool-receipt noise as durable memory.'] },
+  }, judgeModel, started, [reflectorSourceIdsAllowed(observations.map((o) => o.id))], [...scoreChecks, reflectorMaxCount(Math.ceil(fixture.length / 2))], usage.total, agentDurationMs, { observations, forceJudge: true });
 }
 
 export async function reflectorRealGiga8(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {

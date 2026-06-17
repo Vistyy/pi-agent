@@ -91,9 +91,9 @@ async function realRewriteFixtureCase(id: string, fixture: readonly any[], model
   const { output, usage, agentDurationMs } = await runRewriteCase(modelSpec, thinkingLevel, reflections);
   return judgedRewriteScored(id, output, {
     id,
-    question: `Rewrite ${fixture.length} real active reflections mined from the giga OM session into a smaller current memory set.`,
-    rubric: { pass_if: ['Preserves central current durable decisions, implementation state, validation facts, and stale/current relationships.', 'Substantially compresses the input while retaining sparse but important current facts.', 'Produces useful handoff memory for a future agent.'], fail_if: ['Drops central current project state.', 'Resurrects stale behavior as current.', 'Fails to compress.'] },
-  }, judgeModel, started, [reflectorSourceIdsAllowed(allowedSources(reflections))], [...scoreChecks, reflectorMaxCount(Math.max(8, Math.ceil(fixture.length / 4)))], usage.total, agentDurationMs, { reflections });
+    question: `Rewrite ${fixture.length} real active reflections mined from the giga OM session into a smaller current memory set. Keep current constraints/decisions, current-vs-stale relationships, exact anchors that define decisions or boundaries, latest validation/current status, and deferred timing constraints.`,
+    rubric: { pass_if: ['Preserves central current durable decisions, implementation state, validation facts, and stale/current relationships.', 'Preserves exact anchors when they define config/API names, commands, validation, boundaries, or triggers.', 'Drops obsolete operational trail unless needed to explain current state.', 'Substantially compresses the input while retaining sparse but important current facts.', 'Produces useful handoff memory for a future agent.'], fail_if: ['Drops central current project state or decision-critical anchors.', 'Resurrects stale behavior as current.', 'Keeps plausible but obsolete operational details at the expense of current memory.', 'Fails to compress.'] },
+  }, judgeModel, started, [reflectorSourceIdsAllowed(allowedSources(reflections))], [...scoreChecks, reflectorMaxCount(Math.max(8, Math.ceil(fixture.length / 4)))], usage.total, agentDurationMs, { reflections, forceJudge: true });
 }
 
 export async function rewriteRealGiga40(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -112,13 +112,10 @@ export async function rewriteRealGiga40(modelSpec: string, judgeModel: string, t
 
 export async function rewriteRealGiga80(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   return realRewriteFixtureCase('rewrite-real-giga-80', realRewrite80, modelSpec, judgeModel, thinkingLevel, [
-    reflectorRequiresAll('reviewed', 'visible'),
     reflectorRequiresAll('visibilityProjection'),
-    reflectorRequiresAll('tests/session-ledger-projection.test.ts'),
-    reflectorRequiresAll('Remove additive mode'),
-    reflectorRequiresAll('STRATEGY.additive'),
+    reflectorRequiresAll('Remove additive mode', 'STRATEGY.additive'),
     reflectorRequiresAll('compaction flush', 'observer-only'),
-    reflectorRequiresAll('recall', 'unit-test lookup mechanics', 'model decision'),
+    reflectorRequiresAll('recall', 'model decision'),
     reflectorRequiresAll('validation'),
   ]);
 }

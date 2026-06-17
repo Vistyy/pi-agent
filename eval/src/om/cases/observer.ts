@@ -179,8 +179,8 @@ export async function observerZeroDurableRestraint(modelSpec: string, judgeModel
   const { output, usage, agentDurationMs } = await runObserverCase(modelSpec, thinkingLevel, chunk, ids);
   const probe = {
     id: 'observer-zero-durable-restraint',
-    question: 'Avoid recording observations when the chunk has no concrete source-backed evidence beyond workflow noise, read receipts, generic passing tests, and acknowledgements.',
-    rubric: { pass_if: ['No observations recorded.'], fail_if: ['Any observation is recorded for generic workflow noise without concrete evidence value.'] },
+    question: 'Avoid recording observations when the chunk has no substantive source-backed evidence payload beyond workflow/status noise, omitted reads, and acknowledgements.',
+    rubric: { pass_if: ['No observations recorded because the chunk lacks a user requirement, decision, correction, blocker, error detail, validation target, API/path/config/command fact, or other substantive payload.'], fail_if: ['Records workflow/status output that does not carry substantive evidence value.'] },
   };
   const record = await judgedObserverScored('observer-zero-durable-restraint', output, probe, judgeModel, started, [observerMaxCount(0)], [], usage.total, agentDurationMs);
   return maybeDebugObserver(record, options, modelSpec, thinkingLevel, chunk, probe);

@@ -142,9 +142,10 @@ async function judgedReflectionLikeScored(
   });
   const score = dimensions.reduce((total, dimension) => total + dimension.score, 0);
   const maxScore = dimensions.reduce((total, dimension) => dimension.maxScore + total, 0);
-  const scoreFailure = !hardFailure && maxScore > 0 && score / maxScore < MIN_SCORED_PASS_RATIO;
+  const forceJudge = Boolean((diagnostics as { forceJudge?: boolean } | undefined)?.forceJudge);
+  const scoreFailure = !forceJudge && !hardFailure && maxScore > 0 && score / maxScore < MIN_SCORED_PASS_RATIO;
   const judgeStarted = Date.now();
-  const deterministicPass = !hardFailure && !scoreFailure && maxScore > 0 && score === maxScore;
+  const deterministicPass = !forceJudge && !hardFailure && !scoreFailure && maxScore > 0 && score === maxScore;
   const judged = hardFailure || scoreFailure || deterministicPass ? undefined : await runJudge(probe, JSON.stringify(output ?? [], null, 2), judgeModel);
   return {
     id,

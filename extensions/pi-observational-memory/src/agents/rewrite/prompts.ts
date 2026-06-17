@@ -4,22 +4,15 @@ Rewrite for clarity and compression without changing what is true.
 
 Keep memory only if losing it would likely cause a future agent to make a wrong answer, repeat work, miss a constraint, use stale state, or take the wrong next step.
 
-Memory invariants:
-- preserve current/stale/rejected relationships explicitly
-- keep exact anchors when losing them would make future action or recall ambiguous
-- when inputs conflict, say which claim is current instead of keeping both as true
+Give highest priority to current decisions, constraints, stale/current relationships, latest known status, and deferred timing. Keep exact anchors when they define the memory.
 
-Shape:
-- one active-memory claim per reflection
-- split unrelated claims
-- merge only when the claims explain one relationship or decision
-- fewer reflections is useful only when the result stays clear and complete
+Drop obsolete operational trail unless it is needed to explain current state or a current-vs-stale relationship.
 
-Rules:
-- call record_rewritten_reflections once
-- if the current active set is already compact and useful, use an empty reflections array
-- do not invent facts or source ids
-- every reflection must cite source ids from the input; sources may be old ref_* ids or underlying obs_* ids`;
+Preserve current/stale/rejected relationships explicitly. When inputs conflict, say which claim is current instead of keeping both as true. Do not replace decision-critical details with vague summaries.
+
+Keep each reflection to one active-memory claim. Split unrelated claims. Merge only when the claims explain one relationship or decision. Fewer reflections is useful only when the result stays clear and complete.
+
+Call record_rewritten_reflections once. If the current active set is already compact and useful, use an empty reflections array. Do not invent facts or source ids. Every reflection must cite source ids from the input; sources may be old ref_* ids or underlying obs_* ids.`;
 
 export const REWRITE_TOOL_DESCRIPTION =
 	"Record one complete replacement set of active memory reflections with source ids. Use an empty reflections array when no rewrite would improve the active set. This tool call terminates the run.";

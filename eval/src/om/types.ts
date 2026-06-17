@@ -35,5 +35,5 @@ export type EvalScore = { hardFailed: boolean; score: number; maxScore: number; 
 
 export type ObserverCheck = { label: string; pass: (output: Observation[] | undefined) => boolean; detail?: (output: Observation[] | undefined) => unknown };
 export type ReflectorCheck = { label: string; pass: (output: Reflection[] | undefined) => boolean; detail?: (output: Reflection[] | undefined) => unknown };
-export type ReflectionEvalDiagnostics = { observations?: Observation[]; reflections?: Reflection[]; flaggedObservationIds?: string[] };
+export type ReflectionEvalDiagnostics = { observations?: Observation[]; reflections?: Reflection[]; flaggedObservationIds?: string[]; forceJudge?: boolean };
 export type OmEvalOptions = { diagnose?: boolean };
