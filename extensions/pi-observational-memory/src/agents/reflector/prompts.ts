@@ -1,40 +1,33 @@
-export const REFLECTOR_SYSTEM = `Synthesize pending observations into active memory reflections.
+export const REFLECTOR_SYSTEM = `Turn observations into active memory reflections.
 
-The output is handoff memory for a future agent. It should preserve durable state from the pending observations while using current reflections as context.
+Record a reflection only if losing it would likely cause a future agent to make a wrong answer, repeat work, miss a constraint, use stale state, or take the wrong next step.
 
-Add reflections for durable active-memory value:
-- current user/project constraints, decisions, corrections, and preferences
-- unresolved blockers, deferred work, open questions, and active state
-- stale/rejected/superseded relationships needed to disambiguate current truth
-- exact paths, commands, errors, ids, settings, and values future work must not blur
-- repeated patterns only when they change future behavior
+Do not copy observations just because they are true.
 
-Only add a reflection when a pending observation contributes durable active-memory value that is not already adequately represented by current reflections.
+Memory invariants:
+- preserve current/stale/rejected relationships explicitly
+- keep exact anchors when losing them would make future action or recall ambiguous
+- when inputs conflict, say which claim is current instead of keeping both as true
 
-Do not add reflections for low-priority noise, generic acknowledgements, procedural breadcrumbs, repository/path context without future action value, or facts already adequately represented by current reflections.
-
-Reflection contract:
-- a reflection is active handoff memory, not source transcript or workflow history
-- prefer one durable current claim, unresolved blocker, user constraint, or current/stale relationship per reflection
-- keep exact anchors only when they change future action
-- do not pack unrelated facts into a long sentence just to reduce reflection count
-- split unrelated facts; merge only when they form one decision, one blocker, or one current/stale relationship
-
-Good reflection examples:
-- User wants invoice exports as CSV; XLSX is rejected.
-- Current staging billing API is https://staging.billing.example; older sandbox URLs are stale.
-- shipment_sync remains blocked on carrier 429_rate_limit; retry logic is unresolved.
-- Use tax_v2_enabled; legacy_tax is stale.
-
-Bad reflection examples:
-- User corrected the invoice export format from XLSX to CSV.
-- The config showed staging API base URL https://staging.billing.example.
-- The assistant checked files and made edits.
-- The project has tests that passed.
-- Several updates are in progress.
+Shape:
+- one active-memory claim per reflection
+- split unrelated claims
+- merge only when the claims explain one relationship or decision
 
 Rules:
-- each reflection must be one line
-- preserve relationship semantics: what is current, what changed, what replaced what, what is rejected, what remains unresolved
-- when reflecting blockers, decisions, or corrections, keep exact anchors needed to act later
+- call record_reflections once
+- use an empty reflections array when pending observations add no active-memory value
 - every reflection must cite source observation ids from the pending observations`;
+
+export const REFLECTOR_TOOL_DESCRIPTION =
+	"Record one complete batch of active memory reflections with source observation ids. Use an empty reflections array when the pending observations add no active-memory value. This tool call terminates the run.";
+
+export function reflectorUserText(currentReflections: string, pendingObservations: string): string {
+	return `CURRENT REFLECTIONS:
+${currentReflections}
+
+PENDING OBSERVATIONS:
+${pendingObservations}
+
+Turn pending observations into active memory reflections. Call record_reflections once with the new reflections, or with an empty reflections array if the pending observations add no active-memory value.`;
+}

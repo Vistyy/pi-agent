@@ -1,9 +1,30 @@
 import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
-import type { AgentEvalRecord } from '../types.js';
+import type { AgentEvalRecord, OmEvalOptions, Observation, Reflection } from '../types.js';
+import { debugAgentFailure } from '../agent-debug.js';
 import { createUsageCollector, loadOmAgents, obs, ref, resolveModel } from '../runner.js';
 import { judgedReflectorScored, reflectorForbidsAny, reflectorMaxCount, reflectorRequiresAll, reflectorSourceIdsAllowed } from '../diagnostics.js';
 import { realReflector8, realReflector16 } from './real-session-fixtures.js';
 import { realReflector16 as realReflector16v2 } from './real-session-fixtures-v2.js';
+
+async function reflectorPromptText(args: { reflections?: Reflection[]; observations?: Observation[] }): Promise<{ systemPrompt: string; userText: string }> {
+  const base = new URL('../../../../extensions/pi-observational-memory/src/agents/', import.meta.url);
+  const prompts = await import(new URL('reflector/prompts.ts', base).href) as { REFLECTOR_SYSTEM: string; reflectorUserText: (reflectionsText: string, observationsText: string) => string };
+  const ledger = await import(new URL('../session-ledger/index.ts', base).href) as { reflectionToSummaryLine: (reflection: unknown) => string; observationToSummaryLine: (observation: unknown) => string };
+  const common = await import(new URL('common.ts', base).href) as { joinOrEmpty: (items: readonly string[]) => string };
+  return {
+    systemPrompt: prompts.REFLECTOR_SYSTEM,
+    userText: prompts.reflectorUserText(
+      common.joinOrEmpty((args.reflections ?? []).map(ledger.reflectionToSummaryLine)),
+      common.joinOrEmpty((args.observations ?? []).map(ledger.observationToSummaryLine)),
+    ),
+  };
+}
+
+async function maybeDebugReflector(record: AgentEvalRecord, options: OmEvalOptions | undefined, modelSpec: string, thinkingLevel: ModelThinkingLevel, args: { reflections?: Reflection[]; observations?: Observation[] }, probe: Parameters<typeof debugAgentFailure>[0]['probe']): Promise<AgentEvalRecord> {
+  if (!options?.diagnose || record.passed) return record;
+  const prompt = await reflectorPromptText(args);
+  return debugAgentFailure({ agent: 'reflector', modelSpec, thinkingLevel, ...prompt, record, probe });
+}
 
 async function runReflectorCase(modelSpec: string, thinkingLevel: ModelThinkingLevel, args: Record<string, unknown>) {
   const auth = await resolveModel(modelSpec);

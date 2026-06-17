@@ -70,12 +70,12 @@ export function createUsageCollector(): { onUsage: (event: { usage?: unknown }) 
   };
 }
 
-export function sumUsage(records: AgentEvalRecord[], key: 'usage' | 'judgeUsage' | 'diagnosisUsage'): TokenUsage {
+export function sumUsage(records: AgentEvalRecord[], key: 'usage' | 'judgeUsage' | 'agentDebugUsage'): TokenUsage {
   const total: TokenUsage = {};
   for (const record of records) addUsage(total, record[key] ?? {});
   return total;
 }
 
-export function sumDuration(records: AgentEvalRecord[], key: 'durationMs' | 'agentDurationMs' | 'judgeDurationMs' | 'diagnosisDurationMs'): number {
+export function sumDuration(records: AgentEvalRecord[], key: 'durationMs' | 'agentDurationMs' | 'judgeDurationMs' | 'agentDebugDurationMs'): number {
   return records.reduce((sum, record) => sum + (record[key] ?? 0), 0);
 }

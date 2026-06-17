@@ -2,10 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import { DEFAULT_MODEL } from '../lib/pi.js';
-import type { AgentEvalRecord } from './types.js';
+import type { AgentEvalRecord, OmEvalOptions } from './types.js';
 import { sumDuration, sumUsage } from './runner.js';
 import { allCases } from './cases/index.js';
-import { setOmEvalDiagnosticsEnabled } from './diagnostics.js';
+import { debugRecordFailure } from './agent-debug.js';
 
 type Args = { model: string; judgeModel: string; outDir: string; thinkingLevel: ModelThinkingLevel; only?: string; suite: 'baseline' | 'stress' | 'all'; caseTimeoutMs: number; diagnose: boolean };
 
@@ -29,16 +29,20 @@ function parseArgs(): Args {
 
 export async function main() {
   const args = parseArgs();
-  setOmEvalDiagnosticsEnabled(args.diagnose);
+  const evalOptions: OmEvalOptions = { diagnose: args.diagnose };
   fs.mkdirSync(args.outDir, { recursive: true });
   const suiteCases = allCases.filter((c: any) => args.suite === 'all' || (c.suite ?? 'baseline') === args.suite);
   const cases = args.only ? suiteCases.filter((c) => c.name.includes(args.only!)) : suiteCases;
   const records: AgentEvalRecord[] = [];
   for (const c of cases) {
-    try { records.push(await Promise.race([
-        c(args.model, args.judgeModel, args.thinkingLevel),
+    try {
+      let record = await Promise.race([
+        c(args.model, args.judgeModel, args.thinkingLevel, evalOptions),
         new Promise<AgentEvalRecord>((_, reject) => setTimeout(() => reject(new Error(`case timed out after ${args.caseTimeoutMs}ms`)), args.caseTimeoutMs)),
-      ])); }
+      ]);
+      if (args.diagnose) record = await debugRecordFailure(record, { modelSpec: args.model, thinkingLevel: args.thinkingLevel });
+      records.push(record);
+    }
     catch (error) {
       records.push({ id: c.name, agent: c.name.startsWith('observer') ? 'observer' : c.name.startsWith('rewrite') ? 'rewrite' : c.name.startsWith('recall') ? 'recall' : c.name.startsWith('e2e') ? 'e2e' : 'reflector', output: undefined, passed: false, durationMs: 0, error: error instanceof Error ? (error.stack ?? error.message) : String(error) });
     }
@@ -67,14 +71,14 @@ export async function main() {
     total: records.length,
     score: scoredRecords.reduce((total, r) => total + (r.score?.score ?? 0), 0),
     maxScore: scoredRecords.reduce((total, r) => total + (r.score?.maxScore ?? 0), 0),
-    failed: records.filter((r) => !r.passed).map((r) => ({ id: r.id, agent: r.agent, judge: r.judge, error: r.error })),
+    failed: records.filter((r) => !r.passed).map((r) => ({ id: r.id, agent: r.agent, judge: r.judge, agentDebug: r.agentDebug, error: r.error })),
     durationMs: sumDuration(records, 'durationMs'),
     agentDurationMs: sumDuration(records, 'agentDurationMs'),
     judgeDurationMs: sumDuration(records, 'judgeDurationMs'),
-    diagnosisDurationMs: sumDuration(records, 'diagnosisDurationMs'),
+    agentDebugDurationMs: sumDuration(records, 'agentDebugDurationMs'),
     usage: sumUsage(records, 'usage'),
     judgeUsage: sumUsage(records, 'judgeUsage'),
-    diagnosisUsage: sumUsage(records, 'diagnosisUsage'),
+    agentDebugUsage: sumUsage(records, 'agentDebugUsage'),
     byAgent,
     perCase,
   };

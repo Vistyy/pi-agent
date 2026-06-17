@@ -5,7 +5,7 @@ import { estimateStringTokens } from "../../memory/token-estimate.js";
 import { observationToSummaryLine, reflectionToSummaryLine, type Observation, type Reflection } from "../../session-ledger/index.js";
 import { joinOrEmpty, runMemoryAgentLoop, type MemoryAgentUsage } from "../common.js";
 import { reflectionRecordTool } from "../record-tool.js";
-import { REFLECTOR_SYSTEM } from "./prompts.js";
+import { REFLECTOR_SYSTEM, REFLECTOR_TOOL_DESCRIPTION, reflectorUserText } from "./prompts.js";
 
 interface RunReflectorArgs {
 	model: Model<any>;
@@ -32,12 +32,12 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 	const recorder = reflectionRecordTool({
 		name: "record_reflections",
 		label: "Record reflections",
-		description: "Record one complete batch of new durable reflections with source observation ids. Use an empty reflections array when the pending observations add no durable active-memory value. This tool call terminates the run.",
+		description: REFLECTOR_TOOL_DESCRIPTION,
 		allowedSourceIds: observations.map((observation) => observation.id),
 		existingReflectionIds: new Set(reflections.map((reflection) => reflection.id)),
 	});
 
-	const userText = `CURRENT REFLECTIONS:\n${joinOrEmpty(reflections.map(reflectionToSummaryLine))}\n\nPENDING OBSERVATIONS:\n${joinOrEmpty(observations.map(observationToSummaryLine))}\n\nSynthesize the pending observations into active memory. Call record_reflections once with every durable new reflection, or with an empty reflections array if the pending observations add no durable active-memory value.`;
+	const userText = reflectorUserText(joinOrEmpty(reflections.map(reflectionToSummaryLine)), joinOrEmpty(observations.map(observationToSummaryLine)));
 	debugLog("reflector.prompt", {
 		reflectionCount: reflections.length,
 		observationCount: observations.length,

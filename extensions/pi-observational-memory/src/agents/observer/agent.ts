@@ -4,7 +4,7 @@ import { Type } from "@earendil-works/pi-ai";
 import type { Static } from "typebox";
 import { hashId, observationId } from "../../memory/ids.js";
 import { normalizeAllowedIdsStrict, runMemoryAgentLoop, type MemoryAgentUsage } from "../common.js";
-import { OBSERVER_SYSTEM } from "./prompts.js";
+import { OBSERVER_OBSERVATION_CONTENT_DESCRIPTION, OBSERVER_SYSTEM, OBSERVER_TOOL_DESCRIPTION, observerUserText } from "./prompts.js";
 import { nowTimestamp, truncateRecordContent } from "../../memory/record-content.js";
 import type { Observation } from "../../session-ledger/index.js";
 
@@ -28,7 +28,7 @@ const RecordObservationsSchema = Type.Object({
 		Type.Object({
 			content: Type.String({
 				minLength: 1,
-				description: "Single source-backed observation. Preserve exact names, paths, commands, errors, decisions, corrections, and current/stale relationships compactly.",
+				description: OBSERVER_OBSERVATION_CONTENT_DESCRIPTION,
 			}),
 			timestamp: Type.String({
 				pattern: OBSERVATION_TIMESTAMP_PATTERN,
@@ -109,10 +109,7 @@ export async function runObserver(args: RunObserverArgs): Promise<Observation[] 
 	const recordObservations: AgentTool<typeof RecordObservationsSchema> = {
 		name: "record_observations",
 		label: "Record observations",
-		description:
-			"Record one complete batch of observations distilled from the conversation chunk. " +
-			"Use an empty observations array when the chunk contains no durable observations. " +
-			"This tool call terminates the run, so include every durable observation to keep in this single call.",
+		description: OBSERVER_TOOL_DESCRIPTION,
 		parameters: RecordObservationsSchema,
 		execute: async (_id, params: RecordObservationsArgs) => {
 			recordedEmpty ||= params.observations.length === 0;
@@ -157,12 +154,7 @@ export async function runObserver(args: RunObserverArgs): Promise<Observation[] 
 	};
 
 	const now = nowTimestamp();
-	const userText = `Current local time: ${now}
-
-Compress the following new conversation chunk into observations. Call record_observations once with every durable observation to keep, or with an empty observations array if the chunk contains no durable observations. Prefer inline conversation timestamps when assigning times; fall back to the current local time above only if no message timestamp applies.
-
-NEW CONVERSATION CHUNK:
-${conversation}`;
+	const userText = observerUserText(now, conversation);
 
 	await runMemoryAgentLoop({
 		model,

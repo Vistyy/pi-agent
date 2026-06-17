@@ -4,34 +4,12 @@ import type { AgentEvalRecord, EvalScoreDimension, Observation, ObserverCheck, R
 
 const MIN_SCORED_PASS_RATIO = 0.5;
 
-let diagnosisEnabled = false;
-
-export function setOmEvalDiagnosticsEnabled(enabled: boolean): void {
-  diagnosisEnabled = enabled;
-}
-
-export async function diagnoseFailure(record: AgentEvalRecord, probe: Probe, judgeModel: string): Promise<AgentEvalRecord> {
-  if (record.passed || !diagnosisEnabled) return record;
-  const diagnosticProbe: Probe = {
-    id: `${probe.id}-diagnostic`,
-    question: 'Briefly diagnose this failed eval. Use only the question, answer, and failure. Return the likely root cause and one concrete improvement.',
-    rubric: {
-      pass_if: ['Names a likely root cause and one concrete improvement.'],
-      fail_if: ['Repeats the failure without a cause or improvement.'],
-    },
-  };
-  const diagnosticInput = JSON.stringify({ question: probe.question, answer: record.output, failure: record.judge }, null, 2);
-  const diagnosticStarted = Date.now();
-  const { run, judge } = await runJudge(diagnosticProbe, diagnosticInput, judgeModel);
-  return { ...record, diagnosis: judge, diagnosisUsage: run.usage, diagnosisDurationMs: Date.now() - diagnosticStarted, durationMs: Date.now() - diagnosticStarted + record.durationMs };
-}
 
 export async function judged(id: string, agent: AgentEvalRecord['agent'], output: unknown, probe: Probe, judgeModel: string, started: number, usage?: TokenUsage, agentDurationMs?: number): Promise<AgentEvalRecord> {
   const answer = JSON.stringify(output, null, 2);
   const judgeStarted = Date.now();
   const { run, judge } = await runJudge(probe, answer, judgeModel);
-  const record = { id, agent, output, judge, passed: run.status === 0 && judge.passed, durationMs: Date.now() - started, agentDurationMs, judgeDurationMs: Date.now() - judgeStarted, usage, judgeUsage: run.usage };
-  return diagnoseFailure(record, probe, judgeModel);
+  return { id, agent, output, judge, passed: run.status === 0 && judge.passed, durationMs: Date.now() - started, agentDurationMs, judgeDurationMs: Date.now() - judgeStarted, usage, judgeUsage: run.usage };
 }
 
 function deterministicObserverFailure(output: Observation[] | undefined, checks: ObserverCheck[]): { reason: string; details: unknown[] } | undefined {
@@ -117,11 +95,12 @@ export async function judgedObserverScored(
   });
   const score = dimensions.reduce((total, dimension) => total + dimension.score, 0);
   const maxScore = dimensions.reduce((total, dimension) => total + dimension.maxScore, 0);
-  const scoreFailure = !hardFailure && maxScore > 0 && score / maxScore < MIN_SCORED_PASS_RATIO;
+  const forceJudge = Boolean((diagnostics as { forceJudge?: boolean } | undefined)?.forceJudge);
+  const scoreFailure = !forceJudge && !hardFailure && maxScore > 0 && score / maxScore < MIN_SCORED_PASS_RATIO;
   const judgeStarted = Date.now();
-  const deterministicPass = !hardFailure && !scoreFailure && maxScore > 0 && score === maxScore;
+  const deterministicPass = !forceJudge && !hardFailure && !scoreFailure && maxScore > 0 && score === maxScore;
   const judged = hardFailure || scoreFailure || deterministicPass ? undefined : await runJudge(probe, JSON.stringify(output ?? [], null, 2), judgeModel);
-  const base: AgentEvalRecord = {
+  return {
     id,
     agent: 'observer',
     output: output ?? [],
@@ -141,7 +120,6 @@ export async function judgedObserverScored(
     diagnostics,
     score: { hardFailed: Boolean(hardFailure), score, maxScore, dimensions },
   };
-  return base.passed ? base : diagnoseFailure(base, probe, judgeModel);
 }
 
 async function judgedReflectionLikeScored(
@@ -168,7 +146,7 @@ async function judgedReflectionLikeScored(
   const judgeStarted = Date.now();
   const deterministicPass = !hardFailure && !scoreFailure && maxScore > 0 && score === maxScore;
   const judged = hardFailure || scoreFailure || deterministicPass ? undefined : await runJudge(probe, JSON.stringify(output ?? [], null, 2), judgeModel);
-  const base: AgentEvalRecord = {
+  return {
     id,
     agent,
     output: output ?? [],
@@ -188,7 +166,6 @@ async function judgedReflectionLikeScored(
     diagnostics,
     score: { hardFailed: Boolean(hardFailure), score, maxScore, dimensions },
   };
-  return base.passed ? base : diagnoseFailure(base, probe, judgeModel);
 }
 
 export async function judgedReflectorScored(

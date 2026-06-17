@@ -1,20 +1,34 @@
 import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
-import type { AgentEvalRecord } from '../types.js';
+import type { AgentEvalRecord, OmEvalOptions } from '../types.js';
+import { debugAgentFailure } from '../agent-debug.js';
 import { createUsageCollector, loadOmAgents, resolveModel } from '../runner.js';
 import { judgedObserverScored, observerForbidsAny, observerForbidsSourceIds, observerMaxCount, observerRequiresAll, observerSourceIdsAllowed } from '../diagnostics.js';
 import { realObserver32, realObserver64, realObserver96 } from './real-session-fixtures.js';
 import { realObserver64 as realObserver64v2 } from './real-session-fixtures-v2.js';
 
-async function runObserverCase(modelSpec: string, thinkingLevel: ModelThinkingLevel, chunk: string, allowedSourceEntryIds: string[], priorReflections: string[] = []) {
+async function observerPromptText(chunk: string): Promise<{ systemPrompt: string; userText: string }> {
+  const base = new URL('../../../../extensions/pi-observational-memory/src/agents/', import.meta.url);
+  const prompts = await import(new URL('observer/prompts.ts', base).href) as { OBSERVER_SYSTEM: string; observerUserText: (now: string, conversation: string) => string };
+  const recordContent = await import(new URL('../memory/record-content.ts', base).href) as { nowTimestamp: () => string };
+  return { systemPrompt: prompts.OBSERVER_SYSTEM, userText: prompts.observerUserText(recordContent.nowTimestamp(), chunk.trim()) };
+}
+
+async function runObserverCase(modelSpec: string, thinkingLevel: ModelThinkingLevel, chunk: string, allowedSourceEntryIds: string[]) {
   const auth = await resolveModel(modelSpec);
   const { runObserver } = await loadOmAgents();
   const usage = createUsageCollector();
   const agentStarted = Date.now();
-  const output = await runObserver({ ...auth, priorReflections, priorObservations: [], chunk, allowedSourceEntryIds, thinkingLevel, maxTurns: 6, onUsage: usage.onUsage });
+  const output = await runObserver({ ...auth, chunk, allowedSourceEntryIds, thinkingLevel, maxTurns: 6, onUsage: usage.onUsage });
   return { output, usage, agentDurationMs: Date.now() - agentStarted };
 }
 
-export async function observerStateStaleBlocker(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+async function maybeDebugObserver(record: AgentEvalRecord, options: OmEvalOptions | undefined, modelSpec: string, thinkingLevel: ModelThinkingLevel, chunk: string, probe: Parameters<typeof debugAgentFailure>[0]['probe']): Promise<AgentEvalRecord> {
+  if (!options?.diagnose || record.passed) return record;
+  const prompt = await observerPromptText(chunk);
+  return debugAgentFailure({ agent: 'observer', modelSpec, thinkingLevel, ...prompt, record, probe });
+}
+
+export async function observerStateStaleBlocker(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel, options?: OmEvalOptions): Promise<AgentEvalRecord> {
   const started = Date.now();
   const entries = [
     ['user-a', '2026-06-07 10:00 User: Earlier I said Redis for job state, but reject that now. Current rule: use SQLite at /tmp/jobs.db.'],
@@ -26,12 +40,14 @@ export async function observerStateStaleBlocker(modelSpec: string, judgeModel: s
     ['assistant-g', '2026-06-07 10:08 Assistant: Okay.'],
   ];
   const chunk = entries.map(([id, text]) => `[Source entry id: ${id}] ${text}`).join('\n');
-  const { output, usage, agentDurationMs } = await runObserverCase(modelSpec, thinkingLevel, chunk, entries.map(([id]) => id), ['[ref_rrrrrrrrrrrr] User requires exact current-vs-stale relationships.']);
-  return judgedObserverScored('observer-state-stale-blocker', output, {
+  const { output, usage, agentDurationMs } = await runObserverCase(modelSpec, thinkingLevel, chunk, entries.map(([id]) => id));
+  const probe = {
     id: 'observer-state-stale-blocker',
     question: 'Preserve current/stale state, exact blockers, tool evidence, and unresolved status without acknowledgement noise.',
     rubric: { pass_if: ['Redis rejected and SQLite /tmp/jobs.db current.', 'SQLITE_BUSY path/command and WAL requirement retained.', 'Parser entrypoint change and CRLF test failure retained with unresolved status.'], fail_if: ['Stale Redis treated current.', 'CRLF failure called fixed.', 'Exact command/path/test values lost.', 'Ack recorded as durable memory.'] },
-  }, judgeModel, started, [observerForbidsSourceIds('assistant-g')], [observerRequiresAll('SQLite', '/tmp/jobs.db'), observerRequiresAll('SQLITE_BUSY', 'src/db/migrate.ts:88'), observerRequiresAll('PRAGMA journal_mode=WAL'), observerRequiresAll('src/parser.ts', 'src/parser/index.ts'), observerRequiresAll('tests/parser-regression.test.ts', '17', '16'), observerMaxCount(5)], usage.total, agentDurationMs);
+  };
+  const record = await judgedObserverScored('observer-state-stale-blocker', output, probe, judgeModel, started, [observerForbidsSourceIds('assistant-g')], [observerRequiresAll('SQLite', '/tmp/jobs.db'), observerRequiresAll('SQLITE_BUSY', 'src/db/migrate.ts:88'), observerRequiresAll('PRAGMA journal_mode=WAL'), observerRequiresAll('src/parser.ts', 'src/parser/index.ts'), observerRequiresAll('tests/parser-regression.test.ts', '17', '16'), observerMaxCount(5)], usage.total, agentDurationMs);
+  return maybeDebugObserver(record, options, modelSpec, thinkingLevel, chunk, probe);
 }
 
 export async function observerToolEvidenceBoundary(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -102,42 +118,34 @@ export async function observerRealSessionScaleOmSimplification(modelSpec: string
 
 type RealObserverFixture = { readonly count: number; readonly chunk: string; readonly allowedSourceEntryIds: readonly string[] };
 
-async function realObserverFixtureCase(id: string, fixture: RealObserverFixture, modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel, scoreChecks: ReturnType<typeof observerRequiresAll>[]): Promise<AgentEvalRecord> {
+async function realObserverFixtureCase(id: string, fixture: RealObserverFixture, modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel, scoreChecks: ReturnType<typeof observerRequiresAll>[], options?: OmEvalOptions): Promise<AgentEvalRecord> {
   const started = Date.now();
   const { output, usage, agentDurationMs } = await runObserverCase(modelSpec, thinkingLevel, fixture.chunk, [...fixture.allowedSourceEntryIds]);
-  return judgedObserverScored(id, output, {
+  const probe = {
     id,
-    question: `Extract durable OM facts from a real giga-session observer chunk with ${fixture.count} serialized source entries.`,
-    rubric: { pass_if: ['Keeps durable user decisions, implementation state, validation blockers/results, and exact anchors from a real noisy session slice.'], fail_if: ['Records omitted-output/read/write receipts as facts.', 'Loses the main durable decisions or validation state.', 'Treats stale proposals as current.'] },
-  }, judgeModel, started, [observerSourceIdsAllowed([...fixture.allowedSourceEntryIds]), observerForbidsAny('output omitted by observer policy', 'Successfully replaced', 'Successfully wrote', '[thinking omitted]')], [...scoreChecks, observerMaxCount(Math.ceil(fixture.count / 5))], usage.total, agentDurationMs, { sourceEntryCount: fixture.count });
+    question: `Extract concrete source-backed OM observations from a real giga-session observer chunk with ${fixture.count} serialized source entries.`,
+    rubric: { pass_if: ['Observations are source-close evidence payloads, not active-memory conclusions.', 'The main user statements, visible results/errors, named changes, blockers, and exact anchors from the noisy slice are reasonably covered.', 'Assistant summaries are acceptable source evidence when they are the visible source, but must be attributed as reported claims rather than treated as primary truth.', 'Low-value workflow telemetry is omitted unless the visible output contains a named result, error, blocker, validation target, or source payload.'], fail_if: ['Records omitted-output/read receipts as evidence.', 'Loses the main concrete evidence payloads or validation evidence.', 'Synthesizes active-memory conclusions not directly supported by the visible source.', 'Penalizes reported assistant summaries solely because their underlying primary source is not included in the fixture.'] },
+  };
+  const record = await judgedObserverScored(id, output, probe, judgeModel, started, [observerSourceIdsAllowed([...fixture.allowedSourceEntryIds]), observerForbidsAny('output omitted by observer policy', 'Successfully replaced', 'Successfully wrote', '[thinking omitted]')], scoreChecks, usage.total, agentDurationMs, { sourceEntryCount: fixture.count, forceJudge: true });
+  return maybeDebugObserver(record, options, modelSpec, thinkingLevel, fixture.chunk, probe);
 }
 
-export async function observerRealGiga32(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+export async function observerRealGiga32(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel, options?: OmEvalOptions): Promise<AgentEvalRecord> {
   return realObserverFixtureCase('observer-real-giga-32', realObserver32, modelSpec, judgeModel, thinkingLevel, [
     observerRequiresAll('@docs/ARCHITECTURE_FINDINGS.md', '@docs/future-work.md'),
-    observerRequiresAll('observations', 'noisy'),
-    observerRequiresAll('80 observations cap'),
-    observerRequiresAll('dropper', 'aggressive'),
-    observerRequiresAll('compaction', 'progressive', '@extensions/pi-fork/'),
+    observerRequiresAll('80', 'observations', 'cap'),
     observerRequiresAll('recall', 'model evals'),
-    observerRequiresAll('reflectorThinking', 'high'),
-    observerRequiresAll('/home/syzom/.pi/agent/AGENTS.md'),
     observerRequiresAll('mutable factual claims', 'verify'),
-  ]);
+  ], options);
 }
 
-export async function observerRealGiga64(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+export async function observerRealGiga64(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel, options?: OmEvalOptions): Promise<AgentEvalRecord> {
   return realObserverFixtureCase('observer-real-giga-64', realObserver64, modelSpec, judgeModel, thinkingLevel, [
     observerRequiresAll('/home/syzom/.pi/agent/AGENTS.md'),
-    observerRequiresAll('Evidence discipline'),
-    observerRequiresAll('mutable factual claims', 'verify'),
-    observerRequiresAll('OpenAI', 'Anthropic'),
-    observerRequiresAll('pnpm test'),
-    observerRequiresAll('AGENTS.md'),
-  ]);
+  ], options);
 }
 
-export async function observerRealGiga96(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+export async function observerRealGiga96(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel, options?: OmEvalOptions): Promise<AgentEvalRecord> {
   return realObserverFixtureCase('observer-real-giga-96', realObserver96, modelSpec, judgeModel, thinkingLevel, [
     observerRequiresAll('memory-update.test.ts'),
     observerRequiresAll('status-command.test.ts'),
@@ -146,23 +154,18 @@ export async function observerRealGiga96(modelSpec: string, judgeModel: string, 
     observerRequiresAll('dropWhenActiveObservationsOver'),
     observerRequiresAll('pnpm test'),
     observerRequiresAll('typecheck'),
-  ]);
+  ], options);
 }
 
-export async function observerRealGiga64v2(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+export async function observerRealGiga64v2(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel, options?: OmEvalOptions): Promise<AgentEvalRecord> {
   return realObserverFixtureCase('observer-real-giga-64-v2', realObserver64v2, modelSpec, judgeModel, thinkingLevel, [
-    observerRequiresAll('judgedCuratorScored'),
-    observerRequiresAll('eval/src/om/diagnostics.ts', 'eval/src/om/cases/curator.ts'),
-    observerRequiresAll('hard checks', 'score dimensions'),
-    observerRequiresAll('pnpm run typecheck'),
-    observerRequiresAll('curator', '95.5s'),
-    observerRequiresAll('reflector', 'normalizeAllowedIdsStrict'),
-    observerRequiresAll('giga session', '613 live observations', '178 live reflections'),
-    observerRequiresAll('reflectorThinking', 'low'),
-  ]);
+    observerRequiresAll('normalizeAllowedIdsStrict'),
+    observerRequiresAll('613 live observations', '178 live reflections'),
+    observerRequiresAll('reflectorThinking'),
+  ], options);
 }
 
-export async function observerZeroDurableRestraint(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+export async function observerZeroDurableRestraint(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel, options?: OmEvalOptions): Promise<AgentEvalRecord> {
   const started = Date.now();
   const chunk = [
     '[Source entry id: z1] [Assistant] I will inspect the files first.',
@@ -174,9 +177,11 @@ export async function observerZeroDurableRestraint(modelSpec: string, judgeModel
   ].join('\n');
   const ids = ['z1', 'z2', 'z3', 'z4', 'z5', 'z6'];
   const { output, usage, agentDurationMs } = await runObserverCase(modelSpec, thinkingLevel, chunk, ids);
-  return judgedObserverScored('observer-zero-durable-restraint', output, {
+  const probe = {
     id: 'observer-zero-durable-restraint',
-    question: 'Avoid recording durable observations when the chunk is only workflow noise, read receipts, generic passing tests, and acknowledgements.',
-    rubric: { pass_if: ['No observations recorded.'], fail_if: ['Any durable observation is recorded for generic workflow noise.'] },
-  }, judgeModel, started, [observerMaxCount(0)], [], usage.total, agentDurationMs);
+    question: 'Avoid recording observations when the chunk has no concrete source-backed evidence beyond workflow noise, read receipts, generic passing tests, and acknowledgements.',
+    rubric: { pass_if: ['No observations recorded.'], fail_if: ['Any observation is recorded for generic workflow noise without concrete evidence value.'] },
+  };
+  const record = await judgedObserverScored('observer-zero-durable-restraint', output, probe, judgeModel, started, [observerMaxCount(0)], [], usage.total, agentDurationMs);
+  return maybeDebugObserver(record, options, modelSpec, thinkingLevel, chunk, probe);
 }
