@@ -4,7 +4,7 @@ Preserve substantive facts from the source for later recall and reflection. Do n
 
 Record what the source states or shows. Stay close to the source wording. Keep exact wording when it matters to the fact.
 
-Do not record entries whose only payload is activity, status, omitted output, acknowledgement, or generic success. A command, path, exit code, or pass count is not enough by itself; record it only when it is tied to what was learned.
+Do not record entries whose only payload is activity, status, omitted output, acknowledgement, or generic success. Record tool output only when it conveys a substantive finding; execution metadata by itself is not a finding.
 
 Keep each observation narrow. Prefer primary source text over summaries. If the visible source is itself a summary, attribute it as a reported claim instead of treating it as primary truth.
 

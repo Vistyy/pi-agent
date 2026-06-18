@@ -18,7 +18,7 @@ async function runObserverCase(modelSpec: string, thinkingLevel: ModelThinkingLe
   const { runObserver } = await loadOmAgents();
   const usage = createUsageCollector();
   const agentStarted = Date.now();
-  const output = await runObserver({ ...auth, chunk, allowedSourceEntryIds, thinkingLevel, maxTurns: 6, onUsage: usage.onUsage });
+  const output = await runObserver({ ...auth, chunk, allowedSourceEntryIds, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
   return { output, usage, agentDurationMs: Date.now() - agentStarted };
 }
 
@@ -170,8 +170,8 @@ export async function observerZeroDurableRestraint(modelSpec: string, judgeModel
   const chunk = [
     '[Source entry id: z1] [Assistant] I will inspect the files first.',
     '[Source entry id: z2] [Tool evidence: read] status: ok input: src/foo.ts output_omitted: true excerpt: [output omitted by observer policy]',
-    '[Source entry id: z3] [Tool evidence: bash] status: ok input: pnpm test exitCode: 0 excerpt: Test Files 3 passed; Tests 12 passed.',
-    '[Source entry id: z4] [Assistant] Tests passed.',
+    '[Source entry id: z3] [Tool evidence: bash] status: ok input: pnpm test output_omitted: true excerpt: [output omitted by observer policy]',
+    '[Source entry id: z4] [Assistant] Done.',
     '[Source entry id: z5] [User] thanks',
     '[Source entry id: z6] [Assistant] You are welcome.',
   ].join('\n');
@@ -179,8 +179,8 @@ export async function observerZeroDurableRestraint(modelSpec: string, judgeModel
   const { output, usage, agentDurationMs } = await runObserverCase(modelSpec, thinkingLevel, chunk, ids);
   const probe = {
     id: 'observer-zero-durable-restraint',
-    question: 'Avoid recording observations when the chunk has no substantive source-backed evidence payload beyond workflow/status noise, omitted reads, and acknowledgements.',
-    rubric: { pass_if: ['No observations recorded because the chunk lacks a user requirement, decision, correction, blocker, error detail, validation target, API/path/config/command fact, or other substantive payload.'], fail_if: ['Records workflow/status output that does not carry substantive evidence value.'] },
+    question: 'Avoid recording observations when the chunk has no visible source payload beyond workflow/status noise, omitted tool output, and acknowledgements.',
+    rubric: { pass_if: ['No observations recorded because the chunk contains no visible substantive source payload.'], fail_if: ['Records omitted tool output, workflow chatter, or acknowledgements as evidence.'] },
   };
   const record = await judgedObserverScored('observer-zero-durable-restraint', output, probe, judgeModel, started, [observerMaxCount(0)], [], usage.total, agentDurationMs);
   return maybeDebugObserver(record, options, modelSpec, thinkingLevel, chunk, probe);

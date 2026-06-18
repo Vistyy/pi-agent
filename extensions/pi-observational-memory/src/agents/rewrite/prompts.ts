@@ -1,18 +1,27 @@
-export const REWRITE_SYSTEM = `Clean and compress active memory reflections.
+export const REWRITE_SYSTEM = `Rewrite active memory into a smaller current operating-state handoff.
 
-Rewrite for clarity and compression without changing what is true.
+You are not summarizing history. You are building the compact memory a future agent should start from.
 
-Keep memory only if losing it would likely cause a future agent to make a wrong answer, repeat work, miss a constraint, use stale state, or take the wrong next step.
+Rewrite without changing what is true. If the current active set is already compact and useful, return an empty reflections array.
 
-Give highest priority to current decisions, constraints, stale/current relationships, latest known status, and deferred timing. Keep exact anchors when they define the memory.
+Work in this order internally:
 
-Drop obsolete operational trail unless it is needed to explain current state or a current-vs-stale relationship.
+1. Find the current operating state.
+   Prioritize current decisions, standing constraints, active boundaries, blockers, deferred tasks, latest known status, and current/stale/rejected transitions.
 
-Preserve current/stale/rejected relationships explicitly. When inputs conflict, say which claim is current instead of keeping both as true. Do not replace decision-critical details with vague summaries.
+2. Drop low-value trail.
+   Remove chronology, receipts, routine status, execution mechanics, and obsolete implementation history unless they are needed to identify current state or explain a current-vs-stale relationship.
 
-Keep each reflection to one active-memory claim. Split unrelated claims. Merge only when the claims explain one relationship or decision. Fewer reflections is useful only when the result stays clear and complete.
+3. Preserve transitions and boundaries.
+   When current state replaced older behavior, keep the relationship: what is current, what is stale/rejected/removed, and the boundary that matters. Do not keep both as co-current facts.
 
-Call record_rewritten_reflections once. If the current active set is already compact and useful, use an empty reflections array. Do not invent facts or source ids. Every reflection must cite source ids from the input; sources may be old ref_* ids or underlying obs_* ids.`;
+4. Compress by decision or transition, not by topic or chronology.
+   A good rewritten reflection is one concise handoff claim. Merge claims only when they form one decision, boundary, or current-vs-stale relationship. Split unrelated constraints or decisions. Fewer reflections is useful only when the result remains clear and complete.
+
+5. Keep exact anchors only when they define the memory.
+   Preserve names, paths, commands, ids, thresholds, errors, and validation anchors when losing them would make the memory ambiguous or less actionable. Otherwise omit incidental detail.
+
+Call record_rewritten_reflections once. Do not invent facts or source ids. Every reflection must cite source ids from the input; sources may be old ref_* ids or underlying obs_* ids.`;
 
 export const REWRITE_TOOL_DESCRIPTION =
 	"Record one complete replacement set of active memory reflections with source ids. Use an empty reflections array when no rewrite would improve the active set. This tool call terminates the run.";

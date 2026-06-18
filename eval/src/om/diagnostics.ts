@@ -88,7 +88,8 @@ export async function judgedObserverScored(
   agentDurationMs?: number,
   diagnostics?: unknown,
 ): Promise<AgentEvalRecord> {
-  const hardFailure = deterministicObserverFailure(output, hardChecks);
+  const noToolCallFailure = output === undefined ? { reason: 'No record_observations tool call', details: [] } : undefined;
+  const hardFailure = noToolCallFailure ?? deterministicObserverFailure(output, hardChecks);
   const dimensions: EvalScoreDimension[] = scoreChecks.map((check) => {
     const passed = check.pass(output);
     return { label: check.label, score: passed ? 1 : 0, maxScore: 1, detail: check.detail?.(output) ?? output };
@@ -96,10 +97,10 @@ export async function judgedObserverScored(
   const score = dimensions.reduce((total, dimension) => total + dimension.score, 0);
   const maxScore = dimensions.reduce((total, dimension) => total + dimension.maxScore, 0);
   const forceJudge = Boolean((diagnostics as { forceJudge?: boolean } | undefined)?.forceJudge);
-  const scoreFailure = !forceJudge && !hardFailure && maxScore > 0 && score / maxScore < MIN_SCORED_PASS_RATIO;
+  const scoreFailure = !hardFailure && maxScore > 0 && score / maxScore < MIN_SCORED_PASS_RATIO;
   const judgeStarted = Date.now();
   const deterministicPass = !forceJudge && !hardFailure && !scoreFailure && maxScore > 0 && score === maxScore;
-  const judged = hardFailure || scoreFailure || deterministicPass ? undefined : await runJudge(probe, JSON.stringify(output ?? [], null, 2), judgeModel);
+  const judged = hardFailure || deterministicPass ? undefined : await runJudge(probe, JSON.stringify(output ?? [], null, 2), judgeModel);
   return {
     id,
     agent: 'observer',
@@ -114,7 +115,7 @@ export async function judgedObserverScored(
     passed: deterministicPass || (!hardFailure && !scoreFailure && judged?.run.status === 0 && judged.judge.passed),
     durationMs: Date.now() - started,
     agentDurationMs,
-    judgeDurationMs: hardFailure || scoreFailure || deterministicPass ? undefined : Date.now() - judgeStarted,
+    judgeDurationMs: hardFailure || deterministicPass ? undefined : Date.now() - judgeStarted,
     usage,
     judgeUsage: judged?.run.usage,
     diagnostics,
@@ -135,7 +136,8 @@ async function judgedReflectionLikeScored(
   agentDurationMs?: number,
   diagnostics?: ReflectionEvalDiagnostics,
 ): Promise<AgentEvalRecord> {
-  const hardFailure = deterministicReflectorFailure(output, hardChecks);
+  const noToolCallFailure = agent === 'reflector' && output === undefined ? { reason: 'No record_reflections tool call', details: [] } : undefined;
+  const hardFailure = noToolCallFailure ?? deterministicReflectorFailure(output, hardChecks);
   const dimensions: EvalScoreDimension[] = scoreChecks.map((check) => {
     const passed = check.pass(output);
     return { label: check.label, score: passed ? 1 : 0, maxScore: 1, detail: check.detail?.(output) ?? output };
@@ -143,10 +145,10 @@ async function judgedReflectionLikeScored(
   const score = dimensions.reduce((total, dimension) => total + dimension.score, 0);
   const maxScore = dimensions.reduce((total, dimension) => dimension.maxScore + total, 0);
   const forceJudge = Boolean((diagnostics as { forceJudge?: boolean } | undefined)?.forceJudge);
-  const scoreFailure = !forceJudge && !hardFailure && maxScore > 0 && score / maxScore < MIN_SCORED_PASS_RATIO;
+  const scoreFailure = !hardFailure && maxScore > 0 && score / maxScore < MIN_SCORED_PASS_RATIO;
   const judgeStarted = Date.now();
   const deterministicPass = !forceJudge && !hardFailure && !scoreFailure && maxScore > 0 && score === maxScore;
-  const judged = hardFailure || scoreFailure || deterministicPass ? undefined : await runJudge(probe, JSON.stringify(output ?? [], null, 2), judgeModel);
+  const judged = hardFailure || deterministicPass ? undefined : await runJudge(probe, JSON.stringify(output ?? [], null, 2), judgeModel);
   return {
     id,
     agent,
@@ -161,7 +163,7 @@ async function judgedReflectionLikeScored(
     passed: deterministicPass || (!hardFailure && !scoreFailure && judged?.run.status === 0 && judged.judge.passed),
     durationMs: Date.now() - started,
     agentDurationMs,
-    judgeDurationMs: hardFailure || scoreFailure || deterministicPass ? undefined : Date.now() - judgeStarted,
+    judgeDurationMs: hardFailure || deterministicPass ? undefined : Date.now() - judgeStarted,
     usage,
     judgeUsage: judged?.run.usage,
     diagnostics,

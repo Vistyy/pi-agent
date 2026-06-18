@@ -91,9 +91,9 @@ export async function e2eObserverReflectorRewriteRecall(modelSpec: string, _judg
   ];
   const chunk = sourceEntries.map((entry) => `[Source entry id: ${entry.id}] ${entry.content}`).join('\n');
   const agentStarted = Date.now();
-  const observations = await runObserver({ ...auth, chunk, allowedSourceEntryIds: sourceEntries.map((entry) => String(entry.id)), thinkingLevel, maxTurns: 6, onUsage: usage.onUsage }) ?? [];
-  const reflections = await runReflector({ ...auth, observations, reflections: [], thinkingLevel, maxTurns: 6, onUsage: usage.onUsage }) ?? [];
-  const rewrite = await runRewrite({ ...auth, reflections, thinkingLevel, maxTurns: 6, onUsage: usage.onUsage });
+  const observations = await runObserver({ ...auth, chunk, allowedSourceEntryIds: sourceEntries.map((entry) => String(entry.id)), thinkingLevel, maxTurns: 4, onUsage: usage.onUsage }) ?? [];
+  const reflections = await runReflector({ ...auth, observations, reflections: [], thinkingLevel, maxTurns: 4, onUsage: usage.onUsage }) ?? [];
+  const rewrite = await runRewrite({ ...auth, reflections, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
   const rewrittenReflections = rewrite?.reflections ?? [];
   const entries = [...sourceEntries, observationsEntry(observations), reflectionsEntry('ref-entry-1', reflections), rewrittenEntry(reflections.map((reflection) => reflection.id)), reflectionsEntry('ref-entry-2', rewrittenReflections)];
   const recallMemorySources = await loadRecallMemorySources();

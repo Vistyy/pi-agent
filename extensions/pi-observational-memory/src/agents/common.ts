@@ -69,6 +69,17 @@ export async function runMemoryAgentLoop(args: MemoryAgentLoopArgs): Promise<voi
 	const thinkingLevel = args.thinkingLevel ?? "low";
 	const effectiveMaxTurns = args.maxTurns && args.maxTurns > 0 ? args.maxTurns : undefined;
 	let turnCount = 0;
+	let invalidToolTurnCount = 0;
+	const shouldStopAfterTurn: AgentLoopConfig["shouldStopAfterTurn"] = ({ toolResults }) => {
+		turnCount++;
+		const results = toolResults ?? [];
+		if (results.length === 0) return true;
+		if (results.some((result) => result.isError === true)) {
+			invalidToolTurnCount++;
+			return invalidToolTurnCount >= 2;
+		}
+		return effectiveMaxTurns !== undefined && turnCount >= effectiveMaxTurns;
+	};
 	const config: AgentLoopConfig = {
 		model: args.model,
 		apiKey: args.apiKey,
@@ -77,7 +88,7 @@ export async function runMemoryAgentLoop(args: MemoryAgentLoopArgs): Promise<voi
 		convertToLlm: (msgs) => msgs as Message[],
 		toolExecution: "sequential",
 		...(reasoning && thinkingLevel !== "off" ? { reasoning: thinkingLevel } : {}),
-		...(effectiveMaxTurns !== undefined ? { shouldStopAfterTurn: () => ++turnCount >= effectiveMaxTurns } : {}),
+		shouldStopAfterTurn,
 	};
 
 	const loop = args.agentLoop ?? agentLoop;

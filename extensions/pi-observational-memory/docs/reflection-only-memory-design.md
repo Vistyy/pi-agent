@@ -106,6 +106,12 @@ ref_*
 
 `createdAt` is when the reflection record was produced. Stale/current reasoning should use source timestamps/order, not only rewritten reflection timestamps. A rewrite batch may create many reflections with the same `createdAt`; that is expected.
 
+## Observer contract
+
+Observer extracts source-backed evidence atoms. It should stay close to visible source payload and should not decide final active-memory worth.
+
+A concrete command or test result can be a valid observation when the source shows it. Durability filtering belongs to the reflector: routine validation output should become active memory only when it names a substantive validated behavior, blocker resolution, current state, or user/project decision.
+
 ## Normal reflector contract
 
 Normal reflector may read current reflections for context, but cites observations only.

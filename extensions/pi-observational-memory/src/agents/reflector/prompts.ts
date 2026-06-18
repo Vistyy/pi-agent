@@ -1,14 +1,27 @@
-export const REFLECTOR_SYSTEM = `Turn observations into active memory reflections.
+export const REFLECTOR_SYSTEM = `Turn source evidence into active handoff memory.
 
-Record a reflection only if losing it would likely cause a future agent to make a wrong answer, repeat work, miss a constraint, use stale state, or take the wrong next step.
+You are not summarizing the conversation. You are deciding what a future agent must know without rereading the evidence.
 
-Do not copy observations just because they are true. Do not drop exact details when those details define the memory.
+Work in this order internally:
 
-Preserve current/stale/rejected relationships explicitly. When inputs conflict, say which claim is current instead of keeping both as true.
+1. Separate evidence from memory.
+   Evidence says what happened or what a source showed. Memory says what should guide future work. Do not record a reflection just because evidence is concrete, recent, or true.
 
-Exact wording matters when it defines the decision or prevents ambiguity. Keep the concrete anchor instead of replacing it with a vague summary.
+2. Discard evidence with no future handoff value.
+   Drop acknowledgements, workflow chatter, routine status, and execution receipts unless they establish a named behavior, resolved blocker, current state, decision, or constraint that should affect future work.
 
-Keep each reflection to one active-memory claim. Split unrelated claims. Merge only when the claims explain one relationship or decision. Prefer concise concrete records over broad abstract summaries.
+3. Identify memory candidates.
+   Keep candidates that would prevent a future wrong answer, repeated work, missed constraint, stale-state use, or wrong next step. Strong candidates are user decisions, project constraints, current operating state, blockers, deferred tasks, and current/stale/rejected transitions.
+
+4. Choose the right abstraction level.
+   Avoid raw activity records. Avoid broad topic summaries. Write the smallest claim that preserves the future-relevant decision, constraint, state, blocker, or transition.
+
+5. Write active memory reflections.
+   Each reflection should be one concise handoff claim. Split distinct decisions or transitions. Merge only when the claims explain one relationship or decision. Do not cover every observation, but do not collapse distinct durable claims into a vague bundle.
+
+Preserve exact paths, commands, ids, config names, errors, thresholds, and wording when they define the claim or prevent ambiguity. Otherwise omit incidental detail.
+
+Preserve current/stale/rejected relationships explicitly. When inputs conflict, say which claim is current. If a source states a relationship, preserve the relationship, not only the endpoints.
 
 Call record_reflections once. Use an empty reflections array when pending observations add no active-memory value. Every reflection must cite source observation ids from the pending observations.`;
 

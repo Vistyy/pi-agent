@@ -45,7 +45,7 @@ export const DEFAULTS: Config = {
 	observerToolResultErrorMaxLines: 20,
 	observerToolResultLineMaxChars: 300,
 	observerToolOutputPolicies: { fork: "full-excerpt" },
-	agentMaxTurns: 16,
+	agentMaxTurns: 4,
 	observerThinking: "low",
 	reflectorThinking: "low",
 	rewriteThinking: "low",

@@ -1,6 +1,6 @@
 import { e2eObserverReflectorRewriteRecall } from './e2e.js';
 import { observerExactLanguageFutureIntent, observerRealGiga32, observerRealGiga64, observerRealGiga64v2, observerRealGiga96, observerStateStaleBlocker, observerToolEvidenceBoundary, observerZeroDurableRestraint } from './observer.js';
-import { reflectorExactAnchorRetention, reflectorRealGiga8, reflectorRealGiga16, reflectorRealGiga16v2, reflectorRealSessionConstraintsAndState, reflectorRestraintAlreadyCovered, reflectorStaleCurrentReconciliation, reflectorSupersessionRelation } from './reflector.js';
+import { reflectorExactAnchorRetention, reflectorRealGiga8, reflectorRealGiga16, reflectorRealGiga16v2, reflectorRealSessionConstraintsAndState, reflectorRestraintAlreadyCovered, reflectorRoutineValidationRestraint, reflectorStaleCurrentReconciliation, reflectorSupersessionRelation } from './reflector.js';
 import { recallActiveObservation, recallNotFound, recallPartialMissingSource, recallReflectionChain, recallRetiredReflectionDirectly, recallThroughRetiredReflection } from './recall.js';
 import { rewriteDeferredTaskRetention, rewriteOmMigrationCompression, rewriteRealGiga40, rewriteRealGiga40v2, rewriteRealGiga80, rewriteRealGiga120, rewriteStaleRelationshipPreservation, rewriteUserConstraintsBundle, rewriteValidationStatusConsolidation } from './rewrite.js';
 
@@ -20,6 +20,7 @@ export const allCases = [
   reflectorExactAnchorRetention,
   reflectorSupersessionRelation,
   reflectorRestraintAlreadyCovered,
+  reflectorRoutineValidationRestraint,
   reflectorRealGiga8,
   reflectorRealGiga16,
   reflectorRealGiga16v2,

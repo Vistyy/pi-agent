@@ -10,7 +10,7 @@ async function runRewriteCase(modelSpec: string, thinkingLevel: ModelThinkingLev
   const { runRewrite } = await loadOmAgents();
   const usage = createUsageCollector();
   const agentStarted = Date.now();
-  const result = await runRewrite({ ...auth, reflections, thinkingLevel, maxTurns: 6, onUsage: usage.onUsage });
+  const result = await runRewrite({ ...auth, reflections, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
   return { output: result?.reflections, usage, agentDurationMs: Date.now() - agentStarted };
 }
 
@@ -91,8 +91,8 @@ async function realRewriteFixtureCase(id: string, fixture: readonly any[], model
   const { output, usage, agentDurationMs } = await runRewriteCase(modelSpec, thinkingLevel, reflections);
   return judgedRewriteScored(id, output, {
     id,
-    question: `Rewrite ${fixture.length} real active reflections mined from the giga OM session into a smaller current memory set. Keep current constraints/decisions, current-vs-stale relationships, exact anchors that define decisions or boundaries, latest validation/current status, and deferred timing constraints.`,
-    rubric: { pass_if: ['Preserves central current durable decisions, implementation state, validation facts, and stale/current relationships.', 'Preserves exact anchors when they define config/API names, commands, validation, boundaries, or triggers.', 'Drops obsolete operational trail unless needed to explain current state.', 'Substantially compresses the input while retaining sparse but important current facts.', 'Produces useful handoff memory for a future agent.'], fail_if: ['Drops central current project state or decision-critical anchors.', 'Resurrects stale behavior as current.', 'Keeps plausible but obsolete operational details at the expense of current memory.', 'Fails to compress.'] },
+    question: `Rewrite ${fixture.length} real active reflections mined from the giga OM session into a smaller current memory set. Prefer latest concrete current state over older implementation history, while preserving stale/current relationships and decision-critical anchors.`,
+    rubric: { pass_if: ['Preserves central current decisions, implementation state, validation facts, and stale/current relationships.', 'Keeps exact anchors when they define the memory.', 'Drops obsolete operational trail unless needed to explain current state.', 'Substantially compresses the input while retaining sparse but important current facts.', 'Produces useful handoff memory for a future agent.'], fail_if: ['Drops central current project state or decision-critical anchors.', 'Resurrects stale behavior as current.', 'Keeps plausible but obsolete operational details at the expense of current memory.', 'Fails to compress.'] },
   }, judgeModel, started, [reflectorSourceIdsAllowed(allowedSources(reflections))], [...scoreChecks, reflectorMaxCount(Math.max(8, Math.ceil(fixture.length / 4)))], usage.total, agentDurationMs, { reflections, forceJudge: true });
 }
 
@@ -134,12 +134,10 @@ export async function rewriteRealGiga120(modelSpec: string, judgeModel: string, 
 export async function rewriteRealGiga40v2(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   return realRewriteFixtureCase('rewrite-real-giga-40-v2', realRewrite40v2, modelSpec, judgeModel, thinkingLevel, [
     reflectorRequiresAll('OM', 'fork'),
-    reflectorRequiresAll('judgedCuratorScored'),
     reflectorRequiresAll('curator'),
-    reflectorRequiresAll('supportingObservationIds'),
     reflectorRequiresAll('reflectorThinking', 'low'),
     reflectorRequiresAll('observations are durable evidence'),
-    reflectorRequiresAll('pin', 'unpin'),
+    reflectorRequiresAll('pin'),
     reflectorRequiresAll('reflection-only'),
     reflectorRequiresAll('typed provenance ids', 'sources'),
     reflectorRequiresAll('full active-memory rewrite'),

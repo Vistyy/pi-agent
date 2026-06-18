@@ -89,7 +89,7 @@ describe("runObserver", () => {
 		await expect(runObserver({ ...baseArgs, agentLoop: loop })).resolves.toBeUndefined();
 	});
 
-	it("uses maxTurns as an observer turn cap", async () => {
+	it("stops on no tool call and uses maxTurns as a safety cap", async () => {
 		let shouldStopAfterTurn: any;
 		const loop = fakeAgentLoop((_prompts, _context, config) => {
 			shouldStopAfterTurn = config.shouldStopAfterTurn;
@@ -98,8 +98,8 @@ describe("runObserver", () => {
 		await runObserver({ ...baseArgs, agentLoop: loop, maxTurns: 2 });
 
 		expect(shouldStopAfterTurn).toBeTypeOf("function");
-		expect(shouldStopAfterTurn({})).toBe(false);
-		expect(shouldStopAfterTurn({})).toBe(true);
+		expect(shouldStopAfterTurn({ toolResults: [] })).toBe(true);
+		expect(shouldStopAfterTurn({ toolResults: [{ isError: false }] })).toBe(true);
 	});
 
 	it("uses configured observer thinking level for reasoning models", async () => {

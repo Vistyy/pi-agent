@@ -31,7 +31,7 @@ async function runReflectorCase(modelSpec: string, thinkingLevel: ModelThinkingL
   const { runReflector } = await loadOmAgents();
   const usage = createUsageCollector();
   const agentStarted = Date.now();
-  const output = await runReflector({ ...auth, ...args, thinkingLevel, maxTurns: 6, onUsage: usage.onUsage });
+  const output = await runReflector({ ...auth, ...args, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
   return { output, usage, agentDurationMs: Date.now() - agentStarted };
 }
 
@@ -75,7 +75,7 @@ export async function reflectorSupersessionRelation(modelSpec: string, judgeMode
   return judgedReflectorScored('reflector-supersession-relation', output, {
     id: 'reflector-supersession-relation',
     question: 'Preserve the replacement/supersession relation, not just current-vs-stale labels.',
-    rubric: { pass_if: ['fast_sync_v2_enabled current/canonical.', 'enableFastSync stale/rejected.', 'Supersedes/replaces relationship explicit.'], fail_if: ['Relationship omitted.', 'enableFastSync ambiguous/current.', 'Sources invented.'] },
+    rubric: { pass_if: ['fast_sync_v2_enabled current/canonical.', 'enableFastSync stale/rejected.', 'Supersedes/replaces relationship explicit.'], fail_if: ['Relationship omitted.', 'enableFastSync ambiguous/current.'] },
   }, judgeModel, started, [reflectorSourceIdsAllowed(observations.map((o) => o.id))], [reflectorRequiresAll('fast_sync_v2_enabled'), reflectorRequiresAll('enableFastSync'), reflectorRequiresAll('supersedes'), reflectorMaxCount(2)], usage.total, agentDurationMs, { observations });
 }
 
@@ -95,14 +95,30 @@ export async function reflectorRestraintAlreadyCovered(modelSpec: string, judgeM
   }, judgeModel, started, [reflectorForbidsAny('okay', 'thanks'), reflectorMaxCount(1), reflectorSourceIdsAllowed([...observations.map((o) => o.id), ...reflections.map((r) => r.id)])], [], usage.total, agentDurationMs, { observations, reflections });
 }
 
+export async function reflectorRoutineValidationRestraint(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const started = Date.now();
+  const observations = [
+    obs('aaaaaaaaaaaa', '`pnpm test` exited 0 with `Test Files 3 passed; Tests 12 passed`.', '2026-06-12T12:10:00.000Z'),
+    obs('bbbbbbbbbbbb', 'Assistant said tests passed.', '2026-06-12T12:11:00.000Z'),
+  ];
+  const { output, usage, agentDurationMs } = await runReflectorCase(modelSpec, thinkingLevel, { reflections: [], observations });
+  const probe = {
+    id: 'reflector-routine-validation-restraint',
+    question: 'Drop routine validation evidence when it does not name a substantive validated behavior, blocker resolution, current state, or decision.',
+    rubric: { pass_if: ['No reflections recorded for bare passing test output and assistant status.'], fail_if: ['Records routine pass counts or assistant status as active memory.'] },
+  };
+  const record = await judgedReflectorScored('reflector-routine-validation-restraint', output, probe, judgeModel, started, [reflectorForbidsAny('Test Files 3 passed', 'Tests 12 passed', 'tests passed'), reflectorMaxCount(0), reflectorSourceIdsAllowed(observations.map((o) => o.id))], [], usage.total, agentDurationMs, { observations });
+  return maybeDebugReflector(record, undefined, modelSpec, thinkingLevel, { observations }, probe);
+}
+
 async function realReflectorFixtureCase(id: string, fixture: readonly any[], modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel, scoreChecks: ReturnType<typeof reflectorRequiresAll>[]): Promise<AgentEvalRecord> {
   const started = Date.now();
   const observations = fixture.map((observation) => ({ ...observation }));
   const { output, usage, agentDurationMs } = await runReflectorCase(modelSpec, thinkingLevel, { reflections: [], observations });
   return judgedReflectorScored(id, output, {
     id,
-    question: `Distill the durable active-memory value from ${fixture.length} real recorded observations mined from the giga OM session. Compress related observations, but keep exact anchors when they define a policy, migration, config/API decision, command, validation result, boundary, trigger, or stale/current relation.`,
-    rubric: { pass_if: ['Keeps the main durable user/project decisions.', 'Preserves exact implementation/config/validation/boundary anchors when those anchors define the active-memory claim.', 'Compresses related observations without broad abstract summaries that lose decision-critical details.', 'Avoids acknowledgement and tool-receipt noise.'], fail_if: ['Drops the main durable decisions or their decision-critical anchors.', 'Treats exact config/path/command/validation details as noise when they define the memory.', 'Creates bloated duplicate reflections.', 'Records acknowledgement/tool-receipt noise as durable memory.'] },
+    question: `Distill the durable active-memory value from ${fixture.length} real recorded observations mined from the giga OM session. Compress related observations, but preserve exact anchors and relationships when they define the memory or prevent ambiguity.`,
+    rubric: { pass_if: ['Keeps the main durable user/project decisions.', 'Preserves decision-critical anchors and relationships.', 'Compresses related observations without broad abstract summaries that lose important details.', 'Avoids acknowledgement and tool-receipt noise.'], fail_if: ['Drops the main durable decisions or the details that define them.', 'Treats decision-critical anchors as noise.', 'Creates bloated duplicate reflections.', 'Records acknowledgement/tool-receipt noise as durable memory.'] },
   }, judgeModel, started, [reflectorSourceIdsAllowed(observations.map((o) => o.id))], [...scoreChecks, reflectorMaxCount(Math.ceil(fixture.length / 2))], usage.total, agentDurationMs, { observations, forceJudge: true });
 }
 
