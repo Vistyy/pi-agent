@@ -1,9 +1,8 @@
 import { runJudge } from '../lib/judge.js';
 import type { Probe, TokenUsage } from '../lib/types.js';
-import type { AgentEvalRecord, EvalScoreDimension, Observation, ObserverCheck, Reflection, ReflectionEvalDiagnostics, ReflectorCheck } from './types.js';
+import type { AgentEvalRecord, EvalScoreDimension, Observation, OmGrader, Reflection, ReflectionEvalDiagnostics } from './types.js';
 
 const MIN_SCORED_PASS_RATIO = 0.5;
-
 
 export async function judged(id: string, agent: AgentEvalRecord['agent'], output: unknown, probe: Probe, judgeModel: string, started: number, usage?: TokenUsage, agentDurationMs?: number): Promise<AgentEvalRecord> {
   const answer = JSON.stringify(output, null, 2);
@@ -12,9 +11,60 @@ export async function judged(id: string, agent: AgentEvalRecord['agent'], output
   return { id, agent, output, judge, passed: run.status === 0 && judge.passed, durationMs: Date.now() - started, agentDurationMs, judgeDurationMs: Date.now() - judgeStarted, usage, judgeUsage: run.usage };
 }
 
-function deterministicObserverFailure(output: Observation[] | undefined, checks: ObserverCheck[]): { reason: string; details: unknown[] } | undefined {
-  const failed = checks.filter((check) => !check.pass(output)).map((check) => ({ label: check.label, detail: check.detail?.(output) ?? output }));
-  return failed.length ? { reason: failed.map((check) => check.label).join('; '), details: failed } : undefined;
+export function optional<TOutput>(grader: OmGrader<TOutput>): OmGrader<TOutput> {
+  return { ...grader, required: false };
+}
+
+export async function gradeAgentOutput<TOutput>(args: {
+  id: string;
+  agent: 'observer' | 'reflector' | 'rewrite';
+  output: TOutput | undefined;
+  probe: Probe;
+  judgeModel: string;
+  started: number;
+  graders: OmGrader<TOutput>[];
+  usage?: TokenUsage;
+  agentDurationMs?: number;
+  diagnostics?: unknown;
+  noToolCallLabel?: string;
+}): Promise<AgentEvalRecord> {
+  const graders: OmGrader<TOutput>[] = args.output === undefined && args.noToolCallLabel
+    ? [{ label: args.noToolCallLabel, required: true, pass: () => false }, ...args.graders]
+    : args.graders;
+  const dimensions: EvalScoreDimension[] = graders.map((grader) => {
+    const passed = grader.pass(args.output);
+    const required = grader.required !== false;
+    return { label: grader.label, required, passed, score: !required && passed ? 1 : 0, maxScore: required ? 0 : 1, detail: grader.detail?.(args.output) ?? args.output };
+  });
+  const failedRequired = dimensions.filter((dimension) => dimension.required && !dimension.passed);
+  const optionalDimensions = dimensions.filter((dimension) => !dimension.required);
+  const score = optionalDimensions.reduce((total, dimension) => total + dimension.score, 0);
+  const maxScore = optionalDimensions.reduce((total, dimension) => total + dimension.maxScore, 0);
+  const forceJudge = Boolean((args.diagnostics as { forceJudge?: boolean } | undefined)?.forceJudge);
+  const scoreFailure = failedRequired.length === 0 && maxScore > 0 && score / maxScore < MIN_SCORED_PASS_RATIO;
+  const deterministicPass = !forceJudge && failedRequired.length === 0 && !scoreFailure && maxScore > 0 && score === maxScore;
+  const judgeStarted = Date.now();
+  const judged = failedRequired.length > 0 || deterministicPass ? undefined : await runJudge(args.probe, JSON.stringify(args.output ?? [], null, 2), args.judgeModel);
+  return {
+    id: args.id,
+    agent: args.agent,
+    output: args.output ?? [],
+    judge: failedRequired.length > 0
+      ? { passed: false, reason: `Required graders failed: ${failedRequired.map((dimension) => dimension.label).join('; ')}`, details: failedRequired }
+      : scoreFailure
+        ? { passed: false, reason: `Optional grader score below threshold: ${score}/${maxScore}` }
+        : deterministicPass
+          ? { passed: true, reason: 'Deterministic graders passed.' }
+          : judged?.judge,
+    passed: deterministicPass || (failedRequired.length === 0 && !scoreFailure && judged?.run.status === 0 && judged.judge.passed),
+    durationMs: Date.now() - args.started,
+    agentDurationMs: args.agentDurationMs,
+    judgeDurationMs: failedRequired.length > 0 || deterministicPass ? undefined : Date.now() - judgeStarted,
+    usage: args.usage,
+    judgeUsage: judged?.run.usage,
+    diagnostics: args.diagnostics,
+    score: { hardFailed: failedRequired.length > 0, score, maxScore, dimensions },
+  };
 }
 
 export function observerText(output: Observation[] | undefined): string {
@@ -25,30 +75,25 @@ export function observerSourceIds(output: Observation[] | undefined): string[] {
   return (output ?? []).flatMap((observation) => observation.sourceEntryIds);
 }
 
-export function observerRequiresAll(...needles: string[]): ObserverCheck {
+export function observerRequiresAll(...needles: string[]): OmGrader<Observation[]> {
   return { label: `requires ${needles.join(', ')}`, pass: (output) => needles.every((needle) => observerText(output).includes(needle)), detail: (output) => observerText(output) };
 }
 
-export function observerForbidsAny(...needles: string[]): ObserverCheck {
+export function observerForbidsAny(...needles: string[]): OmGrader<Observation[]> {
   return { label: `forbids ${needles.join(', ')}`, pass: (output) => needles.every((needle) => !observerText(output).includes(needle)), detail: (output) => observerText(output) };
 }
 
-export function observerMaxCount(max: number): ObserverCheck {
+export function observerMaxCount(max: number): OmGrader<Observation[]> {
   return { label: `at most ${max} observations`, pass: (output) => (output ?? []).length <= max, detail: (output) => ({ count: (output ?? []).length }) };
 }
 
-export function observerForbidsSourceIds(...ids: string[]): ObserverCheck {
+export function observerForbidsSourceIds(...ids: string[]): OmGrader<Observation[]> {
   return { label: `forbids source ids ${ids.join(', ')}`, pass: (output) => ids.every((id) => !observerSourceIds(output).includes(id)), detail: (output) => observerSourceIds(output) };
 }
 
-export function observerSourceIdsAllowed(allowedIds: string[]): ObserverCheck {
+export function observerSourceIdsAllowed(allowedIds: string[]): OmGrader<Observation[]> {
   const allowed = new Set(allowedIds);
   return { label: `source ids limited to ${allowedIds.join(', ')}`, pass: (output) => observerSourceIds(output).every((id) => allowed.has(id)), detail: (output) => observerSourceIds(output) };
-}
-
-function deterministicReflectorFailure(output: Reflection[] | undefined, checks: ReflectorCheck[]): { reason: string; details: unknown[] } | undefined {
-  const failed = checks.filter((check) => !check.pass(output)).map((check) => ({ label: check.label, detail: check.detail?.(output) ?? output }));
-  return failed.length ? { reason: failed.map((check) => check.label).join('; '), details: failed } : undefined;
 }
 
 export function reflectionText(output: Reflection[] | undefined): string {
@@ -59,144 +104,23 @@ export function reflectionSourceIds(output: Reflection[] | undefined): string[] 
   return (output ?? []).flatMap((reflection) => reflection.sources);
 }
 
-export function reflectorRequiresAll(...needles: string[]): ReflectorCheck {
+export function reflectorRequiresAll(...needles: string[]): OmGrader<Reflection[]> {
   return { label: `requires ${needles.join(', ')}`, pass: (output) => needles.every((needle) => reflectionText(output).includes(needle)), detail: (output) => reflectionText(output) };
 }
 
-export function reflectorForbidsAny(...needles: string[]): ReflectorCheck {
+export function reflectorForbidsAny(...needles: string[]): OmGrader<Reflection[]> {
   return { label: `forbids ${needles.join(', ')}`, pass: (output) => needles.every((needle) => !reflectionText(output).includes(needle)), detail: (output) => reflectionText(output) };
 }
 
-export function reflectorMaxCount(max: number): ReflectorCheck {
+export function reflectorMaxCount(max: number): OmGrader<Reflection[]> {
   return { label: `at most ${max} reflections`, pass: (output) => (output ?? []).length <= max, detail: (output) => ({ count: (output ?? []).length }) };
 }
 
-export function reflectorSourceIdsAllowed(allowedIds: string[]): ReflectorCheck {
+export function reflectorSourceIdsAllowed(allowedIds: string[]): OmGrader<Reflection[]> {
   const allowed = new Set(allowedIds);
   return { label: `source ids limited to ${allowedIds.join(', ')}`, pass: (output) => reflectionSourceIds(output).every((id) => allowed.has(id)), detail: (output) => reflectionSourceIds(output) };
 }
 
-export async function judgedObserverScored(
-  id: string,
-  output: Observation[] | undefined,
-  probe: Probe,
-  judgeModel: string,
-  started: number,
-  hardChecks: ObserverCheck[],
-  scoreChecks: ObserverCheck[],
-  usage?: TokenUsage,
-  agentDurationMs?: number,
-  diagnostics?: unknown,
-): Promise<AgentEvalRecord> {
-  const noToolCallFailure = output === undefined ? { reason: 'No record_observations tool call', details: [] } : undefined;
-  const hardFailure = noToolCallFailure ?? deterministicObserverFailure(output, hardChecks);
-  const dimensions: EvalScoreDimension[] = scoreChecks.map((check) => {
-    const passed = check.pass(output);
-    return { label: check.label, score: passed ? 1 : 0, maxScore: 1, detail: check.detail?.(output) ?? output };
-  });
-  const score = dimensions.reduce((total, dimension) => total + dimension.score, 0);
-  const maxScore = dimensions.reduce((total, dimension) => total + dimension.maxScore, 0);
-  const forceJudge = Boolean((diagnostics as { forceJudge?: boolean } | undefined)?.forceJudge);
-  const scoreFailure = !hardFailure && maxScore > 0 && score / maxScore < MIN_SCORED_PASS_RATIO;
-  const judgeStarted = Date.now();
-  const deterministicPass = !forceJudge && !hardFailure && !scoreFailure && maxScore > 0 && score === maxScore;
-  const judged = hardFailure || deterministicPass ? undefined : await runJudge(probe, JSON.stringify(output ?? [], null, 2), judgeModel);
-  return {
-    id,
-    agent: 'observer',
-    output: output ?? [],
-    judge: hardFailure
-      ? { passed: false, reason: `Hard invariant failed: ${hardFailure.reason}`, details: hardFailure.details }
-      : scoreFailure
-        ? { passed: false, reason: `Deterministic score below threshold: ${score}/${maxScore}` }
-        : deterministicPass
-          ? { passed: true, reason: 'Deterministic score dimensions passed.' }
-          : judged?.judge,
-    passed: deterministicPass || (!hardFailure && !scoreFailure && judged?.run.status === 0 && judged.judge.passed),
-    durationMs: Date.now() - started,
-    agentDurationMs,
-    judgeDurationMs: hardFailure || deterministicPass ? undefined : Date.now() - judgeStarted,
-    usage,
-    judgeUsage: judged?.run.usage,
-    diagnostics,
-    score: { hardFailed: Boolean(hardFailure), score, maxScore, dimensions },
-  };
-}
-
-async function judgedReflectionLikeScored(
-  agent: 'reflector' | 'rewrite',
-  id: string,
-  output: Reflection[] | undefined,
-  probe: Probe,
-  judgeModel: string,
-  started: number,
-  hardChecks: ReflectorCheck[],
-  scoreChecks: ReflectorCheck[],
-  usage?: TokenUsage,
-  agentDurationMs?: number,
-  diagnostics?: ReflectionEvalDiagnostics,
-): Promise<AgentEvalRecord> {
-  const noToolCallFailure = agent === 'reflector' && output === undefined ? { reason: 'No record_reflections tool call', details: [] } : undefined;
-  const hardFailure = noToolCallFailure ?? deterministicReflectorFailure(output, hardChecks);
-  const dimensions: EvalScoreDimension[] = scoreChecks.map((check) => {
-    const passed = check.pass(output);
-    return { label: check.label, score: passed ? 1 : 0, maxScore: 1, detail: check.detail?.(output) ?? output };
-  });
-  const score = dimensions.reduce((total, dimension) => total + dimension.score, 0);
-  const maxScore = dimensions.reduce((total, dimension) => dimension.maxScore + total, 0);
-  const forceJudge = Boolean((diagnostics as { forceJudge?: boolean } | undefined)?.forceJudge);
-  const scoreFailure = !hardFailure && maxScore > 0 && score / maxScore < MIN_SCORED_PASS_RATIO;
-  const judgeStarted = Date.now();
-  const deterministicPass = !forceJudge && !hardFailure && !scoreFailure && maxScore > 0 && score === maxScore;
-  const judged = hardFailure || deterministicPass ? undefined : await runJudge(probe, JSON.stringify(output ?? [], null, 2), judgeModel);
-  return {
-    id,
-    agent,
-    output: output ?? [],
-    judge: hardFailure
-      ? { passed: false, reason: `Hard invariant failed: ${hardFailure.reason}`, details: hardFailure.details }
-      : scoreFailure
-        ? { passed: false, reason: `Deterministic score below threshold: ${score}/${maxScore}` }
-        : deterministicPass
-          ? { passed: true, reason: 'Deterministic score dimensions passed.' }
-          : judged?.judge,
-    passed: deterministicPass || (!hardFailure && !scoreFailure && judged?.run.status === 0 && judged.judge.passed),
-    durationMs: Date.now() - started,
-    agentDurationMs,
-    judgeDurationMs: hardFailure || deterministicPass ? undefined : Date.now() - judgeStarted,
-    usage,
-    judgeUsage: judged?.run.usage,
-    diagnostics,
-    score: { hardFailed: Boolean(hardFailure), score, maxScore, dimensions },
-  };
-}
-
-export async function judgedReflectorScored(
-  id: string,
-  output: Reflection[] | undefined,
-  probe: Probe,
-  judgeModel: string,
-  started: number,
-  hardChecks: ReflectorCheck[],
-  scoreChecks: ReflectorCheck[],
-  usage?: TokenUsage,
-  agentDurationMs?: number,
-  diagnostics?: ReflectionEvalDiagnostics,
-): Promise<AgentEvalRecord> {
-  return judgedReflectionLikeScored('reflector', id, output, probe, judgeModel, started, hardChecks, scoreChecks, usage, agentDurationMs, diagnostics);
-}
-
-export async function judgedRewriteScored(
-  id: string,
-  output: Reflection[] | undefined,
-  probe: Probe,
-  judgeModel: string,
-  started: number,
-  hardChecks: ReflectorCheck[],
-  scoreChecks: ReflectorCheck[],
-  usage?: TokenUsage,
-  agentDurationMs?: number,
-  diagnostics?: ReflectionEvalDiagnostics,
-): Promise<AgentEvalRecord> {
-  return judgedReflectionLikeScored('rewrite', id, output, probe, judgeModel, started, hardChecks, scoreChecks, usage, agentDurationMs, diagnostics);
+export function reflectorDiagnostics(diagnostics?: ReflectionEvalDiagnostics): ReflectionEvalDiagnostics | undefined {
+  return diagnostics;
 }

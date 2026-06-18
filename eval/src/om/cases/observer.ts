@@ -1,7 +1,7 @@
 import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import type { AgentEvalRecord, OmEvalOptions } from '../types.js';
 import { runObserverEval } from '../agent-runner.js';
-import { judgedObserverScored, observerForbidsAny, observerForbidsSourceIds, observerMaxCount, observerRequiresAll, observerSourceIdsAllowed } from '../diagnostics.js';
+import { gradeAgentOutput, observerForbidsAny, observerForbidsSourceIds, observerMaxCount, observerRequiresAll, observerSourceIdsAllowed, optional } from '../diagnostics.js';
 import { realObserver32, realObserver64, realObserver96 } from './real-session-fixtures.js';
 import { realObserver64 as realObserver64v2 } from './real-session-fixtures-v2.js';
 
@@ -27,7 +27,7 @@ export async function observerStateStaleBlocker(modelSpec: string, judgeModel: s
     question: 'Preserve current/stale state, exact blockers, tool evidence, and unresolved status without acknowledgement noise.',
     rubric: { pass_if: ['Redis rejected and SQLite /tmp/jobs.db current.', 'SQLITE_BUSY path/command and WAL requirement retained.', 'Parser entrypoint change and CRLF test failure retained with unresolved status.'], fail_if: ['Stale Redis treated current.', 'CRLF failure called fixed.', 'Exact command/path/test values lost.', 'Ack recorded as durable memory.'] },
   };
-  return judgedObserverScored('observer-state-stale-blocker', output, probe, judgeModel, started, [observerForbidsSourceIds('assistant-g')], [observerRequiresAll('SQLite', '/tmp/jobs.db'), observerRequiresAll('SQLITE_BUSY', 'src/db/migrate.ts:88'), observerRequiresAll('PRAGMA journal_mode=WAL'), observerRequiresAll('src/parser.ts', 'src/parser/index.ts'), observerRequiresAll('tests/parser-regression.test.ts', '17', '16'), observerMaxCount(5)], usage.total, agentDurationMs, { chunk });
+  return gradeAgentOutput({ id: 'observer-state-stale-blocker', agent: 'observer', output, probe, judgeModel, started, graders: [observerForbidsSourceIds('assistant-g'), optional(observerRequiresAll('SQLite', '/tmp/jobs.db')), optional(observerRequiresAll('SQLITE_BUSY', 'src/db/migrate.ts:88')), optional(observerRequiresAll('PRAGMA journal_mode=WAL')), optional(observerRequiresAll('src/parser.ts', 'src/parser/index.ts')), optional(observerRequiresAll('tests/parser-regression.test.ts', '17', '16')), optional(observerMaxCount(5))], usage: usage.total, agentDurationMs, diagnostics: { chunk }, noToolCallLabel: 'No record_observations tool call' });
 }
 
 export async function observerToolEvidenceBoundary(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -44,11 +44,11 @@ export async function observerToolEvidenceBoundary(modelSpec: string, judgeModel
   ].join('\n\n');
   const ids = ['user-tool-a', 'tool-tool-b', 'tool-tool-d', 'user-tool-e', 'user-success-a', 'tool-success-b', 'tool-budget-c', 'assistant-budget-d'];
   const { output, usage, agentDurationMs } = await runObserverCase(modelSpec, thinkingLevel, chunk, ids);
-  return judgedObserverScored('observer-tool-evidence-boundary', output, {
+  return gradeAgentOutput({ id: 'observer-tool-evidence-boundary', agent: 'observer', output, probe: {
     id: 'observer-tool-evidence-boundary',
     question: 'Preserve actionable visible tool evidence while avoiding omitted read/output metadata and invented failures.',
     rubric: { pass_if: ['Route/test/JWT/org-id failure retained.', 'createDbClient API and passing default validation retained.', 'No invented auth-refresh failure from omitted output.'], fail_if: ['Records omitted read snippets or output metadata.', 'Invents exact auth-refresh failure.', 'Drops visible pass/fail evidence.'] },
-  }, judgeModel, started, [observerForbidsAny('output_omitted', 'output omitted by observer policy', 'input budget was exhausted')], [observerRequiresAll('tests/api-org.test.ts', '401', '200'), observerRequiresAll('JWT', 'org-id'), observerRequiresAll('createDbClient', 'src/db/client.ts'), observerRequiresAll('maxRetries', '3', 'logQueries'), observerMaxCount(7)], usage.total, agentDurationMs);
+  }, judgeModel, started, graders: [observerForbidsAny('output_omitted', 'output omitted by observer policy', 'input budget was exhausted'), optional(observerRequiresAll('tests/api-org.test.ts', '401', '200')), optional(observerRequiresAll('JWT', 'org-id')), optional(observerRequiresAll('createDbClient', 'src/db/client.ts')), optional(observerRequiresAll('maxRetries', '3', 'logQueries')), optional(observerMaxCount(7))], usage: usage.total, agentDurationMs, noToolCallLabel: 'No record_observations tool call' });
 }
 
 export async function observerExactLanguageFutureIntent(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -62,11 +62,11 @@ export async function observerExactLanguageFutureIntent(modelSpec: string, judge
   ].join('\n');
   const ids = ['user-schema-a', 'user-schema-c', 'tool-schema-d', 'user-future-a', 'assistant-f'];
   const { output, usage, agentDurationMs } = await runObserverCase(modelSpec, thinkingLevel, chunk, ids);
-  return judgedObserverScored('observer-exact-language-future-intent', output, {
+  return gradeAgentOutput({ id: 'observer-exact-language-future-intent', agent: 'observer', output, probe: {
     id: 'observer-exact-language-future-intent',
     question: 'Preserve exact API/event names and future/tentative sequencing without promoting stale distractions.',
     rubric: { pass_if: ['Exact event/field names retained.', 'Deprecated/superseded are proposed future, not implemented.', 'Observer provenance policy precedes deterministic checks; docs cleanup tentative.'], fail_if: ['Generic flags replace exact names.', 'Future events treated implemented.', 'Maybe docs cleanup treated immediate/approved.'] },
-  }, judgeModel, started, [observerForbidsSourceIds('assistant-f')], [observerRequiresAll('om.observations.flagged', 'observationIds', 'reason'), observerRequiresAll('om.reflections.deprecated', 'om.reflections.superseded'), observerRequiresAll('proposed'), observerRequiresAll('observer provenance policy', 'deterministic'), observerRequiresAll('docs cleanup'), observerMaxCount(5)], usage.total, agentDurationMs);
+  }, judgeModel, started, graders: [observerForbidsSourceIds('assistant-f'), optional(observerRequiresAll('om.observations.flagged', 'observationIds', 'reason')), optional(observerRequiresAll('om.reflections.deprecated', 'om.reflections.superseded')), optional(observerRequiresAll('proposed')), optional(observerRequiresAll('observer provenance policy', 'deterministic')), optional(observerRequiresAll('docs cleanup')), optional(observerMaxCount(5))], usage: usage.total, agentDurationMs, noToolCallLabel: 'No record_observations tool call' });
 }
 
 export async function observerRealSessionScaleOmSimplification(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -89,11 +89,11 @@ export async function observerRealSessionScaleOmSimplification(modelSpec: string
   ].join('\n\n');
   const ids = Array.from({ length: 14 }, (_, i) => `s${i + 1}`);
   const { output, usage, agentDurationMs } = await runObserverCase(modelSpec, thinkingLevel, chunk, ids);
-  return judgedObserverScored('observer-real-session-scale-om-simplification', output, {
+  return gradeAgentOutput({ id: 'observer-real-session-scale-om-simplification', agent: 'observer', output, probe: {
     id: 'observer-real-session-scale-om-simplification',
     question: 'From realistic noisy OM work, retain durable decisions, validation transitions, and deferred work without workflow receipts.',
     rubric: { pass_if: ['Deferred OM+fork task retained with do-not-investigate-now.', 'Typed-id/no-shim boundary compatibility decision retained.', 'Curator tests deletion rationale and reflection-only kept coverage retained.', 'Failed then passed validation chronology retained.', 'Rewrite input reflections-only retained.'], fail_if: ['Treats deferred OM+fork as immediate.', 'Says tests only failed or only passed without chronology.', 'Records edit/read receipts as durable facts.', 'Includes output omitted policy noise.'] },
-  }, judgeModel, started, [observerForbidsAny('Successfully replaced', 'output omitted by observer policy', 'Nice')], [observerRequiresAll('OM', 'fork', 'do not look into it too deeply'), observerRequiresAll('typed-id', 'no long-lived shims'), observerRequiresAll('curator.test.ts', 'curator-stage.test.ts'), observerRequiresAll('9 failing files', '29 failing tests'), observerRequiresAll('19 test files', '149 tests'), observerRequiresAll('reflections-only'), observerMaxCount(8)], usage.total, agentDurationMs);
+  }, judgeModel, started, graders: [observerForbidsAny('Successfully replaced', 'output omitted by observer policy', 'Nice'), optional(observerRequiresAll('OM', 'fork', 'do not look into it too deeply')), optional(observerRequiresAll('typed-id', 'no long-lived shims')), optional(observerRequiresAll('curator.test.ts', 'curator-stage.test.ts')), optional(observerRequiresAll('9 failing files', '29 failing tests')), optional(observerRequiresAll('19 test files', '149 tests')), optional(observerRequiresAll('reflections-only')), optional(observerMaxCount(8))], usage: usage.total, agentDurationMs, noToolCallLabel: 'No record_observations tool call' });
 }
 
 type RealObserverFixture = { readonly count: number; readonly chunk: string; readonly allowedSourceEntryIds: readonly string[] };
@@ -106,7 +106,7 @@ async function realObserverFixtureCase(id: string, fixture: RealObserverFixture,
     question: `Extract concrete source-backed OM observations from a real giga-session observer chunk with ${fixture.count} serialized source entries.`,
     rubric: { pass_if: ['Observations are source-close evidence payloads, not active-memory conclusions.', 'The main user statements, visible results/errors, named changes, blockers, and exact anchors from the noisy slice are reasonably covered.', 'Assistant summaries are acceptable source evidence when they are the visible source, but must be attributed as reported claims rather than treated as primary truth.', 'Low-value workflow telemetry is omitted unless the visible output contains a named result, error, blocker, validation target, or source payload.'], fail_if: ['Records omitted-output/read receipts as evidence.', 'Loses the main concrete evidence payloads or validation evidence.', 'Synthesizes active-memory conclusions not directly supported by the visible source.', 'Penalizes reported assistant summaries solely because their underlying primary source is not included in the fixture.'] },
   };
-  return judgedObserverScored(id, output, probe, judgeModel, started, [observerSourceIdsAllowed([...fixture.allowedSourceEntryIds]), observerForbidsAny('output omitted by observer policy', 'Successfully replaced', 'Successfully wrote', '[thinking omitted]')], scoreChecks, usage.total, agentDurationMs, { sourceEntryCount: fixture.count, forceJudge: true, chunk: fixture.chunk });
+  return gradeAgentOutput({ id, agent: 'observer', output, probe, judgeModel, started, graders: [observerSourceIdsAllowed([...fixture.allowedSourceEntryIds]), observerForbidsAny('output omitted by observer policy', 'Successfully replaced', 'Successfully wrote', '[thinking omitted]'), ...scoreChecks.map(optional)], usage: usage.total, agentDurationMs, diagnostics: { sourceEntryCount: fixture.count, forceJudge: true, chunk: fixture.chunk }, noToolCallLabel: 'No record_observations tool call' });
 }
 
 export async function observerRealGiga32(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel, options?: OmEvalOptions): Promise<AgentEvalRecord> {
@@ -161,5 +161,5 @@ export async function observerZeroDurableRestraint(modelSpec: string, judgeModel
     question: 'Avoid recording observations when the chunk has no visible source payload beyond workflow/status noise, omitted tool output, and acknowledgements.',
     rubric: { pass_if: ['No observations recorded because the chunk contains no visible substantive source payload.'], fail_if: ['Records omitted tool output, workflow chatter, or acknowledgements as evidence.'] },
   };
-  return judgedObserverScored('observer-zero-durable-restraint', output, probe, judgeModel, started, [observerMaxCount(0)], [], usage.total, agentDurationMs, { chunk });
+  return gradeAgentOutput({ id: 'observer-zero-durable-restraint', agent: 'observer', output, probe, judgeModel, started, graders: [observerMaxCount(0)], usage: usage.total, agentDurationMs, diagnostics: { chunk }, noToolCallLabel: 'No record_observations tool call' });
 }

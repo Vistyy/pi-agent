@@ -2,7 +2,7 @@ import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import type { AgentEvalRecord, Reflection } from '../types.js';
 import { runRewriteEval } from '../agent-runner.js';
 import { ref } from '../runner.js';
-import { judgedRewriteScored, reflectorForbidsAny, reflectorMaxCount, reflectorRequiresAll, reflectorSourceIdsAllowed } from '../diagnostics.js';
+import { gradeAgentOutput, optional, reflectorForbidsAny, reflectorMaxCount, reflectorRequiresAll, reflectorSourceIdsAllowed } from '../diagnostics.js';
 import { realRewrite40, realRewrite80, realRewrite120 } from './real-session-fixtures.js';
 import { realRewrite40 as realRewrite40v2 } from './real-session-fixtures-v2.js';
 
@@ -12,6 +12,10 @@ async function runRewriteCase(modelSpec: string, thinkingLevel: ModelThinkingLev
 
 function allowedSources(reflections: Reflection[]): string[] {
   return Array.from(new Set(reflections.flatMap((reflection) => [reflection.id, ...reflection.sources])));
+}
+
+function gradeRewriteScored(id: string, output: Reflection[] | undefined, probe: Parameters<typeof gradeAgentOutput<Reflection[]>>[0]['probe'], judgeModel: string, started: number, requiredGraders: Parameters<typeof gradeAgentOutput<Reflection[]>>[0]['graders'], optionalGraders: Parameters<typeof gradeAgentOutput<Reflection[]>>[0]['graders'], usage: Parameters<typeof gradeAgentOutput<Reflection[]>>[0]['usage'], agentDurationMs: number | undefined, diagnostics?: unknown) {
+  return gradeAgentOutput({ id, agent: 'rewrite', output, probe, judgeModel, started, graders: [...requiredGraders, ...optionalGraders.map(optional)], usage, agentDurationMs, diagnostics });
 }
 
 export async function rewriteOmMigrationCompression(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -26,7 +30,7 @@ export async function rewriteOmMigrationCompression(modelSpec: string, judgeMode
     ref('100000000007', 'Latest validation passed: cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test && cd ../../eval && pnpm exec tsc --noEmit.', ['obs_111111111111']),
   ];
   const { output, usage, agentDurationMs } = await runRewriteCase(modelSpec, thinkingLevel, reflections);
-  return judgedRewriteScored('rewrite-om-migration-compression', output, {
+  return gradeRewriteScored('rewrite-om-migration-compression', output, {
     id: 'rewrite-om-migration-compression',
     question: 'Compress real OM migration state without losing current typed-id shape, curator removal, reflection-only projection, reflector input distinction, or validation.',
     rubric: { pass_if: ['Current typed-id shape and no-shim rule retained.', 'Curator/pin/supportingObservationIds removal retained as current.', 'Reflection-only projection retained but reflector input distinction retained.', 'Validation command retained.'], fail_if: ['Resurrects curator/pinning as active.', 'Says observations are never used anywhere.', 'Drops validation status.', 'Invents sources.'] },
@@ -41,7 +45,7 @@ export async function rewriteStaleRelationshipPreservation(modelSpec: string, ju
     ref('200000000003', 'Compaction is near-instant and non-rewriting: only observer tail flush plus deterministic projection, no synchronous reflector/curator/rewrite work.', ['obs_cccccccccccc']),
   ];
   const { output, usage, agentDurationMs } = await runRewriteCase(modelSpec, thinkingLevel, reflections);
-  return judgedRewriteScored('rewrite-stale-relationship-preservation', output, {
+  return gradeRewriteScored('rewrite-stale-relationship-preservation', output, {
     id: 'rewrite-stale-relationship-preservation',
     question: 'Preserve current-vs-stale relationship while compressing contradictory memory lifecycle reflections.',
     rubric: { pass_if: ['Full active-memory rewrite is current.', 'Per-reflection lifecycle/deprecation is explicitly not the preferred current plan.', 'Near-instant compaction/no synchronous rewrite retained.'], fail_if: ['Merges both plans as both current.', 'Loses compaction boundary constraint.'] },
@@ -57,7 +61,7 @@ export async function rewriteValidationStatusConsolidation(modelSpec: string, ju
     ref('300000000004', 'Latest simplification validation passed: cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test && cd ../../eval && pnpm exec tsc --noEmit.', ['obs_dddddddddddd']),
   ];
   const { output, usage, agentDurationMs } = await runRewriteCase(modelSpec, thinkingLevel, reflections);
-  return judgedRewriteScored('rewrite-validation-status-consolidation', output, {
+  return gradeRewriteScored('rewrite-validation-status-consolidation', output, {
     id: 'rewrite-validation-status-consolidation',
     question: 'Consolidate obsolete failed validations into the latest passing status without saying the work is still blocked.',
     rubric: { pass_if: ['Latest passing extension and eval validation retained.', 'Earlier failures are not presented as current blockers.'], fail_if: ['Says validation is currently blocked/failing.', 'Drops latest command.', 'Invents sources.'] },
@@ -74,7 +78,7 @@ export async function rewriteUserConstraintsBundle(modelSpec: string, judgeModel
     ref('400000000005', 'User wants typed-id migration cleanup to be real test cleanup, not mechanical renaming.', ['obs_eeeeeeeeeeee']),
   ];
   const { output, usage, agentDurationMs } = await runRewriteCase(modelSpec, thinkingLevel, reflections);
-  return judgedRewriteScored('rewrite-user-constraints-bundle', output, {
+  return gradeRewriteScored('rewrite-user-constraints-bundle', output, {
     id: 'rewrite-user-constraints-bundle',
     question: 'Bundle durable user/project constraints compactly without changing their scope.',
     rubric: { pass_if: ['OM simplification preference retained.', 'pnpm retained.', 'evidence discipline retained.', 'No long-lived shims/boundary compatibility retained.', 'Test cleanup not mechanical retained.'], fail_if: ['Drops a high-priority user constraint.', 'Overgeneralizes no-shim rule outside intended scope.', 'Invents sources.'] },
@@ -85,7 +89,7 @@ async function realRewriteFixtureCase(id: string, fixture: readonly any[], model
   const started = Date.now();
   const reflections = fixture.map((reflection) => ({ ...reflection }));
   const { output, usage, agentDurationMs } = await runRewriteCase(modelSpec, thinkingLevel, reflections);
-  return judgedRewriteScored(id, output, {
+  return gradeRewriteScored(id, output, {
     id,
     question: `Rewrite ${fixture.length} real active reflections mined from the giga OM session into a smaller current memory set. Prefer latest concrete current state over older implementation history, while preserving stale/current relationships and decision-critical anchors.`,
     rubric: { pass_if: ['Preserves central current decisions, implementation state, validation facts, and stale/current relationships.', 'Keeps exact anchors when they define the memory.', 'Drops obsolete operational trail unless needed to explain current state.', 'Substantially compresses the input while retaining sparse but important current facts.', 'Produces useful handoff memory for a future agent.'], fail_if: ['Drops central current project state or decision-critical anchors.', 'Resurrects stale behavior as current.', 'Keeps plausible but obsolete operational details at the expense of current memory.', 'Fails to compress.'] },
@@ -149,7 +153,7 @@ export async function rewriteDeferredTaskRetention(modelSpec: string, judgeModel
     ref('500000000003', 'User decided evals should come before recall polish because hard realistic evals test core observer/reflector/rewrite risks.', ['obs_cccccccccccc']),
   ];
   const { output, usage, agentDurationMs } = await runRewriteCase(modelSpec, thinkingLevel, reflections);
-  return judgedRewriteScored('rewrite-deferred-task-retention', output, {
+  return gradeRewriteScored('rewrite-deferred-task-retention', output, {
     id: 'rewrite-deferred-task-retention',
     question: 'Keep deferred OM+fork work distinct from current eval/recall ordering when compressing priorities.',
     rubric: { pass_if: ['OM+fork retained as later/deferred and not to investigate now.', 'Evals-before-recall ordering retained.', 'Recall polish remains later than eval baseline.'], fail_if: ['Loses deferred OM+fork task.', 'Treats OM+fork as immediate.', 'Moves recall before evals.'] },
