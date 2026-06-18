@@ -35,7 +35,7 @@ describe("memory serialization", () => {
 		expect(text).not.toContain("Maybe this is irrelevant");
 	});
 
-	it("renders assistant tool calls as compact attempted-operation envelopes", () => {
+	it("drops assistant tool calls while keeping assistant text", () => {
 		const { text, sourceEntryIds } = serializeObserverSourceEntries([
 			{
 				type: "message",
@@ -54,9 +54,9 @@ describe("memory serialization", () => {
 
 		expect(sourceEntryIds).toEqual(["assistant-tool-call"]);
 		expect(text).toContain("I will update the config.");
-		expect(text).toContain("[Attempted tool call: edit]");
-		expect(text).toContain("input: src/config.ts");
-		expect(text).toContain("payload: omitted");
+		expect(text).not.toContain("Attempted tool call");
+		expect(text).not.toContain("input: src/config.ts");
+		expect(text).not.toContain("payload: omitted");
 		expect(text).not.toContain("oldText");
 		expect(text).not.toContain("newText");
 		expect(text).not.toContain("xxxx");
@@ -106,6 +106,20 @@ describe("memory serialization", () => {
 		expect(text).toContain("status: error");
 		expect(text).toContain("ERROR first line");
 		expect(text).toContain("Final stack line");
+	});
+
+	it("skips successful empty-output bash execution", () => {
+		const { text, sourceEntryIds } = serializeObserverSourceEntries([
+			{
+				type: "message",
+				id: "bash-empty",
+				timestamp: "2026-05-02T10:00:00.000Z",
+				message: { role: "bashExecution", timestamp: 1777716000000, command: "true", output: "", exitCode: 0, truncated: false },
+			},
+		] as any, observerToolOptions);
+
+		expect(sourceEntryIds).toEqual([]);
+		expect(text).toBe("");
 	});
 
 	it("renders bash execution through the same sanitized tool path", () => {

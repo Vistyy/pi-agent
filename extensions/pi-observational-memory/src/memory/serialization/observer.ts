@@ -68,18 +68,6 @@ function inputSummary(msg: Record<string, any>): string | undefined {
 	return truncateMiddle(candidates.join(" "), 300);
 }
 
-function renderAssistantToolCall(block: Record<string, unknown>): string | null {
-	if (typeof block.name !== "string" || !block.name) return null;
-	const lines = [`[Attempted tool call: ${block.name}]`];
-	const args = block.arguments;
-	if (args && typeof args === "object" && !Array.isArray(args)) {
-		const input = inputSummary(args as Record<string, any>);
-		if (input) lines.push(`input: ${input}`);
-	}
-	lines.push("payload: omitted");
-	return lines.join("\n");
-}
-
 function renderAssistantContent(content: unknown): string {
 	if (typeof content === "string") return content;
 	if (!Array.isArray(content)) return "";
@@ -90,10 +78,6 @@ function renderAssistantContent(content: unknown): string {
 		if (block.type === "text" && typeof block.text === "string") {
 			parts.push(block.text);
 			continue;
-		}
-		if (block.type === "toolCall") {
-			const rendered = renderAssistantToolCall(block);
-			if (rendered) parts.push(rendered);
 		}
 	}
 	return parts.join("\n");
@@ -158,6 +142,7 @@ function renderObserverMessage(entry: RenderableEntry, options: ObserverToolRend
 		const output = typeof msg.output === "string" ? msg.output : "";
 		const exitCode = typeof msg.exitCode === "number" ? msg.exitCode : "unknown";
 		const status = typeof msg.exitCode === "number" && msg.exitCode !== 0 ? "error" : "ok";
+		if (status === "ok" && normalizeBody(output).length === 0) return null;
 		return renderToolEvidence({
 			time,
 			toolName: "bash",

@@ -1,5 +1,5 @@
 import type { OmEvalCase } from '../types.js';
-import { observerHiddenMutationPayloadBoundary, observerRealGiga32, observerRealGiga64v2, observerToolEvidenceBoundary } from './observer.js';
+import { observerAssistantProseBoundary, observerHiddenMutationPayloadBoundary, observerHiddenMutationReplacementEvidence, observerRealGiga32, observerRealGiga64v2, observerToolEvidenceBoundary } from './observer.js';
 import { reflectorRealGiga16v2, reflectorRealSessionConstraintsAndState, reflectorStaleCurrentReconciliation, reflectorTouchedFilesWeakContext } from './reflector.js';
 import { rewriteRealGiga40v2, rewriteRealGiga80, rewriteStaleRelationshipPreservation } from './rewrite.js';
 
@@ -8,6 +8,8 @@ const omCase = (id: string, agent: OmEvalCase['agent'], run: OmEvalCase['run'], 
 export const allCases: OmEvalCase[] = [
   omCase('observer-tool-evidence-boundary', 'observer', observerToolEvidenceBoundary),
   omCase('observer-hidden-mutation-payload-boundary', 'observer', observerHiddenMutationPayloadBoundary),
+  omCase('observer-hidden-mutation-replacement-evidence', 'observer', observerHiddenMutationReplacementEvidence),
+  omCase('observer-assistant-prose-boundary', 'observer', observerAssistantProseBoundary),
   omCase('observer-real-giga-32', 'observer', observerRealGiga32),
   omCase('observer-real-giga-64-v2', 'observer', observerRealGiga64v2),
   omCase('reflector-touched-files-weak-context', 'reflector', reflectorTouchedFilesWeakContext),
