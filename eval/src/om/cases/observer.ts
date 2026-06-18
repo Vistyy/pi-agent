@@ -2,7 +2,7 @@ import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import type { Probe } from '../../lib/types.js';
 import type { AgentEvalRecord, Observation, OmEvalOptions, OmGrader } from '../types.js';
 import { runObserverEval } from '../agent-runner.js';
-import { gradeAgentOutput, observerForbidsAny, observerMaxCount, observerRequiresAll, observerSourceIdsAllowed, optional } from '../diagnostics.js';
+import { gradeAgentOutput, observerForbidsAny, observerForbidsSourceIds, observerMaxCount, observerRequiresAll, observerSourceIdsAllowed, optional } from '../diagnostics.js';
 import { realObserver32 } from './real-session-fixtures.js';
 import { realObserver64 as realObserver64v2 } from './real-session-fixtures-v2.js';
 
@@ -25,7 +25,7 @@ async function gradeObserver(args: {
 }): Promise<AgentEvalRecord> {
   const started = Date.now();
   const { output, usage, agentDurationMs } = await runCase(args.model, args.thinkingLevel, args.chunk, args.allowedSourceEntryIds);
-  return gradeAgentOutput({ id: args.id, agent: 'observer', output, probe: args.probe, judgeModel: args.judgeModel, started, graders: args.graders, usage: usage.total, agentDurationMs, diagnostics: { ...args.diagnostics, chunk: args.chunk }, noToolCallLabel: 'No record_observations tool call' });
+  return gradeAgentOutput({ id: args.id, agent: 'observer', output, probe: args.probe, judgeModel: args.judgeModel, started, graders: args.graders, usage: usage.total, agentDurationMs, diagnostics: { skipJudge: true, ...args.diagnostics, chunk: args.chunk }, noToolCallLabel: 'No record_observations tool call' });
 }
 
 export async function observerToolEvidenceBoundary(model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -43,28 +43,28 @@ export async function observerToolEvidenceBoundary(model: string, judgeModel: st
     id: 'observer-tool-evidence-boundary', model, judgeModel, thinkingLevel, chunk,
     allowedSourceEntryIds: ['user-tool-a', 'tool-tool-b', 'tool-tool-d', 'user-tool-e', 'user-success-a', 'tool-success-b', 'tool-budget-c', 'assistant-budget-d'],
     probe: { id: 'observer-tool-evidence-boundary', question: 'Preserve actionable visible tool evidence while avoiding omitted read/output metadata and invented failures.', rubric: { pass_if: ['Route/test/JWT/org-id failure retained.', 'createDbClient API and passing default validation retained.', 'No invented auth-refresh failure from omitted output.'], fail_if: ['Records omitted read snippets or output metadata.', 'Invents exact auth-refresh failure.', 'Drops visible pass/fail evidence.'] } },
-    graders: [observerForbidsAny('output_omitted', 'output omitted by observer policy', 'input budget was exhausted'), optional(observerRequiresAll('tests/api-org.test.ts', '401', '200')), optional(observerRequiresAll('JWT', 'org-id')), optional(observerRequiresAll('createDbClient', 'src/db/client.ts')), optional(observerRequiresAll('maxRetries', '3', 'logQueries')), optional(observerMaxCount(7))],
+    graders: [observerForbidsAny('output_omitted', 'output omitted by observer policy', 'input budget was exhausted'), observerForbidsSourceIds('tool-tool-d', 'tool-budget-c'), observerForbidsAny('A read was run', 'read was run'), optional(observerRequiresAll('tests/api-org.test.ts', '401', '200')), optional(observerRequiresAll('JWT', 'org-id')), optional(observerRequiresAll('createDbClient', 'src/db/client.ts')), optional(observerRequiresAll('maxRetries', '3', 'logQueries')), optional(observerMaxCount(8))],
   });
 }
 
 async function realObserver(id: string, fixture: ObserverFixture, model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel, checks: ReturnType<typeof observerRequiresAll>[]): Promise<AgentEvalRecord> {
   return gradeObserver({
     id, model, judgeModel, thinkingLevel, chunk: fixture.chunk, allowedSourceEntryIds: fixture.allowedSourceEntryIds,
-    probe: { id, question: `Extract concrete source-backed OM observations from a real giga-session observer chunk with ${fixture.count} serialized source entries.`, rubric: { pass_if: ['Source-close evidence, not active-memory conclusions.', 'Main user statements, visible results/errors, named changes, blockers, and exact anchors are covered.', 'Low-value telemetry is omitted unless it contains a named result, error, blocker, validation target, or source payload.'], fail_if: ['Records omitted-output/read receipts as evidence.', 'Loses concrete evidence payloads or validation evidence.', 'Synthesizes active-memory conclusions not directly supported by the visible source.'] } },
+    probe: { id, question: `Extract concrete source-backed OM observations from a real giga-session observer chunk with ${fixture.count} serialized source entries.`, rubric: { pass_if: ['Source-close evidence, not active-memory conclusions.', 'Main user statements, visible results/errors, named changes, blockers, and exact anchors are covered.', 'Exact anchors such as file paths, config names, command/test names, counts, thresholds, and named functions/events are retained when visible.', 'Low-value telemetry is omitted unless it contains a named result, error, blocker, validation target, or source payload.'], fail_if: ['Records omitted-output/read receipts as evidence.', 'Loses concrete evidence payloads or validation evidence.', 'Converts concrete source evidence into broad active-memory conclusions.', 'Synthesizes active-memory conclusions not directly supported by the visible source.'] } },
     graders: [observerSourceIdsAllowed([...fixture.allowedSourceEntryIds]), observerForbidsAny('output omitted by observer policy', 'Successfully replaced', 'Successfully wrote', '[thinking omitted]'), ...checks.map(optional)],
-    diagnostics: { sourceEntryCount: fixture.count, forceJudge: true },
+    diagnostics: { sourceEntryCount: fixture.count },
   });
 }
 
 export const observerRealGiga32 = (model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel, _options?: OmEvalOptions) => realObserver('observer-real-giga-32', realObserver32, model, judgeModel, thinkingLevel, [
-  observerRequiresAll('@docs/ARCHITECTURE_FINDINGS.md', '@docs/future-work.md'),
+  observerRequiresAll('docs/ARCHITECTURE_FINDINGS.md', 'docs/future-work.md'),
   observerRequiresAll('80', 'observations', 'cap'),
-  observerRequiresAll('recall', 'model evals'),
+  observerRequiresAll('recall', 'eval'),
   observerRequiresAll('mutable factual claims', 'verify'),
 ]);
 
 export const observerRealGiga64v2 = (model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel, _options?: OmEvalOptions) => realObserver('observer-real-giga-64-v2', realObserver64v2, model, judgeModel, thinkingLevel, [
-  observerRequiresAll('normalizeAllowedIdsStrict'),
-  observerRequiresAll('613 live observations', '178 live reflections'),
-  observerRequiresAll('reflectorThinking'),
+  observerRequiresAll('supportingObservationIds', 'mechanically'),
+  observerRequiresAll('613', '178'),
+  observerRequiresAll('thinking', 'xhigh'),
 ]);

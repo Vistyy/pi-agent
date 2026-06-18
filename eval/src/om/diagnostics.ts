@@ -33,11 +33,13 @@ export async function gradeAgentOutput<TOutput>(args: {
   const optionalDimensions = dimensions.filter((dimension) => !dimension.required);
   const score = optionalDimensions.filter((dimension) => dimension.passed).length;
   const maxScore = optionalDimensions.length;
-  const forceJudge = Boolean((args.diagnostics as { forceJudge?: boolean } | undefined)?.forceJudge);
+  const diagnostics = args.diagnostics as { forceJudge?: boolean; skipJudge?: boolean } | undefined;
+  const forceJudge = Boolean(diagnostics?.forceJudge);
+  const skipJudge = Boolean(diagnostics?.skipJudge);
   const scoreFailure = failedRequired.length === 0 && maxScore > 0 && score / maxScore < MIN_SCORED_PASS_RATIO;
-  const deterministicPass = !forceJudge && failedRequired.length === 0 && !scoreFailure && maxScore > 0 && score === maxScore;
+  const deterministicPass = !forceJudge && failedRequired.length === 0 && !scoreFailure && (skipJudge || (maxScore > 0 && score === maxScore));
   const judgeStarted = Date.now();
-  const judged = failedRequired.length > 0 || deterministicPass ? undefined : await runJudge(args.probe, JSON.stringify(args.output ?? [], null, 2), args.judgeModel);
+  const judged = failedRequired.length > 0 || scoreFailure || deterministicPass ? undefined : await runJudge(args.probe, JSON.stringify(args.output ?? [], null, 2), args.judgeModel);
   return {
     id: args.id,
     agent: args.agent,
@@ -52,7 +54,7 @@ export async function gradeAgentOutput<TOutput>(args: {
     passed: deterministicPass || (failedRequired.length === 0 && !scoreFailure && judged?.run.status === 0 && judged.judge.passed),
     durationMs: Date.now() - args.started,
     agentDurationMs: args.agentDurationMs,
-    judgeDurationMs: failedRequired.length > 0 || deterministicPass ? undefined : Date.now() - judgeStarted,
+    judgeDurationMs: failedRequired.length > 0 || scoreFailure || deterministicPass ? undefined : Date.now() - judgeStarted,
     usage: args.usage,
     judgeUsage: judged?.run.usage,
     diagnostics: args.diagnostics,

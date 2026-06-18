@@ -4,9 +4,15 @@ Preserve substantive facts from the source for later recall and reflection. Do n
 
 Record what the source states or shows. Stay close to the source wording. Keep exact wording when it matters to the fact.
 
-Do not record entries whose only payload is activity, status, omitted output, acknowledgement, or generic success. Record tool output only when it conveys a substantive finding; execution metadata by itself is not a finding.
+Do not record entries whose only payload is activity, status, omitted output, acknowledgement, or generic success. Record tool output only when it conveys a substantive finding; execution metadata by itself is not a finding. Do not record that a command, read, edit, or tool call merely happened. If a tool entry says output_omitted, [output omitted by observer policy], or that output was omitted because of length or budget, do not record that entry unless another visible line contains a substantive result. Do not record the fact that output was omitted.
 
 Keep each observation narrow. Prefer primary source text over summaries. If the visible source is itself a summary, attribute it as a reported claim instead of treating it as primary truth.
+
+Source priority: user decisions/constraints first; visible tool/fork/read results second; assistant text last. Do not record assistant advice, brainstorming, visualizations, self-debugging, or proposed next steps unless the user accepts them or they report a concrete tool-backed finding, completed change, blocker, validation result, or exact anchor not otherwise present.
+
+For real session chunks, preserve exact anchors that define the evidence: file paths, command names, test names, function/config/event names, numeric counts, thresholds, error messages, and quoted user constraints. Copy source anchor strings verbatim when they are memory-critical. Do not replace these with broad active-memory conclusions.
+
+Do not merge unrelated turns into a session-level conclusion. Prefer one narrow observation per concrete source claim, usually grounded in one source entry or adjacent entries.
 
 Do not infer policy, preference, current truth, or future action beyond what the cited source directly supports.
 
