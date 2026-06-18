@@ -2,7 +2,7 @@
   "lastChangelogVersion": "0.79.4",
   "defaultProvider": "openai-codex",
   "defaultModel": "gpt-5.5",
-  "defaultThinkingLevel": "low",
+  "defaultThinkingLevel": "high",
   "doubleEscapeAction": "tree",
   "theme": "syzom-dark",
   "packages": [],
