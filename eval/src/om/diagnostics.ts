@@ -1,15 +1,8 @@
 import { runJudge } from '../lib/judge.js';
 import type { Probe, TokenUsage } from '../lib/types.js';
-import type { AgentEvalRecord, EvalScoreDimension, Observation, OmGrader, Reflection, ReflectionEvalDiagnostics } from './types.js';
+import type { AgentEvalRecord, EvalScoreDimension, Observation, OmGrader, Reflection } from './types.js';
 
 const MIN_SCORED_PASS_RATIO = 0.5;
-
-export async function judged(id: string, agent: AgentEvalRecord['agent'], output: unknown, probe: Probe, judgeModel: string, started: number, usage?: TokenUsage, agentDurationMs?: number): Promise<AgentEvalRecord> {
-  const answer = JSON.stringify(output, null, 2);
-  const judgeStarted = Date.now();
-  const { run, judge } = await runJudge(probe, answer, judgeModel);
-  return { id, agent, output, judge, passed: run.status === 0 && judge.passed, durationMs: Date.now() - started, agentDurationMs, judgeDurationMs: Date.now() - judgeStarted, usage, judgeUsage: run.usage };
-}
 
 export function optional<TOutput>(grader: OmGrader<TOutput>): OmGrader<TOutput> {
   return { ...grader, required: false };
@@ -34,12 +27,12 @@ export async function gradeAgentOutput<TOutput>(args: {
   const dimensions: EvalScoreDimension[] = graders.map((grader) => {
     const passed = grader.pass(args.output);
     const required = grader.required !== false;
-    return { label: grader.label, required, passed, score: !required && passed ? 1 : 0, maxScore: required ? 0 : 1, detail: grader.detail?.(args.output) ?? args.output };
+    return { label: grader.label, required, passed, detail: grader.detail?.(args.output) ?? args.output };
   });
   const failedRequired = dimensions.filter((dimension) => dimension.required && !dimension.passed);
   const optionalDimensions = dimensions.filter((dimension) => !dimension.required);
-  const score = optionalDimensions.reduce((total, dimension) => total + dimension.score, 0);
-  const maxScore = optionalDimensions.reduce((total, dimension) => total + dimension.maxScore, 0);
+  const score = optionalDimensions.filter((dimension) => dimension.passed).length;
+  const maxScore = optionalDimensions.length;
   const forceJudge = Boolean((args.diagnostics as { forceJudge?: boolean } | undefined)?.forceJudge);
   const scoreFailure = failedRequired.length === 0 && maxScore > 0 && score / maxScore < MIN_SCORED_PASS_RATIO;
   const deterministicPass = !forceJudge && failedRequired.length === 0 && !scoreFailure && maxScore > 0 && score === maxScore;
@@ -119,8 +112,4 @@ export function reflectorMaxCount(max: number): OmGrader<Reflection[]> {
 export function reflectorSourceIdsAllowed(allowedIds: string[]): OmGrader<Reflection[]> {
   const allowed = new Set(allowedIds);
   return { label: `source ids limited to ${allowedIds.join(', ')}`, pass: (output) => reflectionSourceIds(output).every((id) => allowed.has(id)), detail: (output) => reflectionSourceIds(output) };
-}
-
-export function reflectorDiagnostics(diagnostics?: ReflectionEvalDiagnostics): ReflectionEvalDiagnostics | undefined {
-  return diagnostics;
 }

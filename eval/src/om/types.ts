@@ -14,7 +14,7 @@ export type OmAgents = {
 
 export type AgentEvalRecord = {
   id: string;
-  agent: 'observer' | 'reflector' | 'rewrite' | 'recall' | 'e2e';
+  agent: 'observer' | 'reflector' | 'rewrite';
   output: unknown;
   judge?: unknown;
   passed: boolean;
@@ -38,9 +38,8 @@ export type OmGrader<TOutput = unknown> = {
   pass: (output: TOutput | undefined) => boolean;
   detail?: (output: TOutput | undefined) => unknown;
 };
-export type EvalScoreDimension = { label: string; score: number; maxScore: number; passed?: boolean; required?: boolean; detail?: unknown };
+export type EvalScoreDimension = { label: string; required: boolean; passed: boolean; detail?: unknown };
 export type EvalScore = { hardFailed: boolean; score: number; maxScore: number; dimensions: EvalScoreDimension[] };
-export type ReflectionEvalDiagnostics = { observations?: Observation[]; reflections?: Reflection[]; flaggedObservationIds?: string[]; forceJudge?: boolean };
 export type OmEvalOptions = { diagnose?: boolean };
 export type OmEvalSuite = 'baseline' | 'stress';
 export type OmEvalCase = {
