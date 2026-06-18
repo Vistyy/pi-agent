@@ -1,17 +1,13 @@
 import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import type { AgentEvalRecord, Reflection } from '../types.js';
-import { createUsageCollector, loadOmAgents, ref, resolveModel } from '../runner.js';
+import { runRewriteEval } from '../agent-runner.js';
+import { ref } from '../runner.js';
 import { judgedRewriteScored, reflectorForbidsAny, reflectorMaxCount, reflectorRequiresAll, reflectorSourceIdsAllowed } from '../diagnostics.js';
 import { realRewrite40, realRewrite80, realRewrite120 } from './real-session-fixtures.js';
 import { realRewrite40 as realRewrite40v2 } from './real-session-fixtures-v2.js';
 
 async function runRewriteCase(modelSpec: string, thinkingLevel: ModelThinkingLevel, reflections: Reflection[]) {
-  const auth = await resolveModel(modelSpec);
-  const { runRewrite } = await loadOmAgents();
-  const usage = createUsageCollector();
-  const agentStarted = Date.now();
-  const result = await runRewrite({ ...auth, reflections, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
-  return { output: result?.reflections, usage, agentDurationMs: Date.now() - agentStarted };
+  return runRewriteEval(modelSpec, thinkingLevel, reflections);
 }
 
 function allowedSources(reflections: Reflection[]): string[] {
@@ -144,7 +140,6 @@ export async function rewriteRealGiga40v2(modelSpec: string, judgeModel: string,
     reflectorRequiresAll('recall'),
   ]);
 }
-(rewriteRealGiga120 as any).suite = 'stress';
 
 export async function rewriteDeferredTaskRetention(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   const started = Date.now();

@@ -1,3 +1,4 @@
+import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import type { TokenUsage } from '../lib/types.js';
 
 export type Observation = { id: string; content: string; timestamp: string; sourceEntryIds: string[]; tokenCount: number };
@@ -27,6 +28,7 @@ export type AgentEvalRecord = {
   agentDebugUsage?: TokenUsage;
   agentDebugDurationMs?: number;
   error?: string;
+  trial?: number;
   score?: EvalScore;
 };
 
@@ -37,3 +39,10 @@ export type ObserverCheck = { label: string; pass: (output: Observation[] | unde
 export type ReflectorCheck = { label: string; pass: (output: Reflection[] | undefined) => boolean; detail?: (output: Reflection[] | undefined) => unknown };
 export type ReflectionEvalDiagnostics = { observations?: Observation[]; reflections?: Reflection[]; flaggedObservationIds?: string[]; forceJudge?: boolean };
 export type OmEvalOptions = { diagnose?: boolean };
+export type OmEvalSuite = 'baseline' | 'stress';
+export type OmEvalCase = {
+  id: string;
+  agent: AgentEvalRecord['agent'];
+  suite: OmEvalSuite;
+  run: (model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel, options?: OmEvalOptions) => Promise<AgentEvalRecord>;
+};

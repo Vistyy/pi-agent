@@ -7,7 +7,7 @@ import { sumDuration, sumUsage } from './runner.js';
 import { allCases } from './cases/index.js';
 import { debugRecordFailure } from './agent-debug.js';
 
-type Args = { model: string; judgeModel: string; outDir: string; thinkingLevel: ModelThinkingLevel; only?: string; suite: 'baseline' | 'stress' | 'all'; caseTimeoutMs: number; diagnose: boolean };
+type Args = { model: string; judgeModel: string; outDir: string; thinkingLevel: ModelThinkingLevel; only?: string; suite: 'baseline' | 'stress' | 'all'; caseTimeoutMs: number; diagnose: boolean; trials: number };
 
 function parseArgs(): Args {
   const args = process.argv.slice(2);
@@ -24,6 +24,7 @@ function parseArgs(): Args {
     suite: (get('--suite', 'baseline') ?? 'baseline') as Args['suite'],
     caseTimeoutMs: Number(get('--case-timeout-ms', '600000') ?? '600000'),
     diagnose: args.includes('--diagnose'),
+    trials: Math.max(1, Number(get('--trials', '1') ?? '1')),
   };
 }
 
@@ -31,22 +32,26 @@ export async function main() {
   const args = parseArgs();
   const evalOptions: OmEvalOptions = { diagnose: args.diagnose };
   fs.mkdirSync(args.outDir, { recursive: true });
-  const suiteCases = allCases.filter((c: any) => args.suite === 'all' || (c.suite ?? 'baseline') === args.suite);
-  const cases = args.only ? suiteCases.filter((c) => c.name.includes(args.only!)) : suiteCases;
+  const suiteCases = allCases.filter((c) => args.suite === 'all' || c.suite === args.suite);
+  const cases = args.only ? suiteCases.filter((c) => c.id.includes(args.only!)) : suiteCases;
   const records: AgentEvalRecord[] = [];
   for (const c of cases) {
-    try {
-      let record = await Promise.race([
-        c(args.model, args.judgeModel, args.thinkingLevel, evalOptions),
-        new Promise<AgentEvalRecord>((_, reject) => setTimeout(() => reject(new Error(`case timed out after ${args.caseTimeoutMs}ms`)), args.caseTimeoutMs)),
-      ]);
-      if (args.diagnose) record = await debugRecordFailure(record, { modelSpec: args.model, thinkingLevel: args.thinkingLevel });
-      records.push(record);
+    for (let trial = 1; trial <= args.trials; trial++) {
+      try {
+        let record = await Promise.race([
+          c.run(args.model, args.judgeModel, args.thinkingLevel, evalOptions),
+          new Promise<AgentEvalRecord>((_, reject) => setTimeout(() => reject(new Error(`case timed out after ${args.caseTimeoutMs}ms`)), args.caseTimeoutMs)),
+        ]);
+        if (record.id !== c.id || record.agent !== c.agent) throw new Error(`case metadata mismatch: registry=${c.id}/${c.agent}, record=${record.id}/${record.agent}`);
+        record = { ...record, trial };
+        if (args.diagnose) record = await debugRecordFailure(record, { modelSpec: args.model, thinkingLevel: args.thinkingLevel });
+        records.push(record);
+      }
+      catch (error) {
+        records.push({ id: c.id, agent: c.agent, output: undefined, passed: false, durationMs: 0, trial, error: error instanceof Error ? (error.stack ?? error.message) : String(error) });
+      }
+      fs.writeFileSync(path.join(args.outDir, 'results.partial.json'), JSON.stringify(records, null, 2));
     }
-    catch (error) {
-      records.push({ id: c.name, agent: c.name.startsWith('observer') ? 'observer' : c.name.startsWith('rewrite') ? 'rewrite' : c.name.startsWith('recall') ? 'recall' : c.name.startsWith('e2e') ? 'e2e' : 'reflector', output: undefined, passed: false, durationMs: 0, error: error instanceof Error ? (error.stack ?? error.message) : String(error) });
-    }
-    fs.writeFileSync(path.join(args.outDir, 'results.partial.json'), JSON.stringify(records, null, 2));
   }
   const scoredRecords = records.filter((r) => r.score);
   const byAgent = Object.fromEntries(['observer', 'reflector', 'rewrite', 'recall', 'e2e'].map((agent) => {
@@ -61,6 +66,7 @@ export async function main() {
   const perCase = records.map((record) => ({
     id: record.id,
     agent: record.agent,
+    trial: record.trial,
     passed: record.passed,
     agentDurationMs: record.agentDurationMs ?? 0,
     usage: record.usage ?? {},
@@ -71,7 +77,7 @@ export async function main() {
     total: records.length,
     score: scoredRecords.reduce((total, r) => total + (r.score?.score ?? 0), 0),
     maxScore: scoredRecords.reduce((total, r) => total + (r.score?.maxScore ?? 0), 0),
-    failed: records.filter((r) => !r.passed).map((r) => ({ id: r.id, agent: r.agent, judge: r.judge, agentDebug: r.agentDebug, error: r.error })),
+    failed: records.filter((r) => !r.passed).map((r) => ({ id: r.id, agent: r.agent, trial: r.trial, judge: r.judge, agentDebug: r.agentDebug, error: r.error })),
     durationMs: sumDuration(records, 'durationMs'),
     agentDurationMs: sumDuration(records, 'agentDurationMs'),
     judgeDurationMs: sumDuration(records, 'judgeDurationMs'),

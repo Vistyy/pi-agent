@@ -26,9 +26,15 @@ function usageOf(message: { usage?: unknown }): TokenUsage | undefined {
 }
 
 async function promptFromDiagnostics(record: AgentEvalRecord): Promise<{ systemPrompt: string; userText: string } | undefined> {
-  const diagnostics = record.diagnostics as { reflections?: unknown[]; observations?: unknown[] } | undefined;
+  const diagnostics = record.diagnostics as { agentInput?: { systemPrompt: string; userText: string }; chunk?: string; reflections?: unknown[]; observations?: unknown[] } | undefined;
+  if (diagnostics?.agentInput) return diagnostics.agentInput;
   const base = new URL('../../../extensions/pi-observational-memory/src/agents/', import.meta.url);
   const ledgerBase = new URL('../../../extensions/pi-observational-memory/src/session-ledger/', import.meta.url);
+  if (record.agent === 'observer' && diagnostics?.chunk) {
+    const prompts = await import(new URL('observer/prompts.ts', base).href) as { OBSERVER_SYSTEM: string; observerUserText: (now: string, conversation: string) => string };
+    const recordContent = await import(new URL('memory/record-content.ts', base).href) as { nowTimestamp: () => string };
+    return { systemPrompt: prompts.OBSERVER_SYSTEM, userText: prompts.observerUserText(recordContent.nowTimestamp(), diagnostics.chunk.trim()) };
+  }
   const common = await import(new URL('common.ts', base).href) as { joinOrEmpty: (items: readonly string[]) => string };
   const ledger = await import(new URL('index.ts', ledgerBase).href) as { reflectionToSummaryLine: (reflection: unknown) => string; observationToSummaryLine: (observation: unknown) => string };
   if (record.agent === 'reflector') {

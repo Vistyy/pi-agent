@@ -1,38 +1,13 @@
 import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
-import type { AgentEvalRecord, OmEvalOptions, Observation, Reflection } from '../types.js';
-import { debugAgentFailure } from '../agent-debug.js';
-import { createUsageCollector, loadOmAgents, obs, ref, resolveModel } from '../runner.js';
+import type { AgentEvalRecord, Observation, Reflection } from '../types.js';
+import { runReflectorEval } from '../agent-runner.js';
+import { obs, ref } from '../runner.js';
 import { judgedReflectorScored, reflectorForbidsAny, reflectorMaxCount, reflectorRequiresAll, reflectorSourceIdsAllowed } from '../diagnostics.js';
 import { realReflector8, realReflector16 } from './real-session-fixtures.js';
 import { realReflector16 as realReflector16v2 } from './real-session-fixtures-v2.js';
 
-async function reflectorPromptText(args: { reflections?: Reflection[]; observations?: Observation[] }): Promise<{ systemPrompt: string; userText: string }> {
-  const base = new URL('../../../../extensions/pi-observational-memory/src/agents/', import.meta.url);
-  const prompts = await import(new URL('reflector/prompts.ts', base).href) as { REFLECTOR_SYSTEM: string; reflectorUserText: (reflectionsText: string, observationsText: string) => string };
-  const ledger = await import(new URL('../session-ledger/index.ts', base).href) as { reflectionToSummaryLine: (reflection: unknown) => string; observationToSummaryLine: (observation: unknown) => string };
-  const common = await import(new URL('common.ts', base).href) as { joinOrEmpty: (items: readonly string[]) => string };
-  return {
-    systemPrompt: prompts.REFLECTOR_SYSTEM,
-    userText: prompts.reflectorUserText(
-      common.joinOrEmpty((args.reflections ?? []).map(ledger.reflectionToSummaryLine)),
-      common.joinOrEmpty((args.observations ?? []).map(ledger.observationToSummaryLine)),
-    ),
-  };
-}
-
-async function maybeDebugReflector(record: AgentEvalRecord, options: OmEvalOptions | undefined, modelSpec: string, thinkingLevel: ModelThinkingLevel, args: { reflections?: Reflection[]; observations?: Observation[] }, probe: Parameters<typeof debugAgentFailure>[0]['probe']): Promise<AgentEvalRecord> {
-  if (!options?.diagnose || record.passed) return record;
-  const prompt = await reflectorPromptText(args);
-  return debugAgentFailure({ agent: 'reflector', modelSpec, thinkingLevel, ...prompt, record, probe });
-}
-
-async function runReflectorCase(modelSpec: string, thinkingLevel: ModelThinkingLevel, args: Record<string, unknown>) {
-  const auth = await resolveModel(modelSpec);
-  const { runReflector } = await loadOmAgents();
-  const usage = createUsageCollector();
-  const agentStarted = Date.now();
-  const output = await runReflector({ ...auth, ...args, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
-  return { output, usage, agentDurationMs: Date.now() - agentStarted };
+async function runReflectorCase(modelSpec: string, thinkingLevel: ModelThinkingLevel, args: { reflections?: Reflection[]; observations?: Observation[] }) {
+  return runReflectorEval(modelSpec, thinkingLevel, args);
 }
 
 export async function reflectorStaleCurrentReconciliation(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -107,8 +82,7 @@ export async function reflectorRoutineValidationRestraint(modelSpec: string, jud
     question: 'Drop routine validation evidence when it does not name a substantive validated behavior, blocker resolution, current state, or decision.',
     rubric: { pass_if: ['No reflections recorded for bare passing test output and assistant status.'], fail_if: ['Records routine pass counts or assistant status as active memory.'] },
   };
-  const record = await judgedReflectorScored('reflector-routine-validation-restraint', output, probe, judgeModel, started, [reflectorForbidsAny('Test Files 3 passed', 'Tests 12 passed', 'tests passed'), reflectorMaxCount(0), reflectorSourceIdsAllowed(observations.map((o) => o.id))], [], usage.total, agentDurationMs, { observations });
-  return maybeDebugReflector(record, undefined, modelSpec, thinkingLevel, { observations }, probe);
+  return judgedReflectorScored('reflector-routine-validation-restraint', output, probe, judgeModel, started, [reflectorForbidsAny('Test Files 3 passed', 'Tests 12 passed', 'tests passed'), reflectorMaxCount(0), reflectorSourceIdsAllowed(observations.map((o) => o.id))], [], usage.total, agentDurationMs, { observations });
 }
 
 async function realReflectorFixtureCase(id: string, fixture: { observations: readonly any[]; reflections?: readonly any[] }, modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel, scoreChecks: ReturnType<typeof reflectorRequiresAll>[]): Promise<AgentEvalRecord> {

@@ -1,6 +1,7 @@
 import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import type { AgentEvalRecord, EvalScoreDimension, Observation, Reflection } from '../types.js';
-import { addUsage, createUsageCollector, loadOmAgents, resolveModel } from '../runner.js';
+import { OM_EVAL_MAX_TURNS } from '../agent-runner.js';
+import { createUsageCollector, loadOmAgents, resolveModel } from '../runner.js';
 
 const OM_OBSERVATIONS_RECORDED = 'om.observations.recorded';
 const OM_REFLECTIONS_RECORDED = 'om.reflections.recorded';
@@ -91,9 +92,9 @@ export async function e2eObserverReflectorRewriteRecall(modelSpec: string, _judg
   ];
   const chunk = sourceEntries.map((entry) => `[Source entry id: ${entry.id}] ${entry.content}`).join('\n');
   const agentStarted = Date.now();
-  const observations = await runObserver({ ...auth, chunk, allowedSourceEntryIds: sourceEntries.map((entry) => String(entry.id)), thinkingLevel, maxTurns: 4, onUsage: usage.onUsage }) ?? [];
-  const reflections = await runReflector({ ...auth, observations, reflections: [], thinkingLevel, maxTurns: 4, onUsage: usage.onUsage }) ?? [];
-  const rewrite = await runRewrite({ ...auth, reflections, thinkingLevel, maxTurns: 4, onUsage: usage.onUsage });
+  const observations = await runObserver({ ...auth, chunk, allowedSourceEntryIds: sourceEntries.map((entry) => String(entry.id)), thinkingLevel, maxTurns: OM_EVAL_MAX_TURNS, onUsage: usage.onUsage }) ?? [];
+  const reflections = await runReflector({ ...auth, observations, reflections: [], thinkingLevel, maxTurns: OM_EVAL_MAX_TURNS, onUsage: usage.onUsage }) ?? [];
+  const rewrite = await runRewrite({ ...auth, reflections, thinkingLevel, maxTurns: OM_EVAL_MAX_TURNS, onUsage: usage.onUsage });
   const rewrittenReflections = rewrite?.reflections ?? [];
   const entries = [...sourceEntries, observationsEntry(observations), reflectionsEntry('ref-entry-1', reflections), rewrittenEntry(reflections.map((reflection) => reflection.id)), reflectionsEntry('ref-entry-2', rewrittenReflections)];
   const recallMemorySources = await loadRecallMemorySources();
