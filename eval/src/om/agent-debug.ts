@@ -29,10 +29,11 @@ async function promptFromDiagnostics(record: AgentEvalRecord): Promise<{ systemP
   const diagnostics = record.diagnostics as { agentInput?: { systemPrompt: string; userText: string }; chunk?: string; reflections?: unknown[]; observations?: unknown[] } | undefined;
   if (diagnostics?.agentInput) return diagnostics.agentInput;
   const base = new URL('../../../extensions/pi-observational-memory/src/agents/', import.meta.url);
+  const memoryBase = new URL('../../../extensions/pi-observational-memory/src/memory/', import.meta.url);
   const ledgerBase = new URL('../../../extensions/pi-observational-memory/src/session-ledger/', import.meta.url);
   if (record.agent === 'observer' && diagnostics?.chunk) {
     const prompts = await import(new URL('observer/prompts.ts', base).href) as { OBSERVER_SYSTEM: string; observerUserText: (now: string, conversation: string) => string };
-    const recordContent = await import(new URL('memory/record-content.ts', base).href) as { nowTimestamp: () => string };
+    const recordContent = await import(new URL('record-content.ts', memoryBase).href) as { nowTimestamp: () => string };
     return { systemPrompt: prompts.OBSERVER_SYSTEM, userText: prompts.observerUserText(recordContent.nowTimestamp(), diagnostics.chunk.trim()) };
   }
   const common = await import(new URL('common.ts', base).href) as { joinOrEmpty: (items: readonly string[]) => string };
