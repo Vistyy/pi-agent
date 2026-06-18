@@ -13,6 +13,7 @@ interface RunReflectorArgs {
 	headers?: Record<string, string>;
 	reflections: Reflection[];
 	observations: Observation[];
+	touchedFiles?: string[];
 	signal?: AbortSignal;
 	agentLoop?: typeof agentLoop;
 	maxTurns?: number;
@@ -37,10 +38,11 @@ export async function runReflector(args: RunReflectorArgs): Promise<Reflection[]
 		existingReflectionIds: new Set(reflections.map((reflection) => reflection.id)),
 	});
 
-	const userText = reflectorUserText(joinOrEmpty(reflections.map(reflectionToSummaryLine)), joinOrEmpty(observations.map(observationToSummaryLine)));
+	const userText = reflectorUserText(joinOrEmpty(reflections.map(reflectionToSummaryLine)), joinOrEmpty(observations.map(observationToSummaryLine)), args.touchedFiles ?? []);
 	debugLog("reflector.prompt", {
 		reflectionCount: reflections.length,
 		observationCount: observations.length,
+		touchedFileCount: args.touchedFiles?.length ?? 0,
 		userTextTokenEstimate: estimateStringTokens(userText),
 	});
 	await runMemoryAgentLoop({

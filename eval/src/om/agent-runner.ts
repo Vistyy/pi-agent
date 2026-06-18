@@ -13,7 +13,7 @@ export async function runObserverEval(modelSpec: string, thinkingLevel: ModelThi
   return { output, usage, agentDurationMs: Date.now() - agentStarted };
 }
 
-export async function runReflectorEval(modelSpec: string, thinkingLevel: ModelThinkingLevel, args: { reflections?: Reflection[]; observations?: Observation[] }) {
+export async function runReflectorEval(modelSpec: string, thinkingLevel: ModelThinkingLevel, args: { reflections?: Reflection[]; observations?: Observation[]; touchedFiles?: string[] }) {
   const auth = await resolveModel(modelSpec);
   const { runReflector } = await loadOmAgents();
   const usage = createUsageCollector();

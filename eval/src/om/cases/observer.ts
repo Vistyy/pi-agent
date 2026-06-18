@@ -47,6 +47,19 @@ export async function observerToolEvidenceBoundary(model: string, judgeModel: st
   });
 }
 
+export async function observerHiddenMutationPayloadBoundary(model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const chunk = [
+    '[Source entry id: user-hidden-edit] [User @ 2026-06-11 21:00]: Update the default reflector thinking setting in the config.',
+    '[Source entry id: assistant-hidden-edit]\n[Assistant @ 2026-06-11 21:01]:\n[Attempted tool call: edit]\ninput: src/config.ts\npayload: omitted',
+  ].join('\n\n');
+  return gradeObserver({
+    id: 'observer-hidden-mutation-payload-boundary', model, judgeModel, thinkingLevel, chunk,
+    allowedSourceEntryIds: ['user-hidden-edit', 'assistant-hidden-edit'],
+    probe: { id: 'observer-hidden-mutation-payload-boundary', question: 'Do not infer semantic code changes from hidden edit/write payloads; record only visible user request or attempted path context.', rubric: { pass_if: ['No claim about a concrete changed value appears when the edit payload is omitted.', 'Any observation stays source-close to the user request or attempted path.'], fail_if: ['Claims src/config.ts changed a specific setting/value not visible in the source.', 'Treats an attempted tool envelope as proof of completed semantic state.'] } },
+    graders: [observerSourceIdsAllowed(['user-hidden-edit', 'assistant-hidden-edit']), observerForbidsAny('xhigh', 'low', 'reflectorThinking changed', 'now defaults', 'edit succeeded', 'tool reported success'), optional(observerRequiresAll('default reflector thinking')), optional(observerMaxCount(3))],
+  });
+}
+
 async function realObserver(id: string, fixture: ObserverFixture, model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel, checks: ReturnType<typeof observerRequiresAll>[]): Promise<AgentEvalRecord> {
   return gradeObserver({
     id, model, judgeModel, thinkingLevel, chunk: fixture.chunk, allowedSourceEntryIds: fixture.allowedSourceEntryIds,

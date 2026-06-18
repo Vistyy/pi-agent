@@ -365,6 +365,36 @@ describe("memory update hook", () => {
 		}));
 	});
 
+	it("passes successful structured file-tool touches from the reflection window", async () => {
+		const obsTouched = observation("aaaaaaaaaaaa", { sourceEntryIds: ["raw-edit"] });
+		const newRef = reflection("ffffffffffff", ["aaaaaaaaaaaa"]);
+		mockAgents.runReflector.mockResolvedValueOnce([newRef]);
+		const editResult = rawMessage("raw-edit", "", {
+			message: { role: "toolResult", toolName: "edit", isError: false, path: "src/config.ts", content: [{ type: "text", text: "Successfully replaced 1 block." }] },
+		});
+		const writeResult = rawMessage("raw-write", "", {
+			message: { role: "toolResult", toolName: "write", isError: false, filePath: "docs/notes.md", content: [{ type: "text", text: "Successfully wrote file." }] },
+		});
+		const failedEdit = rawMessage("raw-failed", "", {
+			message: { role: "toolResult", toolName: "edit", isError: true, path: "src/failed.ts", content: [{ type: "text", text: "Failed." }] },
+		});
+		const entries = [
+			editResult,
+			writeResult,
+			failedEdit,
+			observationsRecordedEntry("om-obs", { observations: [obsTouched], coversUpToId: "raw-failed" }),
+		];
+		const { fire, runLaunchedWork } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 1 });
+
+		fire();
+		await runLaunchedWork();
+
+		expect(mockAgents.runReflector).toHaveBeenCalledWith(expect.objectContaining({
+			observations: [obsTouched],
+			touchedFiles: ["docs/notes.md", "src/config.ts"],
+		}));
+	});
+
 	it("does not launch only because the old active observation pool threshold is exceeded", async () => {
 		const entries = [
 			rawMessage("raw-1", "aaaaaaaa"),

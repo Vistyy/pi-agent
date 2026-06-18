@@ -32,10 +32,6 @@ function truncateLine(line: string, maxChars: number): { text: string; omitted: 
 
 type RenderedExcerpt = { excerpt: string; omitted: boolean; reason?: "policy" | "length" };
 
-function omittedByPolicy(): RenderedExcerpt {
-	return { excerpt: "[output omitted by observer policy]", omitted: true, reason: "policy" };
-}
-
 function renderExcerpt(text: string, maxLines: number, lineMaxChars: number): RenderedExcerpt {
 	const body = normalizeBody(text);
 	if (!body) return { excerpt: "[no textual output]", omitted: false };
@@ -72,6 +68,37 @@ function inputSummary(msg: Record<string, any>): string | undefined {
 	return truncateMiddle(candidates.join(" "), 300);
 }
 
+function renderAssistantToolCall(block: Record<string, unknown>): string | null {
+	if (typeof block.name !== "string" || !block.name) return null;
+	const lines = [`[Attempted tool call: ${block.name}]`];
+	const args = block.arguments;
+	if (args && typeof args === "object" && !Array.isArray(args)) {
+		const input = inputSummary(args as Record<string, any>);
+		if (input) lines.push(`input: ${input}`);
+	}
+	lines.push("payload: omitted");
+	return lines.join("\n");
+}
+
+function renderAssistantContent(content: unknown): string {
+	if (typeof content === "string") return content;
+	if (!Array.isArray(content)) return "";
+
+	const parts: string[] = [];
+	for (const block of content as Array<Record<string, unknown>>) {
+		if (!block || typeof block !== "object") continue;
+		if (block.type === "text" && typeof block.text === "string") {
+			parts.push(block.text);
+			continue;
+		}
+		if (block.type === "toolCall") {
+			const rendered = renderAssistantToolCall(block);
+			if (rendered) parts.push(rendered);
+		}
+	}
+	return parts.join("\n");
+}
+
 function renderToolEvidence(args: {
 	time: string;
 	toolName: string;
@@ -82,15 +109,14 @@ function renderToolEvidence(args: {
 	exitCode?: number | string;
 	truncated?: boolean;
 	role: "toolResult" | "bashExecution";
-}): string {
+}): string | null {
 	const policy = toolEvidencePolicy(args.toolName, args.status, args.role, args.options);
+	if (policy === "metadata-only") return null;
 	const maxLines = policy === "full-excerpt"
 		? Number.MAX_SAFE_INTEGER
 		: args.status === "error" ? args.options.toolResultErrorMaxLines : args.options.toolResultSummaryMaxLines;
 	const outputChars = normalizeBody(args.content).length;
-	const { excerpt, omitted, reason } = policy === "metadata-only"
-		? omittedByPolicy()
-		: renderExcerpt(args.content, maxLines, args.options.toolResultLineMaxChars);
+	const { excerpt, omitted, reason } = renderExcerpt(args.content, maxLines, args.options.toolResultLineMaxChars);
 	const lines = [`[Tool evidence: ${args.toolName} @ ${args.time}]`, `status: ${args.status}`, `output_chars: ${outputChars}`];
 	if (args.input) lines.push(`input: ${args.input}`);
 	if (args.exitCode !== undefined) lines.push(`exitCode: ${args.exitCode}`);
@@ -111,7 +137,7 @@ function renderObserverMessage(entry: RenderableEntry, options: ObserverToolRend
 		return body ? `[User @ ${time}]: ${truncateMiddle(body, OBSERVER_ENTRY_MAX_CHARS)}` : null;
 	}
 	if (msg.role === "assistant") {
-		const body = normalizeBody(textAndPlaceholders(msg.content, { omitRedactedThinking: true, includeThinking: false }));
+		const body = normalizeBody(renderAssistantContent(msg.content));
 		return body ? `[Assistant @ ${time}]: ${truncateMiddle(body, OBSERVER_ENTRY_MAX_CHARS)}` : null;
 	}
 	if (msg.role === "toolResult") {

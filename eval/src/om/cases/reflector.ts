@@ -12,14 +12,27 @@ async function gradeReflector(args: {
   thinkingLevel: ModelThinkingLevel;
   observations: Observation[];
   reflections?: Reflection[];
+  touchedFiles?: string[];
   probe: Parameters<typeof gradeAgentOutput<Reflection[]>>[0]['probe'];
   graders: Parameters<typeof gradeAgentOutput<Reflection[]>>[0]['graders'];
   forceJudge?: boolean;
 }): Promise<AgentEvalRecord> {
   const started = Date.now();
   const reflections = args.reflections ?? [];
-  const { output, usage, agentDurationMs } = await runReflectorEval(args.model, args.thinkingLevel, { reflections, observations: args.observations });
-  return gradeAgentOutput({ id: args.id, agent: 'reflector', output, probe: args.probe, judgeModel: args.judgeModel, started, graders: args.graders, usage: usage.total, agentDurationMs, diagnostics: { observations: args.observations, reflections, forceJudge: args.forceJudge }, noToolCallLabel: 'No record_reflections tool call' });
+  const touchedFiles = args.touchedFiles ?? [];
+  const { output, usage, agentDurationMs } = await runReflectorEval(args.model, args.thinkingLevel, { reflections, observations: args.observations, touchedFiles });
+  return gradeAgentOutput({ id: args.id, agent: 'reflector', output, probe: args.probe, judgeModel: args.judgeModel, started, graders: args.graders, usage: usage.total, agentDurationMs, diagnostics: { observations: args.observations, reflections, touchedFiles, forceJudge: args.forceJudge }, noToolCallLabel: 'No record_reflections tool call' });
+}
+
+export async function reflectorTouchedFilesWeakContext(model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const observations = [
+    obs('aaaaaaaaaaaa', 'User asked to update the retry default, but no source output, assistant summary, read result, or validation stated the resulting value.', '2026-06-12T09:00:00.000Z'),
+  ];
+  return gradeReflector({
+    id: 'reflector-touched-files-weak-context', model, judgeModel, thinkingLevel, observations, touchedFiles: ['src/config.ts'],
+    probe: { id: 'reflector-touched-files-weak-context', question: 'Treat touched files as weak operational context, not semantic evidence for project state.', rubric: { pass_if: ['Does not infer a concrete retry default value or completed config state from touchedFiles alone.', 'Does not cite touchedFiles as reflection sources.'], fail_if: ['Claims src/config.ts now has a retry default/value from touchedFiles alone.', 'Uses touched file paths as source ids.'] } },
+    graders: [reflectorSourceIdsAllowed(observations.map((o) => o.id)), reflectorForbidsAny('src/config.ts now', 'retry default is', 'retry default now', 'changed to', 'value is'), optional(reflectorMaxCount(1))],
+  });
 }
 
 export async function reflectorStaleCurrentReconciliation(model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {

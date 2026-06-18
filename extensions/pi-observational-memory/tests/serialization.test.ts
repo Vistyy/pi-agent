@@ -31,13 +31,41 @@ describe("memory serialization", () => {
 		expect(text).toContain("Remember the exact flag --unsafe-fast.");
 		expect(text).toContain("[non-text content omitted]");
 		expect(text).toContain("I will use --unsafe-fast.");
-		expect(text).toContain("[thinking omitted]");
+		expect(text).not.toContain("[thinking omitted]");
 		expect(text).not.toContain("Maybe this is irrelevant");
 	});
 
-	it("renders successful generic tool results as metadata only by default", () => {
+	it("renders assistant tool calls as compact attempted-operation envelopes", () => {
+		const { text, sourceEntryIds } = serializeObserverSourceEntries([
+			{
+				type: "message",
+				id: "assistant-tool-call",
+				timestamp: "2026-05-02T10:01:00.000Z",
+				message: {
+					role: "assistant",
+					timestamp: 1777716060000,
+					content: [
+						{ type: "text", text: "I will update the config." },
+						{ type: "toolCall", name: "edit", arguments: { path: "src/config.ts", edits: [{ oldText: "x".repeat(500), newText: "y".repeat(500) }] } },
+					],
+				},
+			},
+		] as any, observerToolOptions);
+
+		expect(sourceEntryIds).toEqual(["assistant-tool-call"]);
+		expect(text).toContain("I will update the config.");
+		expect(text).toContain("[Attempted tool call: edit]");
+		expect(text).toContain("input: src/config.ts");
+		expect(text).toContain("payload: omitted");
+		expect(text).not.toContain("oldText");
+		expect(text).not.toContain("newText");
+		expect(text).not.toContain("xxxx");
+		expect(text).not.toContain("yyyy");
+	});
+
+	it("skips successful generic tool results when policy would be metadata-only", () => {
 		const output = `HEAD-${"a".repeat(9000)}-TAIL`;
-		const { text } = serializeObserverSourceEntries([
+		const { text, sourceEntryIds } = serializeObserverSourceEntries([
 			{
 				type: "message",
 				id: "tool-1",
@@ -46,19 +74,12 @@ describe("memory serialization", () => {
 			},
 		] as any, { toolResultSummaryMaxLines: 4, toolResultErrorMaxLines: 20, toolResultLineMaxChars: 300, toolOutputPolicies: { fork: "full-excerpt" } });
 
-		expect(text).toContain("[Tool evidence: unknown_extension_tool @");
-		expect(text).toContain("status: ok");
-		expect(text).toContain("output_chars:");
-		expect(text).toContain("input: src/foo.ts");
-		expect(text).toContain("output_omitted: true (policy)");
-		expect(text).toContain("[output omitted by observer policy]");
-		expect(text).not.toContain("HEAD-");
-		expect(text).not.toContain("-TAIL");
-		expect(text.length).toBeLessThan(output.length);
+		expect(sourceEntryIds).toEqual([]);
+		expect(text).toBe("");
 	});
 
-	it("omits successful mutation-style tool output while preserving metadata", () => {
-		const { text } = serializeObserverSourceEntries([
+	it("skips successful mutation-style metadata-only tool results", () => {
+		const { text, sourceEntryIds } = serializeObserverSourceEntries([
 			{
 				type: "message",
 				id: "tool-ok",
@@ -67,12 +88,8 @@ describe("memory serialization", () => {
 			},
 		] as any, { toolResultSummaryMaxLines: 0, toolResultErrorMaxLines: 20, toolResultLineMaxChars: 300, toolOutputPolicies: { fork: "full-excerpt" } });
 
-		expect(text).toContain("status: ok");
-		expect(text).toContain("input: src/config.ts");
-		expect(text).toContain("output_omitted: true (policy)");
-		expect(text).toContain("[output omitted by observer policy]");
-		expect(text).not.toContain("line_budget_exhausted");
-		expect(text).not.toContain("Successfully replaced");
+		expect(sourceEntryIds).toEqual([]);
+		expect(text).toBe("");
 	});
 
 	it("gives error tool results a larger generic excerpt", () => {
@@ -165,8 +182,8 @@ describe("memory serialization", () => {
 		expect((text.match(/middle noise/g) ?? []).length).toBe(1000);
 	});
 
-	it("renders unknown successful tools as metadata only by default", () => {
-		const { text } = serializeObserverSourceEntries([
+	it("skips unknown successful tools by default", () => {
+		const { text, sourceEntryIds } = serializeObserverSourceEntries([
 			{
 				type: "message",
 				id: "tool-1",
@@ -181,13 +198,8 @@ describe("memory serialization", () => {
 			},
 		] as any, { toolResultSummaryMaxLines: 4, toolResultErrorMaxLines: 20, toolResultLineMaxChars: 300, toolOutputPolicies: { fork: "full-excerpt" } });
 
-		expect(text).toContain("[Tool evidence: first @");
-		expect(text).toContain("[Tool evidence: second @");
-		expect(text).toContain("output_omitted: true (policy)");
-		expect(text).toContain("[output omitted by observer policy]");
-		expect(text).not.toContain("line_budget_exhausted");
-		expect(text).not.toContain("FIRST-");
-		expect(text).not.toContain("SECOND-");
+		expect(sourceEntryIds).toEqual([]);
+		expect(text).toBe("");
 	});
 
 	it("keeps recall evidence higher fidelity than observer input", () => {

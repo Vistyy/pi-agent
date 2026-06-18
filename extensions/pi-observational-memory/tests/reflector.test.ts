@@ -18,16 +18,19 @@ describe("reflector agent", () => {
 		observations: [obsA, obsB],
 	};
 
-	it("renders active observation lines for the reflector", async () => {
+	it("renders active observation lines and touched-file context for the reflector", async () => {
 		let userText = "";
 		const loop = fakeAgentLoop((prompts) => {
 			userText = prompts[0].content[0].text;
 		});
 
-		await runReflector({ ...baseArgs, agentLoop: loop });
+		await runReflector({ ...baseArgs, touchedFiles: ["src/config.ts"], agentLoop: loop });
 
 		expect(userText).toContain("[obs_aaaaaaaaaaaa]");
 		expect(userText).toContain("Observation aaaaaaaaaaaa");
+		expect(userText).toContain("KNOWN STRUCTURED FILE-TOOL TOUCHES SINCE LAST REFLECTION:");
+		expect(userText).toContain("- src/config.ts");
+		expect(userText).toContain("not semantic evidence");
 		expect(userText).not.toContain("coverage:");
 	});
 
