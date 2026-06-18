@@ -111,15 +111,16 @@ export async function reflectorRoutineValidationRestraint(modelSpec: string, jud
   return maybeDebugReflector(record, undefined, modelSpec, thinkingLevel, { observations }, probe);
 }
 
-async function realReflectorFixtureCase(id: string, fixture: readonly any[], modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel, scoreChecks: ReturnType<typeof reflectorRequiresAll>[]): Promise<AgentEvalRecord> {
+async function realReflectorFixtureCase(id: string, fixture: { observations: readonly any[]; reflections?: readonly any[] }, modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel, scoreChecks: ReturnType<typeof reflectorRequiresAll>[]): Promise<AgentEvalRecord> {
   const started = Date.now();
-  const observations = fixture.map((observation) => ({ ...observation }));
-  const { output, usage, agentDurationMs } = await runReflectorCase(modelSpec, thinkingLevel, { reflections: [], observations });
+  const observations = fixture.observations.map((observation) => ({ ...observation }));
+  const reflections = (fixture.reflections ?? []).map((reflection) => ({ ...reflection }));
+  const { output, usage, agentDurationMs } = await runReflectorCase(modelSpec, thinkingLevel, { reflections, observations });
   return judgedReflectorScored(id, output, {
     id,
-    question: `Distill the durable active-memory value from ${fixture.length} real recorded observations mined from the giga OM session. Compress related observations, but preserve exact anchors and relationships when they define the memory or prevent ambiguity.`,
+    question: `Distill the durable active-memory value from ${observations.length} production-shaped unreflected observations and ${reflections.length} active reflections mined from the giga OM session. Compress related observations, but preserve exact anchors and relationships when they define the memory or prevent ambiguity.`,
     rubric: { pass_if: ['Keeps the main durable user/project decisions.', 'Preserves decision-critical anchors and relationships.', 'Compresses related observations without broad abstract summaries that lose important details.', 'Avoids acknowledgement and tool-receipt noise.'], fail_if: ['Drops the main durable decisions or the details that define them.', 'Treats decision-critical anchors as noise.', 'Creates bloated duplicate reflections.', 'Records acknowledgement/tool-receipt noise as durable memory.'] },
-  }, judgeModel, started, [reflectorSourceIdsAllowed(observations.map((o) => o.id))], [...scoreChecks, reflectorMaxCount(Math.ceil(fixture.length / 2))], usage.total, agentDurationMs, { observations, forceJudge: true });
+  }, judgeModel, started, [reflectorSourceIdsAllowed([...observations.map((o) => o.id), ...reflections.map((r) => r.id)])], [...scoreChecks, reflectorMaxCount(Math.ceil(observations.length / 2))], usage.total, agentDurationMs, { observations, reflections, forceJudge: true });
 }
 
 export async function reflectorRealGiga8(modelSpec: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {

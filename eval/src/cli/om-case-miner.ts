@@ -22,6 +22,7 @@ function readEntries(file: string): Entry[] {
 
 const observerSerializationModule = await import(new URL('../../../extensions/pi-observational-memory/src/memory/serialization/observer.ts', import.meta.url).href) as any;
 const configModule = await import(new URL('../../../extensions/pi-observational-memory/src/config.ts', import.meta.url).href) as any;
+const ledgerModule = await import(new URL('../../../extensions/pi-observational-memory/src/session-ledger/index.ts', import.meta.url).href) as any;
 
 function observerFixture(entries: Entry[], start: number, count: number) {
   const slice = entries.slice(start, start + count);
@@ -38,27 +39,65 @@ function obsId(id: string): string { return id.startsWith('obs_') ? id : `obs_${
 function refId(id: string): string { return id.startsWith('ref_') ? id : `ref_${id}`; }
 function sourceId(id: string): string { return id.startsWith('obs_') || id.startsWith('ref_') ? id : obsId(id); }
 
-function observationsFrom(entries: Entry[], start: number, count: number): Observation[] {
-  const out: Observation[] = [];
-  for (const entry of entries) {
-    if (entry.type !== 'custom' || entry.customType !== 'om.observations.recorded') continue;
-    for (const raw of entry.data?.observations ?? []) {
-      if (raw?.id && raw?.content && raw?.timestamp && Array.isArray(raw.sourceEntryIds)) out.push({ ...raw, id: obsId(raw.id), kind: 'observation', createdAt: raw.createdAt ?? raw.timestamp, sources: raw.sourceEntryIds });
-    }
-  }
-  return out.slice(start, start + count);
+function normalizeObservation(raw: any): Observation {
+  return { ...raw, id: obsId(raw.id), kind: 'observation', createdAt: raw.createdAt ?? raw.timestamp, sources: raw.sources ?? raw.sourceEntryIds ?? [] };
 }
 
-function reflectionsFrom(entries: Entry[], start: number, count: number): Reflection[] {
-  const out: Reflection[] = [];
-  for (const entry of entries) {
+function normalizeReflection(raw: any): Reflection {
+  return { ...raw, id: refId(raw.id), kind: 'reflection', createdAt: raw.createdAt ?? raw.timestamp ?? '1970-01-01T00:00:00.000Z', sources: (raw.sources ?? raw.supportingObservationIds ?? []).map(sourceId) };
+}
+
+function foldedThrough(entries: Entry[], upToEntryId?: string) {
+  const folded = ledgerModule.foldLedger(entries as any[], upToEntryId ? { upToEntryId } : {});
+  return {
+    observations: (folded.unreflectedObservations ?? []).map(normalizeObservation),
+    reflections: (folded.reflections ?? []).map(normalizeReflection),
+  };
+}
+
+function reflectorSnapshots(entries: Entry[]) {
+  const snapshots: { entryId: string; coversUpToId?: string; observations: Observation[]; reflections: Reflection[] }[] = [];
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
     if (entry.type !== 'custom' || entry.customType !== 'om.reflections.recorded') continue;
-    for (const raw of entry.data?.reflections ?? []) {
-      const rawSources = raw?.sources ?? raw?.supportingObservationIds;
-      if (raw?.id && raw?.content && Array.isArray(rawSources)) out.push({ id: refId(raw.id), kind: 'reflection', content: raw.content, createdAt: raw.createdAt ?? entry.timestamp ?? '1970-01-01T00:00:00.000Z', sources: rawSources.map(sourceId), tokenCount: raw.tokenCount });
-    }
+    if (entries[i + 1]?.type === 'custom' && entries[i + 1]?.customType === 'om.reflections.rewritten') continue;
+    const prev = entries[i - 1];
+    if (!prev?.id) continue;
+    const folded = foldedThrough(entries, prev.id);
+    if (folded.observations.length === 0) continue;
+    snapshots.push({ entryId: entry.id, coversUpToId: entry.data?.coversUpToId, ...folded });
   }
-  return out.slice(start, start + count);
+  return snapshots;
+}
+
+function reflectorFixture(entries: Entry[], minObservations: number, ordinal = 0) {
+  const snapshots = reflectorSnapshots(entries);
+  return snapshots.filter((snapshot) => snapshot.observations.length >= minObservations)[ordinal]
+    ?? snapshots[ordinal]
+    ?? { observations: [], reflections: [] };
+}
+
+function rewriteInputPools(entries: Entry[]) {
+  const pools: Reflection[][] = [];
+  for (let i = 0; i < entries.length; i++) {
+    const entry = entries[i];
+    if (entry.type !== 'custom' || entry.customType !== 'om.reflections.rewritten') continue;
+    const prev = entries[i - 1];
+    if (!prev?.id) continue;
+    const folded = foldedThrough(entries, prev.id);
+    const retired = new Set((entry.data?.retiredReflectionIds ?? []).map(refId));
+    const input = folded.reflections.filter((reflection: Reflection) => retired.has(reflection.id));
+    if (input.length > 0) pools.push(input);
+  }
+  return pools;
+}
+
+function rewritePool(entries: Entry[]) {
+  return rewriteInputPools(entries)[0] ?? foldedThrough(entries).reflections;
+}
+
+function rewriteFixture(entries: Entry[], start: number, count: number): Reflection[] {
+  return rewritePool(entries).slice(start, start + count);
 }
 
 const args = parseArgs();
@@ -67,13 +106,13 @@ const fixtures = {
   realObserver32: observerFixture(entries, 0, 32),
   realObserver64: observerFixture(entries, 32, 64),
   realObserver96: observerFixture(entries, 96, 96),
-  realReflector8: observationsFrom(entries, 0, 8),
-  realReflector16: observationsFrom(entries, 8, 16),
-  realRewrite40: reflectionsFrom(entries, 0, 40),
-  realRewrite80: reflectionsFrom(entries, 40, 80),
-  realRewrite120: reflectionsFrom(entries, 40, 120),
+  realReflector8: reflectorFixture(entries, 8),
+  realReflector16: reflectorFixture(entries, 16),
+  realRewrite40: rewriteFixture(entries, 0, 40),
+  realRewrite80: rewriteFixture(entries, 40, 80),
+  realRewrite120: rewriteFixture(entries, 40, 120),
 };
 const content = `// Generated by eval/src/cli/om-case-miner.ts from ${args.session}\n\n${Object.entries(fixtures).map(([name, value]) => `export const ${name} = ${JSON.stringify(value, null, 2)} as const;`).join('\n\n')}\n`;
 fs.mkdirSync(path.dirname(args.out), { recursive: true });
 fs.writeFileSync(args.out, content);
-console.log(JSON.stringify({ out: args.out, observer: [fixtures.realObserver32.count, fixtures.realObserver64.count, fixtures.realObserver96.count], reflector: [fixtures.realReflector8.length, fixtures.realReflector16.length], rewrite: [fixtures.realRewrite40.length, fixtures.realRewrite120.length] }, null, 2));
+console.log(JSON.stringify({ out: args.out, observer: [fixtures.realObserver32.count, fixtures.realObserver64.count, fixtures.realObserver96.count], reflector: [fixtures.realReflector8.observations.length, fixtures.realReflector16.observations.length], rewrite: [fixtures.realRewrite40.length, fixtures.realRewrite120.length] }, null, 2));

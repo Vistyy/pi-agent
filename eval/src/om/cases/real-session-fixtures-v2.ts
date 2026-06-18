@@ -186,628 +186,1779 @@ export const realObserver96 = {
   ]
 } as const;
 
-export const realReflector8 = [
-  {
-    "id": "obs_bd96ce384126",
-    "content": "User wants to remember a later follow-up: after the planned tasks, look into OM + fork interaction using instant compaction and always-on memory to send compacted context to forked agents instead of full context, to avoid full uncached input cost; not to investigate deeply now.",
-    "timestamp": "2026-06-14 23:00",
-    "sourceEntryIds": [
-      "84b4aad4",
-      "acea1bdf"
-    ],
-    "kind": "observation",
-    "createdAt": "2026-06-14 23:00",
-    "sources": [
-      "84b4aad4",
-      "acea1bdf"
-    ]
-  },
-  {
-    "id": "obs_11ae0b8e8f16",
-    "content": "Next planned work in the implementation plan is Stage 1: Curator eval second pass, i.e. convert curator evals to hard-check + partial-score style with hard failures for unsafe actions and score dimensions for retained detail, provenance, follow-up, and completeness; it comes before Stage 2.",
-    "timestamp": "2026-06-14 22:58",
-    "sourceEntryIds": [
-      "7446cd13",
-      "af4978e4"
-    ],
-    "kind": "observation",
-    "createdAt": "2026-06-14 22:58",
-    "sources": [
-      "7446cd13",
-      "af4978e4"
-    ]
-  },
-  {
-    "id": "obs_2b53ae829e15",
-    "content": "Current curator evals are 6 behavioral cases in `eval/src/om/cases/curator.ts`; they are better than smoke tests and cover contradictory reflections, stale/current traps, noisy pools, pinned stale failures with newer passing evidence, and buried exact atoms, but they still use deterministic `judgedCurator()` pass/fail checks and no partial scoring yet.",
-    "timestamp": "2026-06-14 23:03",
-    "sourceEntryIds": [
-      "3518c962",
-      "d8bcea0b"
-    ],
-    "kind": "observation",
-    "createdAt": "2026-06-14 23:03",
-    "sources": [
-      "3518c962",
-      "d8bcea0b"
-    ]
-  },
-  {
-    "id": "obs_1ac2cb4e2860",
-    "content": "The curator second-pass implementation target is to add `judgedCuratorScored()` in `eval/src/om/diagnostics.ts` and convert `eval/src/om/cases/curator.ts` to use it; no changes are needed in `eval/src/om/types.ts` or `eval/src/om/agent-evals.ts`.",
-    "timestamp": "2026-06-14 23:05",
-    "sourceEntryIds": [
-      "5906406c"
-    ],
-    "kind": "observation",
-    "createdAt": "2026-06-14 23:05",
-    "sources": [
-      "5906406c"
-    ]
-  },
-  {
-    "id": "obs_65664ff7d792",
-    "content": "`judgedCuratorScored()` was implemented in `eval/src/om/diagnostics.ts`, and the 6 curator cases were updated to import/use `judgedCuratorScored` with hard checks plus score dimensions for retained detail/provenance/follow-up/completeness-style signals.",
-    "timestamp": "2026-06-14 23:06",
-    "sourceEntryIds": [
-      "b629c130",
-      "3efd7fee",
-      "adb224f4",
-      "c659f914"
-    ],
-    "kind": "observation",
-    "createdAt": "2026-06-14 23:06",
-    "sources": [
-      "b629c130",
-      "3efd7fee",
-      "adb224f4",
-      "c659f914"
-    ]
-  },
-  {
-    "id": "obs_22f28cfe503e",
-    "content": "Validation attempt: `pnpm exec tsc --noEmit` failed because `tsc` was not found, and `pnpm run typecheck` failed because the `typecheck` script is missing.",
-    "timestamp": "2026-06-14 23:07",
-    "sourceEntryIds": [
-      "77ef3934",
-      "41c8e214"
-    ],
-    "kind": "observation",
-    "createdAt": "2026-06-14 23:07",
-    "sources": [
-      "77ef3934",
-      "41c8e214"
-    ]
-  },
-  {
-    "id": "obs_338795296e04",
-    "content": "Reflector hard eval planning should not include invented `supportingObservationIds` as a meaningful check because `runReflector()` rejects any non-allowed support IDs via `normalizeAllowedIdsStrict`, so invented IDs cannot reach eval output.",
-    "timestamp": "2026-06-15 10:26",
-    "sourceEntryIds": [
-      "295be037",
-      "cad031bc"
-    ],
-    "kind": "observation",
-    "createdAt": "2026-06-15 10:26",
-    "sources": [
-      "295be037",
-      "cad031bc"
-    ]
-  },
-  {
-    "id": "obs_c55bd9b23fe3",
-    "content": "The next analysis step is a deep fork investigating current OM reflector responsibilities and the referenced giga session `/home/syzom/.pi/agent/sessions/--home-syzom-.pi-agent--/2026-06-11T14-02-51-854Z_019eb6fe-2e4e-732f-b744-4b2cb3123d70.jsonl`, including reflection bloat/failures, counts over time, and cost/usage contributors, to decide what reflector model evals should target.",
-    "timestamp": "2026-06-15 10:30",
-    "sourceEntryIds": [
-      "470dcfac"
-    ],
-    "kind": "observation",
-    "createdAt": "2026-06-15 10:30",
-    "sources": [
-      "470dcfac"
-    ]
-  }
-] as const;
+export const realReflector8 = {
+  "entryId": "7e9585aa",
+  "coversUpToId": "470dcfac",
+  "observations": [
+    {
+      "id": "obs_bd96ce384126",
+      "kind": "observation",
+      "content": "User wants to remember a later follow-up: after the planned tasks, look into OM + fork interaction using instant compaction and always-on memory to send compacted context to forked agents instead of full context, to avoid full uncached input cost; not to investigate deeply now.",
+      "createdAt": "2026-06-14 23:00",
+      "timestamp": "2026-06-14 23:00",
+      "sourceEntryIds": [
+        "84b4aad4",
+        "acea1bdf"
+      ],
+      "sources": [
+        "84b4aad4",
+        "acea1bdf"
+      ]
+    },
+    {
+      "id": "obs_11ae0b8e8f16",
+      "kind": "observation",
+      "content": "Next planned work in the implementation plan is Stage 1: Curator eval second pass, i.e. convert curator evals to hard-check + partial-score style with hard failures for unsafe actions and score dimensions for retained detail, provenance, follow-up, and completeness; it comes before Stage 2.",
+      "createdAt": "2026-06-14 22:58",
+      "timestamp": "2026-06-14 22:58",
+      "sourceEntryIds": [
+        "7446cd13",
+        "af4978e4"
+      ],
+      "sources": [
+        "7446cd13",
+        "af4978e4"
+      ]
+    },
+    {
+      "id": "obs_2b53ae829e15",
+      "kind": "observation",
+      "content": "Current curator evals are 6 behavioral cases in `eval/src/om/cases/curator.ts`; they are better than smoke tests and cover contradictory reflections, stale/current traps, noisy pools, pinned stale failures with newer passing evidence, and buried exact atoms, but they still use deterministic `judgedCurator()` pass/fail checks and no partial scoring yet.",
+      "createdAt": "2026-06-14 23:03",
+      "timestamp": "2026-06-14 23:03",
+      "sourceEntryIds": [
+        "3518c962",
+        "d8bcea0b"
+      ],
+      "sources": [
+        "3518c962",
+        "d8bcea0b"
+      ]
+    },
+    {
+      "id": "obs_1ac2cb4e2860",
+      "kind": "observation",
+      "content": "The curator second-pass implementation target is to add `judgedCuratorScored()` in `eval/src/om/diagnostics.ts` and convert `eval/src/om/cases/curator.ts` to use it; no changes are needed in `eval/src/om/types.ts` or `eval/src/om/agent-evals.ts`.",
+      "createdAt": "2026-06-14 23:05",
+      "timestamp": "2026-06-14 23:05",
+      "sourceEntryIds": [
+        "5906406c"
+      ],
+      "sources": [
+        "5906406c"
+      ]
+    },
+    {
+      "id": "obs_65664ff7d792",
+      "kind": "observation",
+      "content": "`judgedCuratorScored()` was implemented in `eval/src/om/diagnostics.ts`, and the 6 curator cases were updated to import/use `judgedCuratorScored` with hard checks plus score dimensions for retained detail/provenance/follow-up/completeness-style signals.",
+      "createdAt": "2026-06-14 23:06",
+      "timestamp": "2026-06-14 23:06",
+      "sourceEntryIds": [
+        "b629c130",
+        "3efd7fee",
+        "adb224f4",
+        "c659f914"
+      ],
+      "sources": [
+        "b629c130",
+        "3efd7fee",
+        "adb224f4",
+        "c659f914"
+      ]
+    },
+    {
+      "id": "obs_22f28cfe503e",
+      "kind": "observation",
+      "content": "Validation attempt: `pnpm exec tsc --noEmit` failed because `tsc` was not found, and `pnpm run typecheck` failed because the `typecheck` script is missing.",
+      "createdAt": "2026-06-14 23:07",
+      "timestamp": "2026-06-14 23:07",
+      "sourceEntryIds": [
+        "77ef3934",
+        "41c8e214"
+      ],
+      "sources": [
+        "77ef3934",
+        "41c8e214"
+      ]
+    },
+    {
+      "id": "obs_338795296e04",
+      "kind": "observation",
+      "content": "Reflector hard eval planning should not include invented `supportingObservationIds` as a meaningful check because `runReflector()` rejects any non-allowed support IDs via `normalizeAllowedIdsStrict`, so invented IDs cannot reach eval output.",
+      "createdAt": "2026-06-15 10:26",
+      "timestamp": "2026-06-15 10:26",
+      "sourceEntryIds": [
+        "295be037",
+        "cad031bc"
+      ],
+      "sources": [
+        "295be037",
+        "cad031bc"
+      ]
+    },
+    {
+      "id": "obs_c55bd9b23fe3",
+      "kind": "observation",
+      "content": "The next analysis step is a deep fork investigating current OM reflector responsibilities and the referenced giga session `/home/syzom/.pi/agent/sessions/--home-syzom-.pi-agent--/2026-06-11T14-02-51-854Z_019eb6fe-2e4e-732f-b744-4b2cb3123d70.jsonl`, including reflection bloat/failures, counts over time, and cost/usage contributors, to decide what reflector model evals should target.",
+      "createdAt": "2026-06-15 10:30",
+      "timestamp": "2026-06-15 10:30",
+      "sourceEntryIds": [
+        "470dcfac"
+      ],
+      "sources": [
+        "470dcfac"
+      ]
+    }
+  ],
+  "reflections": []
+} as const;
 
-export const realReflector16 = [
-  {
-    "id": "obs_c463ef876814",
-    "content": "`extensions/pi-observational-memory/src/config.ts` default `reflectorThinking` was changed from `xhigh` to `low`; matching updates were also made in `tests/config.test.ts` and `README.md`.",
-    "timestamp": "2026-06-15 11:58",
-    "sourceEntryIds": [
-      "544e4828",
-      "53728d7f",
-      "aca44c7b"
-    ],
-    "kind": "observation",
-    "createdAt": "2026-06-15 11:58",
-    "sources": [
-      "544e4828",
-      "53728d7f",
-      "aca44c7b"
-    ]
-  },
-  {
-    "id": "obs_e07c95807e35",
-    "content": "The extension’s test commands are `cd extensions/pi-observational-memory && pnpm test` and `cd extensions/pi-observational-memory && pnpm run typecheck`; `test` runs `vitest run` and `typecheck` runs `tsc --noEmit`.",
-    "timestamp": "2026-06-15 11:58",
-    "sourceEntryIds": [
-      "d91f5bfc"
-    ],
-    "kind": "observation",
-    "createdAt": "2026-06-15 11:58",
-    "sources": [
-      "d91f5bfc"
-    ]
-  },
-  {
-    "id": "obs_3758fbdd3769",
-    "content": "User is leaning toward removing pinning; they think it should significantly streamline curator and reduce the amount of thinking and calls it does.",
-    "timestamp": "2026-06-15 12:42",
-    "sourceEntryIds": [
-      "2570cf56"
-    ],
-    "kind": "observation",
-    "createdAt": "2026-06-15 12:42",
-    "sources": [
-      "2570cf56"
-    ]
-  },
-  {
-    "id": "obs_232bf1fb5303",
-    "content": "`extensions/pi-observational-memory/docs/implementation-plan.md` was updated to the new architecture: observations are durable evidence, pin/unpin is removed, curator is removed/folded into reflector or reduced to a minimal compression-audit role, active projection is current reflections only, and rewrite is background maintenance triggered before compaction when projected active-memory tokens exceed budget.",
-    "timestamp": "2026-06-15 13:30",
-    "sourceEntryIds": [
-      "8c718343",
-      "10861127",
-      "fe9c5002"
-    ],
-    "kind": "observation",
-    "createdAt": "2026-06-15 13:30",
-    "sources": [
-      "8c718343",
-      "10861127",
-      "fe9c5002"
-    ]
-  },
-  {
-    "id": "obs_00ec799cda45",
-    "content": "The implementation plan now treats compaction as near-instant and non-rewriting: the compaction boundary should only flush any unobserved tail via observer, then render deterministic projection; no synchronous reflector/curator/rewrite work should happen during compaction.",
-    "timestamp": "2026-06-15 13:30",
-    "sourceEntryIds": [
-      "10861127",
-      "fe9c5002"
-    ],
-    "kind": "observation",
-    "createdAt": "2026-06-15 13:30",
-    "sources": [
-      "10861127",
-      "fe9c5002"
-    ]
-  },
-  {
-    "id": "obs_e51be81ad2d1",
-    "content": "The plan now prefers typed provenance ids in a single `sources` array (e.g. `obs_...`, `ref_...`) instead of separate observation/reflection id arrays; reflection records should carry `createdAt`, and rewritten reflections are normal reflections, not a special shape.",
-    "timestamp": "2026-06-15 13:30",
-    "sourceEntryIds": [
-      "d298f67d",
-      "ee475a7b",
-      "fe9c5002"
-    ],
-    "kind": "observation",
-    "createdAt": "2026-06-15 13:30",
-    "sources": [
-      "d298f67d",
-      "ee475a7b",
-      "fe9c5002"
-    ]
-  },
-  {
-    "id": "obs_9b7ad062ce65",
-    "content": "The plan explicitly sets full active-memory rewrite as the default over per-reflection lifecycle/deprecation: rewrite all current reflections when over budget, validate hard, and no-op on invalid output; per-reflection deprecation/supersession is no longer the preferred path.",
-    "timestamp": "2026-06-15 13:31",
-    "sourceEntryIds": [
-      "fe9c5002",
-      "46d7ba59"
-    ],
-    "kind": "observation",
-    "createdAt": "2026-06-15 13:31",
-    "sources": [
-      "fe9c5002",
-      "46d7ba59"
-    ]
-  },
-  {
-    "id": "obs_b88876c5f414",
-    "content": "`extensions/pi-observational-memory/docs/implementation-plan.md` now lays out stages for design spec, data model/projection rewrite, reflector simplification, full active-memory rewrite, recall as required evidence path, and hard realistic evals at the end.",
-    "timestamp": "2026-06-15 13:30",
-    "sourceEntryIds": [
-      "fe9c5002"
-    ],
-    "kind": "observation",
-    "createdAt": "2026-06-15 13:30",
-    "sources": [
-      "fe9c5002"
-    ]
-  },
-  {
-    "id": "obs_027817aba0cc",
-    "content": "Next step is to write/update a focused design spec at `extensions/pi-observational-memory/docs/reflection-only-memory-design.md` before coding; it should cover data model, projection rules, lifecycle flow, rewrite algorithm, recall policy, removal plan, and implementation phases.",
-    "timestamp": "2026-06-15 14:41",
-    "sourceEntryIds": [
-      "b2751c5c"
-    ],
-    "kind": "observation",
-    "createdAt": "2026-06-15 14:41",
-    "sources": [
-      "b2751c5c"
-    ]
-  },
-  {
-    "id": "obs_6466fa779edf",
-    "content": "User wants future code changes to avoid leaving old code around and to reduce complexity/branching/conditions as much as possible; assistant adopted rule \"compat at boundaries only\" and core code uses one shape.",
-    "timestamp": "2026-06-15 15:16",
-    "sourceEntryIds": [
-      "af44ab46",
-      "b52029c8"
-    ],
-    "kind": "observation",
-    "createdAt": "2026-06-15 15:16",
-    "sources": [
-      "af44ab46",
-      "b52029c8"
-    ]
-  },
-  {
-    "id": "obs_23716589f84c",
-    "content": "Minimal compat needed is only to tolerate old ledger/session entries without crashing; old reflection records normalize to `ref_<id>` with `supportingObservationIds` mapped to `sources: [\"obs_<id>\"]`, old pin/unpin events are ignored for active state, and old compaction details observations are ignored for active projection.",
-    "timestamp": "2026-06-15 15:17",
-    "sourceEntryIds": [
-      "b30a69b1",
-      "40d998ab"
-    ],
-    "kind": "observation",
-    "createdAt": "2026-06-15 15:17",
-    "sources": [
-      "b30a69b1",
-      "40d998ab"
-    ]
-  },
-  {
-    "id": "obs_69a95ddce3a5",
-    "content": "The first concrete code change started with `src/memory/ids.ts`, adding typed ID patterns/helpers (`obs_`, `ref_`, `src_`, `rw_`) alongside the existing 12-char hash IDs, while keeping `hashId(content)` content-hash based.",
-    "timestamp": "2026-06-15 15:18",
-    "sourceEntryIds": [
-      "5b5688f4",
-      "88c58c16"
-    ],
-    "kind": "observation",
-    "createdAt": "2026-06-15 15:18",
-    "sources": [
-      "5b5688f4",
-      "88c58c16"
-    ]
-  },
-  {
-    "id": "obs_6315c73af2c5",
-    "content": "The design doc was updated to state an implementation principle: avoid long-lived dual paths; read-boundary compatibility only, with old ledger records normalized or ignored and no parallel legacy projection/pinning/feature-flagged lifecycle paths in core code.",
-    "timestamp": "2026-06-15 15:18",
-    "sourceEntryIds": [
-      "6afdb65d",
-      "d49419b8"
-    ],
-    "kind": "observation",
-    "createdAt": "2026-06-15 15:18",
-    "sources": [
-      "6afdb65d",
-      "d49419b8"
-    ]
-  },
-  {
-    "id": "obs_d7cbd3b6679c",
-    "content": "User confirmed the migration should refactor everything to the new typed-id shape with no long-lived shims.",
-    "timestamp": "2026-06-15 16:04",
-    "sourceEntryIds": [
-      "a9f6a7fe",
-      "cd4e6f99",
-      "dc985af2"
-    ],
-    "kind": "observation",
-    "createdAt": "2026-06-15 16:04",
-    "sources": [
-      "a9f6a7fe",
-      "cd4e6f99",
-      "dc985af2"
-    ]
-  },
-  {
-    "id": "obs_f1bae8c4201d",
-    "content": "The current migration target is `Observation.id = \"obs_*\"`, `Reflection.id = \"ref_*\"`, and `Reflection.sources = [\"obs_*\", \"ref_*\"]`; old ledger entries are only normalized at the boundary.",
-    "timestamp": "2026-06-15 16:04",
-    "sourceEntryIds": [
-      "ecae1cd4",
-      "cd4e6f99"
-    ],
-    "kind": "observation",
-    "createdAt": "2026-06-15 16:04",
-    "sources": [
-      "ecae1cd4",
-      "cd4e6f99"
-    ]
-  },
-  {
-    "id": "obs_e73e0b29fba5",
-    "content": "`src/session-ledger/types.ts` was updated to add `Reflection.sources`/`createdAt`, normalize legacy observations/reflections into typed ids, and accept both `sources` and legacy `supportingObservationIds` during boundary normalization.",
-    "timestamp": "2026-06-15 16:05",
-    "sourceEntryIds": [
-      "9f0cb06e"
-    ],
-    "kind": "observation",
-    "createdAt": "2026-06-15 16:05",
-    "sources": [
-      "9f0cb06e"
-    ]
-  }
-] as const;
+export const realReflector16 = {
+  "entryId": "d4d61f3d",
+  "coversUpToId": "009ccc9e",
+  "observations": [
+    {
+      "id": "obs_1213ce82c8f1",
+      "kind": "observation",
+      "content": "Added `extensions/pi-observational-memory/src/session-ledger/index.ts` re-export barrel for `types.js`, `fold.js`, `active-memory.js`, `compaction-memory.js`, `recall.js`, `render-summary.js`, and `memory-tokens.js`.",
+      "createdAt": "2026-06-16 16:47",
+      "timestamp": "2026-06-16 16:47",
+      "sourceEntryIds": [
+        "29b667b2",
+        "14e5d1a7"
+      ],
+      "sources": [
+        "29b667b2",
+        "14e5d1a7"
+      ]
+    },
+    {
+      "id": "obs_6338d1a7ffc5",
+      "kind": "observation",
+      "content": "`src/commands/status.ts` was rewritten to implement `/om:status [full]`, showing memory/reflection counts, token size, next-work progress, optional full details, in-flight work, and last errors.",
+      "createdAt": "2026-06-16 16:47",
+      "timestamp": "2026-06-16 16:47",
+      "sourceEntryIds": [
+        "179dc388",
+        "39d64c23"
+      ],
+      "sources": [
+        "179dc388",
+        "39d64c23"
+      ]
+    },
+    {
+      "id": "obs_8ed52955812f",
+      "kind": "observation",
+      "content": "Observer agent records and accumulated observations no longer include a `sources` field; the `Observation` object now keeps `timestamp` and `sourceEntryIds` only.",
+      "createdAt": "2026-06-16 16:47",
+      "timestamp": "2026-06-16 16:47",
+      "sourceEntryIds": [
+        "a1e228cf",
+        "d66845bc",
+        "540fa8a8"
+      ],
+      "sources": [
+        "a1e228cf",
+        "d66845bc",
+        "540fa8a8"
+      ]
+    },
+    {
+      "id": "obs_bb279199ee00",
+      "kind": "observation",
+      "content": "Removed unused/stale files and tests: `src/memory-update/stage-utils.ts`, `src/session-ledger/progress.ts`, `src/session-ledger/agent-usage.ts`, `tests/session-ledger-agent-usage.test.ts`, and `tests/session-ledger-progress.test.ts`.",
+      "createdAt": "2026-06-16 16:47",
+      "timestamp": "2026-06-16 16:47",
+      "sourceEntryIds": [
+        "50624091",
+        "3296f304"
+      ],
+      "sources": [
+        "50624091",
+        "3296f304"
+      ]
+    },
+    {
+      "id": "obs_27272c6b796d",
+      "kind": "observation",
+      "content": "Test fixtures were updated to drop `sources` from session observation shapes, including `tests/fixtures/session.ts` and `tests/session-ledger-recall.test.ts`.",
+      "createdAt": "2026-06-16 16:48",
+      "timestamp": "2026-06-16 16:48",
+      "sourceEntryIds": [
+        "000f0e58",
+        "a519b04f",
+        "b2b1152f"
+      ],
+      "sources": [
+        "000f0e58",
+        "a519b04f",
+        "b2b1152f"
+      ]
+    },
+    {
+      "id": "obs_0c9a79503679",
+      "kind": "observation",
+      "content": "`pnpm run typecheck` currently fails because `src/memory-update/scheduler.ts` still imports `computeMemoryStageDue` from `./due.js`, but that export no longer exists; TypeScript suggests `computeMemoryStageWork` instead.",
+      "createdAt": "2026-06-16 16:48",
+      "timestamp": "2026-06-16 16:48",
+      "sourceEntryIds": [
+        "3dfe3b00",
+        "bb19d9a6"
+      ],
+      "sources": [
+        "3dfe3b00",
+        "bb19d9a6"
+      ]
+    },
+    {
+      "id": "obs_251eca683f2d",
+      "kind": "observation",
+      "content": "`src/memory-update/scheduler.ts` was then edited to import `computeMemoryStageWork` and to gate on `work.observerWork.length`, `work.reflectorWork.length`, and `work.rewriteWork.length` instead of the removed `due` booleans.",
+      "createdAt": "2026-06-16 16:49",
+      "timestamp": "2026-06-16 16:49",
+      "sourceEntryIds": [
+        "24bff444",
+        "afda6553"
+      ],
+      "sources": [
+        "24bff444",
+        "afda6553"
+      ]
+    },
+    {
+      "id": "obs_5eccd71ac347",
+      "kind": "observation",
+      "content": "`extensions/pi-observational-memory` typecheck passed after the prompt-driven agent edits.",
+      "createdAt": "2026-06-16 16:50",
+      "timestamp": "2026-06-16 16:50",
+      "sourceEntryIds": [
+        "781f2e47",
+        "a1cccae6"
+      ],
+      "sources": [
+        "781f2e47",
+        "a1cccae6"
+      ]
+    },
+    {
+      "id": "obs_eee294053797",
+      "kind": "observation",
+      "content": "`pnpm test` initially failed with 3 tests failing across `tests/status-command.test.ts` and `tests/observer.test.ts`; `status-command.test.ts` was then updated to expect \"Source entries since reflection cursor: 1\" and to drop the total-cost assertion, and one `observer.test.ts` `sources: [\"entry-a\"]` expectation was removed.",
+      "createdAt": "2026-06-16 16:49",
+      "timestamp": "2026-06-16 16:49",
+      "sourceEntryIds": [
+        "ae70e1a1",
+        "60c53136",
+        "bf42ef13"
+      ],
+      "sources": [
+        "ae70e1a1",
+        "60c53136",
+        "bf42ef13"
+      ]
+    },
+    {
+      "id": "obs_54aa35e8deae",
+      "kind": "observation",
+      "content": "`src/agents/record-tool.ts` now defines `RecordReflectionsSchema` with `{ reflections: [{ content, sources }], summary? }` and `reflectionRecordTool`, which normalizes content/source ids, rejects invalid or duplicate reflections, records `createdAt`, and returns an ack with accepted/duplicate/rejected counts.",
+      "createdAt": "2026-06-16 16:50",
+      "timestamp": "2026-06-16 16:50",
+      "sourceEntryIds": [
+        "de270e23"
+      ],
+      "sources": [
+        "de270e23"
+      ]
+    },
+    {
+      "id": "obs_6793d7ca2012",
+      "kind": "observation",
+      "content": "`src/agents/reflector/agent.ts` now uses `reflectionRecordTool` named `record_reflections`, returns `undefined` when there are no observations, and returns `[]` when the tool is called with an empty reflections batch; it logs `accepted_nonempty` / `recorded_empty` / `all_filtered` / `no_tool_call` reasons.",
+      "createdAt": "2026-06-16 16:50",
+      "timestamp": "2026-06-16 16:50",
+      "sourceEntryIds": [
+        "e02aeac2"
+      ],
+      "sources": [
+        "e02aeac2"
+      ]
+    },
+    {
+      "id": "obs_fb6424f26d81",
+      "kind": "observation",
+      "content": "`src/agents/rewrite/agent.ts` now uses `reflectionRecordTool` named `record_rewritten_reflections` with `allowSummary: true` and `ackVerb: \"Accepted\"`; it returns `undefined` when no valid rewrite is recorded and otherwise returns `{ reflections, summary }`.",
+      "createdAt": "2026-06-16 16:50",
+      "timestamp": "2026-06-16 16:50",
+      "sourceEntryIds": [
+        "2e7c006f"
+      ],
+      "sources": [
+        "2e7c006f"
+      ]
+    },
+    {
+      "id": "obs_b2b23813e375",
+      "kind": "observation",
+      "content": "`src/agents/common.ts` was edited to remove the `MemoryAgentUsage` type and the `onUsage` callback plumbing, while still calculating cost from `result.usage` and logging provider results.",
+      "createdAt": "2026-06-16 16:51",
+      "timestamp": "2026-06-16 16:51",
+      "sourceEntryIds": [
+        "80e90f7d"
+      ],
+      "sources": [
+        "80e90f7d"
+      ]
+    },
+    {
+      "id": "obs_a6a8328bd65c",
+      "kind": "observation",
+      "content": "`src/agents/observer/agent.ts` was updated to stop importing/passing `MemoryAgentUsage` and `onUsage` into `runMemoryAgentLoop`.",
+      "createdAt": "2026-06-16 16:51",
+      "timestamp": "2026-06-16 16:51",
+      "sourceEntryIds": [
+        "009ccc9e"
+      ],
+      "sources": [
+        "009ccc9e"
+      ]
+    },
+    {
+      "id": "obs_af38122c3f37",
+      "kind": "observation",
+      "content": "A search was run for usage/progress-related symbols (`agent-usage`, `OM_AGENT`, `foldAgentUsage`, `onUsage`, `progress.js`, etc.) across `src`, `tests`, `README.md`, and `docs` in `extensions/pi-observational-memory`.",
+      "createdAt": "2026-06-16 16:51",
+      "timestamp": "2026-06-16 16:51",
+      "sourceEntryIds": [
+        "8fff7dd6"
+      ],
+      "sources": [
+        "8fff7dd6"
+      ]
+    },
+    {
+      "id": "obs_b4fbecc4334d",
+      "kind": "observation",
+      "content": "After the common/observer edits, `pnpm run typecheck` and `pnpm test` were rerun successfully.",
+      "createdAt": "2026-06-16 16:51",
+      "timestamp": "2026-06-16 16:51",
+      "sourceEntryIds": [
+        "a1cccae6",
+        "87ae5adf"
+      ],
+      "sources": [
+        "a1cccae6",
+        "87ae5adf"
+      ]
+    }
+  ],
+  "reflections": [
+    {
+      "id": "ref_78109b3bb067",
+      "kind": "reflection",
+      "content": "After the planned tasks, the user wants a later follow-up on OM + fork interaction using instant compaction and always-on memory to send compacted context to forked agents instead of full context, to avoid full uncached input cost; do not investigate it deeply now.",
+      "sources": [
+        "obs_bd96ce384126"
+      ],
+      "createdAt": "2026-06-15T08:40:12.334Z"
+    },
+    {
+      "id": "ref_d4610dd95f8c",
+      "kind": "reflection",
+      "content": "The 6 behavioral cases in `eval/src/om/cases/curator.ts` cover contradictory reflections, stale/current traps, noisy pools, pinned stale failures with newer passing evidence, and buried exact atoms; they were upgraded from deterministic `judgedCurator()` pass/fail checks to `judgedCuratorScored()` hard-check + score dimensions for retained detail/provenance/follow-up/completeness-style signals.",
+      "sources": [
+        "obs_2b53ae829e15",
+        "obs_65664ff7d792"
+      ],
+      "createdAt": "2026-06-15T08:40:12.334Z"
+    },
+    {
+      "id": "ref_fd3c2d66b451",
+      "kind": "reflection",
+      "content": "The curator second-pass implementation touched only `eval/src/om/diagnostics.ts` and `eval/src/om/cases/curator.ts`; `eval/src/om/types.ts` and `eval/src/om/agent-evals.ts` were intentionally left unchanged.",
+      "sources": [
+        "obs_1ac2cb4e2860",
+        "obs_65664ff7d792"
+      ],
+      "createdAt": "2026-06-15T08:40:12.334Z"
+    },
+    {
+      "id": "ref_e963de75f5af",
+      "kind": "reflection",
+      "content": "Validation of the curator second-pass change is currently blocked because `pnpm exec tsc --noEmit` could not find `tsc`, and `pnpm run typecheck` failed because the `typecheck` script is missing.",
+      "sources": [
+        "obs_22f28cfe503e"
+      ],
+      "createdAt": "2026-06-15T08:40:12.334Z"
+    },
+    {
+      "id": "ref_ce509919db2b",
+      "kind": "reflection",
+      "content": "Do not use invented `supportingObservationIds` as a meaningful reflector hard-eval check, because `runReflector()` rejects any non-allowed IDs via `normalizeAllowedIdsStrict`, so invented IDs cannot reach eval output.",
+      "sources": [
+        "obs_338795296e04"
+      ],
+      "createdAt": "2026-06-15T08:40:12.334Z"
+    },
+    {
+      "id": "ref_06d5abeba79f",
+      "kind": "reflection",
+      "content": "The next analysis step is a deep fork into OM reflector responsibilities and the referenced giga session `/home/syzom/.pi/agent/sessions/--home-syzom-.pi-agent--/2026-06-11T14-02-51-854Z_019eb6fe-2e4e-732f-b744-4b2cb3123d70.jsonl`, especially reflection bloat/failures, counts over time, and cost/usage contributors, to decide what reflector model evals should target.",
+      "sources": [
+        "obs_c55bd9b23fe3"
+      ],
+      "createdAt": "2026-06-15T08:40:12.334Z"
+    },
+    {
+      "id": "ref_54311289f8be",
+      "kind": "reflection",
+      "content": "`extensions/pi-observational-memory/docs/implementation-plan.md` now treats observations as durable evidence, removes pin/unpin, and says curator is either folded into reflector or reduced to a minimal compression-audit role; active projection is current reflections only, and rewrite is background maintenance before compaction when projected active-memory tokens exceed budget.",
+      "sources": [
+        "obs_232bf1fb5303"
+      ],
+      "createdAt": "2026-06-15T11:35:36.940Z"
+    },
+    {
+      "id": "ref_64b46b38b116",
+      "kind": "reflection",
+      "content": "User is leaning toward removing pinning because it should significantly streamline curator and reduce the amount of thinking and calls it does.",
+      "sources": [
+        "obs_3758fbdd3769"
+      ],
+      "createdAt": "2026-06-15T11:35:36.940Z"
+    },
+    {
+      "id": "ref_24f169c005fa",
+      "kind": "reflection",
+      "content": "The implementation plan now treats compaction as near-instant and non-rewriting: the boundary should only flush any unobserved tail via observer, then render deterministic projection, with no synchronous reflector/curator/rewrite work during compaction.",
+      "sources": [
+        "obs_00ec799cda45"
+      ],
+      "createdAt": "2026-06-15T11:35:36.940Z"
+    },
+    {
+      "id": "ref_e51be81ad2d1",
+      "kind": "reflection",
+      "content": "The plan now prefers typed provenance ids in a single `sources` array (e.g. `obs_...`, `ref_...`) instead of separate observation/reflection id arrays; reflection records should carry `createdAt`, and rewritten reflections are normal reflections, not a special shape.",
+      "sources": [
+        "obs_e51be81ad2d1"
+      ],
+      "createdAt": "2026-06-15T11:35:36.940Z"
+    },
+    {
+      "id": "ref_9b7ad062ce65",
+      "kind": "reflection",
+      "content": "The plan explicitly sets full active-memory rewrite as the default over per-reflection lifecycle/deprecation: rewrite all current reflections when over budget, validate hard, and no-op on invalid output; per-reflection deprecation/supersession is no longer the preferred path.",
+      "sources": [
+        "obs_9b7ad062ce65"
+      ],
+      "createdAt": "2026-06-15T11:35:36.940Z"
+    },
+    {
+      "id": "ref_8149e4543de7",
+      "kind": "reflection",
+      "content": "`extensions/pi-observational-memory/src/config.ts` default `reflectorThinking` changed from `xhigh` to `low`, with matching updates in `tests/config.test.ts` and `README.md`.",
+      "sources": [
+        "obs_c463ef876814"
+      ],
+      "createdAt": "2026-06-15T11:35:36.940Z"
+    },
+    {
+      "id": "ref_e07c95807e35",
+      "kind": "reflection",
+      "content": "The extension’s test commands are `cd extensions/pi-observational-memory && pnpm test` and `cd extensions/pi-observational-memory && pnpm run typecheck`; `test` runs `vitest run` and `typecheck` runs `tsc --noEmit`.",
+      "sources": [
+        "obs_e07c95807e35"
+      ],
+      "createdAt": "2026-06-15T11:35:36.940Z"
+    },
+    {
+      "id": "ref_1abd7956b048",
+      "kind": "reflection",
+      "content": "User confirmed the migration should fully refactor to the new typed-id shape with no long-lived shims; future code changes should avoid leaving old code around, minimize branching/conditions, and keep compatibility only at boundaries, not in parallel legacy core paths.",
+      "sources": [
+        "obs_6466fa779edf",
+        "obs_6315c73af2c5",
+        "obs_d7cbd3b6679c"
+      ],
+      "createdAt": "2026-06-15T14:14:34.691Z"
+    },
+    {
+      "id": "ref_81d6cd7751b2",
+      "kind": "reflection",
+      "content": "Current migration target is `Observation.id=\"obs_*\"`, `Reflection.id=\"ref_*\"`, and `Reflection.sources=[\"obs_*\",\"ref_*\"]`; legacy ledger/session entries are only normalized at the boundary so they don't crash, with old reflection records normalizing to `ref_<id>` and `supportingObservationIds` mapped to `sources`, while old pin/unpin or compaction-detail records are ignored for active state/projection.",
+      "sources": [
+        "obs_23716589f84c",
+        "obs_f1bae8c4201d"
+      ],
+      "createdAt": "2026-06-15T14:14:34.691Z"
+    },
+    {
+      "id": "ref_c144c8cfddd5",
+      "kind": "reflection",
+      "content": "Typed-id migration is now implemented in `src/memory/ids.ts`, `src/session-ledger/types.ts`, `src/session-ledger/fold.ts`, and `src/session-ledger/recall.ts`; `ids.ts` adds `obs_`/`ref_`/`src_`/`rw_` helpers while keeping `hashId(content)` content-hash based, `types.ts` now carries `Reflection.sources`/`createdAt`, `fold.ts` and `recall.ts` use the new normalization helpers instead of the old `is*RecordedData` checks and recall reads `obs_*` sources, `extensions/pi-observational-memory/tests/memory-ids.test.ts` was added, and `cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test` passed.",
+      "sources": [
+        "obs_69a95ddce3a5",
+        "obs_e73e0b29fba5",
+        "obs_df88d7dad9f7",
+        "obs_6d700dbdfebd",
+        "obs_fc47273ed601"
+      ],
+      "createdAt": "2026-06-15T14:14:34.691Z"
+    },
+    {
+      "id": "ref_4dc9f5d632c6",
+      "kind": "reflection",
+      "content": "The implementation plan now has explicit phases from design spec through data model/projection rewrite, reflector simplification, full active-memory rewrite, recall as required evidence path, and hard realistic evals at the end; the next concrete step is to write/update `extensions/pi-observational-memory/docs/reflection-only-memory-design.md` before coding, covering data model, projection rules, lifecycle flow, rewrite algorithm, recall policy, removal plan, and implementation phases.",
+      "sources": [
+        "obs_b88876c5f414",
+        "obs_027817aba0cc"
+      ],
+      "createdAt": "2026-06-15T14:28:52.364Z"
+    },
+    {
+      "id": "ref_7925df93cd01",
+      "kind": "reflection",
+      "content": "User wants the typed-id migration cleanup to be real test cleanup, not mechanical renaming: audit tests, delete `extensions/pi-observational-memory/tests/curator.test.ts` and `tests/curator-stage.test.ts` because they preserve obsolete pin/curator behavior, drop old pin/unpin and reviewed/unreviewed projection coverage, and keep typed ids, reflection-only active memory, recall traversal, compaction-hook behavior, and status/view outputs.",
+      "sources": [
+        "obs_28e826f848e3",
+        "obs_88c648a7a986",
+        "obs_528beed29622"
+      ],
+      "createdAt": "2026-06-15T14:28:52.364Z"
+    },
+    {
+      "id": "ref_84e4a7a0dd10",
+      "kind": "reflection",
+      "content": "During typed-id cleanup, `tests/session-ledger-render-summary.test.ts` was rewritten so `renderSummary()` now renders reflections only, and `tests/session-ledger-fold.test.ts` now expects typed ids, legacy boundary normalization, flag-only follow-up folding, and branch-specific folding instead of the prior review/pin-oriented cases.",
+      "sources": [
+        "obs_6ff2d59b32d0",
+        "obs_28b5702a79c6"
+      ],
+      "createdAt": "2026-06-15T14:28:52.364Z"
+    },
+    {
+      "id": "ref_fe547e1895d1",
+      "kind": "reflection",
+      "content": "During typed-id cleanup, `tests/session-ledger-recall.test.ts` was rewritten to use typed memory ids and fixtures, add legacy-id normalization at the recall boundary, and preserve source evidence for observations, reflections, drops, and partial recall cases.",
+      "sources": [
+        "obs_0987aec19300"
+      ],
+      "createdAt": "2026-06-15T14:28:52.364Z"
+    },
+    {
+      "id": "ref_74d62746cc8e",
+      "kind": "reflection",
+      "content": "`pnpm run typecheck` is currently passing after the curator-test deletions and typed-id edits, but the broader suite still fails; `pnpm test -- tests/session-ledger-fold.test.ts tests/session-ledger-render-summary.test.ts` still reported 9 failing files / 29 failing tests, with `compaction-hook.test.ts` a main hotspot.",
+      "sources": [
+        "obs_b1f734a47b90",
+        "obs_df2dda7dc8d0"
+      ],
+      "createdAt": "2026-06-15T14:28:52.364Z"
+    },
+    {
+      "id": "ref_7169e9f1825e",
+      "kind": "reflection",
+      "content": "After commit `9e87ac1`, a new fork was launched to plan the next implementation step, focused on remaining Stage 2 / starting Stage 3 and removing obsolete pin/unpin/curator active-memory complexity without overreaching.",
+      "sources": [
+        "obs_84a32961993f"
+      ],
+      "createdAt": "2026-06-15T14:36:33.158Z"
+    },
+    {
+      "id": "ref_aa8afc2d616f",
+      "kind": "reflection",
+      "content": "Despite fork advice to keep `extensions/pi-observational-memory/src/agents/curator` as Stage 3 reference, the cleanup deleted that directory and `extensions/pi-observational-memory/src/memory-update/curator-stage.ts`.",
+      "sources": [
+        "obs_badc7acefaa6"
+      ],
+      "createdAt": "2026-06-15T14:44:13.769Z"
+    },
+    {
+      "id": "ref_b55c7117c60f",
+      "kind": "reflection",
+      "content": "Pin/unpin and curator support are gone from core OM code: `src/session-ledger/types.ts` dropped `OM_OBSERVATIONS_PINNED`/`OM_OBSERVATIONS_UNPINNED` plus pin/reason helpers, `src/session-ledger/fold.ts` is now reflection/observation-only, and `MemoryUpdatePhase`/`MemoryStageName`/`ResolveMemoryModel`/`MemoryAgentName` omit curator while `runtime.ts` dropped `lastCuratorError` and `config.ts` removed curator/emergency-curate/protect-recent settings; `due.ts`/`run.ts`/`scheduler.ts`/`agent-usage.ts`/`commands/status.ts` no longer expose curator-stage logic or output.",
+      "sources": [
+        "obs_f5c533912204",
+        "obs_856fb883ee5e",
+        "obs_22a40eb44d28"
+      ],
+      "createdAt": "2026-06-15T14:44:13.769Z"
+    },
+    {
+      "id": "ref_7d63b988248d",
+      "kind": "reflection",
+      "content": "The last validation blocker before the final follow-up edit was `tests/memory-update.test.ts` (`preserves stage failure boundaries`); after that edit, `cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test` passed with 19 test files / 149 tests.",
+      "sources": [
+        "obs_a2f0a38c8ee6",
+        "obs_ea35d7de265e"
+      ],
+      "createdAt": "2026-06-15T14:44:13.769Z"
+    },
+    {
+      "id": "ref_e284afb8c1f8",
+      "kind": "reflection",
+      "content": "docs/implementation-plan.md now marks Stage 2 done after removing OM_OBSERVATIONS_CURATED from the live OM surface (`src/session-ledger/types.ts`, `tests/fixtures/session.ts`, `tests/session-ledger-types.test.ts`), and now notes OM eval infra no longer loads/references the deleted curator agent.",
+      "sources": [
+        "obs_8185ecce89af",
+        "obs_20861850fae0"
+      ],
+      "createdAt": "2026-06-15T15:30:01.351Z"
+    },
+    {
+      "id": "ref_9c5e9251322a",
+      "kind": "reflection",
+      "content": "eval/src/om is curator-free: `types.ts` only exposes observer/reflector shapes with typed `sources`, `OmAgents` only exposes `runObserver`/`runReflector`, `runner.ts` loads only those agents and `obs()`/`ref()` normalize typed ids, `agent-evals.ts` dropped curator fallback, `diagnostics.ts` only keeps the generic `judgedObserverScored()` path, and `cases/index.ts`/`cases/curator.ts` no longer expose curator cases; follow-up searches found no remaining `curator` or `supportingObservationIds` references in `eval/src/om`.",
+      "sources": [
+        "obs_6c8af2c73adf",
+        "obs_9908e534cecc",
+        "obs_50af6cea9f63",
+        "obs_55bec80fb586",
+        "obs_baf6a10be0d8",
+        "obs_2496053dd966"
+      ],
+      "createdAt": "2026-06-15T15:30:01.351Z"
+    },
+    {
+      "id": "ref_2b4cab5ce8a1",
+      "kind": "reflection",
+      "content": "After commit `bb12883`, the reflector model-facing record tool uses `sources` instead of `supportingObservationIds`, the prompt says “source observation ids,” reflector tests and eval rubric were updated, and `cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test` passed with 19 files / 147 tests.",
+      "sources": [
+        "obs_74827877b0fc"
+      ],
+      "createdAt": "2026-06-15T15:30:01.351Z"
+    },
+    {
+      "id": "ref_35b631d8634a",
+      "kind": "reflection",
+      "content": "src/session-ledger/projection.ts now normalizes recorded data via `normalizeObservationsRecordedData`/`normalizeReflectionsRecordedData`, converts dropped observation ids to typed `obs_*`, and `nextContextProjection()` returns `observations: []`; `tests/session-ledger-projection.test.ts` and `tests/compaction-hook.test.ts` now lock reflection-only active-context/compaction behavior (`details.observations: []`, dangling `coversUpToId`, duplicate id retention, drift reporting without active observations, and `ref_*` ids).",
+      "sources": [
+        "obs_9404aa7fa503",
+        "obs_fb9c13518377",
+        "obs_421e3d9b7ae2"
+      ],
+      "createdAt": "2026-06-15T15:30:01.351Z"
+    },
+    {
+      "id": "ref_b33338b7600c",
+      "kind": "reflection",
+      "content": "src/tools/recall-observation.ts now converts legacy memory ids to typed `obs_*` before matching recalled observations, and `tests/recall-tool.test.ts`, `tests/status-command.test.ts`, and `tests/view-command.test.ts` now expect typed ids plus reflection-only active context/status output (`Context drift: +0 observations, +0 reflections, -0 stale observations`).",
+      "sources": [
+        "obs_c19afdc125cc",
+        "obs_464346092d92"
+      ],
+      "createdAt": "2026-06-15T15:30:01.351Z"
+    },
+    {
+      "id": "ref_3d1fad1a949b",
+      "kind": "reflection",
+      "content": "New reflector safety eval coverage was added for stale active-memory correction, exact-anchor retention under noise, and flagged evidence that is already covered/no-loop; the implementation-plan status now says the remaining work is to run/tune these evals against real models and use the results to decide whether a minimal compression auditor is still needed.",
+      "sources": [
+        "obs_93e849af4d9c"
+      ],
+      "createdAt": "2026-06-15T15:43:32.243Z"
+    },
+    {
+      "id": "ref_2b21b0f1012f",
+      "kind": "reflection",
+      "content": "Reflector work input still includes observations in addition to current reflections and flagged observations; observations are hidden from assistant active-context projection, but they are still fed to the reflector as work input.",
+      "sources": [
+        "obs_62db6514aab6"
+      ],
+      "createdAt": "2026-06-15T15:43:32.243Z"
+    },
+    {
+      "id": "ref_6a449552775b",
+      "kind": "reflection",
+      "content": "A new `om.reflections.rewritten` event was added in `extensions/pi-observational-memory/src/session-ledger/types.ts` with `retiredReflectionIds`, `newReflectionIds`, `retainedSourceIds`, `discardedReflectionIds`, and `discardedSummary`, plus guards/builders; `projection.ts` skips retired reflections in `fullProjection()` while compaction projection still renders active reflections only, `fold.ts` excludes them from active output, and the new fixture/tests in `tests/session-ledger-types.test.ts`, `tests/session-ledger-projection.test.ts`, and `tests/session-ledger-fold.test.ts` cover retirement while preserving lookup history/recall.",
+      "sources": [
+        "obs_7b04d49f301a",
+        "obs_a82e8028a248",
+        "obs_7aa64e6989fa",
+        "obs_5fdbc143fc9b",
+        "obs_34284dac30c1"
+      ],
+      "createdAt": "2026-06-15T15:43:32.243Z"
+    },
+    {
+      "id": "ref_4b841a61533a",
+      "kind": "reflection",
+      "content": "Observer/reflector case files were updated to reflection-only vocabulary, replacing curator-oriented prior-reflection text with reflection-only wording.",
+      "sources": [
+        "obs_1f6016d13918"
+      ],
+      "createdAt": "2026-06-15T15:43:32.243Z"
+    },
+    {
+      "id": "ref_99a92e859fa5",
+      "kind": "reflection",
+      "content": "Stage 4 rewrite worker is wired end-to-end: `reflectionsPoolMaxTokens` triggers rewrite, the rewrite agent emits normal `ref_*` reflections with typed `sources`, and deterministic validation enforces one-line content, allowed source ids, duplicate-content ids, and max rewritten-reflection count.",
+      "sources": [
+        "obs_8000ad4ebbe5"
+      ],
+      "createdAt": "2026-06-15T16:26:12.996Z"
+    },
+    {
+      "id": "ref_5abd7de909a3",
+      "kind": "reflection",
+      "content": "Added `tests/rewrite.test.ts` to lock `runRewrite()` contracts: audit metadata on compact rewritten reflections, reject invented sources and multiline content, dedupe identical rewritten content, and no-op/undefined cases.",
+      "sources": [
+        "obs_a56961416e5a"
+      ],
+      "createdAt": "2026-06-15T16:26:12.996Z"
+    },
+    {
+      "id": "ref_720296144e23",
+      "kind": "reflection",
+      "content": "After the rewrite-worker edits, `cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test && cd ../../eval && pnpm exec tsc --noEmit` succeeded.",
+      "sources": [
+        "obs_ebe45e3e9e45",
+        "obs_1e0744b5f361"
+      ],
+      "createdAt": "2026-06-15T16:26:12.996Z"
+    },
+    {
+      "id": "ref_3e6ed2e9fb33",
+      "kind": "reflection",
+      "content": "User decided rewrite input should stay reflections-only for now (`666a1c5` / `Keep rewrite input reflection-only`): `runRewrite()` takes only reflections, the prompt no longer includes `SOURCE OBSERVATIONS`, `tests/rewrite.test.ts` and `tests/memory-update.test.ts` stop asserting source observations in rewrite input, and transitive `ref -> ref -> obs` recall traversal is preserved.",
+      "sources": [
+        "obs_9258b7c04c14",
+        "obs_1acbf4f16024",
+        "obs_c4cb74e89ee5",
+        "obs_ec4a59244ced"
+      ],
+      "createdAt": "2026-06-15T16:42:38.180Z"
+    },
+    {
+      "id": "ref_ddf0e7be2826",
+      "kind": "reflection",
+      "content": "Rewrite now backs off unchanged over-budget inputs (`7179a5a` / `Back off rewrite for unchanged inputs`): no-op, invalid, or throwing rewrites remember the current active reflection id set, skip the same set until active reflections change, and clear the backoff on success.",
+      "sources": [
+        "obs_1b276b931060",
+        "obs_eef0008f963e"
+      ],
+      "createdAt": "2026-06-15T16:42:38.180Z"
+    },
+    {
+      "id": "ref_e15d64c00e18",
+      "kind": "reflection",
+      "content": "Rewrite-stage failures now flow through `recordMemoryUpdateStageError()` as `lastRewriteError` and a rewrite warning/status line, with `tests/runtime.test.ts` and `tests/status-command.test.ts` updated for that path.",
+      "sources": [
+        "obs_f29486e002c0"
+      ],
+      "createdAt": "2026-06-15T16:42:38.180Z"
+    },
+    {
+      "id": "ref_cf63c8a36fa0",
+      "kind": "reflection",
+      "content": "The next cleanup step is to update `/om:status` size reporting from `observationsPoolMaxTokens` to active reflection pressure / `reflectionsPoolMaxTokens`.",
+      "sources": [
+        "obs_69525a1c2484"
+      ],
+      "createdAt": "2026-06-15T16:42:38.180Z"
+    },
+    {
+      "id": "ref_e27d789383da",
+      "kind": "reflection",
+      "content": "Next planned work is Stage 5 recall/provenance polish: rename recall wording away from observation bias, make `recall(ref_*)` output clearly show the matched reflection, cited old reflections, supporting observations, and source entries, then add tests for rewritten-reflection recall output.",
+      "sources": [
+        "obs_0ecf48d7e7fa"
+      ],
+      "createdAt": "2026-06-15T16:42:38.180Z"
+    },
+    {
+      "id": "ref_efbd1e8c013e",
+      "kind": "reflection",
+      "content": "The simplification pass removed reviewed/dropped/flagged OM machinery from session-ledger types/progress and now treats reflector work as foldLedger(entries) + unreflected observations only, with flagged/reviewed follow-up logic deleted.",
+      "sources": [
+        "obs_4909cf1a9afa",
+        "obs_928842ab34f4"
+      ],
+      "createdAt": "2026-06-15T16:59:52.824Z"
+    },
+    {
+      "id": "ref_773720e9fff0",
+      "kind": "reflection",
+      "content": "`src/agents/reflector/agent.ts` no longer handles follow-up flags or flagged-observation counts; its prompt now includes only current reflections plus current observations.",
+      "sources": [
+        "obs_a78860cdd1c5"
+      ],
+      "createdAt": "2026-06-15T16:59:52.825Z"
+    },
+    {
+      "id": "ref_e16a61897eb9",
+      "kind": "reflection",
+      "content": "User wants simplifications to keep proceeding across OM until no further simplifications are clearly possible.",
+      "sources": [
+        "obs_4603705b8b25"
+      ],
+      "createdAt": "2026-06-15T16:59:52.825Z"
+    },
+    {
+      "id": "ref_4296bf3351fc",
+      "kind": "reflection",
+      "content": "Simplification pass removed reviewed/dropped/flagged OM machinery from `src/session-ledger/types.ts` and `src/session-ledger/progress.ts`, including `OM_REFLECTIONS_REVIEWED`, `OM_OBSERVATIONS_DROPPED`, `OM_OBSERVATIONS_FLAGGED`, their entry-data types/builders/guards, `latestReflectionReviewEntryIndex`, and drop-coverage helpers; `normalizeReflectionsRecordedData()` no longer requires non-empty reflections.",
+      "sources": [
+        "obs_4909cf1a9afa"
+      ],
+      "createdAt": "2026-06-15T17:02:32.198Z"
+    },
+    {
+      "id": "ref_5f1f3ffebbf5",
+      "kind": "reflection",
+      "content": "`src/session-ledger/fold.ts` is now simplified to observation/reflecton records plus rewrite retirement only: it returns `retiredReflectionIds`, folds `OM_REFLECTIONS_REWRITTEN` retirement into that set, and no longer tracks flagged or dropped observations.",
+      "sources": [
+        "obs_fe62f8dd221e"
+      ],
+      "createdAt": "2026-06-15T17:02:32.198Z"
+    },
+    {
+      "id": "ref_928842ab34f4",
+      "kind": "reflection",
+      "content": "`src/memory-update/due.ts` and `src/memory-update/reflector-stage.ts` were simplified to compute reflector work from `foldLedger(entries)` plus unreflected observations only; flagged-observation counts/reasons and reviewed-entry append logic were removed, and reflector running text now says only unreviewed observations.",
+      "sources": [
+        "obs_928842ab34f4"
+      ],
+      "createdAt": "2026-06-15T17:02:32.198Z"
+    },
+    {
+      "id": "ref_a78860cdd1c5",
+      "kind": "reflection",
+      "content": "`src/agents/reflector/agent.ts` was stripped of follow-up flag handling: `FlaggedObservationForFollowUp`, `flaggedObservations`, the follow-up prompt block, and `flaggedObservationCount` were removed, leaving only current reflections plus current observations in the user prompt.",
+      "sources": [
+        "obs_a78860cdd1c5"
+      ],
+      "createdAt": "2026-06-15T17:02:32.198Z"
+    },
+    {
+      "id": "ref_9c804d93204a",
+      "kind": "reflection",
+      "content": "`src/commands/status.ts` was fixed to report only recorded ledger observations after the simplification pass, removing the dropped/active breakdown, and `src/commands/view.ts` dropped reviewed-mode support so `/om:view` now only supports `context|full`.",
+      "sources": [
+        "obs_789e364b0545",
+        "obs_fc4b38fbe064"
+      ],
+      "createdAt": "2026-06-15T17:02:32.198Z"
+    },
+    {
+      "id": "ref_568f38a9fdef",
+      "kind": "reflection",
+      "content": "Simplification pass removed reviewed/dropped/flagged OM machinery and simplified reflector work to `foldLedger(entries)` plus unreflected observations only; `status`/`view` were also reduced to the reflection-only surface.",
+      "sources": [
+        "obs_4909cf1a9afa",
+        "obs_928842ab34f4",
+        "obs_789e364b0545",
+        "obs_fc4b38fbe064"
+      ],
+      "createdAt": "2026-06-15T17:04:57.135Z"
+    },
+    {
+      "id": "ref_a5ceef759dd5",
+      "kind": "reflection",
+      "content": "The current test cleanup direction is to keep only value-bearing coverage for typed ids, reflection-only projection, recall traversal, compaction hook behavior, and status/view output, while deleting obsolete pin/curator/review-oriented tests.",
+      "sources": [
+        "obs_28e826f848e3",
+        "obs_88c648a7a986",
+        "obs_528beed29622",
+        "obs_524e97bc93f1"
+      ],
+      "createdAt": "2026-06-15T17:04:57.135Z"
+    },
+    {
+      "id": "ref_fc1a14dcb28a",
+      "kind": "reflection",
+      "content": "The latest cleanup validation passed after the simplification edits: `cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test && cd ../../eval && pnpm exec tsc --noEmit`.",
+      "sources": [
+        "obs_c5e8ba14ce1c"
+      ],
+      "createdAt": "2026-06-15T17:04:57.135Z"
+    },
+    {
+      "id": "ref_133e33e54f58",
+      "kind": "reflection",
+      "content": "The empty `extensions/pi-observational-memory/tests/evals` directory was removed, while `extensions/pi-observational-memory/docs` still exists.",
+      "sources": [
+        "obs_cebc936226c8"
+      ],
+      "createdAt": "2026-06-15T17:04:57.135Z"
+    },
+    {
+      "id": "ref_6e76a68b43b2",
+      "kind": "reflection",
+      "content": "`src/commands/view.ts` was further simplified so `/om:view` now supports `context|recorded` only in its content-only renderer, replacing the earlier `context|full` shape.",
+      "sources": [
+        "obs_795b7764e770"
+      ],
+      "createdAt": "2026-06-15T17:07:23.484Z"
+    },
+    {
+      "id": "ref_94ce106df2c8",
+      "kind": "reflection",
+      "content": "`src/commands/status.ts` was further simplified to drop drift/review reporting and stop importing `diffContextProjection`, leaving status aligned to the reflection-only surface.",
+      "sources": [
+        "obs_795b7764e770"
+      ],
+      "createdAt": "2026-06-15T17:07:23.484Z"
+    },
+    {
+      "id": "ref_40b109088590",
+      "kind": "reflection",
+      "content": "`src/agents/reflector/agent.ts` was simplified to use plain `observationToSummaryLine` in the prompt, remove coverage/debug bookkeeping, and drop the `src/agents/coverage.ts` helper entirely.",
+      "sources": [
+        "obs_68470cf69df4"
+      ],
+      "createdAt": "2026-06-15T17:07:23.484Z"
+    },
+    {
+      "id": "ref_924044591acf",
+      "kind": "reflection",
+      "content": "After the planned tasks, user wants a later follow-up on OM + fork interaction using instant compaction and always-on memory to send compacted context to forked agents instead of full context, to avoid full uncached input cost; do not investigate it deeply now.",
+      "sources": [
+        "obs_bd96ce384126"
+      ],
+      "createdAt": "2026-06-15T17:12:34.898Z"
+    },
+    {
+      "id": "ref_5e0c0399b615",
+      "kind": "reflection",
+      "content": "Current OM plan still puts Stage 1 first: curator eval second pass should convert `eval/src/om/cases/curator.ts` to `judgedCuratorScored()` with hard failures for unsafe actions and score dimensions for retained detail, provenance, follow-up, and completeness, before Stage 2.",
+      "sources": [
+        "obs_11ae0b8e8f16",
+        "obs_1ac2cb4e2860"
+      ],
+      "createdAt": "2026-06-15T17:12:34.898Z"
+    },
+    {
+      "id": "ref_2fe5f1b0faf5",
+      "kind": "reflection",
+      "content": "The simplification pass pushed OM further toward a reflection-only core by removing reviewed/dropped/flagged machinery, making reflector work come from `foldLedger(entries)` plus unreflected observations only, and stripping follow-up flag handling from reflector prompts/agent logic.",
+      "sources": [
+        "obs_4909cf1a9afa",
+        "obs_928842ab34f4",
+        "obs_a78860cdd1c5",
+        "obs_51f3e2e91684"
+      ],
+      "createdAt": "2026-06-15T17:12:34.898Z"
+    },
+    {
+      "id": "ref_206820f295bf",
+      "kind": "reflection",
+      "content": "Rewrite/rewrite-status handling was simplified again: `ReflectionsRewrittenEntryData` now uses only `{ retiredReflectionIds; summary? }`, `runRewrite()` returns `{ reflections, summary? }`, runtime/status no longer track `lastRewriteError`, and the docs/design were updated to reflect the leaner summary-only rewrite shape.",
+      "sources": [
+        "obs_e71f9e3e24b1",
+        "obs_0d580f578f32",
+        "obs_135e461c77f0",
+        "obs_994f73a00a67",
+        "obs_ac2e728a7b1c",
+        "obs_2bb778e3b66e"
+      ],
+      "createdAt": "2026-06-15T17:12:34.898Z"
+    },
+    {
+      "id": "ref_49bc4b52c913",
+      "kind": "reflection",
+      "content": "Compaction transient memory plumbing is being removed: `compaction-hook.ts` no longer imports/resets transient compaction memory, `buildNextCompactionProjection()` is called without the transient argument, and `observer-stage.ts`/`reflector-stage.ts`/`rewrite-stage.ts` no longer append transient compaction observations/reflections.",
+      "sources": [
+        "obs_a4d1e0cbc419",
+        "obs_6b1d9be6c5aa"
+      ],
+      "createdAt": "2026-06-15T17:17:59.857Z"
+    },
+    {
+      "id": "ref_a89dcbb5802b",
+      "kind": "reflection",
+      "content": "The latest simplification pass is now committed as `Simplify reflection rewrite and review markers`, after removing review/rewrite-marker leftovers and validating with `cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test && cd ../../eval && pnpm exec tsc --noEmit`.",
+      "sources": [
+        "obs_daf9de16e796",
+        "obs_9d6c3a5b49bd",
+        "obs_32257e91c6d2"
+      ],
+      "createdAt": "2026-06-15T17:17:59.857Z"
+    },
+    {
+      "id": "ref_c006bf57587f",
+      "kind": "reflection",
+      "content": "Compaction transient-memory side channel is being removed: `compaction-hook.ts` no longer imports/resets transient compaction memory, `buildNextCompactionProjection()` is called without a transient argument, `observer-stage.ts`/`reflector-stage.ts`/`rewrite-stage.ts` stop appending transient compaction observations/reflections, and `src/memory-update/compaction-state.ts` was deleted.",
+      "sources": [
+        "obs_a4d1e0cbc419",
+        "obs_6b1d9be6c5aa",
+        "obs_265ed73e7f0b"
+      ],
+      "createdAt": "2026-06-15T17:22:48.223Z"
+    },
+    {
+      "id": "ref_432a291f4400",
+      "kind": "reflection",
+      "content": "Lazy recall registration now accepts typed `obs_*`, `ref_*`, or legacy 12-character ids, and the schema/prompt were widened accordingly in `extensions/pi-observational-memory/src/index.ts`.",
+      "sources": [
+        "obs_d39cb3f26556",
+        "obs_213330e9dcd0"
+      ],
+      "createdAt": "2026-06-15T17:22:48.223Z"
+    },
+    {
+      "id": "ref_b1ce36e3b33a",
+      "kind": "reflection",
+      "content": "The latest simplification pass deleted dead OM helpers `earlierCoverageMarkerId`, `sourceTokensSinceReflectionCoverage`, `sourceTokensSinceReflectionReviewCoverage`, `ContextProjectionDiff`, and `diffContextProjection` from `src/session-ledger/progress.ts` and `src/session-ledger/projection.ts`.",
+      "sources": [
+        "obs_b91d24c65071",
+        "obs_ae50be72df60"
+      ],
+      "createdAt": "2026-06-15T17:22:48.223Z"
+    },
+    {
+      "id": "ref_51e1f1cde732",
+      "kind": "reflection",
+      "content": "User wants OM hard cases to stay within realistic budgets (observer ~32 source entries; cases around that scale or at most ~2–3x, not 500 entries).",
+      "sources": [
+        "obs_987a709662e4"
+      ],
+      "createdAt": "2026-06-15T18:15:24.719Z"
+    },
+    {
+      "id": "ref_fb51abe10504",
+      "kind": "reflection",
+      "content": "`eval/src/om` has been refactored around the new shape to include `RewriteResult`, `OmAgents.runRewrite`, `judgedRewriteScored()`, and `eval/src/om/cases/rewrite.ts` rewrite cases; the old OM-eval surface is being replaced, not preserved.",
+      "sources": [
+        "obs_8864181f2dc0",
+        "obs_961b4d22f906",
+        "obs_aa3527e748e1",
+        "obs_e9b975235d14",
+        "obs_41ed59b2a11d"
+      ],
+      "createdAt": "2026-06-15T18:15:24.719Z"
+    },
+    {
+      "id": "ref_b5a5fcf6be41",
+      "kind": "reflection",
+      "content": "`historical-probe-miner` is not directly reusable for OM agent hard cases because it targets YAML probe fixtures, so the recommended next tool is a separate OM-case miner that emits realistic contiguous ranges from session JSONL and pulls observer/reflection/rewrite inputs from recorded OM entries.",
+      "sources": [
+        "obs_ba97d912e548",
+        "obs_77f346825654"
+      ],
+      "createdAt": "2026-06-15T18:15:24.719Z"
+    },
+    {
+      "id": "ref_b481c1c053fc",
+      "kind": "reflection",
+      "content": "OM eval CLI default is still `thinkingLevel: get('--thinking', 'xhigh')`, so previous runs were not low-thinking by default; user wants OM evals to run low-thinking by default.",
+      "sources": [
+        "obs_7f014a0cb052",
+        "obs_199b23fa03f0"
+      ],
+      "createdAt": "2026-06-15T21:12:45.995Z"
+    },
+    {
+      "id": "ref_d352a06aff1a",
+      "kind": "reflection",
+      "content": "User wants `rewrite-real-giga-120` treated as stress-only or replaced with a smaller rewrite eval, while keeping `rewrite-real-giga-40` in the baseline set.",
+      "sources": [
+        "obs_a8b5651362c8"
+      ],
+      "createdAt": "2026-06-15T21:12:45.995Z"
+    },
+    {
+      "id": "ref_b75a247da400",
+      "kind": "reflection",
+      "content": "Current OM eval failures are split between likely judge-rubric mismatches for `reflector-real-giga-8`/`reflector-real-giga-16` and real over-compression or stale/current mistakes in `rewrite-real-giga-40/80/120`, `observer-real-giga-96`, and `observer-zero-durable-restraint`; the recommendation is to fix the rubric first by removing reflection/rewrite count expectations, adding explicit fact-coverage checks, trimming diagnosis input to output+probe, and considering a require-both-pass-plus-70%-soft-score rule.",
+      "sources": [
+        "obs_705eb9d81828",
+        "obs_1ebb509667f2",
+        "obs_9399bb27115c"
+      ],
+      "createdAt": "2026-06-15T21:12:45.995Z"
+    },
+    {
+      "id": "ref_973f4512a262",
+      "kind": "reflection",
+      "content": "Before the next OM refactor changes, `@/home/syzom/.pi/agent/extensions/pi-observational-memory/docs/implementation-plan.md` must be updated or replaced.",
+      "sources": [
+        "obs_154f544a8e98"
+      ],
+      "createdAt": "2026-06-16T11:08:14.783Z"
+    },
+    {
+      "id": "ref_629aa62638e8",
+      "kind": "reflection",
+      "content": "`extensions/pi-observational-memory/docs/implementation-plan.md` was rewritten to a new bounded handoff memory plan covering source-only observer, pending-only reflector, rewrite as handoff memory, compaction-flushed observation tail, recall as assistant evidence path, and input-bound/eval/status rules.",
+      "sources": [
+        "obs_c8aedad0374f"
+      ],
+      "createdAt": "2026-06-16T11:15:46.074Z"
+    },
+    {
+      "id": "ref_ddee4e87a981",
+      "kind": "reflection",
+      "content": "The observer contract is now source-only: `record_observations({ observations: [] })` is the explicit empty-durable batch path, `mark_observed_no_observations` was removed, and `runObserver()` returns `[]` for that empty batch instead of `undefined`.",
+      "sources": [
+        "obs_1a2b2969dde0",
+        "obs_1ec0d31c15e5",
+        "obs_136c58aad341",
+        "obs_96093c3dff39"
+      ],
+      "createdAt": "2026-06-16T11:15:46.074Z"
+    },
+    {
+      "id": "ref_8bb336040a37",
+      "kind": "reflection",
+      "content": "Compaction now flushes a recent observed tail into compaction context: `ensureObservedBeforeCompaction()` / `runCompactionObserverFlush()` return `Observation[]`, `buildCompactionProjection()` appends a token-bounded recent observed tail, and `/om` summary rendering gained a separate pending-reflection section for that tail.",
+      "sources": [
+        "obs_175f2a87c878",
+        "obs_b4c57e8d472e",
+        "obs_7c93dc7c8599",
+        "obs_e20f8de79bd0",
+        "obs_6063ac6ad876",
+        "obs_7a16024561a5"
+      ],
+      "createdAt": "2026-06-16T11:15:46.074Z"
+    },
+    {
+      "id": "ref_39442f67eb87",
+      "kind": "reflection",
+      "content": "`extensions/pi-observational-memory/tests/session-ledger-projection.test.ts` now includes a compaction-projection test proving a bounded recent observed tail can be included while `details.observations` stays empty and `details.reflections` remains reflection-only.",
+      "sources": [
+        "obs_2a3e7ed6e654"
+      ],
+      "createdAt": "2026-06-16T11:47:37.229Z"
+    },
+    {
+      "id": "ref_eed02d00ee39",
+      "kind": "reflection",
+      "content": "`eval/src/om/cases/reflector.ts` and `eval/src/om/cases/rewrite.ts` were retuned toward compressed handoff-memory: reflector eval now prefers distilled durable active-memory value over one-reflection-per-observation output, and rewrite rubrics were softened to emphasize preserving central durable decisions plus useful compression.",
+      "sources": [
+        "obs_ac7fd581e6bb"
+      ],
+      "createdAt": "2026-06-16T11:47:37.229Z"
+    },
+    {
+      "id": "ref_646ababab48a",
+      "kind": "reflection",
+      "content": "OM eval baseline reruns are still failing after the rubric edits: `cd eval && pnpm run om-agent-evals -- --out runs/om-agent-evals-refactor-baseline-$(date +%Y%m%d-%H%M%S) --case-timeout-ms 300000` exited nonzero with 12/20 passed (score 81/91), and the earlier baseline run was also 12/20 passed (score 80/92).",
+      "sources": [
+        "obs_7c08d11243a8"
+      ],
+      "createdAt": "2026-06-16T11:47:37.229Z"
+    },
+    {
+      "id": "ref_d8149f2846e0",
+      "kind": "reflection",
+      "content": "`extensions/pi-observational-memory/src/agents/observer/prompts.ts` now treats observer serialization/truncation metadata like `output_omitted`, policy truncation notes, and input-budget exhaustion warnings as non-durable noise.",
+      "sources": [
+        "obs_9d21b041d0ed"
+      ],
+      "createdAt": "2026-06-16T11:47:37.229Z"
+    },
+    {
+      "id": "ref_8e0ba0d12d8d",
+      "kind": "reflection",
+      "content": "A prompt-edit typo briefly broke TypeScript (`src/agents/observer/prompts.ts(15,44): error TS1005: ',' expected` etc.) and was then fixed; the follow-up `cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test && cd ../../eval && pnpm exec tsc --noEmit` succeeded.",
+      "sources": [
+        "obs_221766c9a87d"
+      ],
+      "createdAt": "2026-06-16T11:47:37.229Z"
+    },
+    {
+      "id": "ref_1917dc70d26e",
+      "kind": "reflection",
+      "content": "`extensions/pi-observational-memory/src/agents/reflector/prompts.ts` was tightened to require reflection only when pending observations add durable active-memory value not already represented, and to forbid generic acknowledgements, breadcrumbs, and path-only context.",
+      "sources": [
+        "obs_1917dc70d26e"
+      ],
+      "createdAt": "2026-06-16T11:47:37.229Z"
+    },
+    {
+      "id": "ref_d3fb439ddcb9",
+      "kind": "reflection",
+      "content": "`extensions/pi-observational-memory/src/agents/rewrite/prompts.ts` was tightened to ban acknowledgement-style, generic, process-flavored, and path-only reflections while still allowing only concrete durable items.",
+      "sources": [
+        "obs_27b3f52e10de"
+      ],
+      "createdAt": "2026-06-16T11:47:37.229Z"
+    },
+    {
+      "id": "ref_4b40097837fc",
+      "kind": "reflection",
+      "content": "`buildNextCompactionProjection()` now takes `{ seed?: Projection; recentObservedTail?: Observation[] }`, and `src/hooks/compaction-hook.ts` was updated to pass `{ recentObservedTail }` instead of separate args.",
+      "sources": [
+        "obs_1def281a381a"
+      ],
+      "createdAt": "2026-06-16T13:38:43.952Z"
+    },
+    {
+      "id": "ref_287c6ad1bae6",
+      "kind": "reflection",
+      "content": "The compaction bridge terminology was renamed from `recentObservedTail`/`recent observation tail` to `compactionHandoffObservations`/`compaction handoff observations`, with config keys `compactionHandoffObservationMaxCount` and `compactionHandoffObservationMaxTokens` replacing the old tail names.",
+      "sources": [
+        "obs_043d4e1b1241",
+        "obs_71c3538cd59f",
+        "obs_12dc9e43e165"
+      ],
+      "createdAt": "2026-06-16T13:38:43.952Z"
+    },
+    {
+      "id": "ref_f076f81723c7",
+      "kind": "reflection",
+      "content": "`extensions/pi-observational-memory/src/agents/rewrite/prompts.ts` now requires conflicting inputs to be resolved into explicit current-vs-stale/not-preferred relationships instead of keeping contradictory plans co-current.",
+      "sources": [
+        "obs_7d2681f4de2c"
+      ],
+      "createdAt": "2026-06-16T13:38:43.952Z"
+    },
+    {
+      "id": "ref_f7104ab82b37",
+      "kind": "reflection",
+      "content": "The 2026-06-16 OM eval correction runs are still not green: `--only observer` passed 3/6, `--only reflector` passed 5/7, and `--only rewrite` passed 6/7; only `--only rewriteStale` succeeded.",
+      "sources": [
+        "obs_4cf450edea35",
+        "obs_0bda6e1359e8"
+      ],
+      "createdAt": "2026-06-16T13:38:43.952Z"
+    },
+    {
+      "id": "ref_ab073e5312de",
+      "kind": "reflection",
+      "content": "A typecheck regression in `extensions/pi-observational-memory/src/agents/reflector/agent.ts` from missing `rejectedEmptyOrMultilineContentCount` / `rejectedInvalidSupportIdsCount` was fixed by removing those increments, and `cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test` passed afterward.",
+      "sources": [
+        "obs_70cad06e71dc"
+      ],
+      "createdAt": "2026-06-16T13:38:43.952Z"
+    },
+    {
+      "id": "ref_7003fe197bf3",
+      "kind": "reflection",
+      "content": "`recent observed tail` has been renamed to `compaction handoff observations`; it is temporary bridge context, rendered only in compaction summary, and is not normal active memory.",
+      "sources": [
+        "obs_a0b027774f6b",
+        "obs_86906c45a523"
+      ],
+      "createdAt": "2026-06-16T13:48:42.048Z"
+    },
+    {
+      "id": "ref_8ebc3dc6179a",
+      "kind": "reflection",
+      "content": "User confirmed the simplification direction: keep `/om:view recorded` showing observations evidence, drop redundant status “next context” info, and remove the `activeObservations` alias in favor of `folded.observations`; they want to keep exploring further OM simplifications later.",
+      "sources": [
+        "obs_47b88bd4feda",
+        "obs_a21854a900d1"
+      ],
+      "createdAt": "2026-06-16T13:48:42.048Z"
+    },
+    {
+      "id": "ref_00e3e29cc97b",
+      "kind": "reflection",
+      "content": "`Projection { observations, reflections }` and related `Projection`-named functions are now considered historical scaffolding; the still-needed pieces are `foldLedger(entries)`, active-memory rendering, compaction-memory rendering, and the observations evidence pool for reflector/recall/view.",
+      "sources": [
+        "obs_6e9e79552045",
+        "obs_82c80298e52c"
+      ],
+      "createdAt": "2026-06-16T13:48:42.048Z"
+    },
+    {
+      "id": "ref_eddda30fc410",
+      "kind": "reflection",
+      "content": "Implementation started on the projection simplification: `src/session-ledger/projection.ts` was rewritten to add `CompactionMemoryConfig`, `CompactionMemory`, `activeReflections(entries)`, and `buildCompactionMemory(...)`, and the compaction hook was switched to `buildCompactionMemory` plus `renderSummary(memory.reflections, memory.handoffObservations)`.",
+      "sources": [
+        "obs_cf9aeb091d8b"
+      ],
+      "createdAt": "2026-06-16T13:48:42.048Z"
+    },
+    {
+      "id": "ref_499421e807fe",
+      "kind": "reflection",
+      "content": "`src/session-ledger/types.ts` now removes `observations` from `MemoryDetails`, with `isMemoryDetails` loosened so legacy `details.observations` is optional and ignored during validation.",
+      "sources": [
+        "obs_5576d2c20eea"
+      ],
+      "createdAt": "2026-06-16T13:48:42.048Z"
+    },
+    {
+      "id": "ref_395597f328be",
+      "kind": "reflection",
+      "content": "A search was run for remaining references to `activeObservations`, `fullProjection`, `contextProjection`, `nextContextProjection`, `buildNextCompactionProjection`, and `Projection` across `src` and `tests`, so the cleanup is actively checking for leftovers.",
+      "sources": [
+        "obs_16067a9e00f7"
+      ],
+      "createdAt": "2026-06-16T13:48:42.048Z"
+    },
+    {
+      "id": "ref_6b60ce1624e2",
+      "kind": "reflection",
+      "content": "OM projection/status/view cleanup is now using `folded.observations` and `activeReflections(entries)` instead of `folded.activeObservations`; status now reports `Context:      <n> reflections` only and drops `Next context`, while `/om:view` usage has switched to `[context|recorded]` with recorded rendering `foldLedger(entries)` and context rendering only `activeReflections(entries)`.",
+      "sources": [
+        "obs_4f7f94233e61",
+        "obs_4c41dc47f9ca",
+        "obs_bd444152ec66"
+      ],
+      "createdAt": "2026-06-16T13:50:56.225Z"
+    },
+    {
+      "id": "ref_4eb28327611c",
+      "kind": "reflection",
+      "content": "`tests/fixtures/session.ts` memoryDetails no longer accepts/emits `observations`; it now carries only `fullFold` and `reflections`, and the associated tests were updated to expect reflection-only status/view output plus recorded fixtures using `memoryDetails({ reflections: [ref] })`.",
+      "sources": [
+        "obs_6bb17d488793",
+        "obs_29f49346fed7",
+        "obs_5b60cd648b98"
+      ],
+      "createdAt": "2026-06-16T13:50:56.225Z"
+    },
+    {
+      "id": "ref_7f43c2c729e4",
+      "kind": "reflection",
+      "content": "A new `tests/session-ledger-projection.test.ts` now covers `activeReflections(entries)` merging compaction details with current reflections, retiring rewritten reflections, and storing active reflections in `details.reflections`.",
+      "sources": [
+        "obs_54be5c013045"
+      ],
+      "createdAt": "2026-06-16T13:50:56.225Z"
+    },
+    {
+      "id": "ref_eb83f1f04575",
+      "kind": "reflection",
+      "content": "`tests/session-ledger-fold.test.ts` has been narrowed to `folded.observations` and `folded.reflections` only, no longer asserting `folded.activeObservations`.",
+      "sources": [
+        "obs_a04fd14f1bb6"
+      ],
+      "createdAt": "2026-06-16T13:50:56.225Z"
+    },
+    {
+      "id": "ref_25c43e3afa53",
+      "kind": "reflection",
+      "content": "`src/session-ledger/projection.ts` is now rejected as a concept and was deleted after splitting its responsibilities into `src/session-ledger/active-memory.ts` and `src/session-ledger/compaction-memory.ts`; `index.ts` now re-exports those modules instead of `projection.js`.",
+      "sources": [
+        "obs_6966a7e5d27e",
+        "obs_11c0a34f0c0c",
+        "obs_4c28e2d2a51e"
+      ],
+      "createdAt": "2026-06-16T14:00:40.825Z"
+    },
+    {
+      "id": "ref_77b7add385b7",
+      "kind": "reflection",
+      "content": "`active-memory.ts` now owns `latestCompactionDetails(entries)`, `mergeReflections(base,next)`, and `activeReflections(entries)`, and `activeReflections(entries)` was corrected to filter out compacted reflections whose ids are in `foldLedger(entries).retiredReflectionIds`.",
+      "sources": [
+        "obs_11c0a34f0c0c",
+        "obs_69af698ec062"
+      ],
+      "createdAt": "2026-06-16T14:00:40.825Z"
+    },
+    {
+      "id": "ref_2e1f43bfe9e6",
+      "kind": "reflection",
+      "content": "`compaction-memory.ts` now owns `CompactionMemoryConfig`, `CompactionMemory`, `capCompactionHandoffObservations`, `detailsFor`, and `buildCompactionMemory(entries, config, options)`; the old `_firstKeptEntryId`/`fullFold`/`observationsPoolMaxTokens` path was removed, `reflections` now always comes from `activeReflections(entries)`, and compaction handoff observations are capped internally at `8` and `1_000`.",
+      "sources": [
+        "obs_f19a407bec6b",
+        "obs_beff3164b4b2",
+        "obs_009826fd47f3",
+        "obs_f937c1f0ef29"
+      ],
+      "createdAt": "2026-06-16T14:00:40.825Z"
+    },
+    {
+      "id": "ref_16c0e40c1bfe",
+      "kind": "reflection",
+      "content": "`extensions/pi-observational-memory/src/config.ts` removed `observationsPoolMaxTokens` entirely; only `maxInitialObserveTokens` and `reflectionsPoolMaxTokens` remain among those config fields.",
+      "sources": [
+        "obs_b6cd48455d52"
+      ],
+      "createdAt": "2026-06-16T14:00:40.825Z"
+    },
+    {
+      "id": "ref_553d6e0a29b3",
+      "kind": "reflection",
+      "content": "Tests were updated to import `activeReflections` from `../src/session-ledger/active-memory.js` and `buildCompactionMemory` from `../src/session-ledger/compaction-memory.js`.",
+      "sources": [
+        "obs_553d6e0a29b3"
+      ],
+      "createdAt": "2026-06-16T14:00:40.825Z"
+    },
+    {
+      "id": "ref_6d8804f8ccbe",
+      "kind": "reflection",
+      "content": "The latest validation state after the split is mixed: `pnpm run typecheck` passed, but the test suite still had 1 failing test out of 119.",
+      "sources": [
+        "obs_df5acf4332e7"
+      ],
+      "createdAt": "2026-06-16T14:00:40.825Z"
+    },
+    {
+      "id": "ref_e57181d5dde8",
+      "kind": "reflection",
+      "content": "`tests/session-ledger-projection.test.ts` was renamed to `tests/session-ledger-memory.test.ts`, and its describe title is now `session-ledger active and compaction memory`.",
+      "sources": [
+        "obs_759ae65156b0"
+      ],
+      "createdAt": "2026-06-16T14:44:07.201Z"
+    },
+    {
+      "id": "ref_97285c86c3c8",
+      "kind": "reflection",
+      "content": "`tests/fixtures/session.ts`'s `memoryDetails` fixture no longer accepts or emits `fullFold`; it now only takes `reflections` and returns `{ type: OM_FOLDED, reflections: ... }`.",
+      "sources": [
+        "obs_97285c86c3c8"
+      ],
+      "createdAt": "2026-06-16T14:44:07.201Z"
+    },
+    {
+      "id": "ref_1707c80f1e4b",
+      "kind": "reflection",
+      "content": "The user wants OM simplification to keep questioning functionality in the complex areas under `extensions/pi-observational-memory/src/agents`, `src/memory-update`, `src/memory`, and `src/session-ledger`, not just rename/cleanup in place; they agreed all 6 simplification targets are reasonable and asked to proceed unless uncertain.",
+      "sources": [
+        "obs_c87e0340c298",
+        "obs_d1cbbdef30a9"
+      ],
+      "createdAt": "2026-06-16T14:44:07.201Z"
+    },
+    {
+      "id": "ref_7e23813c5e59",
+      "kind": "reflection",
+      "content": "The next inspection step was to review `extensions/pi-observational-memory/src/memory-update/run.ts`, `src/session-ledger/fold.ts`, `src/session-ledger/progress.ts`, `src/memory-update/due.ts`, `src/memory-update/observer-stage.ts`, and `src/memory-update/reflector-stage.ts` before making the six simplification changes.",
+      "sources": [
+        "obs_97bb5a594690"
+      ],
+      "createdAt": "2026-06-16T14:44:07.201Z"
+    },
+    {
+      "id": "ref_2cc32d289bdc",
+      "kind": "reflection",
+      "content": "`cd extensions/pi-observational-memory && pnpm run typecheck` and `cd extensions/pi-observational-memory && pnpm test` both succeeded after the latest test/fixture rewrites.",
+      "sources": [
+        "obs_343182e3a880"
+      ],
+      "createdAt": "2026-06-16T14:44:07.201Z"
+    },
+    {
+      "id": "ref_1c714e8ccbfa",
+      "kind": "reflection",
+      "content": "`src/session-ledger/types.ts` now has `MemoryRecordBase` without `kind` or `sources`; `Observation` keeps `timestamp` and `sourceEntryIds`, and `Reflection` owns `sources`.",
+      "sources": [
+        "obs_a34363f86465"
+      ],
+      "createdAt": "2026-06-16T14:47:18.329Z"
+    },
+    {
+      "id": "ref_a998e931a9cf",
+      "kind": "reflection",
+      "content": "`src/memory-update/due.ts` now exports `computeMemoryStageWork(entries, runtime)` and returns `observerWork`, `reflectorWork`, and `rewriteWork` arrays instead of boolean due flags.",
+      "sources": [
+        "obs_fe1eb12fbdb7"
+      ],
+      "createdAt": "2026-06-16T14:47:18.329Z"
+    },
+    {
+      "id": "ref_62b6036662db",
+      "kind": "reflection",
+      "content": "`run.ts` now uses `computeMemoryStageWork(entries, runtime)` and passes the resulting `observerWork`/`reflectorWork`/`rewriteWork` into the stage runners.",
+      "sources": [
+        "obs_296859ac0c69"
+      ],
+      "createdAt": "2026-06-16T14:47:18.329Z"
+    },
+    {
+      "id": "ref_5bf74c344f88",
+      "kind": "reflection",
+      "content": "`runTrackedStage` in `src/memory-update/run.ts` was simplified to only catch errors; it no longer appends `OM_AGENT_RUN_RECORDED` entries with duration/status metadata.",
+      "sources": [
+        "obs_0145016b645a"
+      ],
+      "createdAt": "2026-06-16T14:47:18.329Z"
+    },
+    {
+      "id": "ref_e4884d51933c",
+      "kind": "reflection",
+      "content": "`observer-stage.ts` now accepts optional `workEntries` as `chunkEntries`, otherwise derives source entries after `lastObservationCoverageIndex`, and applies threshold checks before invoking the observer agent.",
+      "sources": [
+        "obs_b3323c6bd6f5"
+      ],
+      "createdAt": "2026-06-16T14:47:18.329Z"
+    },
+    {
+      "id": "ref_34728a081e19",
+      "kind": "reflection",
+      "content": "`reflector-stage.ts` now accepts optional `workObservations`, uses folded `unreflectedObservations` when omitted, and skips when there is no observation coverage or the unreflected count is below `reflectEveryObservations`.",
+      "sources": [
+        "obs_34728a081e19"
+      ],
+      "createdAt": "2026-06-16T14:47:18.329Z"
+    },
+    {
+      "id": "ref_e8d9b718bda2",
+      "kind": "reflection",
+      "content": "`src/memory-update/compaction.ts` now adds `ensureObservedBeforeCompaction()`, which flushes unseen source entries before compaction by running the observer over entries after the last observation coverage up to `firstKeptEntryId`.",
+      "sources": [
+        "obs_ec2fb5dff56a"
+      ],
+      "createdAt": "2026-06-16T14:47:18.329Z"
+    },
+    {
+      "id": "ref_64345ceca1cd",
+      "kind": "reflection",
+      "content": "`commonAgentArgs` was moved to `src/memory-update/agent-args.ts`, and `rewrite-stage.ts` now imports it from there instead of `./stage-utils.js`.",
+      "sources": [
+        "obs_b8fcebc5b2b5"
+      ],
+      "createdAt": "2026-06-16T14:47:18.329Z"
+    }
+  ]
+} as const;
 
 export const realRewrite40 = [
   {
     "id": "ref_78109b3bb067",
     "kind": "reflection",
     "content": "After the planned tasks, the user wants a later follow-up on OM + fork interaction using instant compaction and always-on memory to send compacted context to forked agents instead of full context, to avoid full uncached input cost; do not investigate it deeply now.",
-    "createdAt": "2026-06-15T08:40:12.334Z",
     "sources": [
       "obs_bd96ce384126"
-    ]
+    ],
+    "createdAt": "2026-06-15T08:40:12.334Z"
   },
   {
     "id": "ref_d4610dd95f8c",
     "kind": "reflection",
     "content": "The 6 behavioral cases in `eval/src/om/cases/curator.ts` cover contradictory reflections, stale/current traps, noisy pools, pinned stale failures with newer passing evidence, and buried exact atoms; they were upgraded from deterministic `judgedCurator()` pass/fail checks to `judgedCuratorScored()` hard-check + score dimensions for retained detail/provenance/follow-up/completeness-style signals.",
-    "createdAt": "2026-06-15T08:40:12.334Z",
     "sources": [
       "obs_2b53ae829e15",
       "obs_65664ff7d792"
-    ]
+    ],
+    "createdAt": "2026-06-15T08:40:12.334Z"
   },
   {
     "id": "ref_fd3c2d66b451",
     "kind": "reflection",
     "content": "The curator second-pass implementation touched only `eval/src/om/diagnostics.ts` and `eval/src/om/cases/curator.ts`; `eval/src/om/types.ts` and `eval/src/om/agent-evals.ts` were intentionally left unchanged.",
-    "createdAt": "2026-06-15T08:40:12.334Z",
     "sources": [
       "obs_1ac2cb4e2860",
       "obs_65664ff7d792"
-    ]
+    ],
+    "createdAt": "2026-06-15T08:40:12.334Z"
   },
   {
     "id": "ref_e963de75f5af",
     "kind": "reflection",
     "content": "Validation of the curator second-pass change is currently blocked because `pnpm exec tsc --noEmit` could not find `tsc`, and `pnpm run typecheck` failed because the `typecheck` script is missing.",
-    "createdAt": "2026-06-15T08:40:12.334Z",
     "sources": [
       "obs_22f28cfe503e"
-    ]
+    ],
+    "createdAt": "2026-06-15T08:40:12.334Z"
   },
   {
     "id": "ref_ce509919db2b",
     "kind": "reflection",
     "content": "Do not use invented `supportingObservationIds` as a meaningful reflector hard-eval check, because `runReflector()` rejects any non-allowed IDs via `normalizeAllowedIdsStrict`, so invented IDs cannot reach eval output.",
-    "createdAt": "2026-06-15T08:40:12.334Z",
     "sources": [
       "obs_338795296e04"
-    ]
+    ],
+    "createdAt": "2026-06-15T08:40:12.334Z"
   },
   {
     "id": "ref_06d5abeba79f",
     "kind": "reflection",
     "content": "The next analysis step is a deep fork into OM reflector responsibilities and the referenced giga session `/home/syzom/.pi/agent/sessions/--home-syzom-.pi-agent--/2026-06-11T14-02-51-854Z_019eb6fe-2e4e-732f-b744-4b2cb3123d70.jsonl`, especially reflection bloat/failures, counts over time, and cost/usage contributors, to decide what reflector model evals should target.",
-    "createdAt": "2026-06-15T08:40:12.334Z",
     "sources": [
       "obs_c55bd9b23fe3"
-    ]
+    ],
+    "createdAt": "2026-06-15T08:40:12.334Z"
   },
   {
     "id": "ref_54311289f8be",
     "kind": "reflection",
     "content": "`extensions/pi-observational-memory/docs/implementation-plan.md` now treats observations as durable evidence, removes pin/unpin, and says curator is either folded into reflector or reduced to a minimal compression-audit role; active projection is current reflections only, and rewrite is background maintenance before compaction when projected active-memory tokens exceed budget.",
-    "createdAt": "2026-06-15T11:35:36.940Z",
     "sources": [
       "obs_232bf1fb5303"
-    ]
+    ],
+    "createdAt": "2026-06-15T11:35:36.940Z"
   },
   {
     "id": "ref_64b46b38b116",
     "kind": "reflection",
     "content": "User is leaning toward removing pinning because it should significantly streamline curator and reduce the amount of thinking and calls it does.",
-    "createdAt": "2026-06-15T11:35:36.940Z",
     "sources": [
       "obs_3758fbdd3769"
-    ]
+    ],
+    "createdAt": "2026-06-15T11:35:36.940Z"
   },
   {
     "id": "ref_24f169c005fa",
     "kind": "reflection",
     "content": "The implementation plan now treats compaction as near-instant and non-rewriting: the boundary should only flush any unobserved tail via observer, then render deterministic projection, with no synchronous reflector/curator/rewrite work during compaction.",
-    "createdAt": "2026-06-15T11:35:36.940Z",
     "sources": [
       "obs_00ec799cda45"
-    ]
+    ],
+    "createdAt": "2026-06-15T11:35:36.940Z"
   },
   {
     "id": "ref_e51be81ad2d1",
     "kind": "reflection",
     "content": "The plan now prefers typed provenance ids in a single `sources` array (e.g. `obs_...`, `ref_...`) instead of separate observation/reflection id arrays; reflection records should carry `createdAt`, and rewritten reflections are normal reflections, not a special shape.",
-    "createdAt": "2026-06-15T11:35:36.940Z",
     "sources": [
       "obs_e51be81ad2d1"
-    ]
+    ],
+    "createdAt": "2026-06-15T11:35:36.940Z"
   },
   {
     "id": "ref_9b7ad062ce65",
     "kind": "reflection",
     "content": "The plan explicitly sets full active-memory rewrite as the default over per-reflection lifecycle/deprecation: rewrite all current reflections when over budget, validate hard, and no-op on invalid output; per-reflection deprecation/supersession is no longer the preferred path.",
-    "createdAt": "2026-06-15T11:35:36.940Z",
     "sources": [
       "obs_9b7ad062ce65"
-    ]
+    ],
+    "createdAt": "2026-06-15T11:35:36.940Z"
   },
   {
     "id": "ref_8149e4543de7",
     "kind": "reflection",
     "content": "`extensions/pi-observational-memory/src/config.ts` default `reflectorThinking` changed from `xhigh` to `low`, with matching updates in `tests/config.test.ts` and `README.md`.",
-    "createdAt": "2026-06-15T11:35:36.940Z",
     "sources": [
       "obs_c463ef876814"
-    ]
+    ],
+    "createdAt": "2026-06-15T11:35:36.940Z"
   },
   {
     "id": "ref_e07c95807e35",
     "kind": "reflection",
     "content": "The extension’s test commands are `cd extensions/pi-observational-memory && pnpm test` and `cd extensions/pi-observational-memory && pnpm run typecheck`; `test` runs `vitest run` and `typecheck` runs `tsc --noEmit`.",
-    "createdAt": "2026-06-15T11:35:36.940Z",
     "sources": [
       "obs_e07c95807e35"
-    ]
+    ],
+    "createdAt": "2026-06-15T11:35:36.940Z"
   },
   {
     "id": "ref_1abd7956b048",
     "kind": "reflection",
     "content": "User confirmed the migration should fully refactor to the new typed-id shape with no long-lived shims; future code changes should avoid leaving old code around, minimize branching/conditions, and keep compatibility only at boundaries, not in parallel legacy core paths.",
-    "createdAt": "2026-06-15T14:14:34.691Z",
     "sources": [
       "obs_6466fa779edf",
       "obs_6315c73af2c5",
       "obs_d7cbd3b6679c"
-    ]
+    ],
+    "createdAt": "2026-06-15T14:14:34.691Z"
   },
   {
     "id": "ref_81d6cd7751b2",
     "kind": "reflection",
     "content": "Current migration target is `Observation.id=\"obs_*\"`, `Reflection.id=\"ref_*\"`, and `Reflection.sources=[\"obs_*\",\"ref_*\"]`; legacy ledger/session entries are only normalized at the boundary so they don't crash, with old reflection records normalizing to `ref_<id>` and `supportingObservationIds` mapped to `sources`, while old pin/unpin or compaction-detail records are ignored for active state/projection.",
-    "createdAt": "2026-06-15T14:14:34.691Z",
     "sources": [
       "obs_23716589f84c",
       "obs_f1bae8c4201d"
-    ]
+    ],
+    "createdAt": "2026-06-15T14:14:34.691Z"
   },
   {
     "id": "ref_c144c8cfddd5",
     "kind": "reflection",
     "content": "Typed-id migration is now implemented in `src/memory/ids.ts`, `src/session-ledger/types.ts`, `src/session-ledger/fold.ts`, and `src/session-ledger/recall.ts`; `ids.ts` adds `obs_`/`ref_`/`src_`/`rw_` helpers while keeping `hashId(content)` content-hash based, `types.ts` now carries `Reflection.sources`/`createdAt`, `fold.ts` and `recall.ts` use the new normalization helpers instead of the old `is*RecordedData` checks and recall reads `obs_*` sources, `extensions/pi-observational-memory/tests/memory-ids.test.ts` was added, and `cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test` passed.",
-    "createdAt": "2026-06-15T14:14:34.691Z",
     "sources": [
       "obs_69a95ddce3a5",
       "obs_e73e0b29fba5",
       "obs_df88d7dad9f7",
       "obs_6d700dbdfebd",
       "obs_fc47273ed601"
-    ]
+    ],
+    "createdAt": "2026-06-15T14:14:34.691Z"
   },
   {
     "id": "ref_4dc9f5d632c6",
     "kind": "reflection",
     "content": "The implementation plan now has explicit phases from design spec through data model/projection rewrite, reflector simplification, full active-memory rewrite, recall as required evidence path, and hard realistic evals at the end; the next concrete step is to write/update `extensions/pi-observational-memory/docs/reflection-only-memory-design.md` before coding, covering data model, projection rules, lifecycle flow, rewrite algorithm, recall policy, removal plan, and implementation phases.",
-    "createdAt": "2026-06-15T14:28:52.364Z",
     "sources": [
       "obs_b88876c5f414",
       "obs_027817aba0cc"
-    ]
+    ],
+    "createdAt": "2026-06-15T14:28:52.364Z"
   },
   {
     "id": "ref_7925df93cd01",
     "kind": "reflection",
     "content": "User wants the typed-id migration cleanup to be real test cleanup, not mechanical renaming: audit tests, delete `extensions/pi-observational-memory/tests/curator.test.ts` and `tests/curator-stage.test.ts` because they preserve obsolete pin/curator behavior, drop old pin/unpin and reviewed/unreviewed projection coverage, and keep typed ids, reflection-only active memory, recall traversal, compaction-hook behavior, and status/view outputs.",
-    "createdAt": "2026-06-15T14:28:52.364Z",
     "sources": [
       "obs_28e826f848e3",
       "obs_88c648a7a986",
       "obs_528beed29622"
-    ]
+    ],
+    "createdAt": "2026-06-15T14:28:52.364Z"
   },
   {
     "id": "ref_84e4a7a0dd10",
     "kind": "reflection",
     "content": "During typed-id cleanup, `tests/session-ledger-render-summary.test.ts` was rewritten so `renderSummary()` now renders reflections only, and `tests/session-ledger-fold.test.ts` now expects typed ids, legacy boundary normalization, flag-only follow-up folding, and branch-specific folding instead of the prior review/pin-oriented cases.",
-    "createdAt": "2026-06-15T14:28:52.364Z",
     "sources": [
       "obs_6ff2d59b32d0",
       "obs_28b5702a79c6"
-    ]
+    ],
+    "createdAt": "2026-06-15T14:28:52.364Z"
   },
   {
     "id": "ref_fe547e1895d1",
     "kind": "reflection",
     "content": "During typed-id cleanup, `tests/session-ledger-recall.test.ts` was rewritten to use typed memory ids and fixtures, add legacy-id normalization at the recall boundary, and preserve source evidence for observations, reflections, drops, and partial recall cases.",
-    "createdAt": "2026-06-15T14:28:52.364Z",
     "sources": [
       "obs_0987aec19300"
-    ]
+    ],
+    "createdAt": "2026-06-15T14:28:52.364Z"
   },
   {
     "id": "ref_74d62746cc8e",
     "kind": "reflection",
     "content": "`pnpm run typecheck` is currently passing after the curator-test deletions and typed-id edits, but the broader suite still fails; `pnpm test -- tests/session-ledger-fold.test.ts tests/session-ledger-render-summary.test.ts` still reported 9 failing files / 29 failing tests, with `compaction-hook.test.ts` a main hotspot.",
-    "createdAt": "2026-06-15T14:28:52.364Z",
     "sources": [
       "obs_b1f734a47b90",
       "obs_df2dda7dc8d0"
-    ]
+    ],
+    "createdAt": "2026-06-15T14:28:52.364Z"
   },
   {
     "id": "ref_7169e9f1825e",
     "kind": "reflection",
     "content": "After commit `9e87ac1`, a new fork was launched to plan the next implementation step, focused on remaining Stage 2 / starting Stage 3 and removing obsolete pin/unpin/curator active-memory complexity without overreaching.",
-    "createdAt": "2026-06-15T14:36:33.158Z",
     "sources": [
       "obs_84a32961993f"
-    ]
+    ],
+    "createdAt": "2026-06-15T14:36:33.158Z"
   },
   {
     "id": "ref_aa8afc2d616f",
     "kind": "reflection",
     "content": "Despite fork advice to keep `extensions/pi-observational-memory/src/agents/curator` as Stage 3 reference, the cleanup deleted that directory and `extensions/pi-observational-memory/src/memory-update/curator-stage.ts`.",
-    "createdAt": "2026-06-15T14:44:13.769Z",
     "sources": [
       "obs_badc7acefaa6"
-    ]
+    ],
+    "createdAt": "2026-06-15T14:44:13.769Z"
   },
   {
     "id": "ref_b55c7117c60f",
     "kind": "reflection",
     "content": "Pin/unpin and curator support are gone from core OM code: `src/session-ledger/types.ts` dropped `OM_OBSERVATIONS_PINNED`/`OM_OBSERVATIONS_UNPINNED` plus pin/reason helpers, `src/session-ledger/fold.ts` is now reflection/observation-only, and `MemoryUpdatePhase`/`MemoryStageName`/`ResolveMemoryModel`/`MemoryAgentName` omit curator while `runtime.ts` dropped `lastCuratorError` and `config.ts` removed curator/emergency-curate/protect-recent settings; `due.ts`/`run.ts`/`scheduler.ts`/`agent-usage.ts`/`commands/status.ts` no longer expose curator-stage logic or output.",
-    "createdAt": "2026-06-15T14:44:13.769Z",
     "sources": [
       "obs_f5c533912204",
       "obs_856fb883ee5e",
       "obs_22a40eb44d28"
-    ]
+    ],
+    "createdAt": "2026-06-15T14:44:13.769Z"
   },
   {
     "id": "ref_7d63b988248d",
     "kind": "reflection",
     "content": "The last validation blocker before the final follow-up edit was `tests/memory-update.test.ts` (`preserves stage failure boundaries`); after that edit, `cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test` passed with 19 test files / 149 tests.",
-    "createdAt": "2026-06-15T14:44:13.769Z",
     "sources": [
       "obs_a2f0a38c8ee6",
       "obs_ea35d7de265e"
-    ]
+    ],
+    "createdAt": "2026-06-15T14:44:13.769Z"
   },
   {
     "id": "ref_e284afb8c1f8",
     "kind": "reflection",
     "content": "docs/implementation-plan.md now marks Stage 2 done after removing OM_OBSERVATIONS_CURATED from the live OM surface (`src/session-ledger/types.ts`, `tests/fixtures/session.ts`, `tests/session-ledger-types.test.ts`), and now notes OM eval infra no longer loads/references the deleted curator agent.",
-    "createdAt": "2026-06-15T15:30:01.351Z",
     "sources": [
       "obs_8185ecce89af",
       "obs_20861850fae0"
-    ]
+    ],
+    "createdAt": "2026-06-15T15:30:01.351Z"
   },
   {
     "id": "ref_9c5e9251322a",
     "kind": "reflection",
     "content": "eval/src/om is curator-free: `types.ts` only exposes observer/reflector shapes with typed `sources`, `OmAgents` only exposes `runObserver`/`runReflector`, `runner.ts` loads only those agents and `obs()`/`ref()` normalize typed ids, `agent-evals.ts` dropped curator fallback, `diagnostics.ts` only keeps the generic `judgedObserverScored()` path, and `cases/index.ts`/`cases/curator.ts` no longer expose curator cases; follow-up searches found no remaining `curator` or `supportingObservationIds` references in `eval/src/om`.",
-    "createdAt": "2026-06-15T15:30:01.351Z",
     "sources": [
       "obs_6c8af2c73adf",
       "obs_9908e534cecc",
@@ -815,136 +1966,137 @@ export const realRewrite40 = [
       "obs_55bec80fb586",
       "obs_baf6a10be0d8",
       "obs_2496053dd966"
-    ]
+    ],
+    "createdAt": "2026-06-15T15:30:01.351Z"
   },
   {
     "id": "ref_2b4cab5ce8a1",
     "kind": "reflection",
     "content": "After commit `bb12883`, the reflector model-facing record tool uses `sources` instead of `supportingObservationIds`, the prompt says “source observation ids,” reflector tests and eval rubric were updated, and `cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test` passed with 19 files / 147 tests.",
-    "createdAt": "2026-06-15T15:30:01.351Z",
     "sources": [
       "obs_74827877b0fc"
-    ]
+    ],
+    "createdAt": "2026-06-15T15:30:01.351Z"
   },
   {
     "id": "ref_35b631d8634a",
     "kind": "reflection",
     "content": "src/session-ledger/projection.ts now normalizes recorded data via `normalizeObservationsRecordedData`/`normalizeReflectionsRecordedData`, converts dropped observation ids to typed `obs_*`, and `nextContextProjection()` returns `observations: []`; `tests/session-ledger-projection.test.ts` and `tests/compaction-hook.test.ts` now lock reflection-only active-context/compaction behavior (`details.observations: []`, dangling `coversUpToId`, duplicate id retention, drift reporting without active observations, and `ref_*` ids).",
-    "createdAt": "2026-06-15T15:30:01.351Z",
     "sources": [
       "obs_9404aa7fa503",
       "obs_fb9c13518377",
       "obs_421e3d9b7ae2"
-    ]
+    ],
+    "createdAt": "2026-06-15T15:30:01.351Z"
   },
   {
     "id": "ref_b33338b7600c",
     "kind": "reflection",
     "content": "src/tools/recall-observation.ts now converts legacy memory ids to typed `obs_*` before matching recalled observations, and `tests/recall-tool.test.ts`, `tests/status-command.test.ts`, and `tests/view-command.test.ts` now expect typed ids plus reflection-only active context/status output (`Context drift: +0 observations, +0 reflections, -0 stale observations`).",
-    "createdAt": "2026-06-15T15:30:01.351Z",
     "sources": [
       "obs_c19afdc125cc",
       "obs_464346092d92"
-    ]
+    ],
+    "createdAt": "2026-06-15T15:30:01.351Z"
   },
   {
     "id": "ref_3d1fad1a949b",
     "kind": "reflection",
     "content": "New reflector safety eval coverage was added for stale active-memory correction, exact-anchor retention under noise, and flagged evidence that is already covered/no-loop; the implementation-plan status now says the remaining work is to run/tune these evals against real models and use the results to decide whether a minimal compression auditor is still needed.",
-    "createdAt": "2026-06-15T15:43:32.243Z",
     "sources": [
       "obs_93e849af4d9c"
-    ]
+    ],
+    "createdAt": "2026-06-15T15:43:32.243Z"
   },
   {
     "id": "ref_2b21b0f1012f",
     "kind": "reflection",
     "content": "Reflector work input still includes observations in addition to current reflections and flagged observations; observations are hidden from assistant active-context projection, but they are still fed to the reflector as work input.",
-    "createdAt": "2026-06-15T15:43:32.243Z",
     "sources": [
       "obs_62db6514aab6"
-    ]
+    ],
+    "createdAt": "2026-06-15T15:43:32.243Z"
   },
   {
     "id": "ref_6a449552775b",
     "kind": "reflection",
     "content": "A new `om.reflections.rewritten` event was added in `extensions/pi-observational-memory/src/session-ledger/types.ts` with `retiredReflectionIds`, `newReflectionIds`, `retainedSourceIds`, `discardedReflectionIds`, and `discardedSummary`, plus guards/builders; `projection.ts` skips retired reflections in `fullProjection()` while compaction projection still renders active reflections only, `fold.ts` excludes them from active output, and the new fixture/tests in `tests/session-ledger-types.test.ts`, `tests/session-ledger-projection.test.ts`, and `tests/session-ledger-fold.test.ts` cover retirement while preserving lookup history/recall.",
-    "createdAt": "2026-06-15T15:43:32.243Z",
     "sources": [
       "obs_7b04d49f301a",
       "obs_a82e8028a248",
       "obs_7aa64e6989fa",
       "obs_5fdbc143fc9b",
       "obs_34284dac30c1"
-    ]
+    ],
+    "createdAt": "2026-06-15T15:43:32.243Z"
   },
   {
     "id": "ref_4b841a61533a",
     "kind": "reflection",
     "content": "Observer/reflector case files were updated to reflection-only vocabulary, replacing curator-oriented prior-reflection text with reflection-only wording.",
-    "createdAt": "2026-06-15T15:43:32.243Z",
     "sources": [
       "obs_1f6016d13918"
-    ]
+    ],
+    "createdAt": "2026-06-15T15:43:32.243Z"
   },
   {
     "id": "ref_99a92e859fa5",
     "kind": "reflection",
     "content": "Stage 4 rewrite worker is wired end-to-end: `reflectionsPoolMaxTokens` triggers rewrite, the rewrite agent emits normal `ref_*` reflections with typed `sources`, and deterministic validation enforces one-line content, allowed source ids, duplicate-content ids, and max rewritten-reflection count.",
-    "createdAt": "2026-06-15T16:26:12.996Z",
     "sources": [
       "obs_8000ad4ebbe5"
-    ]
+    ],
+    "createdAt": "2026-06-15T16:26:12.996Z"
   },
   {
     "id": "ref_5abd7de909a3",
     "kind": "reflection",
     "content": "Added `tests/rewrite.test.ts` to lock `runRewrite()` contracts: audit metadata on compact rewritten reflections, reject invented sources and multiline content, dedupe identical rewritten content, and no-op/undefined cases.",
-    "createdAt": "2026-06-15T16:26:12.996Z",
     "sources": [
       "obs_a56961416e5a"
-    ]
+    ],
+    "createdAt": "2026-06-15T16:26:12.996Z"
   },
   {
     "id": "ref_720296144e23",
     "kind": "reflection",
     "content": "After the rewrite-worker edits, `cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test && cd ../../eval && pnpm exec tsc --noEmit` succeeded.",
-    "createdAt": "2026-06-15T16:26:12.996Z",
     "sources": [
       "obs_ebe45e3e9e45",
       "obs_1e0744b5f361"
-    ]
+    ],
+    "createdAt": "2026-06-15T16:26:12.996Z"
   },
   {
     "id": "ref_3e6ed2e9fb33",
     "kind": "reflection",
     "content": "User decided rewrite input should stay reflections-only for now (`666a1c5` / `Keep rewrite input reflection-only`): `runRewrite()` takes only reflections, the prompt no longer includes `SOURCE OBSERVATIONS`, `tests/rewrite.test.ts` and `tests/memory-update.test.ts` stop asserting source observations in rewrite input, and transitive `ref -> ref -> obs` recall traversal is preserved.",
-    "createdAt": "2026-06-15T16:42:38.180Z",
     "sources": [
       "obs_9258b7c04c14",
       "obs_1acbf4f16024",
       "obs_c4cb74e89ee5",
       "obs_ec4a59244ced"
-    ]
+    ],
+    "createdAt": "2026-06-15T16:42:38.180Z"
   },
   {
     "id": "ref_ddf0e7be2826",
     "kind": "reflection",
     "content": "Rewrite now backs off unchanged over-budget inputs (`7179a5a` / `Back off rewrite for unchanged inputs`): no-op, invalid, or throwing rewrites remember the current active reflection id set, skip the same set until active reflections change, and clear the backoff on success.",
-    "createdAt": "2026-06-15T16:42:38.180Z",
     "sources": [
       "obs_1b276b931060",
       "obs_eef0008f963e"
-    ]
+    ],
+    "createdAt": "2026-06-15T16:42:38.180Z"
   },
   {
     "id": "ref_e15d64c00e18",
     "kind": "reflection",
     "content": "Rewrite-stage failures now flow through `recordMemoryUpdateStageError()` as `lastRewriteError` and a rewrite warning/status line, with `tests/runtime.test.ts` and `tests/status-command.test.ts` updated for that path.",
-    "createdAt": "2026-06-15T16:42:38.180Z",
     "sources": [
       "obs_f29486e002c0"
-    ]
+    ],
+    "createdAt": "2026-06-15T16:42:38.180Z"
   }
 ] as const;
 
@@ -953,199 +2105,198 @@ export const realRewrite80 = [
     "id": "ref_cf63c8a36fa0",
     "kind": "reflection",
     "content": "The next cleanup step is to update `/om:status` size reporting from `observationsPoolMaxTokens` to active reflection pressure / `reflectionsPoolMaxTokens`.",
-    "createdAt": "2026-06-15T16:42:38.180Z",
     "sources": [
       "obs_69525a1c2484"
-    ]
+    ],
+    "createdAt": "2026-06-15T16:42:38.180Z"
   },
   {
     "id": "ref_e27d789383da",
     "kind": "reflection",
     "content": "Next planned work is Stage 5 recall/provenance polish: rename recall wording away from observation bias, make `recall(ref_*)` output clearly show the matched reflection, cited old reflections, supporting observations, and source entries, then add tests for rewritten-reflection recall output.",
-    "createdAt": "2026-06-15T16:42:38.180Z",
     "sources": [
       "obs_0ecf48d7e7fa"
-    ]
+    ],
+    "createdAt": "2026-06-15T16:42:38.180Z"
   },
   {
     "id": "ref_efbd1e8c013e",
     "kind": "reflection",
     "content": "The simplification pass removed reviewed/dropped/flagged OM machinery from session-ledger types/progress and now treats reflector work as foldLedger(entries) + unreflected observations only, with flagged/reviewed follow-up logic deleted.",
-    "createdAt": "2026-06-15T16:59:52.824Z",
     "sources": [
       "obs_4909cf1a9afa",
       "obs_928842ab34f4"
-    ]
+    ],
+    "createdAt": "2026-06-15T16:59:52.824Z"
   },
   {
     "id": "ref_773720e9fff0",
     "kind": "reflection",
     "content": "`src/agents/reflector/agent.ts` no longer handles follow-up flags or flagged-observation counts; its prompt now includes only current reflections plus current observations.",
-    "createdAt": "2026-06-15T16:59:52.825Z",
     "sources": [
       "obs_a78860cdd1c5"
-    ]
+    ],
+    "createdAt": "2026-06-15T16:59:52.825Z"
   },
   {
     "id": "ref_e16a61897eb9",
     "kind": "reflection",
     "content": "User wants simplifications to keep proceeding across OM until no further simplifications are clearly possible.",
-    "createdAt": "2026-06-15T16:59:52.825Z",
     "sources": [
       "obs_4603705b8b25"
-    ]
+    ],
+    "createdAt": "2026-06-15T16:59:52.825Z"
   },
   {
     "id": "ref_4296bf3351fc",
     "kind": "reflection",
     "content": "Simplification pass removed reviewed/dropped/flagged OM machinery from `src/session-ledger/types.ts` and `src/session-ledger/progress.ts`, including `OM_REFLECTIONS_REVIEWED`, `OM_OBSERVATIONS_DROPPED`, `OM_OBSERVATIONS_FLAGGED`, their entry-data types/builders/guards, `latestReflectionReviewEntryIndex`, and drop-coverage helpers; `normalizeReflectionsRecordedData()` no longer requires non-empty reflections.",
-    "createdAt": "2026-06-15T17:02:32.198Z",
     "sources": [
       "obs_4909cf1a9afa"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:02:32.198Z"
   },
   {
     "id": "ref_5f1f3ffebbf5",
     "kind": "reflection",
     "content": "`src/session-ledger/fold.ts` is now simplified to observation/reflecton records plus rewrite retirement only: it returns `retiredReflectionIds`, folds `OM_REFLECTIONS_REWRITTEN` retirement into that set, and no longer tracks flagged or dropped observations.",
-    "createdAt": "2026-06-15T17:02:32.198Z",
     "sources": [
       "obs_fe62f8dd221e"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:02:32.198Z"
   },
   {
     "id": "ref_928842ab34f4",
     "kind": "reflection",
     "content": "`src/memory-update/due.ts` and `src/memory-update/reflector-stage.ts` were simplified to compute reflector work from `foldLedger(entries)` plus unreflected observations only; flagged-observation counts/reasons and reviewed-entry append logic were removed, and reflector running text now says only unreviewed observations.",
-    "createdAt": "2026-06-15T17:02:32.198Z",
     "sources": [
       "obs_928842ab34f4"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:02:32.198Z"
   },
   {
     "id": "ref_a78860cdd1c5",
     "kind": "reflection",
     "content": "`src/agents/reflector/agent.ts` was stripped of follow-up flag handling: `FlaggedObservationForFollowUp`, `flaggedObservations`, the follow-up prompt block, and `flaggedObservationCount` were removed, leaving only current reflections plus current observations in the user prompt.",
-    "createdAt": "2026-06-15T17:02:32.198Z",
     "sources": [
       "obs_a78860cdd1c5"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:02:32.198Z"
   },
   {
     "id": "ref_9c804d93204a",
     "kind": "reflection",
     "content": "`src/commands/status.ts` was fixed to report only recorded ledger observations after the simplification pass, removing the dropped/active breakdown, and `src/commands/view.ts` dropped reviewed-mode support so `/om:view` now only supports `context|full`.",
-    "createdAt": "2026-06-15T17:02:32.198Z",
     "sources": [
       "obs_789e364b0545",
       "obs_fc4b38fbe064"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:02:32.198Z"
   },
   {
     "id": "ref_568f38a9fdef",
     "kind": "reflection",
     "content": "Simplification pass removed reviewed/dropped/flagged OM machinery and simplified reflector work to `foldLedger(entries)` plus unreflected observations only; `status`/`view` were also reduced to the reflection-only surface.",
-    "createdAt": "2026-06-15T17:04:57.135Z",
     "sources": [
       "obs_4909cf1a9afa",
       "obs_928842ab34f4",
       "obs_789e364b0545",
       "obs_fc4b38fbe064"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:04:57.135Z"
   },
   {
     "id": "ref_a5ceef759dd5",
     "kind": "reflection",
     "content": "The current test cleanup direction is to keep only value-bearing coverage for typed ids, reflection-only projection, recall traversal, compaction hook behavior, and status/view output, while deleting obsolete pin/curator/review-oriented tests.",
-    "createdAt": "2026-06-15T17:04:57.135Z",
     "sources": [
       "obs_28e826f848e3",
       "obs_88c648a7a986",
       "obs_528beed29622",
       "obs_524e97bc93f1"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:04:57.135Z"
   },
   {
     "id": "ref_fc1a14dcb28a",
     "kind": "reflection",
     "content": "The latest cleanup validation passed after the simplification edits: `cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test && cd ../../eval && pnpm exec tsc --noEmit`.",
-    "createdAt": "2026-06-15T17:04:57.135Z",
     "sources": [
       "obs_c5e8ba14ce1c"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:04:57.135Z"
   },
   {
     "id": "ref_133e33e54f58",
     "kind": "reflection",
     "content": "The empty `extensions/pi-observational-memory/tests/evals` directory was removed, while `extensions/pi-observational-memory/docs` still exists.",
-    "createdAt": "2026-06-15T17:04:57.135Z",
     "sources": [
       "obs_cebc936226c8"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:04:57.135Z"
   },
   {
     "id": "ref_6e76a68b43b2",
     "kind": "reflection",
     "content": "`src/commands/view.ts` was further simplified so `/om:view` now supports `context|recorded` only in its content-only renderer, replacing the earlier `context|full` shape.",
-    "createdAt": "2026-06-15T17:07:23.484Z",
     "sources": [
       "obs_795b7764e770"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:07:23.484Z"
   },
   {
     "id": "ref_94ce106df2c8",
     "kind": "reflection",
     "content": "`src/commands/status.ts` was further simplified to drop drift/review reporting and stop importing `diffContextProjection`, leaving status aligned to the reflection-only surface.",
-    "createdAt": "2026-06-15T17:07:23.484Z",
     "sources": [
       "obs_795b7764e770"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:07:23.484Z"
   },
   {
     "id": "ref_40b109088590",
     "kind": "reflection",
     "content": "`src/agents/reflector/agent.ts` was simplified to use plain `observationToSummaryLine` in the prompt, remove coverage/debug bookkeeping, and drop the `src/agents/coverage.ts` helper entirely.",
-    "createdAt": "2026-06-15T17:07:23.484Z",
     "sources": [
       "obs_68470cf69df4"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:07:23.484Z"
   },
   {
     "id": "ref_924044591acf",
     "kind": "reflection",
     "content": "After the planned tasks, user wants a later follow-up on OM + fork interaction using instant compaction and always-on memory to send compacted context to forked agents instead of full context, to avoid full uncached input cost; do not investigate it deeply now.",
-    "createdAt": "2026-06-15T17:12:34.898Z",
     "sources": [
       "obs_bd96ce384126"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:12:34.898Z"
   },
   {
     "id": "ref_5e0c0399b615",
     "kind": "reflection",
     "content": "Current OM plan still puts Stage 1 first: curator eval second pass should convert `eval/src/om/cases/curator.ts` to `judgedCuratorScored()` with hard failures for unsafe actions and score dimensions for retained detail, provenance, follow-up, and completeness, before Stage 2.",
-    "createdAt": "2026-06-15T17:12:34.898Z",
     "sources": [
       "obs_11ae0b8e8f16",
       "obs_1ac2cb4e2860"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:12:34.898Z"
   },
   {
     "id": "ref_2fe5f1b0faf5",
     "kind": "reflection",
     "content": "The simplification pass pushed OM further toward a reflection-only core by removing reviewed/dropped/flagged machinery, making reflector work come from `foldLedger(entries)` plus unreflected observations only, and stripping follow-up flag handling from reflector prompts/agent logic.",
-    "createdAt": "2026-06-15T17:12:34.898Z",
     "sources": [
       "obs_4909cf1a9afa",
       "obs_928842ab34f4",
       "obs_a78860cdd1c5",
       "obs_51f3e2e91684"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:12:34.898Z"
   },
   {
     "id": "ref_206820f295bf",
     "kind": "reflection",
     "content": "Rewrite/rewrite-status handling was simplified again: `ReflectionsRewrittenEntryData` now uses only `{ retiredReflectionIds; summary? }`, `runRewrite()` returns `{ reflections, summary? }`, runtime/status no longer track `lastRewriteError`, and the docs/design were updated to reflect the leaner summary-only rewrite shape.",
-    "createdAt": "2026-06-15T17:12:34.898Z",
     "sources": [
       "obs_e71f9e3e24b1",
       "obs_0d580f578f32",
@@ -1153,157 +2304,157 @@ export const realRewrite80 = [
       "obs_994f73a00a67",
       "obs_ac2e728a7b1c",
       "obs_2bb778e3b66e"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:12:34.898Z"
   },
   {
     "id": "ref_49bc4b52c913",
     "kind": "reflection",
     "content": "Compaction transient memory plumbing is being removed: `compaction-hook.ts` no longer imports/resets transient compaction memory, `buildNextCompactionProjection()` is called without the transient argument, and `observer-stage.ts`/`reflector-stage.ts`/`rewrite-stage.ts` no longer append transient compaction observations/reflections.",
-    "createdAt": "2026-06-15T17:17:59.857Z",
     "sources": [
       "obs_a4d1e0cbc419",
       "obs_6b1d9be6c5aa"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:17:59.857Z"
   },
   {
     "id": "ref_a89dcbb5802b",
     "kind": "reflection",
     "content": "The latest simplification pass is now committed as `Simplify reflection rewrite and review markers`, after removing review/rewrite-marker leftovers and validating with `cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test && cd ../../eval && pnpm exec tsc --noEmit`.",
-    "createdAt": "2026-06-15T17:17:59.857Z",
     "sources": [
       "obs_daf9de16e796",
       "obs_9d6c3a5b49bd",
       "obs_32257e91c6d2"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:17:59.857Z"
   },
   {
     "id": "ref_c006bf57587f",
     "kind": "reflection",
     "content": "Compaction transient-memory side channel is being removed: `compaction-hook.ts` no longer imports/resets transient compaction memory, `buildNextCompactionProjection()` is called without a transient argument, `observer-stage.ts`/`reflector-stage.ts`/`rewrite-stage.ts` stop appending transient compaction observations/reflections, and `src/memory-update/compaction-state.ts` was deleted.",
-    "createdAt": "2026-06-15T17:22:48.223Z",
     "sources": [
       "obs_a4d1e0cbc419",
       "obs_6b1d9be6c5aa",
       "obs_265ed73e7f0b"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:22:48.223Z"
   },
   {
     "id": "ref_432a291f4400",
     "kind": "reflection",
     "content": "Lazy recall registration now accepts typed `obs_*`, `ref_*`, or legacy 12-character ids, and the schema/prompt were widened accordingly in `extensions/pi-observational-memory/src/index.ts`.",
-    "createdAt": "2026-06-15T17:22:48.223Z",
     "sources": [
       "obs_d39cb3f26556",
       "obs_213330e9dcd0"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:22:48.223Z"
   },
   {
     "id": "ref_b1ce36e3b33a",
     "kind": "reflection",
     "content": "The latest simplification pass deleted dead OM helpers `earlierCoverageMarkerId`, `sourceTokensSinceReflectionCoverage`, `sourceTokensSinceReflectionReviewCoverage`, `ContextProjectionDiff`, and `diffContextProjection` from `src/session-ledger/progress.ts` and `src/session-ledger/projection.ts`.",
-    "createdAt": "2026-06-15T17:22:48.223Z",
     "sources": [
       "obs_b91d24c65071",
       "obs_ae50be72df60"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:22:48.223Z"
   },
   {
     "id": "ref_51e1f1cde732",
     "kind": "reflection",
     "content": "User wants OM hard cases to stay within realistic budgets (observer ~32 source entries; cases around that scale or at most ~2–3x, not 500 entries).",
-    "createdAt": "2026-06-15T18:15:24.719Z",
     "sources": [
       "obs_987a709662e4"
-    ]
+    ],
+    "createdAt": "2026-06-15T18:15:24.719Z"
   },
   {
     "id": "ref_fb51abe10504",
     "kind": "reflection",
     "content": "`eval/src/om` has been refactored around the new shape to include `RewriteResult`, `OmAgents.runRewrite`, `judgedRewriteScored()`, and `eval/src/om/cases/rewrite.ts` rewrite cases; the old OM-eval surface is being replaced, not preserved.",
-    "createdAt": "2026-06-15T18:15:24.719Z",
     "sources": [
       "obs_8864181f2dc0",
       "obs_961b4d22f906",
       "obs_aa3527e748e1",
       "obs_e9b975235d14",
       "obs_41ed59b2a11d"
-    ]
+    ],
+    "createdAt": "2026-06-15T18:15:24.719Z"
   },
   {
     "id": "ref_b5a5fcf6be41",
     "kind": "reflection",
     "content": "`historical-probe-miner` is not directly reusable for OM agent hard cases because it targets YAML probe fixtures, so the recommended next tool is a separate OM-case miner that emits realistic contiguous ranges from session JSONL and pulls observer/reflection/rewrite inputs from recorded OM entries.",
-    "createdAt": "2026-06-15T18:15:24.719Z",
     "sources": [
       "obs_ba97d912e548",
       "obs_77f346825654"
-    ]
+    ],
+    "createdAt": "2026-06-15T18:15:24.719Z"
   },
   {
     "id": "ref_b481c1c053fc",
     "kind": "reflection",
     "content": "OM eval CLI default is still `thinkingLevel: get('--thinking', 'xhigh')`, so previous runs were not low-thinking by default; user wants OM evals to run low-thinking by default.",
-    "createdAt": "2026-06-15T21:12:45.995Z",
     "sources": [
       "obs_7f014a0cb052",
       "obs_199b23fa03f0"
-    ]
+    ],
+    "createdAt": "2026-06-15T21:12:45.995Z"
   },
   {
     "id": "ref_d352a06aff1a",
     "kind": "reflection",
     "content": "User wants `rewrite-real-giga-120` treated as stress-only or replaced with a smaller rewrite eval, while keeping `rewrite-real-giga-40` in the baseline set.",
-    "createdAt": "2026-06-15T21:12:45.995Z",
     "sources": [
       "obs_a8b5651362c8"
-    ]
+    ],
+    "createdAt": "2026-06-15T21:12:45.995Z"
   },
   {
     "id": "ref_b75a247da400",
     "kind": "reflection",
     "content": "Current OM eval failures are split between likely judge-rubric mismatches for `reflector-real-giga-8`/`reflector-real-giga-16` and real over-compression or stale/current mistakes in `rewrite-real-giga-40/80/120`, `observer-real-giga-96`, and `observer-zero-durable-restraint`; the recommendation is to fix the rubric first by removing reflection/rewrite count expectations, adding explicit fact-coverage checks, trimming diagnosis input to output+probe, and considering a require-both-pass-plus-70%-soft-score rule.",
-    "createdAt": "2026-06-15T21:12:45.995Z",
     "sources": [
       "obs_705eb9d81828",
       "obs_1ebb509667f2",
       "obs_9399bb27115c"
-    ]
+    ],
+    "createdAt": "2026-06-15T21:12:45.995Z"
   },
   {
     "id": "ref_973f4512a262",
     "kind": "reflection",
     "content": "Before the next OM refactor changes, `@/home/syzom/.pi/agent/extensions/pi-observational-memory/docs/implementation-plan.md` must be updated or replaced.",
-    "createdAt": "2026-06-16T11:08:14.783Z",
     "sources": [
       "obs_154f544a8e98"
-    ]
+    ],
+    "createdAt": "2026-06-16T11:08:14.783Z"
   },
   {
     "id": "ref_629aa62638e8",
     "kind": "reflection",
     "content": "`extensions/pi-observational-memory/docs/implementation-plan.md` was rewritten to a new bounded handoff memory plan covering source-only observer, pending-only reflector, rewrite as handoff memory, compaction-flushed observation tail, recall as assistant evidence path, and input-bound/eval/status rules.",
-    "createdAt": "2026-06-16T11:15:46.074Z",
     "sources": [
       "obs_c8aedad0374f"
-    ]
+    ],
+    "createdAt": "2026-06-16T11:15:46.074Z"
   },
   {
     "id": "ref_ddee4e87a981",
     "kind": "reflection",
     "content": "The observer contract is now source-only: `record_observations({ observations: [] })` is the explicit empty-durable batch path, `mark_observed_no_observations` was removed, and `runObserver()` returns `[]` for that empty batch instead of `undefined`.",
-    "createdAt": "2026-06-16T11:15:46.074Z",
     "sources": [
       "obs_1a2b2969dde0",
       "obs_1ec0d31c15e5",
       "obs_136c58aad341",
       "obs_96093c3dff39"
-    ]
+    ],
+    "createdAt": "2026-06-16T11:15:46.074Z"
   },
   {
     "id": "ref_8bb336040a37",
     "kind": "reflection",
     "content": "Compaction now flushes a recent observed tail into compaction context: `ensureObservedBeforeCompaction()` / `runCompactionObserverFlush()` return `Observation[]`, `buildCompactionProjection()` appends a token-bounded recent observed tail, and `/om` summary rendering gained a separate pending-reflection section for that tail.",
-    "createdAt": "2026-06-16T11:15:46.074Z",
     "sources": [
       "obs_175f2a87c878",
       "obs_b4c57e8d472e",
@@ -1311,421 +2462,422 @@ export const realRewrite80 = [
       "obs_e20f8de79bd0",
       "obs_6063ac6ad876",
       "obs_7a16024561a5"
-    ]
+    ],
+    "createdAt": "2026-06-16T11:15:46.074Z"
   },
   {
     "id": "ref_39442f67eb87",
     "kind": "reflection",
     "content": "`extensions/pi-observational-memory/tests/session-ledger-projection.test.ts` now includes a compaction-projection test proving a bounded recent observed tail can be included while `details.observations` stays empty and `details.reflections` remains reflection-only.",
-    "createdAt": "2026-06-16T11:47:37.229Z",
     "sources": [
       "obs_2a3e7ed6e654"
-    ]
+    ],
+    "createdAt": "2026-06-16T11:47:37.229Z"
   },
   {
     "id": "ref_eed02d00ee39",
     "kind": "reflection",
     "content": "`eval/src/om/cases/reflector.ts` and `eval/src/om/cases/rewrite.ts` were retuned toward compressed handoff-memory: reflector eval now prefers distilled durable active-memory value over one-reflection-per-observation output, and rewrite rubrics were softened to emphasize preserving central durable decisions plus useful compression.",
-    "createdAt": "2026-06-16T11:47:37.229Z",
     "sources": [
       "obs_ac7fd581e6bb"
-    ]
+    ],
+    "createdAt": "2026-06-16T11:47:37.229Z"
   },
   {
     "id": "ref_646ababab48a",
     "kind": "reflection",
     "content": "OM eval baseline reruns are still failing after the rubric edits: `cd eval && pnpm run om-agent-evals -- --out runs/om-agent-evals-refactor-baseline-$(date +%Y%m%d-%H%M%S) --case-timeout-ms 300000` exited nonzero with 12/20 passed (score 81/91), and the earlier baseline run was also 12/20 passed (score 80/92).",
-    "createdAt": "2026-06-16T11:47:37.229Z",
     "sources": [
       "obs_7c08d11243a8"
-    ]
+    ],
+    "createdAt": "2026-06-16T11:47:37.229Z"
   },
   {
     "id": "ref_d8149f2846e0",
     "kind": "reflection",
     "content": "`extensions/pi-observational-memory/src/agents/observer/prompts.ts` now treats observer serialization/truncation metadata like `output_omitted`, policy truncation notes, and input-budget exhaustion warnings as non-durable noise.",
-    "createdAt": "2026-06-16T11:47:37.229Z",
     "sources": [
       "obs_9d21b041d0ed"
-    ]
+    ],
+    "createdAt": "2026-06-16T11:47:37.229Z"
   },
   {
     "id": "ref_8e0ba0d12d8d",
     "kind": "reflection",
     "content": "A prompt-edit typo briefly broke TypeScript (`src/agents/observer/prompts.ts(15,44): error TS1005: ',' expected` etc.) and was then fixed; the follow-up `cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test && cd ../../eval && pnpm exec tsc --noEmit` succeeded.",
-    "createdAt": "2026-06-16T11:47:37.229Z",
     "sources": [
       "obs_221766c9a87d"
-    ]
+    ],
+    "createdAt": "2026-06-16T11:47:37.229Z"
   },
   {
     "id": "ref_1917dc70d26e",
     "kind": "reflection",
     "content": "`extensions/pi-observational-memory/src/agents/reflector/prompts.ts` was tightened to require reflection only when pending observations add durable active-memory value not already represented, and to forbid generic acknowledgements, breadcrumbs, and path-only context.",
-    "createdAt": "2026-06-16T11:47:37.229Z",
     "sources": [
       "obs_1917dc70d26e"
-    ]
+    ],
+    "createdAt": "2026-06-16T11:47:37.229Z"
   },
   {
     "id": "ref_d3fb439ddcb9",
     "kind": "reflection",
     "content": "`extensions/pi-observational-memory/src/agents/rewrite/prompts.ts` was tightened to ban acknowledgement-style, generic, process-flavored, and path-only reflections while still allowing only concrete durable items.",
-    "createdAt": "2026-06-16T11:47:37.229Z",
     "sources": [
       "obs_27b3f52e10de"
-    ]
+    ],
+    "createdAt": "2026-06-16T11:47:37.229Z"
   },
   {
     "id": "ref_4b40097837fc",
     "kind": "reflection",
     "content": "`buildNextCompactionProjection()` now takes `{ seed?: Projection; recentObservedTail?: Observation[] }`, and `src/hooks/compaction-hook.ts` was updated to pass `{ recentObservedTail }` instead of separate args.",
-    "createdAt": "2026-06-16T13:38:43.952Z",
     "sources": [
       "obs_1def281a381a"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:38:43.952Z"
   },
   {
     "id": "ref_287c6ad1bae6",
     "kind": "reflection",
     "content": "The compaction bridge terminology was renamed from `recentObservedTail`/`recent observation tail` to `compactionHandoffObservations`/`compaction handoff observations`, with config keys `compactionHandoffObservationMaxCount` and `compactionHandoffObservationMaxTokens` replacing the old tail names.",
-    "createdAt": "2026-06-16T13:38:43.952Z",
     "sources": [
       "obs_043d4e1b1241",
       "obs_71c3538cd59f",
       "obs_12dc9e43e165"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:38:43.952Z"
   },
   {
     "id": "ref_f076f81723c7",
     "kind": "reflection",
     "content": "`extensions/pi-observational-memory/src/agents/rewrite/prompts.ts` now requires conflicting inputs to be resolved into explicit current-vs-stale/not-preferred relationships instead of keeping contradictory plans co-current.",
-    "createdAt": "2026-06-16T13:38:43.952Z",
     "sources": [
       "obs_7d2681f4de2c"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:38:43.952Z"
   },
   {
     "id": "ref_f7104ab82b37",
     "kind": "reflection",
     "content": "The 2026-06-16 OM eval correction runs are still not green: `--only observer` passed 3/6, `--only reflector` passed 5/7, and `--only rewrite` passed 6/7; only `--only rewriteStale` succeeded.",
-    "createdAt": "2026-06-16T13:38:43.952Z",
     "sources": [
       "obs_4cf450edea35",
       "obs_0bda6e1359e8"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:38:43.952Z"
   },
   {
     "id": "ref_ab073e5312de",
     "kind": "reflection",
     "content": "A typecheck regression in `extensions/pi-observational-memory/src/agents/reflector/agent.ts` from missing `rejectedEmptyOrMultilineContentCount` / `rejectedInvalidSupportIdsCount` was fixed by removing those increments, and `cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test` passed afterward.",
-    "createdAt": "2026-06-16T13:38:43.952Z",
     "sources": [
       "obs_70cad06e71dc"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:38:43.952Z"
   },
   {
     "id": "ref_7003fe197bf3",
     "kind": "reflection",
     "content": "`recent observed tail` has been renamed to `compaction handoff observations`; it is temporary bridge context, rendered only in compaction summary, and is not normal active memory.",
-    "createdAt": "2026-06-16T13:48:42.048Z",
     "sources": [
       "obs_a0b027774f6b",
       "obs_86906c45a523"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:48:42.048Z"
   },
   {
     "id": "ref_8ebc3dc6179a",
     "kind": "reflection",
     "content": "User confirmed the simplification direction: keep `/om:view recorded` showing observations evidence, drop redundant status “next context” info, and remove the `activeObservations` alias in favor of `folded.observations`; they want to keep exploring further OM simplifications later.",
-    "createdAt": "2026-06-16T13:48:42.048Z",
     "sources": [
       "obs_47b88bd4feda",
       "obs_a21854a900d1"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:48:42.048Z"
   },
   {
     "id": "ref_00e3e29cc97b",
     "kind": "reflection",
     "content": "`Projection { observations, reflections }` and related `Projection`-named functions are now considered historical scaffolding; the still-needed pieces are `foldLedger(entries)`, active-memory rendering, compaction-memory rendering, and the observations evidence pool for reflector/recall/view.",
-    "createdAt": "2026-06-16T13:48:42.048Z",
     "sources": [
       "obs_6e9e79552045",
       "obs_82c80298e52c"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:48:42.048Z"
   },
   {
     "id": "ref_eddda30fc410",
     "kind": "reflection",
     "content": "Implementation started on the projection simplification: `src/session-ledger/projection.ts` was rewritten to add `CompactionMemoryConfig`, `CompactionMemory`, `activeReflections(entries)`, and `buildCompactionMemory(...)`, and the compaction hook was switched to `buildCompactionMemory` plus `renderSummary(memory.reflections, memory.handoffObservations)`.",
-    "createdAt": "2026-06-16T13:48:42.048Z",
     "sources": [
       "obs_cf9aeb091d8b"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:48:42.048Z"
   },
   {
     "id": "ref_499421e807fe",
     "kind": "reflection",
     "content": "`src/session-ledger/types.ts` now removes `observations` from `MemoryDetails`, with `isMemoryDetails` loosened so legacy `details.observations` is optional and ignored during validation.",
-    "createdAt": "2026-06-16T13:48:42.048Z",
     "sources": [
       "obs_5576d2c20eea"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:48:42.048Z"
   },
   {
     "id": "ref_395597f328be",
     "kind": "reflection",
     "content": "A search was run for remaining references to `activeObservations`, `fullProjection`, `contextProjection`, `nextContextProjection`, `buildNextCompactionProjection`, and `Projection` across `src` and `tests`, so the cleanup is actively checking for leftovers.",
-    "createdAt": "2026-06-16T13:48:42.048Z",
     "sources": [
       "obs_16067a9e00f7"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:48:42.048Z"
   },
   {
     "id": "ref_6b60ce1624e2",
     "kind": "reflection",
     "content": "OM projection/status/view cleanup is now using `folded.observations` and `activeReflections(entries)` instead of `folded.activeObservations`; status now reports `Context:      <n> reflections` only and drops `Next context`, while `/om:view` usage has switched to `[context|recorded]` with recorded rendering `foldLedger(entries)` and context rendering only `activeReflections(entries)`.",
-    "createdAt": "2026-06-16T13:50:56.225Z",
     "sources": [
       "obs_4f7f94233e61",
       "obs_4c41dc47f9ca",
       "obs_bd444152ec66"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:50:56.225Z"
   },
   {
     "id": "ref_4eb28327611c",
     "kind": "reflection",
     "content": "`tests/fixtures/session.ts` memoryDetails no longer accepts/emits `observations`; it now carries only `fullFold` and `reflections`, and the associated tests were updated to expect reflection-only status/view output plus recorded fixtures using `memoryDetails({ reflections: [ref] })`.",
-    "createdAt": "2026-06-16T13:50:56.225Z",
     "sources": [
       "obs_6bb17d488793",
       "obs_29f49346fed7",
       "obs_5b60cd648b98"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:50:56.225Z"
   },
   {
     "id": "ref_7f43c2c729e4",
     "kind": "reflection",
     "content": "A new `tests/session-ledger-projection.test.ts` now covers `activeReflections(entries)` merging compaction details with current reflections, retiring rewritten reflections, and storing active reflections in `details.reflections`.",
-    "createdAt": "2026-06-16T13:50:56.225Z",
     "sources": [
       "obs_54be5c013045"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:50:56.225Z"
   },
   {
     "id": "ref_eb83f1f04575",
     "kind": "reflection",
     "content": "`tests/session-ledger-fold.test.ts` has been narrowed to `folded.observations` and `folded.reflections` only, no longer asserting `folded.activeObservations`.",
-    "createdAt": "2026-06-16T13:50:56.225Z",
     "sources": [
       "obs_a04fd14f1bb6"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:50:56.225Z"
   },
   {
     "id": "ref_25c43e3afa53",
     "kind": "reflection",
     "content": "`src/session-ledger/projection.ts` is now rejected as a concept and was deleted after splitting its responsibilities into `src/session-ledger/active-memory.ts` and `src/session-ledger/compaction-memory.ts`; `index.ts` now re-exports those modules instead of `projection.js`.",
-    "createdAt": "2026-06-16T14:00:40.825Z",
     "sources": [
       "obs_6966a7e5d27e",
       "obs_11c0a34f0c0c",
       "obs_4c28e2d2a51e"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:00:40.825Z"
   },
   {
     "id": "ref_77b7add385b7",
     "kind": "reflection",
     "content": "`active-memory.ts` now owns `latestCompactionDetails(entries)`, `mergeReflections(base,next)`, and `activeReflections(entries)`, and `activeReflections(entries)` was corrected to filter out compacted reflections whose ids are in `foldLedger(entries).retiredReflectionIds`.",
-    "createdAt": "2026-06-16T14:00:40.825Z",
     "sources": [
       "obs_11c0a34f0c0c",
       "obs_69af698ec062"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:00:40.825Z"
   },
   {
     "id": "ref_2e1f43bfe9e6",
     "kind": "reflection",
     "content": "`compaction-memory.ts` now owns `CompactionMemoryConfig`, `CompactionMemory`, `capCompactionHandoffObservations`, `detailsFor`, and `buildCompactionMemory(entries, config, options)`; the old `_firstKeptEntryId`/`fullFold`/`observationsPoolMaxTokens` path was removed, `reflections` now always comes from `activeReflections(entries)`, and compaction handoff observations are capped internally at `8` and `1_000`.",
-    "createdAt": "2026-06-16T14:00:40.825Z",
     "sources": [
       "obs_f19a407bec6b",
       "obs_beff3164b4b2",
       "obs_009826fd47f3",
       "obs_f937c1f0ef29"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:00:40.825Z"
   },
   {
     "id": "ref_16c0e40c1bfe",
     "kind": "reflection",
     "content": "`extensions/pi-observational-memory/src/config.ts` removed `observationsPoolMaxTokens` entirely; only `maxInitialObserveTokens` and `reflectionsPoolMaxTokens` remain among those config fields.",
-    "createdAt": "2026-06-16T14:00:40.825Z",
     "sources": [
       "obs_b6cd48455d52"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:00:40.825Z"
   },
   {
     "id": "ref_553d6e0a29b3",
     "kind": "reflection",
     "content": "Tests were updated to import `activeReflections` from `../src/session-ledger/active-memory.js` and `buildCompactionMemory` from `../src/session-ledger/compaction-memory.js`.",
-    "createdAt": "2026-06-16T14:00:40.825Z",
     "sources": [
       "obs_553d6e0a29b3"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:00:40.825Z"
   },
   {
     "id": "ref_6d8804f8ccbe",
     "kind": "reflection",
     "content": "The latest validation state after the split is mixed: `pnpm run typecheck` passed, but the test suite still had 1 failing test out of 119.",
-    "createdAt": "2026-06-16T14:00:40.825Z",
     "sources": [
       "obs_df5acf4332e7"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:00:40.825Z"
   },
   {
     "id": "ref_e57181d5dde8",
     "kind": "reflection",
     "content": "`tests/session-ledger-projection.test.ts` was renamed to `tests/session-ledger-memory.test.ts`, and its describe title is now `session-ledger active and compaction memory`.",
-    "createdAt": "2026-06-16T14:44:07.201Z",
     "sources": [
       "obs_759ae65156b0"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:44:07.201Z"
   },
   {
     "id": "ref_97285c86c3c8",
     "kind": "reflection",
     "content": "`tests/fixtures/session.ts`'s `memoryDetails` fixture no longer accepts or emits `fullFold`; it now only takes `reflections` and returns `{ type: OM_FOLDED, reflections: ... }`.",
-    "createdAt": "2026-06-16T14:44:07.201Z",
     "sources": [
       "obs_97285c86c3c8"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:44:07.201Z"
   },
   {
     "id": "ref_1707c80f1e4b",
     "kind": "reflection",
     "content": "The user wants OM simplification to keep questioning functionality in the complex areas under `extensions/pi-observational-memory/src/agents`, `src/memory-update`, `src/memory`, and `src/session-ledger`, not just rename/cleanup in place; they agreed all 6 simplification targets are reasonable and asked to proceed unless uncertain.",
-    "createdAt": "2026-06-16T14:44:07.201Z",
     "sources": [
       "obs_c87e0340c298",
       "obs_d1cbbdef30a9"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:44:07.201Z"
   },
   {
     "id": "ref_7e23813c5e59",
     "kind": "reflection",
     "content": "The next inspection step was to review `extensions/pi-observational-memory/src/memory-update/run.ts`, `src/session-ledger/fold.ts`, `src/session-ledger/progress.ts`, `src/memory-update/due.ts`, `src/memory-update/observer-stage.ts`, and `src/memory-update/reflector-stage.ts` before making the six simplification changes.",
-    "createdAt": "2026-06-16T14:44:07.201Z",
     "sources": [
       "obs_97bb5a594690"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:44:07.201Z"
   },
   {
     "id": "ref_2cc32d289bdc",
     "kind": "reflection",
     "content": "`cd extensions/pi-observational-memory && pnpm run typecheck` and `cd extensions/pi-observational-memory && pnpm test` both succeeded after the latest test/fixture rewrites.",
-    "createdAt": "2026-06-16T14:44:07.201Z",
     "sources": [
       "obs_343182e3a880"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:44:07.201Z"
   },
   {
     "id": "ref_1c714e8ccbfa",
     "kind": "reflection",
     "content": "`src/session-ledger/types.ts` now has `MemoryRecordBase` without `kind` or `sources`; `Observation` keeps `timestamp` and `sourceEntryIds`, and `Reflection` owns `sources`.",
-    "createdAt": "2026-06-16T14:47:18.329Z",
     "sources": [
       "obs_a34363f86465"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:47:18.329Z"
   },
   {
     "id": "ref_a998e931a9cf",
     "kind": "reflection",
     "content": "`src/memory-update/due.ts` now exports `computeMemoryStageWork(entries, runtime)` and returns `observerWork`, `reflectorWork`, and `rewriteWork` arrays instead of boolean due flags.",
-    "createdAt": "2026-06-16T14:47:18.329Z",
     "sources": [
       "obs_fe1eb12fbdb7"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:47:18.329Z"
   },
   {
     "id": "ref_62b6036662db",
     "kind": "reflection",
     "content": "`run.ts` now uses `computeMemoryStageWork(entries, runtime)` and passes the resulting `observerWork`/`reflectorWork`/`rewriteWork` into the stage runners.",
-    "createdAt": "2026-06-16T14:47:18.329Z",
     "sources": [
       "obs_296859ac0c69"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:47:18.329Z"
   },
   {
     "id": "ref_5bf74c344f88",
     "kind": "reflection",
     "content": "`runTrackedStage` in `src/memory-update/run.ts` was simplified to only catch errors; it no longer appends `OM_AGENT_RUN_RECORDED` entries with duration/status metadata.",
-    "createdAt": "2026-06-16T14:47:18.329Z",
     "sources": [
       "obs_0145016b645a"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:47:18.329Z"
   },
   {
     "id": "ref_e4884d51933c",
     "kind": "reflection",
     "content": "`observer-stage.ts` now accepts optional `workEntries` as `chunkEntries`, otherwise derives source entries after `lastObservationCoverageIndex`, and applies threshold checks before invoking the observer agent.",
-    "createdAt": "2026-06-16T14:47:18.329Z",
     "sources": [
       "obs_b3323c6bd6f5"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:47:18.329Z"
   },
   {
     "id": "ref_34728a081e19",
     "kind": "reflection",
     "content": "`reflector-stage.ts` now accepts optional `workObservations`, uses folded `unreflectedObservations` when omitted, and skips when there is no observation coverage or the unreflected count is below `reflectEveryObservations`.",
-    "createdAt": "2026-06-16T14:47:18.329Z",
     "sources": [
       "obs_34728a081e19"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:47:18.329Z"
   },
   {
     "id": "ref_e8d9b718bda2",
     "kind": "reflection",
     "content": "`src/memory-update/compaction.ts` now adds `ensureObservedBeforeCompaction()`, which flushes unseen source entries before compaction by running the observer over entries after the last observation coverage up to `firstKeptEntryId`.",
-    "createdAt": "2026-06-16T14:47:18.329Z",
     "sources": [
       "obs_ec2fb5dff56a"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:47:18.329Z"
   },
   {
     "id": "ref_64345ceca1cd",
     "kind": "reflection",
     "content": "`commonAgentArgs` was moved to `src/memory-update/agent-args.ts`, and `rewrite-stage.ts` now imports it from there instead of `./stage-utils.js`.",
-    "createdAt": "2026-06-16T14:47:18.329Z",
     "sources": [
       "obs_b8fcebc5b2b5"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:47:18.329Z"
   },
   {
     "id": "ref_adf86ab3e4c9",
     "kind": "reflection",
     "content": "Latest state: `Observation` no longer has a `sources` field; it keeps `timestamp` and `sourceEntryIds` only, and test fixtures were updated to drop `sources` from session observation shapes.",
-    "createdAt": "2026-06-16T14:51:53.391Z",
     "sources": [
       "obs_8ed52955812f",
       "obs_27272c6b796d"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:51:53.391Z"
   },
   {
     "id": "ref_830c8ba1e60f",
     "kind": "reflection",
     "content": "`src/session-ledger/index.ts` was added as a barrel re-exporting `types.js`, `fold.js`, `active-memory.js`, `compaction-memory.js`, `recall.js`, `render-summary.js`, and `memory-tokens.js`.",
-    "createdAt": "2026-06-16T14:51:53.391Z",
     "sources": [
       "obs_1213ce82c8f1"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:51:53.391Z"
   },
   {
     "id": "ref_da38511d00cb",
     "kind": "reflection",
     "content": "`src/commands/status.ts` was rewritten again to `/om:status [full]`, now showing memory/reflection counts, token size, next-work progress, optional full details, in-flight work, and last errors.",
-    "createdAt": "2026-06-16T14:51:53.391Z",
     "sources": [
       "obs_6338d1a7ffc5"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:51:53.391Z"
   }
 ] as const;
 
@@ -1734,199 +2886,198 @@ export const realRewrite120 = [
     "id": "ref_cf63c8a36fa0",
     "kind": "reflection",
     "content": "The next cleanup step is to update `/om:status` size reporting from `observationsPoolMaxTokens` to active reflection pressure / `reflectionsPoolMaxTokens`.",
-    "createdAt": "2026-06-15T16:42:38.180Z",
     "sources": [
       "obs_69525a1c2484"
-    ]
+    ],
+    "createdAt": "2026-06-15T16:42:38.180Z"
   },
   {
     "id": "ref_e27d789383da",
     "kind": "reflection",
     "content": "Next planned work is Stage 5 recall/provenance polish: rename recall wording away from observation bias, make `recall(ref_*)` output clearly show the matched reflection, cited old reflections, supporting observations, and source entries, then add tests for rewritten-reflection recall output.",
-    "createdAt": "2026-06-15T16:42:38.180Z",
     "sources": [
       "obs_0ecf48d7e7fa"
-    ]
+    ],
+    "createdAt": "2026-06-15T16:42:38.180Z"
   },
   {
     "id": "ref_efbd1e8c013e",
     "kind": "reflection",
     "content": "The simplification pass removed reviewed/dropped/flagged OM machinery from session-ledger types/progress and now treats reflector work as foldLedger(entries) + unreflected observations only, with flagged/reviewed follow-up logic deleted.",
-    "createdAt": "2026-06-15T16:59:52.824Z",
     "sources": [
       "obs_4909cf1a9afa",
       "obs_928842ab34f4"
-    ]
+    ],
+    "createdAt": "2026-06-15T16:59:52.824Z"
   },
   {
     "id": "ref_773720e9fff0",
     "kind": "reflection",
     "content": "`src/agents/reflector/agent.ts` no longer handles follow-up flags or flagged-observation counts; its prompt now includes only current reflections plus current observations.",
-    "createdAt": "2026-06-15T16:59:52.825Z",
     "sources": [
       "obs_a78860cdd1c5"
-    ]
+    ],
+    "createdAt": "2026-06-15T16:59:52.825Z"
   },
   {
     "id": "ref_e16a61897eb9",
     "kind": "reflection",
     "content": "User wants simplifications to keep proceeding across OM until no further simplifications are clearly possible.",
-    "createdAt": "2026-06-15T16:59:52.825Z",
     "sources": [
       "obs_4603705b8b25"
-    ]
+    ],
+    "createdAt": "2026-06-15T16:59:52.825Z"
   },
   {
     "id": "ref_4296bf3351fc",
     "kind": "reflection",
     "content": "Simplification pass removed reviewed/dropped/flagged OM machinery from `src/session-ledger/types.ts` and `src/session-ledger/progress.ts`, including `OM_REFLECTIONS_REVIEWED`, `OM_OBSERVATIONS_DROPPED`, `OM_OBSERVATIONS_FLAGGED`, their entry-data types/builders/guards, `latestReflectionReviewEntryIndex`, and drop-coverage helpers; `normalizeReflectionsRecordedData()` no longer requires non-empty reflections.",
-    "createdAt": "2026-06-15T17:02:32.198Z",
     "sources": [
       "obs_4909cf1a9afa"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:02:32.198Z"
   },
   {
     "id": "ref_5f1f3ffebbf5",
     "kind": "reflection",
     "content": "`src/session-ledger/fold.ts` is now simplified to observation/reflecton records plus rewrite retirement only: it returns `retiredReflectionIds`, folds `OM_REFLECTIONS_REWRITTEN` retirement into that set, and no longer tracks flagged or dropped observations.",
-    "createdAt": "2026-06-15T17:02:32.198Z",
     "sources": [
       "obs_fe62f8dd221e"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:02:32.198Z"
   },
   {
     "id": "ref_928842ab34f4",
     "kind": "reflection",
     "content": "`src/memory-update/due.ts` and `src/memory-update/reflector-stage.ts` were simplified to compute reflector work from `foldLedger(entries)` plus unreflected observations only; flagged-observation counts/reasons and reviewed-entry append logic were removed, and reflector running text now says only unreviewed observations.",
-    "createdAt": "2026-06-15T17:02:32.198Z",
     "sources": [
       "obs_928842ab34f4"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:02:32.198Z"
   },
   {
     "id": "ref_a78860cdd1c5",
     "kind": "reflection",
     "content": "`src/agents/reflector/agent.ts` was stripped of follow-up flag handling: `FlaggedObservationForFollowUp`, `flaggedObservations`, the follow-up prompt block, and `flaggedObservationCount` were removed, leaving only current reflections plus current observations in the user prompt.",
-    "createdAt": "2026-06-15T17:02:32.198Z",
     "sources": [
       "obs_a78860cdd1c5"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:02:32.198Z"
   },
   {
     "id": "ref_9c804d93204a",
     "kind": "reflection",
     "content": "`src/commands/status.ts` was fixed to report only recorded ledger observations after the simplification pass, removing the dropped/active breakdown, and `src/commands/view.ts` dropped reviewed-mode support so `/om:view` now only supports `context|full`.",
-    "createdAt": "2026-06-15T17:02:32.198Z",
     "sources": [
       "obs_789e364b0545",
       "obs_fc4b38fbe064"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:02:32.198Z"
   },
   {
     "id": "ref_568f38a9fdef",
     "kind": "reflection",
     "content": "Simplification pass removed reviewed/dropped/flagged OM machinery and simplified reflector work to `foldLedger(entries)` plus unreflected observations only; `status`/`view` were also reduced to the reflection-only surface.",
-    "createdAt": "2026-06-15T17:04:57.135Z",
     "sources": [
       "obs_4909cf1a9afa",
       "obs_928842ab34f4",
       "obs_789e364b0545",
       "obs_fc4b38fbe064"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:04:57.135Z"
   },
   {
     "id": "ref_a5ceef759dd5",
     "kind": "reflection",
     "content": "The current test cleanup direction is to keep only value-bearing coverage for typed ids, reflection-only projection, recall traversal, compaction hook behavior, and status/view output, while deleting obsolete pin/curator/review-oriented tests.",
-    "createdAt": "2026-06-15T17:04:57.135Z",
     "sources": [
       "obs_28e826f848e3",
       "obs_88c648a7a986",
       "obs_528beed29622",
       "obs_524e97bc93f1"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:04:57.135Z"
   },
   {
     "id": "ref_fc1a14dcb28a",
     "kind": "reflection",
     "content": "The latest cleanup validation passed after the simplification edits: `cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test && cd ../../eval && pnpm exec tsc --noEmit`.",
-    "createdAt": "2026-06-15T17:04:57.135Z",
     "sources": [
       "obs_c5e8ba14ce1c"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:04:57.135Z"
   },
   {
     "id": "ref_133e33e54f58",
     "kind": "reflection",
     "content": "The empty `extensions/pi-observational-memory/tests/evals` directory was removed, while `extensions/pi-observational-memory/docs` still exists.",
-    "createdAt": "2026-06-15T17:04:57.135Z",
     "sources": [
       "obs_cebc936226c8"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:04:57.135Z"
   },
   {
     "id": "ref_6e76a68b43b2",
     "kind": "reflection",
     "content": "`src/commands/view.ts` was further simplified so `/om:view` now supports `context|recorded` only in its content-only renderer, replacing the earlier `context|full` shape.",
-    "createdAt": "2026-06-15T17:07:23.484Z",
     "sources": [
       "obs_795b7764e770"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:07:23.484Z"
   },
   {
     "id": "ref_94ce106df2c8",
     "kind": "reflection",
     "content": "`src/commands/status.ts` was further simplified to drop drift/review reporting and stop importing `diffContextProjection`, leaving status aligned to the reflection-only surface.",
-    "createdAt": "2026-06-15T17:07:23.484Z",
     "sources": [
       "obs_795b7764e770"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:07:23.484Z"
   },
   {
     "id": "ref_40b109088590",
     "kind": "reflection",
     "content": "`src/agents/reflector/agent.ts` was simplified to use plain `observationToSummaryLine` in the prompt, remove coverage/debug bookkeeping, and drop the `src/agents/coverage.ts` helper entirely.",
-    "createdAt": "2026-06-15T17:07:23.484Z",
     "sources": [
       "obs_68470cf69df4"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:07:23.484Z"
   },
   {
     "id": "ref_924044591acf",
     "kind": "reflection",
     "content": "After the planned tasks, user wants a later follow-up on OM + fork interaction using instant compaction and always-on memory to send compacted context to forked agents instead of full context, to avoid full uncached input cost; do not investigate it deeply now.",
-    "createdAt": "2026-06-15T17:12:34.898Z",
     "sources": [
       "obs_bd96ce384126"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:12:34.898Z"
   },
   {
     "id": "ref_5e0c0399b615",
     "kind": "reflection",
     "content": "Current OM plan still puts Stage 1 first: curator eval second pass should convert `eval/src/om/cases/curator.ts` to `judgedCuratorScored()` with hard failures for unsafe actions and score dimensions for retained detail, provenance, follow-up, and completeness, before Stage 2.",
-    "createdAt": "2026-06-15T17:12:34.898Z",
     "sources": [
       "obs_11ae0b8e8f16",
       "obs_1ac2cb4e2860"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:12:34.898Z"
   },
   {
     "id": "ref_2fe5f1b0faf5",
     "kind": "reflection",
     "content": "The simplification pass pushed OM further toward a reflection-only core by removing reviewed/dropped/flagged machinery, making reflector work come from `foldLedger(entries)` plus unreflected observations only, and stripping follow-up flag handling from reflector prompts/agent logic.",
-    "createdAt": "2026-06-15T17:12:34.898Z",
     "sources": [
       "obs_4909cf1a9afa",
       "obs_928842ab34f4",
       "obs_a78860cdd1c5",
       "obs_51f3e2e91684"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:12:34.898Z"
   },
   {
     "id": "ref_206820f295bf",
     "kind": "reflection",
     "content": "Rewrite/rewrite-status handling was simplified again: `ReflectionsRewrittenEntryData` now uses only `{ retiredReflectionIds; summary? }`, `runRewrite()` returns `{ reflections, summary? }`, runtime/status no longer track `lastRewriteError`, and the docs/design were updated to reflect the leaner summary-only rewrite shape.",
-    "createdAt": "2026-06-15T17:12:34.898Z",
     "sources": [
       "obs_e71f9e3e24b1",
       "obs_0d580f578f32",
@@ -1934,157 +3085,157 @@ export const realRewrite120 = [
       "obs_994f73a00a67",
       "obs_ac2e728a7b1c",
       "obs_2bb778e3b66e"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:12:34.898Z"
   },
   {
     "id": "ref_49bc4b52c913",
     "kind": "reflection",
     "content": "Compaction transient memory plumbing is being removed: `compaction-hook.ts` no longer imports/resets transient compaction memory, `buildNextCompactionProjection()` is called without the transient argument, and `observer-stage.ts`/`reflector-stage.ts`/`rewrite-stage.ts` no longer append transient compaction observations/reflections.",
-    "createdAt": "2026-06-15T17:17:59.857Z",
     "sources": [
       "obs_a4d1e0cbc419",
       "obs_6b1d9be6c5aa"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:17:59.857Z"
   },
   {
     "id": "ref_a89dcbb5802b",
     "kind": "reflection",
     "content": "The latest simplification pass is now committed as `Simplify reflection rewrite and review markers`, after removing review/rewrite-marker leftovers and validating with `cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test && cd ../../eval && pnpm exec tsc --noEmit`.",
-    "createdAt": "2026-06-15T17:17:59.857Z",
     "sources": [
       "obs_daf9de16e796",
       "obs_9d6c3a5b49bd",
       "obs_32257e91c6d2"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:17:59.857Z"
   },
   {
     "id": "ref_c006bf57587f",
     "kind": "reflection",
     "content": "Compaction transient-memory side channel is being removed: `compaction-hook.ts` no longer imports/resets transient compaction memory, `buildNextCompactionProjection()` is called without a transient argument, `observer-stage.ts`/`reflector-stage.ts`/`rewrite-stage.ts` stop appending transient compaction observations/reflections, and `src/memory-update/compaction-state.ts` was deleted.",
-    "createdAt": "2026-06-15T17:22:48.223Z",
     "sources": [
       "obs_a4d1e0cbc419",
       "obs_6b1d9be6c5aa",
       "obs_265ed73e7f0b"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:22:48.223Z"
   },
   {
     "id": "ref_432a291f4400",
     "kind": "reflection",
     "content": "Lazy recall registration now accepts typed `obs_*`, `ref_*`, or legacy 12-character ids, and the schema/prompt were widened accordingly in `extensions/pi-observational-memory/src/index.ts`.",
-    "createdAt": "2026-06-15T17:22:48.223Z",
     "sources": [
       "obs_d39cb3f26556",
       "obs_213330e9dcd0"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:22:48.223Z"
   },
   {
     "id": "ref_b1ce36e3b33a",
     "kind": "reflection",
     "content": "The latest simplification pass deleted dead OM helpers `earlierCoverageMarkerId`, `sourceTokensSinceReflectionCoverage`, `sourceTokensSinceReflectionReviewCoverage`, `ContextProjectionDiff`, and `diffContextProjection` from `src/session-ledger/progress.ts` and `src/session-ledger/projection.ts`.",
-    "createdAt": "2026-06-15T17:22:48.223Z",
     "sources": [
       "obs_b91d24c65071",
       "obs_ae50be72df60"
-    ]
+    ],
+    "createdAt": "2026-06-15T17:22:48.223Z"
   },
   {
     "id": "ref_51e1f1cde732",
     "kind": "reflection",
     "content": "User wants OM hard cases to stay within realistic budgets (observer ~32 source entries; cases around that scale or at most ~2–3x, not 500 entries).",
-    "createdAt": "2026-06-15T18:15:24.719Z",
     "sources": [
       "obs_987a709662e4"
-    ]
+    ],
+    "createdAt": "2026-06-15T18:15:24.719Z"
   },
   {
     "id": "ref_fb51abe10504",
     "kind": "reflection",
     "content": "`eval/src/om` has been refactored around the new shape to include `RewriteResult`, `OmAgents.runRewrite`, `judgedRewriteScored()`, and `eval/src/om/cases/rewrite.ts` rewrite cases; the old OM-eval surface is being replaced, not preserved.",
-    "createdAt": "2026-06-15T18:15:24.719Z",
     "sources": [
       "obs_8864181f2dc0",
       "obs_961b4d22f906",
       "obs_aa3527e748e1",
       "obs_e9b975235d14",
       "obs_41ed59b2a11d"
-    ]
+    ],
+    "createdAt": "2026-06-15T18:15:24.719Z"
   },
   {
     "id": "ref_b5a5fcf6be41",
     "kind": "reflection",
     "content": "`historical-probe-miner` is not directly reusable for OM agent hard cases because it targets YAML probe fixtures, so the recommended next tool is a separate OM-case miner that emits realistic contiguous ranges from session JSONL and pulls observer/reflection/rewrite inputs from recorded OM entries.",
-    "createdAt": "2026-06-15T18:15:24.719Z",
     "sources": [
       "obs_ba97d912e548",
       "obs_77f346825654"
-    ]
+    ],
+    "createdAt": "2026-06-15T18:15:24.719Z"
   },
   {
     "id": "ref_b481c1c053fc",
     "kind": "reflection",
     "content": "OM eval CLI default is still `thinkingLevel: get('--thinking', 'xhigh')`, so previous runs were not low-thinking by default; user wants OM evals to run low-thinking by default.",
-    "createdAt": "2026-06-15T21:12:45.995Z",
     "sources": [
       "obs_7f014a0cb052",
       "obs_199b23fa03f0"
-    ]
+    ],
+    "createdAt": "2026-06-15T21:12:45.995Z"
   },
   {
     "id": "ref_d352a06aff1a",
     "kind": "reflection",
     "content": "User wants `rewrite-real-giga-120` treated as stress-only or replaced with a smaller rewrite eval, while keeping `rewrite-real-giga-40` in the baseline set.",
-    "createdAt": "2026-06-15T21:12:45.995Z",
     "sources": [
       "obs_a8b5651362c8"
-    ]
+    ],
+    "createdAt": "2026-06-15T21:12:45.995Z"
   },
   {
     "id": "ref_b75a247da400",
     "kind": "reflection",
     "content": "Current OM eval failures are split between likely judge-rubric mismatches for `reflector-real-giga-8`/`reflector-real-giga-16` and real over-compression or stale/current mistakes in `rewrite-real-giga-40/80/120`, `observer-real-giga-96`, and `observer-zero-durable-restraint`; the recommendation is to fix the rubric first by removing reflection/rewrite count expectations, adding explicit fact-coverage checks, trimming diagnosis input to output+probe, and considering a require-both-pass-plus-70%-soft-score rule.",
-    "createdAt": "2026-06-15T21:12:45.995Z",
     "sources": [
       "obs_705eb9d81828",
       "obs_1ebb509667f2",
       "obs_9399bb27115c"
-    ]
+    ],
+    "createdAt": "2026-06-15T21:12:45.995Z"
   },
   {
     "id": "ref_973f4512a262",
     "kind": "reflection",
     "content": "Before the next OM refactor changes, `@/home/syzom/.pi/agent/extensions/pi-observational-memory/docs/implementation-plan.md` must be updated or replaced.",
-    "createdAt": "2026-06-16T11:08:14.783Z",
     "sources": [
       "obs_154f544a8e98"
-    ]
+    ],
+    "createdAt": "2026-06-16T11:08:14.783Z"
   },
   {
     "id": "ref_629aa62638e8",
     "kind": "reflection",
     "content": "`extensions/pi-observational-memory/docs/implementation-plan.md` was rewritten to a new bounded handoff memory plan covering source-only observer, pending-only reflector, rewrite as handoff memory, compaction-flushed observation tail, recall as assistant evidence path, and input-bound/eval/status rules.",
-    "createdAt": "2026-06-16T11:15:46.074Z",
     "sources": [
       "obs_c8aedad0374f"
-    ]
+    ],
+    "createdAt": "2026-06-16T11:15:46.074Z"
   },
   {
     "id": "ref_ddee4e87a981",
     "kind": "reflection",
     "content": "The observer contract is now source-only: `record_observations({ observations: [] })` is the explicit empty-durable batch path, `mark_observed_no_observations` was removed, and `runObserver()` returns `[]` for that empty batch instead of `undefined`.",
-    "createdAt": "2026-06-16T11:15:46.074Z",
     "sources": [
       "obs_1a2b2969dde0",
       "obs_1ec0d31c15e5",
       "obs_136c58aad341",
       "obs_96093c3dff39"
-    ]
+    ],
+    "createdAt": "2026-06-16T11:15:46.074Z"
   },
   {
     "id": "ref_8bb336040a37",
     "kind": "reflection",
     "content": "Compaction now flushes a recent observed tail into compaction context: `ensureObservedBeforeCompaction()` / `runCompactionObserverFlush()` return `Observation[]`, `buildCompactionProjection()` appends a token-bounded recent observed tail, and `/om` summary rendering gained a separate pending-reflection section for that tail.",
-    "createdAt": "2026-06-16T11:15:46.074Z",
     "sources": [
       "obs_175f2a87c878",
       "obs_b4c57e8d472e",
@@ -2092,823 +3243,462 @@ export const realRewrite120 = [
       "obs_e20f8de79bd0",
       "obs_6063ac6ad876",
       "obs_7a16024561a5"
-    ]
+    ],
+    "createdAt": "2026-06-16T11:15:46.074Z"
   },
   {
     "id": "ref_39442f67eb87",
     "kind": "reflection",
     "content": "`extensions/pi-observational-memory/tests/session-ledger-projection.test.ts` now includes a compaction-projection test proving a bounded recent observed tail can be included while `details.observations` stays empty and `details.reflections` remains reflection-only.",
-    "createdAt": "2026-06-16T11:47:37.229Z",
     "sources": [
       "obs_2a3e7ed6e654"
-    ]
+    ],
+    "createdAt": "2026-06-16T11:47:37.229Z"
   },
   {
     "id": "ref_eed02d00ee39",
     "kind": "reflection",
     "content": "`eval/src/om/cases/reflector.ts` and `eval/src/om/cases/rewrite.ts` were retuned toward compressed handoff-memory: reflector eval now prefers distilled durable active-memory value over one-reflection-per-observation output, and rewrite rubrics were softened to emphasize preserving central durable decisions plus useful compression.",
-    "createdAt": "2026-06-16T11:47:37.229Z",
     "sources": [
       "obs_ac7fd581e6bb"
-    ]
+    ],
+    "createdAt": "2026-06-16T11:47:37.229Z"
   },
   {
     "id": "ref_646ababab48a",
     "kind": "reflection",
     "content": "OM eval baseline reruns are still failing after the rubric edits: `cd eval && pnpm run om-agent-evals -- --out runs/om-agent-evals-refactor-baseline-$(date +%Y%m%d-%H%M%S) --case-timeout-ms 300000` exited nonzero with 12/20 passed (score 81/91), and the earlier baseline run was also 12/20 passed (score 80/92).",
-    "createdAt": "2026-06-16T11:47:37.229Z",
     "sources": [
       "obs_7c08d11243a8"
-    ]
+    ],
+    "createdAt": "2026-06-16T11:47:37.229Z"
   },
   {
     "id": "ref_d8149f2846e0",
     "kind": "reflection",
     "content": "`extensions/pi-observational-memory/src/agents/observer/prompts.ts` now treats observer serialization/truncation metadata like `output_omitted`, policy truncation notes, and input-budget exhaustion warnings as non-durable noise.",
-    "createdAt": "2026-06-16T11:47:37.229Z",
     "sources": [
       "obs_9d21b041d0ed"
-    ]
+    ],
+    "createdAt": "2026-06-16T11:47:37.229Z"
   },
   {
     "id": "ref_8e0ba0d12d8d",
     "kind": "reflection",
     "content": "A prompt-edit typo briefly broke TypeScript (`src/agents/observer/prompts.ts(15,44): error TS1005: ',' expected` etc.) and was then fixed; the follow-up `cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test && cd ../../eval && pnpm exec tsc --noEmit` succeeded.",
-    "createdAt": "2026-06-16T11:47:37.229Z",
     "sources": [
       "obs_221766c9a87d"
-    ]
+    ],
+    "createdAt": "2026-06-16T11:47:37.229Z"
   },
   {
     "id": "ref_1917dc70d26e",
     "kind": "reflection",
     "content": "`extensions/pi-observational-memory/src/agents/reflector/prompts.ts` was tightened to require reflection only when pending observations add durable active-memory value not already represented, and to forbid generic acknowledgements, breadcrumbs, and path-only context.",
-    "createdAt": "2026-06-16T11:47:37.229Z",
     "sources": [
       "obs_1917dc70d26e"
-    ]
+    ],
+    "createdAt": "2026-06-16T11:47:37.229Z"
   },
   {
     "id": "ref_d3fb439ddcb9",
     "kind": "reflection",
     "content": "`extensions/pi-observational-memory/src/agents/rewrite/prompts.ts` was tightened to ban acknowledgement-style, generic, process-flavored, and path-only reflections while still allowing only concrete durable items.",
-    "createdAt": "2026-06-16T11:47:37.229Z",
     "sources": [
       "obs_27b3f52e10de"
-    ]
+    ],
+    "createdAt": "2026-06-16T11:47:37.229Z"
   },
   {
     "id": "ref_4b40097837fc",
     "kind": "reflection",
     "content": "`buildNextCompactionProjection()` now takes `{ seed?: Projection; recentObservedTail?: Observation[] }`, and `src/hooks/compaction-hook.ts` was updated to pass `{ recentObservedTail }` instead of separate args.",
-    "createdAt": "2026-06-16T13:38:43.952Z",
     "sources": [
       "obs_1def281a381a"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:38:43.952Z"
   },
   {
     "id": "ref_287c6ad1bae6",
     "kind": "reflection",
     "content": "The compaction bridge terminology was renamed from `recentObservedTail`/`recent observation tail` to `compactionHandoffObservations`/`compaction handoff observations`, with config keys `compactionHandoffObservationMaxCount` and `compactionHandoffObservationMaxTokens` replacing the old tail names.",
-    "createdAt": "2026-06-16T13:38:43.952Z",
     "sources": [
       "obs_043d4e1b1241",
       "obs_71c3538cd59f",
       "obs_12dc9e43e165"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:38:43.952Z"
   },
   {
     "id": "ref_f076f81723c7",
     "kind": "reflection",
     "content": "`extensions/pi-observational-memory/src/agents/rewrite/prompts.ts` now requires conflicting inputs to be resolved into explicit current-vs-stale/not-preferred relationships instead of keeping contradictory plans co-current.",
-    "createdAt": "2026-06-16T13:38:43.952Z",
     "sources": [
       "obs_7d2681f4de2c"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:38:43.952Z"
   },
   {
     "id": "ref_f7104ab82b37",
     "kind": "reflection",
     "content": "The 2026-06-16 OM eval correction runs are still not green: `--only observer` passed 3/6, `--only reflector` passed 5/7, and `--only rewrite` passed 6/7; only `--only rewriteStale` succeeded.",
-    "createdAt": "2026-06-16T13:38:43.952Z",
     "sources": [
       "obs_4cf450edea35",
       "obs_0bda6e1359e8"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:38:43.952Z"
   },
   {
     "id": "ref_ab073e5312de",
     "kind": "reflection",
     "content": "A typecheck regression in `extensions/pi-observational-memory/src/agents/reflector/agent.ts` from missing `rejectedEmptyOrMultilineContentCount` / `rejectedInvalidSupportIdsCount` was fixed by removing those increments, and `cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test` passed afterward.",
-    "createdAt": "2026-06-16T13:38:43.952Z",
     "sources": [
       "obs_70cad06e71dc"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:38:43.952Z"
   },
   {
     "id": "ref_7003fe197bf3",
     "kind": "reflection",
     "content": "`recent observed tail` has been renamed to `compaction handoff observations`; it is temporary bridge context, rendered only in compaction summary, and is not normal active memory.",
-    "createdAt": "2026-06-16T13:48:42.048Z",
     "sources": [
       "obs_a0b027774f6b",
       "obs_86906c45a523"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:48:42.048Z"
   },
   {
     "id": "ref_8ebc3dc6179a",
     "kind": "reflection",
     "content": "User confirmed the simplification direction: keep `/om:view recorded` showing observations evidence, drop redundant status “next context” info, and remove the `activeObservations` alias in favor of `folded.observations`; they want to keep exploring further OM simplifications later.",
-    "createdAt": "2026-06-16T13:48:42.048Z",
     "sources": [
       "obs_47b88bd4feda",
       "obs_a21854a900d1"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:48:42.048Z"
   },
   {
     "id": "ref_00e3e29cc97b",
     "kind": "reflection",
     "content": "`Projection { observations, reflections }` and related `Projection`-named functions are now considered historical scaffolding; the still-needed pieces are `foldLedger(entries)`, active-memory rendering, compaction-memory rendering, and the observations evidence pool for reflector/recall/view.",
-    "createdAt": "2026-06-16T13:48:42.048Z",
     "sources": [
       "obs_6e9e79552045",
       "obs_82c80298e52c"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:48:42.048Z"
   },
   {
     "id": "ref_eddda30fc410",
     "kind": "reflection",
     "content": "Implementation started on the projection simplification: `src/session-ledger/projection.ts` was rewritten to add `CompactionMemoryConfig`, `CompactionMemory`, `activeReflections(entries)`, and `buildCompactionMemory(...)`, and the compaction hook was switched to `buildCompactionMemory` plus `renderSummary(memory.reflections, memory.handoffObservations)`.",
-    "createdAt": "2026-06-16T13:48:42.048Z",
     "sources": [
       "obs_cf9aeb091d8b"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:48:42.048Z"
   },
   {
     "id": "ref_499421e807fe",
     "kind": "reflection",
     "content": "`src/session-ledger/types.ts` now removes `observations` from `MemoryDetails`, with `isMemoryDetails` loosened so legacy `details.observations` is optional and ignored during validation.",
-    "createdAt": "2026-06-16T13:48:42.048Z",
     "sources": [
       "obs_5576d2c20eea"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:48:42.048Z"
   },
   {
     "id": "ref_395597f328be",
     "kind": "reflection",
     "content": "A search was run for remaining references to `activeObservations`, `fullProjection`, `contextProjection`, `nextContextProjection`, `buildNextCompactionProjection`, and `Projection` across `src` and `tests`, so the cleanup is actively checking for leftovers.",
-    "createdAt": "2026-06-16T13:48:42.048Z",
     "sources": [
       "obs_16067a9e00f7"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:48:42.048Z"
   },
   {
     "id": "ref_6b60ce1624e2",
     "kind": "reflection",
     "content": "OM projection/status/view cleanup is now using `folded.observations` and `activeReflections(entries)` instead of `folded.activeObservations`; status now reports `Context:      <n> reflections` only and drops `Next context`, while `/om:view` usage has switched to `[context|recorded]` with recorded rendering `foldLedger(entries)` and context rendering only `activeReflections(entries)`.",
-    "createdAt": "2026-06-16T13:50:56.225Z",
     "sources": [
       "obs_4f7f94233e61",
       "obs_4c41dc47f9ca",
       "obs_bd444152ec66"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:50:56.225Z"
   },
   {
     "id": "ref_4eb28327611c",
     "kind": "reflection",
     "content": "`tests/fixtures/session.ts` memoryDetails no longer accepts/emits `observations`; it now carries only `fullFold` and `reflections`, and the associated tests were updated to expect reflection-only status/view output plus recorded fixtures using `memoryDetails({ reflections: [ref] })`.",
-    "createdAt": "2026-06-16T13:50:56.225Z",
     "sources": [
       "obs_6bb17d488793",
       "obs_29f49346fed7",
       "obs_5b60cd648b98"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:50:56.225Z"
   },
   {
     "id": "ref_7f43c2c729e4",
     "kind": "reflection",
     "content": "A new `tests/session-ledger-projection.test.ts` now covers `activeReflections(entries)` merging compaction details with current reflections, retiring rewritten reflections, and storing active reflections in `details.reflections`.",
-    "createdAt": "2026-06-16T13:50:56.225Z",
     "sources": [
       "obs_54be5c013045"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:50:56.225Z"
   },
   {
     "id": "ref_eb83f1f04575",
     "kind": "reflection",
     "content": "`tests/session-ledger-fold.test.ts` has been narrowed to `folded.observations` and `folded.reflections` only, no longer asserting `folded.activeObservations`.",
-    "createdAt": "2026-06-16T13:50:56.225Z",
     "sources": [
       "obs_a04fd14f1bb6"
-    ]
+    ],
+    "createdAt": "2026-06-16T13:50:56.225Z"
   },
   {
     "id": "ref_25c43e3afa53",
     "kind": "reflection",
     "content": "`src/session-ledger/projection.ts` is now rejected as a concept and was deleted after splitting its responsibilities into `src/session-ledger/active-memory.ts` and `src/session-ledger/compaction-memory.ts`; `index.ts` now re-exports those modules instead of `projection.js`.",
-    "createdAt": "2026-06-16T14:00:40.825Z",
     "sources": [
       "obs_6966a7e5d27e",
       "obs_11c0a34f0c0c",
       "obs_4c28e2d2a51e"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:00:40.825Z"
   },
   {
     "id": "ref_77b7add385b7",
     "kind": "reflection",
     "content": "`active-memory.ts` now owns `latestCompactionDetails(entries)`, `mergeReflections(base,next)`, and `activeReflections(entries)`, and `activeReflections(entries)` was corrected to filter out compacted reflections whose ids are in `foldLedger(entries).retiredReflectionIds`.",
-    "createdAt": "2026-06-16T14:00:40.825Z",
     "sources": [
       "obs_11c0a34f0c0c",
       "obs_69af698ec062"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:00:40.825Z"
   },
   {
     "id": "ref_2e1f43bfe9e6",
     "kind": "reflection",
     "content": "`compaction-memory.ts` now owns `CompactionMemoryConfig`, `CompactionMemory`, `capCompactionHandoffObservations`, `detailsFor`, and `buildCompactionMemory(entries, config, options)`; the old `_firstKeptEntryId`/`fullFold`/`observationsPoolMaxTokens` path was removed, `reflections` now always comes from `activeReflections(entries)`, and compaction handoff observations are capped internally at `8` and `1_000`.",
-    "createdAt": "2026-06-16T14:00:40.825Z",
     "sources": [
       "obs_f19a407bec6b",
       "obs_beff3164b4b2",
       "obs_009826fd47f3",
       "obs_f937c1f0ef29"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:00:40.825Z"
   },
   {
     "id": "ref_16c0e40c1bfe",
     "kind": "reflection",
     "content": "`extensions/pi-observational-memory/src/config.ts` removed `observationsPoolMaxTokens` entirely; only `maxInitialObserveTokens` and `reflectionsPoolMaxTokens` remain among those config fields.",
-    "createdAt": "2026-06-16T14:00:40.825Z",
     "sources": [
       "obs_b6cd48455d52"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:00:40.825Z"
   },
   {
     "id": "ref_553d6e0a29b3",
     "kind": "reflection",
     "content": "Tests were updated to import `activeReflections` from `../src/session-ledger/active-memory.js` and `buildCompactionMemory` from `../src/session-ledger/compaction-memory.js`.",
-    "createdAt": "2026-06-16T14:00:40.825Z",
     "sources": [
       "obs_553d6e0a29b3"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:00:40.825Z"
   },
   {
     "id": "ref_6d8804f8ccbe",
     "kind": "reflection",
     "content": "The latest validation state after the split is mixed: `pnpm run typecheck` passed, but the test suite still had 1 failing test out of 119.",
-    "createdAt": "2026-06-16T14:00:40.825Z",
     "sources": [
       "obs_df5acf4332e7"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:00:40.825Z"
   },
   {
     "id": "ref_e57181d5dde8",
     "kind": "reflection",
     "content": "`tests/session-ledger-projection.test.ts` was renamed to `tests/session-ledger-memory.test.ts`, and its describe title is now `session-ledger active and compaction memory`.",
-    "createdAt": "2026-06-16T14:44:07.201Z",
     "sources": [
       "obs_759ae65156b0"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:44:07.201Z"
   },
   {
     "id": "ref_97285c86c3c8",
     "kind": "reflection",
     "content": "`tests/fixtures/session.ts`'s `memoryDetails` fixture no longer accepts or emits `fullFold`; it now only takes `reflections` and returns `{ type: OM_FOLDED, reflections: ... }`.",
-    "createdAt": "2026-06-16T14:44:07.201Z",
     "sources": [
       "obs_97285c86c3c8"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:44:07.201Z"
   },
   {
     "id": "ref_1707c80f1e4b",
     "kind": "reflection",
     "content": "The user wants OM simplification to keep questioning functionality in the complex areas under `extensions/pi-observational-memory/src/agents`, `src/memory-update`, `src/memory`, and `src/session-ledger`, not just rename/cleanup in place; they agreed all 6 simplification targets are reasonable and asked to proceed unless uncertain.",
-    "createdAt": "2026-06-16T14:44:07.201Z",
     "sources": [
       "obs_c87e0340c298",
       "obs_d1cbbdef30a9"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:44:07.201Z"
   },
   {
     "id": "ref_7e23813c5e59",
     "kind": "reflection",
     "content": "The next inspection step was to review `extensions/pi-observational-memory/src/memory-update/run.ts`, `src/session-ledger/fold.ts`, `src/session-ledger/progress.ts`, `src/memory-update/due.ts`, `src/memory-update/observer-stage.ts`, and `src/memory-update/reflector-stage.ts` before making the six simplification changes.",
-    "createdAt": "2026-06-16T14:44:07.201Z",
     "sources": [
       "obs_97bb5a594690"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:44:07.201Z"
   },
   {
     "id": "ref_2cc32d289bdc",
     "kind": "reflection",
     "content": "`cd extensions/pi-observational-memory && pnpm run typecheck` and `cd extensions/pi-observational-memory && pnpm test` both succeeded after the latest test/fixture rewrites.",
-    "createdAt": "2026-06-16T14:44:07.201Z",
     "sources": [
       "obs_343182e3a880"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:44:07.201Z"
   },
   {
     "id": "ref_1c714e8ccbfa",
     "kind": "reflection",
     "content": "`src/session-ledger/types.ts` now has `MemoryRecordBase` without `kind` or `sources`; `Observation` keeps `timestamp` and `sourceEntryIds`, and `Reflection` owns `sources`.",
-    "createdAt": "2026-06-16T14:47:18.329Z",
     "sources": [
       "obs_a34363f86465"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:47:18.329Z"
   },
   {
     "id": "ref_a998e931a9cf",
     "kind": "reflection",
     "content": "`src/memory-update/due.ts` now exports `computeMemoryStageWork(entries, runtime)` and returns `observerWork`, `reflectorWork`, and `rewriteWork` arrays instead of boolean due flags.",
-    "createdAt": "2026-06-16T14:47:18.329Z",
     "sources": [
       "obs_fe1eb12fbdb7"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:47:18.329Z"
   },
   {
     "id": "ref_62b6036662db",
     "kind": "reflection",
     "content": "`run.ts` now uses `computeMemoryStageWork(entries, runtime)` and passes the resulting `observerWork`/`reflectorWork`/`rewriteWork` into the stage runners.",
-    "createdAt": "2026-06-16T14:47:18.329Z",
     "sources": [
       "obs_296859ac0c69"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:47:18.329Z"
   },
   {
     "id": "ref_5bf74c344f88",
     "kind": "reflection",
     "content": "`runTrackedStage` in `src/memory-update/run.ts` was simplified to only catch errors; it no longer appends `OM_AGENT_RUN_RECORDED` entries with duration/status metadata.",
-    "createdAt": "2026-06-16T14:47:18.329Z",
     "sources": [
       "obs_0145016b645a"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:47:18.329Z"
   },
   {
     "id": "ref_e4884d51933c",
     "kind": "reflection",
     "content": "`observer-stage.ts` now accepts optional `workEntries` as `chunkEntries`, otherwise derives source entries after `lastObservationCoverageIndex`, and applies threshold checks before invoking the observer agent.",
-    "createdAt": "2026-06-16T14:47:18.329Z",
     "sources": [
       "obs_b3323c6bd6f5"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:47:18.329Z"
   },
   {
     "id": "ref_34728a081e19",
     "kind": "reflection",
     "content": "`reflector-stage.ts` now accepts optional `workObservations`, uses folded `unreflectedObservations` when omitted, and skips when there is no observation coverage or the unreflected count is below `reflectEveryObservations`.",
-    "createdAt": "2026-06-16T14:47:18.329Z",
     "sources": [
       "obs_34728a081e19"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:47:18.329Z"
   },
   {
     "id": "ref_e8d9b718bda2",
     "kind": "reflection",
     "content": "`src/memory-update/compaction.ts` now adds `ensureObservedBeforeCompaction()`, which flushes unseen source entries before compaction by running the observer over entries after the last observation coverage up to `firstKeptEntryId`.",
-    "createdAt": "2026-06-16T14:47:18.329Z",
     "sources": [
       "obs_ec2fb5dff56a"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:47:18.329Z"
   },
   {
     "id": "ref_64345ceca1cd",
     "kind": "reflection",
     "content": "`commonAgentArgs` was moved to `src/memory-update/agent-args.ts`, and `rewrite-stage.ts` now imports it from there instead of `./stage-utils.js`.",
-    "createdAt": "2026-06-16T14:47:18.329Z",
     "sources": [
       "obs_b8fcebc5b2b5"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:47:18.329Z"
   },
   {
     "id": "ref_adf86ab3e4c9",
     "kind": "reflection",
     "content": "Latest state: `Observation` no longer has a `sources` field; it keeps `timestamp` and `sourceEntryIds` only, and test fixtures were updated to drop `sources` from session observation shapes.",
-    "createdAt": "2026-06-16T14:51:53.391Z",
     "sources": [
       "obs_8ed52955812f",
       "obs_27272c6b796d"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:51:53.391Z"
   },
   {
     "id": "ref_830c8ba1e60f",
     "kind": "reflection",
     "content": "`src/session-ledger/index.ts` was added as a barrel re-exporting `types.js`, `fold.js`, `active-memory.js`, `compaction-memory.js`, `recall.js`, `render-summary.js`, and `memory-tokens.js`.",
-    "createdAt": "2026-06-16T14:51:53.391Z",
     "sources": [
       "obs_1213ce82c8f1"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:51:53.391Z"
   },
   {
     "id": "ref_da38511d00cb",
     "kind": "reflection",
     "content": "`src/commands/status.ts` was rewritten again to `/om:status [full]`, now showing memory/reflection counts, token size, next-work progress, optional full details, in-flight work, and last errors.",
-    "createdAt": "2026-06-16T14:51:53.391Z",
     "sources": [
       "obs_6338d1a7ffc5"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:51:53.391Z"
   },
   {
     "id": "ref_9a30eef891ae",
     "kind": "reflection",
     "content": "The stale helper/files cleanup removed `src/memory-update/stage-utils.ts`, `src/session-ledger/progress.ts`, `src/session-ledger/agent-usage.ts`, `tests/session-ledger-agent-usage.test.ts`, and `tests/session-ledger-progress.test.ts`.",
-    "createdAt": "2026-06-16T14:51:53.391Z",
     "sources": [
       "obs_bb279199ee00"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:51:53.391Z"
   },
   {
     "id": "ref_08fa346539a3",
     "kind": "reflection",
     "content": "Typecheck/test stability recovered after the scheduler and agent edits: `src/memory-update/scheduler.ts` now imports `computeMemoryStageWork` and gates on work-array lengths, and `cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test` passed.",
-    "createdAt": "2026-06-16T14:51:53.391Z",
     "sources": [
       "obs_0c9a79503679",
       "obs_251eca683f2d",
       "obs_b4fbecc4334d"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:51:53.391Z"
   },
   {
     "id": "ref_0f23dd81b8ca",
     "kind": "reflection",
     "content": "`src/agents/common.ts` dropped the `MemoryAgentUsage` type and `onUsage` callback plumbing, and `src/agents/observer/agent.ts` was updated to stop passing those hooks.",
-    "createdAt": "2026-06-16T14:51:53.392Z",
     "sources": [
       "obs_b2b23813e375",
       "obs_a6a8328bd65c"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:51:53.392Z"
   },
   {
     "id": "ref_411c63ba00bc",
     "kind": "reflection",
     "content": "The record tool/agent contract is now reflection-specific: `record_reflections` uses `{ reflections: [{ content, sources }], summary? }`, the reflector returns `undefined` for no observations and `[]` for an empty batch, and the rewrite agent uses `record_rewritten_reflections` with `allowSummary: true` / `ackVerb: \"Accepted\"`.",
-    "createdAt": "2026-06-16T14:51:53.392Z",
     "sources": [
       "obs_54aa35e8deae",
       "obs_6793d7ca2012",
       "obs_fb6424f26d81"
-    ]
-  },
-  {
-    "id": "ref_b8246721aa46",
-    "kind": "reflection",
-    "content": "Current OM direction: reflection-only active memory with typed ids is the baseline; user wants simplification to continue across agents/memory-update/session-ledger until no further clear simplifications remain, while keeping real functionality changes over renames and preserving typed ids, reflection-only projection, recall traversal, compaction-hook behavior, and status/view output.",
-    "createdAt": "2026-06-16T14:52:07.164Z",
-    "sources": [
-      "ref_1abd7956b048",
-      "ref_e16a61897eb9",
-      "ref_a5ceef759dd5",
-      "ref_8ebc3dc6179a",
-      "ref_1707c80f1e4b"
-    ]
-  },
-  {
-    "id": "ref_fd5918650ee8",
-    "kind": "reflection",
-    "content": "Current plan for compaction is near-instant and non-rewriting: flush any unobserved tail via observer, then render deterministic projection; do not do synchronous reflector/curator/rewrite work during compaction. Compaction bridge terminology is now `compaction handoff observations` and it is temporary bridge context, not normal active memory.",
-    "createdAt": "2026-06-16T14:52:07.164Z",
-    "sources": [
-      "ref_24f169c005fa",
-      "ref_4b40097837fc",
-      "ref_287c6ad1bae6",
-      "ref_7003fe197bf3"
-    ]
-  },
-  {
-    "id": "ref_59403b409dcc",
-    "kind": "reflection",
-    "content": "Reflector/rewrite prompts must stay concrete and durable, not acknowledgements/process/path-only, and conflicting inputs should be resolved into explicit current-vs-stale/not-preferred relationships rather than co-current plans.",
-    "createdAt": "2026-06-16T14:52:07.164Z",
-    "sources": [
-      "ref_1917dc70d26e",
-      "ref_d3fb439ddcb9",
-      "ref_f076f81723c7"
-    ]
-  },
-  {
-    "id": "ref_8d8985a5af03",
-    "kind": "reflection",
-    "content": "Rewrite input is reflection-only for now; the rewrite agent should not receive source observations, should preserve transitive `ref -> ref -> obs` recall traversal, and rewrite failures/backoff are handled internally via unchanged active-id-set suppression and summary-only rewrite records.",
-    "createdAt": "2026-06-16T14:52:07.164Z",
-    "sources": [
-      "ref_5abd7de909a3",
-      "ref_3e6ed2e9fb33",
-      "ref_ddf0e7be2826",
-      "ref_206820f295bf"
-    ]
-  },
-  {
-    "id": "ref_f7ff2a37f8d2",
-    "kind": "reflection",
-    "content": "Stage 4 rewrite is wired end-to-end with typed `sources`, one-line validation, allowed-source checks, dedupe, and max-count limits; `ReflectionsRewrittenEntryData` is now summary-only plus retired IDs, and rewrite-stage failures feed `lastRewriteError`/status warnings only if that path is still present in the current branch state.",
-    "createdAt": "2026-06-16T14:52:07.164Z",
-    "sources": [
-      "ref_99a92e859fa5",
-      "ref_5abd7de909a3",
-      "ref_e15d64c00e18",
-      "ref_206820f295bf"
-    ]
-  },
-  {
-    "id": "ref_f2524bb59c0b",
-    "kind": "reflection",
-    "content": "Compaction/rewrite/transient-memory plumbing has been removed or simplified: compaction hook no longer resets transient memory, `buildNextCompactionProjection` no longer takes transient args, transient compaction observations/reflections were dropped, and dead projection/progress helpers were deleted.",
-    "createdAt": "2026-06-16T14:52:07.164Z",
-    "sources": [
-      "ref_49bc4b52c913",
-      "ref_c006bf57587f",
-      "ref_b1ce36e3b33a",
-      "ref_25c43e3afa53"
-    ]
-  },
-  {
-    "id": "ref_2d3c8dfd6db4",
-    "kind": "reflection",
-    "content": "The current testing surface should keep only value-bearing coverage for typed ids, reflection-only projection/memory, recall traversal, rewrite behavior, compaction hook behavior, and status/view output; obsolete curator/pin/review tests and legacy coverage should stay deleted.",
-    "createdAt": "2026-06-16T14:52:07.164Z",
-    "sources": [
-      "ref_7925df93cd01",
-      "ref_84e4a7a0dd10",
-      "ref_fe547e1895d1",
-      "ref_5abd7de909a3",
-      "ref_a5ceef759dd5"
-    ]
-  },
-  {
-    "id": "ref_351c047b400a",
-    "kind": "reflection",
-    "content": "Validation is mixed: some typecheck/test passes succeeded after the simplification and migration work, but there were still intermittent suite failures during the broader cleanup; keep rerunning the targeted commands `cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test` and `cd ../../eval && pnpm exec tsc --noEmit` as needed.",
-    "createdAt": "2026-06-16T14:52:07.164Z",
-    "sources": [
-      "ref_e07c95807e35",
-      "ref_7d63b988248d",
-      "ref_fc1a14dcb28a",
-      "ref_6d8804f8ccbe",
-      "ref_2cc32d289bdc"
-    ]
-  },
-  {
-    "id": "ref_512072783bdc",
-    "kind": "reflection",
-    "content": "`54ac8fa` (“Simplify OM agent and update pipeline”) removed the persistent agent-usage ledger and deleted the old `/om:status` agent usage/cost output tied to `agent-usage`; that path is no longer current.",
-    "createdAt": "2026-06-16T15:27:05.318Z",
-    "sources": [
-      "obs_36f82eb28c33"
-    ]
-  },
-  {
-    "id": "ref_520f0a722d2e",
-    "kind": "reflection",
-    "content": "Validation currently passes after the simplification: `cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test && cd eval && pnpm exec tsc --noEmit`.",
-    "createdAt": "2026-06-16T15:27:05.318Z",
-    "sources": [
-      "obs_8cb4160ad213"
-    ]
-  },
-  {
-    "id": "ref_44064b4a4d4e",
-    "kind": "reflection",
-    "content": "Cost-tracking direction changed to a standardized persisted mechanism: a global `/cost` view should aggregate per-extension costs, with no more active/discarded main split—only total/main/extensions.",
-    "createdAt": "2026-06-16T15:27:05.318Z",
-    "sources": [
-      "obs_26e7b0505a67",
-      "obs_3c22347cf191"
-    ]
-  },
-  {
-    "id": "ref_cf776e3ffa04",
-    "kind": "reflection",
-    "content": "The agreed persisted event schema is `pi.usage.recorded` (`schemaVersion: 1`) with `source: \"extension\"`, `extension`, optional `agent`/`operation`/`tags`, optional `model { provider?, id? }`, and `usage` fields `input`, `output`, `cacheRead`, `cacheWrite`, `totalTokens`, and numeric `cost`.",
-    "createdAt": "2026-06-16T15:27:05.318Z",
-    "sources": [
-      "obs_896ca2d8b9f0"
-    ]
-  },
-  {
-    "id": "ref_13fe423c6138",
-    "kind": "reflection",
-    "content": "For pi-fork, effort should be encoded as `tags: { effort: \"fast\" | \"balanced\" | \"deep\" }` while keeping `extension: \"fork\"`, `agent: \"child-agent\"`, and `operation: \"fork\"`.",
-    "createdAt": "2026-06-16T15:27:05.318Z",
-    "sources": [
-      "obs_a7771e73e3e2"
-    ]
-  },
-  {
-    "id": "ref_08a2b0a5afcc",
-    "kind": "reflection",
-    "content": "Implementation has started for a separate `extensions/pi-cost/` extension with `/cost` and `/cost full`, fold/format helpers, tests, and branch-scoped aggregation via `ctx.sessionManager.getBranch()` over main assistant usage plus `pi.usage.recorded` entries.",
-    "createdAt": "2026-06-16T15:27:05.318Z",
-    "sources": [
-      "obs_64b12561fd1f",
-      "obs_ad3df34de4a7"
-    ]
-  },
-  {
-    "id": "ref_232164f5fc76",
-    "kind": "reflection",
-    "content": "`extensions/pi-cost/src/types.ts` now defines `PI_USAGE_RECORDED`, `UsageTotals`, `UsageRecordedData`, normalization/build helpers, and `isUsageRecordedEntry`/`isUsageRecordedData`; `src/fold.ts` folds assistant messages and recorded usage into main/extensions/total and per-model/per-agent/per-operation/per-tag breakdowns.",
-    "createdAt": "2026-06-16T15:27:05.318Z",
-    "sources": [
-      "obs_fbc70c47cfe7",
-      "obs_555c952b02de"
-    ]
-  },
-  {
-    "id": "ref_4632a9217732",
-    "kind": "reflection",
-    "content": "`extensions/pi-cost` now has `/cost` and `/cost full`: default output is `Cost` with Total/Main/Extensions summaries, full output renders sorted cost buckets with nested Agents/Operations/Tag <key>/Models sections, and invalid modes must show `Usage: /cost [full]`.",
-    "createdAt": "2026-06-16T15:29:34.186Z",
-    "sources": [
-      "obs_6e21496fa0ee",
-      "obs_3efa6b2fd4ef"
-    ]
-  },
-  {
-    "id": "ref_433eadc0313c",
-    "kind": "reflection",
-    "content": "`extensions/pi-cost/tests/cost.test.ts` now covers folding main assistant + extension usage and `/cost full` rendering; the test import was corrected from `../index.js` to `../src/commands/cost.js`, and the total-cost assertion uses `toBeCloseTo(0.6)`.",
-    "createdAt": "2026-06-16T15:29:34.186Z",
-    "sources": [
-      "obs_f8abf7c04aba",
-      "obs_bf1fffc24aa0"
-    ]
-  },
-  {
-    "id": "ref_a498b73037b8",
-    "kind": "reflection",
-    "content": "`extensions/pi-observational-memory/src/agents/common.ts` now exposes `MemoryAgentUsage` and an `onUsage` callback so agent loops can report provider/id, thinkingLevel, durationMs, stopReason, and usage when available.",
-    "createdAt": "2026-06-16T15:29:34.186Z",
-    "sources": [
-      "obs_6d7dbb279c61"
-    ]
-  },
-  {
-    "id": "ref_31c074be4e6d",
-    "kind": "reflection",
-    "content": "`extensions/pi-observational-memory/src/memory-update/agent-args.ts` now records usage into `pi.usage.recorded` via `buildUsageRecordedData`; it uses operation `compaction-flush` during `runtime.compactHookInFlight` and `memory-update` otherwise.",
-    "createdAt": "2026-06-16T15:29:34.186Z",
-    "sources": [
-      "obs_077b196f2ce6"
-    ]
-  },
-  {
-    "id": "ref_fd6901302128",
-    "kind": "reflection",
-    "content": "`extensions/pi-fork/src/tool.ts` now records fork usage as `pi.usage.recorded` with extension `fork`, agent `child-agent`, operation `fork`, optional `effort` tag, and computed `totalTokens`, and it does this before error handling.",
-    "createdAt": "2026-06-16T15:29:34.186Z",
-    "sources": [
-      "obs_935d2dabb274"
-    ]
-  },
-  {
-    "id": "ref_29ab6980f2fb",
-    "kind": "reflection",
-    "content": "Validation is currently passing for the new cost and observability changes: `cd extensions/pi-cost && pnpm test` passed, and `cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test` both passed.",
-    "createdAt": "2026-06-16T15:29:34.186Z",
-    "sources": [
-      "obs_e8b8e2a87603"
-    ]
-  },
-  {
-    "id": "ref_b7a4d6ca5371",
-    "kind": "reflection",
-    "content": "A new OM review pass is in progress; highest-impact findings are to remove the reverse dependency on `pi-cost` from `extensions/pi-observational-memory` and `extensions/pi-fork`, because both import `../../../pi-cost/src/types.js` / `../../pi-cost/src/types.js` directly and risk standalone load breakage.",
-    "createdAt": "2026-06-16T15:36:57.508Z",
-    "sources": [
-      "obs_bd2519837b73",
-      "obs_a66d9130b36b",
-      "obs_8a40f58910e7"
-    ]
-  },
-  {
-    "id": "ref_a2d74290713e",
-    "kind": "reflection",
-    "content": "The `runtime.compactHookInFlight` / `compaction-flush` branch is now under scrutiny as likely vestigial complexity; the current question is whether to remove the special case or move the decision to the caller.",
-    "createdAt": "2026-06-16T15:36:57.509Z",
-    "sources": [
-      "obs_e2a0c11cdbf5",
-      "obs_db9cde8993ce"
-    ]
-  },
-  {
-    "id": "ref_8e001e8dd59e",
-    "kind": "reflection",
-    "content": "OM memory-update plumbing may still be over-staged (`MemoryStageName`, `memoryUpdateLoop`, `due.ts`), with a possible simplification target of a flat `observe | reflect | rewrite | none` decision path.",
-    "createdAt": "2026-06-16T15:36:57.509Z",
-    "sources": [
-      "obs_2d9e2c91e47a",
-      "obs_db9cde8993ce"
-    ]
-  },
-  {
-    "id": "ref_9004db804be0",
-    "kind": "reflection",
-    "content": "`nextContextProjection()` and drift reporting are now suspected dead or low-value after reflection-only active memory and should be verified for removal.",
-    "createdAt": "2026-06-16T15:36:57.509Z",
-    "sources": [
-      "obs_a60e59dd158a",
-      "obs_db9cde8993ce"
-    ]
-  },
-  {
-    "id": "ref_9e46d687a96f",
-    "kind": "reflection",
-    "content": "`pi-fork` usage accounting currently recomputes `totalTokens` from component usage fields instead of using a shared normalize helper, and the review flagged this as a possible semantic mismatch/double-counting risk versus OM.",
-    "createdAt": "2026-06-16T15:36:57.509Z",
-    "sources": [
-      "obs_b4ca1a103f20",
-      "obs_db9cde8993ce"
-    ]
-  },
-  {
-    "id": "ref_8014f3ddae53",
-    "kind": "reflection",
-    "content": "The assistant already started a verification sweep by reading `extensions/pi-observational-memory/src/memory-update/run.ts`, `due.ts`, `runtime.ts`, and attempted `compaction-hook.ts`, but that file was not found at the expected path.",
-    "createdAt": "2026-06-16T15:36:57.509Z",
-    "sources": [
-      "obs_55ce4dbb4377"
-    ]
-  },
-  {
-    "id": "ref_23c723742293",
-    "kind": "reflection",
-    "content": "`extensions/pi-observational-memory/src/usage.ts` is now the local source of `PI_USAGE_RECORDED`, `UsageTotals`, `UsageRecordedData`, `normalizeUsage()`, and `buildUsageRecordedData()`; it normalizes `cost` from `usage.cost.total` or `usage.cost` and computes `totalTokens` from `usage.totalTokens` or `input+output+cacheRead+cacheWrite`.",
-    "createdAt": "2026-06-16T15:43:21.035Z",
-    "sources": [
-      "obs_b4eae129c47c"
-    ]
-  },
-  {
-    "id": "ref_e21992b4933f",
-    "kind": "reflection",
-    "content": "OM `memory-update/agent-args.ts` no longer imports usage types/helpers from `pi-cost`; it now uses the new local `../usage.js` module, and `commonAgentArgs()` takes an optional `operation` defaulting to `\"memory-update\"` with the old `operationFor(runtime, usage)` special-case removed.",
-    "createdAt": "2026-06-16T15:43:21.035Z",
-    "sources": [
-      "obs_c1f4ec8607e3",
-      "obs_fe58eb229efc"
-    ]
-  },
-  {
-    "id": "ref_03c88df929ba",
-    "kind": "reflection",
-    "content": "OM compaction still explicitly passes `\"compaction-flush\"` from `memory-update/compaction.ts` into `commonAgentArgs(..., \"compaction-flush\")`; the follow-up `pnpm run typecheck && pnpm test` was started but its result was not captured, so validation after that edit is presently unknown.",
-    "createdAt": "2026-06-16T15:43:21.035Z",
-    "sources": [
-      "obs_b18a9ace12df"
-    ]
-  },
-  {
-    "id": "ref_bf0145f61396",
-    "kind": "reflection",
-    "content": "`extensions/pi-fork` now has a local `src/usage.ts` with the same usage-recorded helpers/types, and `src/tool.ts` plus `tests/tool.test.ts` now import from that local module instead of `../../pi-cost/src/types.js`.",
-    "createdAt": "2026-06-16T15:43:21.035Z",
-    "sources": [
-      "obs_f4799050a7e5"
-    ]
-  },
-  {
-    "id": "ref_4caa0b558b65",
-    "kind": "reflection",
-    "content": "`MemoryStageName` was deleted as a duplicate of `MemoryUpdatePhase`; OM stage callback types in `model-resolver.ts`, `run.ts`, and `types.ts` now use `MemoryUpdatePhase` from `../runtime.js`.",
-    "createdAt": "2026-06-16T15:43:21.035Z",
-    "sources": [
-      "obs_3b8c44fa88cb"
-    ]
-  },
-  {
-    "id": "ref_93beefd47dc0",
-    "kind": "reflection",
-    "content": "The stage-orchestration review did not change the active design: OM still uses the 3-stage `observer` → `reflector` → `rewrite` sequence with `inFlightObserverStagePromise` and per-stage threshold re-checks, and no dead code was identified beyond the duplicate stage type.",
-    "createdAt": "2026-06-16T15:43:21.035Z",
-    "sources": [
-      "obs_5ebb943e04cf"
-    ]
-  },
-  {
-    "id": "ref_146a021f3eb1",
-    "kind": "reflection",
-    "content": "Latest validation after the pi-fork and OM edits passed: `cd extensions/pi-fork && pnpm run typecheck && pnpm test && cd ../pi-observational-memory && pnpm run typecheck && pnpm test` returned ok.",
-    "createdAt": "2026-06-16T15:43:21.035Z",
-    "sources": [
-      "obs_c7520017d4f5"
-    ]
-  },
-  {
-    "id": "ref_90682ab042b0",
-    "kind": "reflection",
-    "content": "OM evals now need to be grounded in real sessions, with explicit coverage for observer, reflector, rewrite, recall, and end-to-end behavior plus token/time efficiency and output quality.",
-    "createdAt": "2026-06-16T16:01:47.019Z",
-    "sources": [
-      "obs_ecc9695844e5"
-    ]
-  },
-  {
-    "id": "ref_c02214db50ce",
-    "kind": "reflection",
-    "content": "Current eval implementation order is recall first, then e2e replay, then efficiency-budget dimensions, then additional mined real sessions/reporting.",
-    "createdAt": "2026-06-16T16:01:47.019Z",
-    "sources": [
-      "obs_2dfa4c06b5e7"
-    ]
+    ],
+    "createdAt": "2026-06-16T14:51:53.392Z"
   }
 ] as const;
