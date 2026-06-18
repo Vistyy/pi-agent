@@ -111,6 +111,10 @@ export function reflectorMaxCount(max: number): OmGrader<Reflection[]> {
   return { label: `at most ${max} reflections`, pass: (output) => (output ?? []).length <= max, detail: (output) => ({ count: (output ?? []).length }) };
 }
 
+export function reflectorForbidsSourceIds(...ids: string[]): OmGrader<Reflection[]> {
+  return { label: `forbids source ids ${ids.join(', ')}`, pass: (output) => ids.every((id) => !reflectionSourceIds(output).includes(id)), detail: (output) => reflectionSourceIds(output) };
+}
+
 export function reflectorSourceIdsAllowed(allowedIds: string[]): OmGrader<Reflection[]> {
   const allowed = new Set(allowedIds);
   return { label: `source ids limited to ${allowedIds.join(', ')}`, pass: (output) => reflectionSourceIds(output).every((id) => allowed.has(id)), detail: (output) => reflectionSourceIds(output) };

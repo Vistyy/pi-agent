@@ -2,7 +2,7 @@ import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import type { AgentEvalRecord, Observation, Reflection } from '../types.js';
 import { runReflectorEval } from '../agent-runner.js';
 import { obs, ref } from '../runner.js';
-import { gradeAgentOutput, optional, reflectorForbidsAny, reflectorMaxCount, reflectorRequiresAll, reflectorSourceIdsAllowed } from '../diagnostics.js';
+import { gradeAgentOutput, optional, reflectorForbidsAny, reflectorForbidsSourceIds, reflectorMaxCount, reflectorRequiresAll, reflectorSourceIdsAllowed } from '../diagnostics.js';
 import { realReflector16 as realReflector16v2 } from './real-session-fixtures-v2.js';
 
 async function gradeReflector(args: {
@@ -22,6 +22,18 @@ async function gradeReflector(args: {
   const touchedFiles = args.touchedFiles ?? [];
   const { output, usage, agentDurationMs } = await runReflectorEval(args.model, args.thinkingLevel, { reflections, observations: args.observations, touchedFiles });
   return gradeAgentOutput({ id: args.id, agent: 'reflector', output, probe: args.probe, judgeModel: args.judgeModel, started, graders: args.graders, usage: usage.total, agentDurationMs, diagnostics: { observations: args.observations, reflections, touchedFiles, forceJudge: args.forceJudge }, noToolCallLabel: 'No record_reflections tool call' });
+}
+
+function normalizeFixtureObservation(observation: any): Observation {
+  return { id: observation.id, content: observation.content, timestamp: observation.timestamp ?? observation.createdAt ?? '', sourceEntryIds: observation.sourceEntryIds ?? [], tokenCount: observation.tokenCount ?? Math.ceil(observation.content.length / 4) };
+}
+
+function normalizeFixtureReflection(reflection: any): Reflection {
+  return { id: reflection.id, content: reflection.content, sources: reflection.sources ?? [], tokenCount: reflection.tokenCount ?? Math.ceil(reflection.content.length / 4) };
+}
+
+function realGigaReflections(): Reflection[] {
+  return (realReflector16v2.reflections ?? []).map(normalizeFixtureReflection);
 }
 
 export async function reflectorTouchedFilesWeakContext(model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
@@ -44,31 +56,114 @@ export async function reflectorStaleCurrentReconciliation(model: string, judgeMo
   return gradeReflector({
     id: 'reflector-stale-current-reconciliation', model, judgeModel, thinkingLevel, observations, reflections,
     probe: { id: 'reflector-stale-current-reconciliation', question: 'Avoid reinforcing stale active memory and record the current replacement when new evidence says an old reflection is no longer true.', rubric: { pass_if: ['No reflection claims apiMode=legacy is current.', 'A corrective reflection says apiMode=streaming is current and legacy is rejected/stale.'], fail_if: ['Repeats/reinforces apiMode=legacy as current.', 'Ignores replacement relationship.'] } },
-    graders: [reflectorForbidsAny('apiMode=legacy is the current'), reflectorSourceIdsAllowed([...observations.map((o) => o.id), ...reflections.map((r) => r.id)]), optional(reflectorRequiresAll('apiMode=streaming')), optional(reflectorRequiresAll('legacy')), optional(reflectorMaxCount(2))],
+    graders: [reflectorForbidsAny('apiMode=legacy is the current'), reflectorSourceIdsAllowed(observations.map((o) => o.id)), optional(reflectorRequiresAll('apiMode=streaming')), optional(reflectorRequiresAll('legacy')), optional(reflectorMaxCount(2))],
   });
 }
 
-async function realReflector(id: string, fixture: { observations: readonly any[]; reflections?: readonly any[] }, model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel, checks: ReturnType<typeof reflectorRequiresAll>[]): Promise<AgentEvalRecord> {
-  const observations = fixture.observations.map((observation) => ({ ...observation }));
-  const reflections = (fixture.reflections ?? []).map((reflection) => ({ ...reflection }));
+export async function reflectorDuplicateObservationNoop(model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const observations = [
+    obs('111111111111', 'User reiterated that compaction should only flush any unobserved tail and render the deterministic projection; no reflector, curator, rewrite, or maintenance work should run inline at the compaction boundary.', '2026-06-13T09:00:00.000Z'),
+  ];
+  const reflections = [ref('aaaaaaaaaaaa', 'OM compaction is near-instant and non-rewriting: it only flushes any unobserved tail through observer and renders deterministic projection; reflector/rewrite work must not run synchronously during compaction.', ['999999999999'])];
   return gradeReflector({
-    id, model, judgeModel, thinkingLevel, observations, reflections, forceJudge: true,
-    probe: { id, question: `Distill durable active-memory value from ${observations.length} production-shaped observations and ${reflections.length} active reflections mined from the giga OM session.`, rubric: { pass_if: ['Keeps durable user/project decisions.', 'Preserves decision-critical anchors and relationships.', 'Compresses related observations without broad summaries that lose important details.', 'Avoids acknowledgement and tool-receipt noise.'], fail_if: ['Drops main durable decisions.', 'Treats decision-critical anchors as noise.', 'Creates bloated duplicate reflections.', 'Records acknowledgement/tool-receipt noise.'] } },
-    graders: [reflectorSourceIdsAllowed([...observations.map((o) => o.id), ...reflections.map((r) => r.id)]), ...checks.map(optional), optional(reflectorMaxCount(Math.ceil(observations.length / 2)))],
+    id: 'reflector-duplicate-observation-noop', model, judgeModel, thinkingLevel, observations, reflections,
+    probe: { id: 'reflector-duplicate-observation-noop', question: 'When pending observations restate existing active memory in different words, do not append a duplicate reflection.', rubric: { pass_if: ['Returns an empty reflections array because the current reflection already covers the semantic claim.'], fail_if: ['Adds a duplicate compaction reflection that only restates the current active reflection.'] } },
+    graders: [reflectorSourceIdsAllowed(observations.map((o) => o.id)), reflectorMaxCount(0)],
   });
 }
 
-export const reflectorRealGiga16v2 = (model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel) => realReflector('reflector-real-giga-16-v2', realReflector16v2, model, judgeModel, thinkingLevel, [
-  reflectorRequiresAll('reflectorThinking', 'low'),
-  reflectorRequiresAll('pinning'),
-  reflectorRequiresAll('observations are durable evidence'),
-  reflectorRequiresAll('active projection', 'current reflections'),
-  reflectorRequiresAll('near-instant', 'non-rewriting'),
-  reflectorRequiresAll('typed provenance ids', 'sources'),
-  reflectorRequiresAll('full active-memory rewrite'),
-  reflectorRequiresAll('reflectionsPoolMaxTokens'),
-  reflectorRequiresAll('recall', 'provenance'),
-]);
+export async function reflectorAppendNewCompatibleFact(model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const observations = [
+    obs('222222222222', 'Production observer serialization now drops assistant `toolCall` blocks entirely from observer input; hidden edit/write payloads remain non-semantic observer evidence.', '2026-06-16T12:00:00.000Z'),
+  ];
+  const reflections = [ref('bbbbbbbbbbbb', 'Successful metadata-only tool results are skipped by observer serialization and are not source evidence.', ['888888888888'])];
+  return gradeReflector({
+    id: 'reflector-append-new-compatible-fact', model, judgeModel, thinkingLevel, observations, reflections,
+    probe: { id: 'reflector-append-new-compatible-fact', question: 'Append genuinely new compatible memory from pending observations without restating unrelated current reflections.', rubric: { pass_if: ['Adds a reflection that assistant toolCall blocks are dropped from observer input.', 'Does not restate the existing metadata-only tool-result policy as if it were new.'], fail_if: ['Emits no reflection for the new toolCall policy.', 'Duplicates the existing metadata-only tool-result reflection.'] } },
+    graders: [reflectorSourceIdsAllowed(observations.map((o) => o.id)), reflectorRequiresAll('toolCall', 'drop'), reflectorForbidsAny('metadata-only'), reflectorMaxCount(1)],
+  });
+}
+
+export async function reflectorSubtleStaleCorrection(model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const observations = [
+    obs('333333333333', 'User approved changing rewrite so `runRewrite()` receives reflection records only; direct observation pools are gone, and source evidence is reached later through typed provenance/recall traversal.', '2026-06-15T13:00:00.000Z'),
+    obs('444444444444', 'Older notes about feeding observations directly to rewrite should no longer guide implementation after the reflections-only rewrite input decision.', '2026-06-15T13:02:00.000Z'),
+  ];
+  const reflections = [ref('cccccccccccc', 'Rewrite input includes both observations and current reflections.', ['777777777777'])];
+  return gradeReflector({
+    id: 'reflector-subtle-stale-correction', model, judgeModel, thinkingLevel, observations, reflections,
+    probe: { id: 'reflector-subtle-stale-correction', question: 'Use pending observations to append a corrective reflection when a current reflection has become stale.', rubric: { pass_if: ['Records that rewrite input is now reflections-only.', 'Preserves that direct observation pools are no longer current and evidence is reached through provenance/recall.'], fail_if: ['Leaves observations+reflections as the current rewrite input.', 'Drops the replacement relationship.'] } },
+    graders: [reflectorForbidsAny('Rewrite input includes both observations and current reflections'), reflectorSourceIdsAllowed(observations.map((o) => o.id)), reflectorRequiresAll('reflection', 'only'), reflectorRequiresAll('stale'), optional(reflectorRequiresAll('recall')), optional(reflectorMaxCount(2))],
+  });
+}
+
+export async function reflectorFalseStalePrevention(model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const observations = [
+    obs('555555555555', 'User is uneasy about edit/write payloads in observer input; current direction is to hide mutation payloads from observer and provide touched-files as weak reflector-only operational context.', '2026-06-16T13:00:00.000Z'),
+  ];
+  const reflections = [ref('dddddddddddd', 'Observer should capture objective event/evidence atoms only, while reflector assigns durable meaning later.', ['666666666666'])];
+  return gradeReflector({
+    id: 'reflector-false-stale-prevention', model, judgeModel, thinkingLevel, observations, reflections,
+    probe: { id: 'reflector-false-stale-prevention', question: 'Append compatible new policy without falsely treating compatible current reflections as stale.', rubric: { pass_if: ['May record the hidden mutation-payload/touched-files policy as compatible with objective-evidence observer design.', 'Does not say objective evidence atom capture was rejected or replaced.'], fail_if: ['Marks the objective-evidence observer policy stale.', 'Claims touched-files replaces objective evidence capture rather than supplementing it.'] } },
+    graders: [reflectorSourceIdsAllowed(observations.map((o) => o.id)), reflectorRequiresAll('touched'), reflectorForbidsAny('objective event/evidence atoms is stale', 'objective evidence is stale', 'no longer capture objective', 'replaces objective evidence'), optional(reflectorRequiresAll('weak')), optional(reflectorMaxCount(2))],
+  });
+}
+
+export async function reflectorRealGiga16v2(model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const observations = realReflector16v2.observations.map(normalizeFixtureObservation);
+  const reflections = realGigaReflections();
+  return gradeReflector({
+    id: 'reflector-real-giga-16-v2', model, judgeModel, thinkingLevel, observations, reflections,
+    probe: { id: 'reflector-real-giga-16-v2', question: `Run a stateful reflector append pass over ${observations.length} production-shaped pending observations and ${reflections.length} active reflections from the giga OM session. Evaluate only the newly emitted reflections.`, rubric: { pass_if: ['Emits only durable new or changed handoff memory from pending observations.', 'Uses current reflections to avoid duplicate/churn output.', 'Skips transient failures, searches, validation-only receipts, and cleanup-only implementation activity.'], fail_if: ['Restates existing active memory.', 'Records process/status/test receipts without durable state.', 'Turns implementation churn into broad active memory.'] } },
+    graders: [
+      reflectorSourceIdsAllowed(observations.map((o) => o.id)),
+      reflectorForbidsSourceIds('obs_0c9a79503679', 'obs_5eccd71ac347', 'obs_eee294053797', 'obs_af38122c3f37', 'obs_b4fbecc4334d'),
+      reflectorForbidsAny('typecheck passed', 'pnpm test', 'search was run', 'initially failed', 'Test Files', 'Tests passed'),
+      optional(reflectorRequiresAll('reflectionRecordTool')),
+      optional(reflectorRequiresAll('record_reflections')),
+      optional(reflectorRequiresAll('record_rewritten_reflections')),
+      optional(reflectorMaxCount(4)),
+    ],
+  });
+}
+
+export async function reflectorGigaDuplicateNoop(model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const observations = [
+    obs('666666666661', 'User reiterated that compaction should only flush the unobserved tail and render the projection; no reflector, rewrite, curator, or maintenance pass should run inline when compacting.', '2026-06-16T14:00:00.000Z'),
+    obs('666666666662', 'The active-memory view should still be current reflections only; raw observations are durable evidence, not assistant-visible active context.', '2026-06-16T14:01:00.000Z'),
+  ];
+  return gradeReflector({
+    id: 'reflector-giga-duplicate-noop', model, judgeModel, thinkingLevel, observations, reflections: realGigaReflections(),
+    probe: { id: 'reflector-giga-duplicate-noop', question: 'With a large active-reflection pool, return no new reflections when pending observations only restate existing memory in different words.', rubric: { pass_if: ['Returns an empty reflections array.', 'Does not duplicate compaction or active-projection reflections.'], fail_if: ['Adds near-duplicate reflections for already-covered compaction/projection facts.'] } },
+    graders: [reflectorSourceIdsAllowed(observations.map((o) => o.id)), reflectorMaxCount(0)],
+  });
+}
+
+export async function reflectorGigaAppendNewFact(model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const observations = [
+    obs('777777777771', 'New accepted OM policy: reflector eval reports must separate active-memory fixture coverage from emitted-output quality, and model pass/fail should not score old anchors already present in current reflections.', '2026-06-16T14:10:00.000Z'),
+  ];
+  return gradeReflector({
+    id: 'reflector-giga-append-new-fact', model, judgeModel, thinkingLevel, observations, reflections: realGigaReflections(),
+    probe: { id: 'reflector-giga-append-new-fact', question: 'With a large active-reflection pool, append only the genuinely new durable eval policy from pending observations.', rubric: { pass_if: ['Records that reflector evals must separate fixture coverage from emitted-output quality.', 'Does not restate unrelated current OM design reflections.'], fail_if: ['Returns empty output despite a new durable eval policy.', 'Restates old compaction/provenance/pinning facts.'] } },
+    graders: [reflectorSourceIdsAllowed(observations.map((o) => o.id)), reflectorRequiresAll('fixture coverage', 'emitted-output quality'), reflectorForbidsAny('near-instant', 'pinning', 'reflectionsPoolMaxTokens'), reflectorMaxCount(1)],
+  });
+}
+
+export async function reflectorGigaStaleCorrection(model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const observations = [
+    obs('888888888881', 'User decided the old statement "reflector eval score can be based on active-memory anchors" is stale; current policy is that reflector scoring must grade emitted output behavior separately from fixture coverage.', '2026-06-16T14:20:00.000Z'),
+  ];
+  const reflections = [
+    ...realGigaReflections(),
+    ref('888888888880', 'Reflector eval score can be based on active-memory anchors already present in current reflections.', ['777777777770']),
+  ];
+  return gradeReflector({
+    id: 'reflector-giga-stale-correction', model, judgeModel, thinkingLevel, observations, reflections,
+    probe: { id: 'reflector-giga-stale-correction', question: 'With a large active-reflection pool, append a corrective current/stale relationship when pending observations invalidate an eval policy reflection.', rubric: { pass_if: ['Records that active-memory-anchor scoring is stale.', 'Records that emitted output behavior must be graded separately from fixture coverage.'], fail_if: ['Keeps active-memory-anchor scoring as current.', 'Fails to preserve the current/stale relationship.'] } },
+    graders: [reflectorSourceIdsAllowed(observations.map((o) => o.id)), reflectorRequiresAll('stale'), reflectorRequiresAll('emitted output'), reflectorRequiresAll('fixture coverage'), reflectorForbidsAny('can be based on active-memory anchors already present'), optional(reflectorMaxCount(2))],
+  });
+}
 
 export async function reflectorRealSessionConstraintsAndState(model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   const observations = [
@@ -83,6 +178,6 @@ export async function reflectorRealSessionConstraintsAndState(model: string, jud
   return gradeReflector({
     id: 'reflector-real-session-constraints-and-state', model, judgeModel, thinkingLevel, observations, reflections,
     probe: { id: 'reflector-real-session-constraints-and-state', question: 'Synthesize real OM session constraints/state while correcting stale curator/pinning active memory.', rubric: { pass_if: ['Typed id/no-shim boundary compatibility retained.', 'Curator/pin removal current state retained.', 'Validation pass retained.', 'Rewrite input reflections-only retained.', 'Deferred OM+fork task retained as later/not now.'], fail_if: ['Resurrects curator/pinning as active.', 'Drops user constraints.', 'Treats deferred fork work as immediate.'] } },
-    graders: [reflectorForbidsAny('curator pinning and supportingObservationIds as active memory core'), reflectorSourceIdsAllowed([...observations.map((o) => o.id), ...reflections.map((r) => r.id)]), optional(reflectorRequiresAll('obs_*', 'ref_*')), optional(reflectorRequiresAll('no long-lived shims')), optional(reflectorRequiresAll('curator')), optional(reflectorRequiresAll('19 test files', '149 tests')), optional(reflectorRequiresAll('reflections-only')), optional(reflectorRequiresAll('OM', 'fork')), optional(reflectorMaxCount(6))],
+    graders: [reflectorForbidsAny('curator pinning and supportingObservationIds remain active', 'curator pinning and supportingObservationIds are current'), reflectorSourceIdsAllowed([...observations.map((o) => o.id), ...reflections.map((r) => r.id)]), optional(reflectorRequiresAll('obs_*', 'ref_*')), optional(reflectorRequiresAll('no long-lived shims')), optional(reflectorRequiresAll('curator')), optional(reflectorRequiresAll('19 test files', '149 tests')), optional(reflectorRequiresAll('reflections-only')), optional(reflectorRequiresAll('OM', 'fork')), optional(reflectorMaxCount(6))],
   });
 }
