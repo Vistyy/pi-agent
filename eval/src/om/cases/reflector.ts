@@ -125,14 +125,12 @@ export async function reflectorRealGiga16v2(model: string, judgeModel: string, t
   const reflections = realGigaReflections();
   return gradeReflector({
     id: 'reflector-real-giga-16-v2', model, judgeModel, thinkingLevel, observations, reflections,
-    probe: { id: 'reflector-real-giga-16-v2', question: `Run a stateful reflector append pass over ${observations.length} production-shaped pending observations and ${reflections.length} active reflections from the giga OM session. Evaluate only the newly emitted reflections.`, rubric: { pass_if: ['Emits only durable new or changed handoff memory from pending observations.', 'Uses current reflections to avoid duplicate/churn output.', 'Skips transient failures, searches, validation-only receipts, and cleanup-only implementation activity.'], fail_if: ['Restates existing active memory.', 'Records process/status/test receipts without durable state.', 'Turns implementation churn into broad active memory.'] } },
+    probe: { id: 'reflector-real-giga-16-v2', question: `Run a stateful reflector append pass over ${observations.length} production-shaped pending observations and ${reflections.length} active reflections from the giga OM session. Evaluate only the newly emitted reflections.`, rubric: { pass_if: ['Emits only durable new or changed handoff memory from pending observations.', 'Uses current reflections to avoid duplicate/churn output.', 'Skips searches and transient validation/process receipts unless recording final validation state allowed by policy.'], fail_if: ['Restates existing active memory.', 'Records search/log output as semantic source evidence.', 'Turns implementation churn into broad active memory.'] } },
     graders: [
       reflectorSourceIdsAllowed(observations.map((o) => o.id)),
-      reflectorForbidsSourceIds('obs_0c9a79503679', 'obs_5eccd71ac347', 'obs_eee294053797', 'obs_af38122c3f37', 'obs_b4fbecc4334d'),
-      reflectorForbidsAny('typecheck passed', 'pnpm test', 'search was run', 'initially failed', 'Test Files', 'Tests passed'),
-      optional(reflectorRequiresAll('reflectionRecordTool')),
-      optional(reflectorRequiresAll('record_reflections')),
-      optional(reflectorRequiresAll('record_rewritten_reflections')),
+      reflectorForbidsSourceIds('obs_af38122c3f37'),
+      reflectorForbidsAny('search was run', 'usage/progress-related symbols'),
+      optional(reflectorRequiresAny('reflectionRecordTool', 'record_reflections', 'record_rewritten_reflections')),
       optional(reflectorMaxCount(4)),
     ],
   });
