@@ -29,6 +29,9 @@ export type MemoryAgentLoopArgs = {
 	tools: AgentTool<any>[];
 	agentName?: MemoryAgentName;
 	onUsage?: (usage: MemoryAgentUsage) => void;
+	requireToolCall?: boolean;
+	maxNoToolRetries?: number;
+	toolCallReminder?: string;
 };
 
 export function joinOrEmpty(items: readonly string[]): string {
@@ -70,10 +73,19 @@ export async function runMemoryAgentLoop(args: MemoryAgentLoopArgs): Promise<voi
 	const effectiveMaxTurns = args.maxTurns && args.maxTurns > 0 ? args.maxTurns : undefined;
 	let turnCount = 0;
 	let invalidToolTurnCount = 0;
+	let noToolTurnCount = 0;
+	let noToolReminderCount = 0;
+	const requireToolCall = args.requireToolCall ?? args.tools.length > 0;
+	const maxNoToolRetries = args.maxNoToolRetries ?? 1;
+	const toolCallReminder = args.toolCallReminder ?? `You must call ${args.tools.length === 1 ? `the ${args.tools[0].name}` : "one of the provided record"} tool. Use an empty array if there is no memory to record.`;
 	const shouldStopAfterTurn: AgentLoopConfig["shouldStopAfterTurn"] = ({ toolResults }) => {
 		turnCount++;
 		const results = toolResults ?? [];
-		if (results.length === 0) return true;
+		if (results.length === 0) {
+			noToolTurnCount++;
+			if (requireToolCall && noToolReminderCount < maxNoToolRetries && (effectiveMaxTurns === undefined || turnCount < effectiveMaxTurns)) return false;
+			return true;
+		}
 		if (results.some((result) => result.isError === true)) {
 			invalidToolTurnCount++;
 			return invalidToolTurnCount >= 2;
@@ -89,6 +101,16 @@ export async function runMemoryAgentLoop(args: MemoryAgentLoopArgs): Promise<voi
 		toolExecution: "sequential",
 		...(reasoning && thinkingLevel !== "off" ? { reasoning: thinkingLevel } : {}),
 		shouldStopAfterTurn,
+		getFollowUpMessages: async () => {
+			if (!requireToolCall || noToolTurnCount <= noToolReminderCount || noToolReminderCount >= maxNoToolRetries) return [];
+			noToolReminderCount++;
+			debugLog("memory_agent.required_tool_reminder", {
+				agent: args.agentName,
+				turnCount,
+				noToolTurnCount,
+			});
+			return [{ role: "user", content: [{ type: "text", text: toolCallReminder }], timestamp: Date.now() }];
+		},
 	};
 
 	const loop = args.agentLoop ?? agentLoop;

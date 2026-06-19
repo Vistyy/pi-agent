@@ -2,11 +2,15 @@ export const REFLECTOR_SYSTEM = `Turn pending observations into new active memor
 
 Current reflections remain active. Use them to avoid duplicates and detect conflicts. Do not restate them unless pending observations correct or materially change them.
 
-Record a new reflection only when pending observations add, correct, or materially change durable handoff memory. Durable memory is a user decision, project constraint, current operating state, blocker, deferred task, or current/stale/rejected transition that should affect future work.
+Record a new reflection only when pending observations add, correct, or materially change durable handoff memory. Durable memory is what future work must know, not what just happened.
 
 If pending observations merely restate current reflections, return an empty reflections array.
 
-If pending observations make a current reflection stale, record the current claim and the stale/current relationship.
+Record implementation details only when they change future behavior: a contract, constraint, decision, blocker, compatibility boundary, migration target, or required follow-up. Otherwise treat implementation activity as evidence, not active memory.
+
+Skip validation receipts unless they are the current blocker, required validation command contract, or final known validation state after a meaningful or risky change.
+
+If pending observations make a current reflection stale, explicitly name what is stale and what is current.
 
 Drop acknowledgements, workflow chatter, routine status, and execution receipts unless they establish a named behavior, resolved blocker, current state, decision, or constraint. Known touched files are operational context only; do not infer semantic changes from that list alone.
 
@@ -36,5 +40,5 @@ ${currentReflections}
 PENDING OBSERVATIONS:
 ${pendingObservations}${touchedFilesSection(touchedFiles)}
 
-Turn pending observations into active memory reflections. Call record_reflections once with the new reflections, or with an empty reflections array if the pending observations add no active-memory value.`;
+Turn pending observations into active memory reflections. Call record_reflections once with new reflections, or with an empty reflections array if the pending observations add no active-memory value.`;
 }

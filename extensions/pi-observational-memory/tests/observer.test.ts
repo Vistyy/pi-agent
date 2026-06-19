@@ -89,15 +89,20 @@ describe("runObserver", () => {
 		await expect(runObserver({ ...baseArgs, agentLoop: loop })).resolves.toBeUndefined();
 	});
 
-	it("stops on no tool call and uses maxTurns as a safety cap", async () => {
+	it("requires an explicit record tool call before stopping on no-tool output", async () => {
 		let shouldStopAfterTurn: any;
+		let getFollowUpMessages: any;
 		const loop = fakeAgentLoop((_prompts, _context, config) => {
 			shouldStopAfterTurn = config.shouldStopAfterTurn;
+			getFollowUpMessages = config.getFollowUpMessages;
 		});
 
 		await runObserver({ ...baseArgs, agentLoop: loop, maxTurns: 2 });
 
 		expect(shouldStopAfterTurn).toBeTypeOf("function");
+		expect(getFollowUpMessages).toBeTypeOf("function");
+		expect(shouldStopAfterTurn({ toolResults: [] })).toBe(false);
+		await expect(getFollowUpMessages()).resolves.toEqual([expect.objectContaining({ role: "user" })]);
 		expect(shouldStopAfterTurn({ toolResults: [] })).toBe(true);
 		expect(shouldStopAfterTurn({ toolResults: [{ isError: false }] })).toBe(true);
 	});

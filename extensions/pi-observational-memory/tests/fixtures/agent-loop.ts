@@ -1,4 +1,5 @@
 type ToolCall = {
+	name?: string;
 	execute: (id: string, params: unknown) => Promise<unknown> | unknown;
 };
 
@@ -10,6 +11,7 @@ export type CapturedAgentContext = {
 export type CapturedAgentConfig = {
 	reasoning?: unknown;
 	shouldStopAfterTurn?: (event: unknown) => boolean;
+	getFollowUpMessages?: () => Promise<CapturedPrompt[]>;
 };
 
 export type CapturedPrompt = {

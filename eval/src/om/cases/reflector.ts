@@ -2,7 +2,7 @@ import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import type { AgentEvalRecord, Observation, Reflection } from '../types.js';
 import { runReflectorEval } from '../agent-runner.js';
 import { obs, ref } from '../runner.js';
-import { gradeAgentOutput, optional, reflectorForbidsAny, reflectorForbidsSourceIds, reflectorMaxCount, reflectorRequiresAll, reflectorSourceIdsAllowed } from '../diagnostics.js';
+import { gradeAgentOutput, optional, reflectorForbidsAny, reflectorForbidsSourceIds, reflectorMaxCount, reflectorRequiresAll, reflectorRequiresAny, reflectorSourceIdsAllowed } from '../diagnostics.js';
 import { realReflector16 as realReflector16v2 } from './real-session-fixtures-v2.js';
 
 async function gradeReflector(args: {
@@ -93,7 +93,7 @@ export async function reflectorSubtleStaleCorrection(model: string, judgeModel: 
   return gradeReflector({
     id: 'reflector-subtle-stale-correction', model, judgeModel, thinkingLevel, observations, reflections,
     probe: { id: 'reflector-subtle-stale-correction', question: 'Use pending observations to append a corrective reflection when a current reflection has become stale.', rubric: { pass_if: ['Records that rewrite input is now reflections-only.', 'Preserves that direct observation pools are no longer current and evidence is reached through provenance/recall.'], fail_if: ['Leaves observations+reflections as the current rewrite input.', 'Drops the replacement relationship.'] } },
-    graders: [reflectorForbidsAny('Rewrite input includes both observations and current reflections'), reflectorSourceIdsAllowed(observations.map((o) => o.id)), reflectorRequiresAll('reflection', 'only'), reflectorRequiresAll('stale'), optional(reflectorRequiresAll('recall')), optional(reflectorMaxCount(2))],
+    graders: [reflectorForbidsAny('Rewrite input includes both observations and current reflections'), reflectorSourceIdsAllowed(observations.map((o) => o.id)), reflectorRequiresAll('reflection', 'only'), reflectorRequiresAny('stale', 'supersedes', 'no longer', 'replaces'), optional(reflectorRequiresAll('recall')), optional(reflectorMaxCount(2))],
   });
 }
 
@@ -106,6 +106,17 @@ export async function reflectorFalseStalePrevention(model: string, judgeModel: s
     id: 'reflector-false-stale-prevention', model, judgeModel, thinkingLevel, observations, reflections,
     probe: { id: 'reflector-false-stale-prevention', question: 'Append compatible new policy without falsely treating compatible current reflections as stale.', rubric: { pass_if: ['May record the hidden mutation-payload/touched-files policy as compatible with objective-evidence observer design.', 'Does not say objective evidence atom capture was rejected or replaced.'], fail_if: ['Marks the objective-evidence observer policy stale.', 'Claims touched-files replaces objective evidence capture rather than supplementing it.'] } },
     graders: [reflectorSourceIdsAllowed(observations.map((o) => o.id)), reflectorRequiresAll('touched'), reflectorForbidsAny('objective event/evidence atoms is stale', 'objective evidence is stale', 'no longer capture objective', 'replaces objective evidence'), optional(reflectorRequiresAll('weak')), optional(reflectorMaxCount(2))],
+  });
+}
+
+export async function reflectorChurnFilter(model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const durable = obs('999999999991', 'User requires OM eval result summaries comparing reflector architectures to include pass rate, score, token usage, cost, and agent runtime.', '2026-06-16T15:00:00.000Z');
+  const churn = obs('999999999992', 'Validation receipt only: cd extensions/pi-observational-memory && pnpm run typecheck && pnpm test passed with all tests green.', '2026-06-16T15:01:00.000Z');
+  const observations = [durable, churn];
+  return gradeReflector({
+    id: 'reflector-churn-filter', model, judgeModel, thinkingLevel, observations,
+    probe: { id: 'reflector-churn-filter', question: 'Record the durable eval-reporting requirement but do not promote validation-only churn.', rubric: { pass_if: ['Records that OM eval architecture comparisons should include pass rate, score, token usage, cost, and agent runtime.', 'Does not record validation/test-pass receipt as active memory.'], fail_if: ['Uses the validation-only observation as a reflection source.', 'Records typecheck/test pass as durable memory.'] } },
+    graders: [reflectorSourceIdsAllowed([durable.id]), reflectorForbidsSourceIds(churn.id), reflectorRequiresAll('pass rate', 'score', 'token', 'cost'), reflectorForbidsAny('pnpm test', 'typecheck', 'tests green', 'Validation receipt'), optional(reflectorMaxCount(1))],
   });
 }
 
@@ -161,7 +172,7 @@ export async function reflectorGigaStaleCorrection(model: string, judgeModel: st
   return gradeReflector({
     id: 'reflector-giga-stale-correction', model, judgeModel, thinkingLevel, observations, reflections,
     probe: { id: 'reflector-giga-stale-correction', question: 'With a large active-reflection pool, append a corrective current/stale relationship when pending observations invalidate an eval policy reflection.', rubric: { pass_if: ['Records that active-memory-anchor scoring is stale.', 'Records that emitted output behavior must be graded separately from fixture coverage.'], fail_if: ['Keeps active-memory-anchor scoring as current.', 'Fails to preserve the current/stale relationship.'] } },
-    graders: [reflectorSourceIdsAllowed(observations.map((o) => o.id)), reflectorRequiresAll('stale'), reflectorRequiresAll('emitted output'), reflectorRequiresAll('fixture coverage'), reflectorForbidsAny('can be based on active-memory anchors already present'), optional(reflectorMaxCount(2))],
+    graders: [reflectorSourceIdsAllowed(observations.map((o) => o.id)), reflectorRequiresAny('stale', 'supersedes', 'no longer', 'replaces'), reflectorRequiresAll('emitted output'), reflectorRequiresAll('fixture coverage'), reflectorForbidsAny('can be based on active-memory anchors already present'), optional(reflectorMaxCount(2))],
   });
 }
 

@@ -103,6 +103,13 @@ export function reflectorRequiresAll(...needles: string[]): OmGrader<Reflection[
   return { label: `requires ${needles.join(', ')}`, pass: (output) => needles.every((needle) => reflectionText(output).includes(needle)), detail: (output) => reflectionText(output) };
 }
 
+export function reflectorRequiresAny(...needles: string[]): OmGrader<Reflection[]> {
+  return { label: `requires any of ${needles.join(', ')}`, pass: (output) => {
+    const text = reflectionText(output).toLowerCase();
+    return needles.some((needle) => text.includes(needle.toLowerCase()));
+  }, detail: (output) => reflectionText(output) };
+}
+
 export function reflectorForbidsAny(...needles: string[]): OmGrader<Reflection[]> {
   return { label: `forbids ${needles.join(', ')}`, pass: (output) => needles.every((needle) => !reflectionText(output).includes(needle)), detail: (output) => reflectionText(output) };
 }
