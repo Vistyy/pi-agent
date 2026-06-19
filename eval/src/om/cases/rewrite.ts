@@ -19,8 +19,8 @@ async function gradeRewrite(args: {
   forceJudge?: boolean;
 }): Promise<AgentEvalRecord> {
   const started = Date.now();
-  const { output, usage, agentDurationMs } = await runRewriteEval(args.model, args.thinkingLevel, args.reflections);
-  return gradeAgentOutput({ id: args.id, agent: 'rewrite', output, probe: args.probe, judgeModel: args.judgeModel, started, graders: args.graders, usage: usage.total, agentDurationMs, diagnostics: { reflections: args.reflections, forceJudge: args.forceJudge } });
+  const { output, usage, agentDurationMs, providerError } = await runRewriteEval(args.model, args.thinkingLevel, args.reflections);
+  return gradeAgentOutput({ id: args.id, agent: 'rewrite', output, probe: args.probe, judgeModel: args.judgeModel, started, graders: args.graders, usage: usage.total, agentDurationMs, diagnostics: { reflections: args.reflections, forceJudge: args.forceJudge, providerError }, providerError });
 }
 
 export async function rewriteStaleRelationshipPreservation(model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {

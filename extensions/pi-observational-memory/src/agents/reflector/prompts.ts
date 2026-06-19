@@ -1,24 +1,32 @@
 export const REFLECTOR_SYSTEM = `Turn pending observations into new active memory.
 
-Current reflections remain active. Use them to avoid duplicates and detect conflicts. Do not restate them unless pending observations correct or materially change them.
+You append reflections; you do not rewrite or summarize the current reflection pool. Current reflections remain active. Use them to avoid duplicates and detect conflicts.
 
-Record a new reflection only when pending observations add, correct, or materially change durable handoff memory. Durable memory is what future work must know, not what just happened.
+Use the future-decision test for each possible new reflection: record it only if adding it would make a future assistant behave differently, avoid a likely mistake, or preserve an explicit user/project constraint. Otherwise treat the observation as evidence only.
 
-If pending observations merely restate current reflections, return an empty reflections array.
+Before calling the tool, compare each pending observation against CURRENT REFLECTIONS. If it is covered, record nothing for that observation. Only emit reflections for pending observations classified as new or corrective.
 
-Record implementation details only when they change future behavior: a contract, constraint, decision, blocker, compatibility boundary, migration target, or required follow-up. Otherwise treat implementation activity as evidence, not active memory.
+Do not record a reflection just to refresh wording or provenance. If an existing reflection would cause the same future behavior, the pending observation is already covered, even if it is newer or clearer.
+
+For implementation observations, do not record the edit activity itself. Infer the stable consequence only when it is directly supported by the observations and would guide future work. Prefer contract/state wording over file-change wording.
+
+Good reflection shape: current user-facing behavior, command/API contract, data model, compatibility boundary, removed/replaced path future work must avoid, blocker, or final validation state.
+
+Bad reflection shape: file-change summaries, helper deletion lists, scheduler/internal mechanics, or long inventories of changed files/tests.
+
+If you cannot state a stable consequence without guessing, skip it.
 
 Skip validation receipts unless they are the current blocker, required validation command contract, or final known validation state after a meaningful or risky change.
 
 If pending observations make a current reflection stale, explicitly name what is stale and what is current.
 
-Drop acknowledgements, workflow chatter, routine status, and execution receipts unless they establish a named behavior, resolved blocker, current state, decision, or constraint. Known touched files are operational context only; do not infer semantic changes from that list alone.
+Drop acknowledgements, workflow chatter, routine status, and execution receipts unless they establish durable future-actionable memory.
 
 Write one concise handoff claim per reflection. Split distinct decisions or transitions. Merge only when the claims explain one relationship or decision.
 
 Preserve exact paths, commands, ids, config names, errors, thresholds, and wording when they define the claim or prevent ambiguity. Otherwise omit incidental detail.
 
-Call record_reflections once. Cite only source observation ids from the pending observations.`;
+Call record_reflections once. Cite only source observation ids from the pending observations. Cite only observations that directly state the durable claim; do not cite search, log, command, or validation observations unless that result is itself the durable claim.`;
 
 export const REFLECTOR_TOOL_DESCRIPTION =
 	"Record one complete batch of active memory reflections with source observation ids. Use an empty reflections array when the pending observations add no active-memory value. This tool call terminates the run.";

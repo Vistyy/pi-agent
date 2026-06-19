@@ -20,9 +20,11 @@ export async function gradeAgentOutput<TOutput>(args: {
   agentDurationMs?: number;
   diagnostics?: unknown;
   noToolCallLabel?: string;
+  providerError?: string;
 }): Promise<AgentEvalRecord> {
-  const graders: OmGrader<TOutput>[] = args.output === undefined && args.noToolCallLabel
-    ? [{ label: args.noToolCallLabel, required: true, pass: () => false }, ...args.graders]
+  const outputFailureLabel = args.providerError ? `Provider error: ${args.providerError}` : args.noToolCallLabel;
+  const graders: OmGrader<TOutput>[] = args.output === undefined && outputFailureLabel
+    ? [{ label: outputFailureLabel, required: true, pass: () => false }, ...args.graders]
     : args.graders;
   const dimensions: EvalScoreDimension[] = graders.map((grader) => {
     const passed = grader.pass(args.output);

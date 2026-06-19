@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { MemoryAgentProviderError } from "../src/agents/common.js";
 import { normalizeSourceEntryIds, OBSERVATION_TIMESTAMP_PATTERN, runObserver } from "../src/agents/observer/agent.js";
 import { fakeAgentLoop } from "./fixtures/agent-loop.js";
 
@@ -105,6 +106,42 @@ describe("runObserver", () => {
 		await expect(getFollowUpMessages()).resolves.toEqual([expect.objectContaining({ role: "user" })]);
 		expect(shouldStopAfterTurn({ toolResults: [] })).toBe(true);
 		expect(shouldStopAfterTurn({ toolResults: [{ isError: false }] })).toBe(true);
+	});
+
+	it("retries provider stopReason error before treating the run as failed", async () => {
+		let calls = 0;
+		const loop = ((_prompts: any, context: any) => ({
+			async *[Symbol.asyncIterator]() {
+				calls++;
+				if (calls === 1) {
+					yield { type: "turn_end", message: { role: "assistant", stopReason: "error", errorMessage: "temporary provider failure" }, toolResults: [] };
+					return;
+				}
+				await context.tools[0].execute("tool-1", {
+					observations: [{ timestamp: "2026-05-02 10:30", content: "Recovered", sourceEntryIds: ["entry-a"] }],
+				});
+			},
+			result: async () => [],
+		})) as never;
+
+		const observations = await runObserver({ ...baseArgs, agentLoop: loop });
+
+		expect(calls).toBe(2);
+		expect(observations?.[0].content).toBe("Recovered");
+	});
+
+	it("surfaces provider stopReason error distinctly after retries are exhausted", async () => {
+		let calls = 0;
+		const loop = (() => ({
+			async *[Symbol.asyncIterator]() {
+				calls++;
+				yield { type: "turn_end", message: { role: "assistant", stopReason: "error", errorMessage: "provider exploded" }, toolResults: [] };
+			},
+			result: async () => [],
+		})) as never;
+
+		await expect(runObserver({ ...baseArgs, agentLoop: loop, maxProviderErrorRetries: 1 })).rejects.toBeInstanceOf(MemoryAgentProviderError);
+		expect(calls).toBe(2);
 	});
 
 	it("uses configured observer thinking level for reasoning models", async () => {

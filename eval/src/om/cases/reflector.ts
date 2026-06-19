@@ -20,8 +20,8 @@ async function gradeReflector(args: {
   const started = Date.now();
   const reflections = args.reflections ?? [];
   const touchedFiles = args.touchedFiles ?? [];
-  const { output, usage, agentDurationMs } = await runReflectorEval(args.model, args.thinkingLevel, { reflections, observations: args.observations, touchedFiles });
-  return gradeAgentOutput({ id: args.id, agent: 'reflector', output, probe: args.probe, judgeModel: args.judgeModel, started, graders: args.graders, usage: usage.total, agentDurationMs, diagnostics: { observations: args.observations, reflections, touchedFiles, forceJudge: args.forceJudge }, noToolCallLabel: 'No record_reflections tool call' });
+  const { output, usage, agentDurationMs, providerError } = await runReflectorEval(args.model, args.thinkingLevel, { reflections, observations: args.observations, touchedFiles });
+  return gradeAgentOutput({ id: args.id, agent: 'reflector', output, probe: args.probe, judgeModel: args.judgeModel, started, graders: args.graders, usage: usage.total, agentDurationMs, diagnostics: { observations: args.observations, reflections, touchedFiles, forceJudge: args.forceJudge, providerError }, noToolCallLabel: 'No record_reflections tool call', providerError });
 }
 
 function normalizeFixtureObservation(observation: any): Observation {

@@ -24,8 +24,8 @@ async function gradeObserver(args: {
   diagnostics?: Record<string, unknown>;
 }): Promise<AgentEvalRecord> {
   const started = Date.now();
-  const { output, usage, agentDurationMs } = await runCase(args.model, args.thinkingLevel, args.chunk, args.allowedSourceEntryIds);
-  return gradeAgentOutput({ id: args.id, agent: 'observer', output, probe: args.probe, judgeModel: args.judgeModel, started, graders: args.graders, usage: usage.total, agentDurationMs, diagnostics: { skipJudge: true, ...args.diagnostics, chunk: args.chunk }, noToolCallLabel: 'No record_observations tool call' });
+  const { output, usage, agentDurationMs, providerError } = await runCase(args.model, args.thinkingLevel, args.chunk, args.allowedSourceEntryIds);
+  return gradeAgentOutput({ id: args.id, agent: 'observer', output, probe: args.probe, judgeModel: args.judgeModel, started, graders: args.graders, usage: usage.total, agentDurationMs, diagnostics: { skipJudge: true, ...args.diagnostics, chunk: args.chunk, providerError }, noToolCallLabel: 'No record_observations tool call', providerError });
 }
 
 export async function observerToolEvidenceBoundary(model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
