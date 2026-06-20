@@ -21,6 +21,8 @@ export interface Config {
 	strategy: MemoryStrategy;
 	observeEveryMessages: number;
 	reflectEveryObservations: number;
+	maintainEveryNewReflections: number;
+	maintainerMaxInputReflections: number;
 	maxInitialObserveTokens: number;
 	reflectionsPoolMaxTokens: number;
 	observerToolResultSummaryMaxLines: number;
@@ -31,6 +33,7 @@ export interface Config {
 	model?: ConfiguredModel;
 	observerThinking?: ModelThinkingLevel;
 	reflectorThinking?: ModelThinkingLevel;
+	maintainerThinking?: ModelThinkingLevel;
 	rewriteThinking?: ModelThinkingLevel;
 	debugLog: boolean;
 }
@@ -39,6 +42,8 @@ export const DEFAULTS: Config = {
 	strategy: STRATEGY.replacement,
 	observeEveryMessages: 32,
 	reflectEveryObservations: 8,
+	maintainEveryNewReflections: 10,
+	maintainerMaxInputReflections: 12,
 	maxInitialObserveTokens: 100_000,
 	reflectionsPoolMaxTokens: 8_000,
 	observerToolResultSummaryMaxLines: 4,
@@ -48,6 +53,7 @@ export const DEFAULTS: Config = {
 	agentMaxTurns: 4,
 	observerThinking: "low",
 	reflectorThinking: "low",
+	maintainerThinking: "low",
 	rewriteThinking: "low",
 	debugLog: false,
 };
@@ -104,6 +110,8 @@ function normalizeSettingsConfig(value: Record<string, unknown>): Partial<Config
 	const numberKeys = [
 		"observeEveryMessages",
 		"reflectEveryObservations",
+		"maintainEveryNewReflections",
+		"maintainerMaxInputReflections",
 		"maxInitialObserveTokens",
 		"reflectionsPoolMaxTokens",
 		"observerToolResultSummaryMaxLines",
@@ -119,6 +127,7 @@ function normalizeSettingsConfig(value: Record<string, unknown>): Partial<Config
 	if (typeof value.debugLog === "boolean") normalized.debugLog = value.debugLog;
 	if (isThinkingLevel(value.observerThinking)) normalized.observerThinking = value.observerThinking;
 	if (isThinkingLevel(value.reflectorThinking)) normalized.reflectorThinking = value.reflectorThinking;
+	if (isThinkingLevel(value.maintainerThinking)) normalized.maintainerThinking = value.maintainerThinking;
 	if (isThinkingLevel(value.rewriteThinking)) normalized.rewriteThinking = value.rewriteThinking;
 	const model = normalizeModel(value.model);
 	if (model) normalized.model = model;

@@ -4,11 +4,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mockAgents = vi.hoisted(() => ({
 	runObserver: vi.fn(),
 	runReflector: vi.fn(),
+	runMaintainer: vi.fn(),
 	runRewrite: vi.fn(),
 }));
 
 vi.mock("../src/agents/observer/agent.js", () => ({ runObserver: mockAgents.runObserver }));
 vi.mock("../src/agents/reflector/agent.js", () => ({ runReflector: mockAgents.runReflector }));
+vi.mock("../src/agents/maintainer/agent.js", () => ({ runMaintainer: mockAgents.runMaintainer }));
 vi.mock("../src/agents/rewrite/agent.js", () => ({ runRewrite: mockAgents.runRewrite }));
 
 import { ensureObservedBeforeCompaction } from "../src/memory-update/compaction.js";
@@ -32,9 +34,11 @@ import { memoryUpdateApi, type AgentStartHandler, type TurnEndHandler } from "./
 beforeEach(() => {
 	mockAgents.runObserver.mockReset();
 	mockAgents.runReflector.mockReset();
+	mockAgents.runMaintainer.mockReset();
 	mockAgents.runRewrite.mockReset();
 	mockAgents.runObserver.mockResolvedValue(undefined);
 	mockAgents.runReflector.mockResolvedValue(undefined);
+	mockAgents.runMaintainer.mockResolvedValue(undefined);
 	mockAgents.runRewrite.mockResolvedValue(undefined);
 });
 
@@ -43,6 +47,8 @@ function setup(args: {
 	observeEveryMessages?: number;
 	reflectEveryObservations?: number;
 	reflectionsPoolMaxTokens?: number;
+	maintainEveryNewReflections?: number;
+	maintainerMaxInputReflections?: number;
 	maxInitialObserveTokens?: number;
 	strategy?: "replacement" | "off";
 	memoryUpdateInFlight?: boolean;
@@ -66,15 +72,18 @@ function setup(args: {
 			reflectEveryObservations: args.reflectEveryObservations ?? 1,
 			maxInitialObserveTokens: args.maxInitialObserveTokens ?? 100_000,
 			reflectionsPoolMaxTokens: args.reflectionsPoolMaxTokens ?? 100,
+			maintainEveryNewReflections: args.maintainEveryNewReflections ?? 999,
+			maintainerMaxInputReflections: args.maintainerMaxInputReflections ?? 12,
 			agentMaxTurns: 9,
 			model: { provider: "anthropic", id: "memory", thinking: "minimal" },
 		},
 		memoryUpdateInFlight: args.memoryUpdateInFlight ?? false,
 		inFlightObserverStagePromise: args.inFlightObserverStagePromise ?? null,
-		memoryUpdatePhase: undefined as "observer" | "reflector" | "rewrite" | undefined,
+		memoryUpdatePhase: undefined as "observer" | "reflector" | "maintainer" | "rewrite" | undefined,
 		resolveFailureNotified: false,
 		lastObserverError: undefined as string | undefined,
 		lastReflectorError: undefined as string | undefined,
+		lastMaintainerError: undefined as string | undefined,
 		ensureConfig: vi.fn(),
 		resolveModel: vi.fn(async () => ({ ok: true, model: { reasoning: true }, apiKey: "key", headers: { h: "v" } })),
 		launchMemoryUpdateTask: vi.fn((_ctx, work) => {
@@ -82,10 +91,11 @@ function setup(args: {
 			launchedWork = work;
 			return Promise.resolve();
 		}),
-		recordMemoryUpdateStageError: vi.fn((ctx, phase: "observer" | "reflector" | "rewrite", error: unknown) => {
+		recordMemoryUpdateStageError: vi.fn((ctx, phase: "observer" | "reflector" | "maintainer" | "rewrite", error: unknown) => {
 			const message = error instanceof Error ? error.message : String(error);
 			if (phase === "observer") runtime.lastObserverError = message;
 			if (phase === "reflector") runtime.lastReflectorError = message;
+			if (phase === "maintainer") runtime.lastMaintainerError = message;
 			ctx.ui?.notify(`Observational memory: ${phase} failed: ${message}`, "warning");
 			return message;
 		}),
@@ -408,7 +418,71 @@ describe("memory update hook", () => {
 		expect(runtime.launchMemoryUpdateTask).not.toHaveBeenCalled();
 	});
 
+	it("runs maintainer after the new-reflection threshold and appends replacements plus retirements", async () => {
+		const refB = reflection("ffffffffffff", ["bbbbbbbbbbbb"]);
+		const replacement = reflection("999999999999", [refA.id, refB.id], { content: "Merged durable memory." });
+		mockAgents.runMaintainer.mockResolvedValueOnce({ retireReflectionIds: [refA.id, refB.id], reflections: [replacement] });
+		const entries = [
+			rawMessage("raw-1", "aaaaaaaa"),
+			reflectionsRecordedEntry("om-ref-a", { reflections: [refA], coversUpToId: "raw-1" }),
+			reflectionsRecordedEntry("om-ref-b", { reflections: [refB], coversUpToId: "raw-1" }),
+		];
+		const { fire, runLaunchedWork, getMemoryAppends } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 999, maintainEveryNewReflections: 2, reflectionsPoolMaxTokens: 999 });
 
+		fire();
+		await runLaunchedWork();
+
+		expect(mockAgents.runMaintainer).toHaveBeenCalledWith(expect.objectContaining({ reflections: [refA, refB], maxTurns: 9, thinkingLevel: "minimal" }));
+		expect(getMemoryAppends()).toEqual([
+			{ customType: OM_REFLECTIONS_RECORDED, data: { reflections: [replacement], coversUpToId: "om-ref-b" } },
+			{ customType: OM_REFLECTIONS_REWRITTEN, data: { retiredReflectionIds: [refA.id, refB.id] } },
+		]);
+	});
+
+	it("passes the newest capped active-reflection window to maintainer", async () => {
+		const refB = reflection("ffffffffffff", ["bbbbbbbbbbbb"]);
+		const refC = reflection("111111111111", ["cccccccccccc"]);
+		const entries = [
+			rawMessage("raw-1", "aaaaaaaa"),
+			reflectionsRecordedEntry("om-ref", { reflections: [refA, refB, refC], coversUpToId: "raw-1" }),
+		];
+		const { fire, runLaunchedWork } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 999, maintainEveryNewReflections: 3, maintainerMaxInputReflections: 2, reflectionsPoolMaxTokens: 999 });
+
+		fire();
+		await runLaunchedWork();
+
+		expect(mockAgents.runMaintainer).toHaveBeenCalledWith(expect.objectContaining({ reflections: [refB, refC] }));
+	});
+
+	it("maintainer no-op appends nothing", async () => {
+		mockAgents.runMaintainer.mockResolvedValueOnce({ retireReflectionIds: [], reflections: [] });
+		const entries = [
+			rawMessage("raw-1", "aaaaaaaa"),
+			reflectionsRecordedEntry("om-ref", { reflections: [refA], coversUpToId: "raw-1" }),
+		];
+		const { fire, runLaunchedWork, getMemoryAppends } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 999, maintainEveryNewReflections: 1, reflectionsPoolMaxTokens: 999 });
+
+		fire();
+		await runLaunchedWork();
+
+		expect(mockAgents.runMaintainer).toHaveBeenCalledOnce();
+		expect(getMemoryAppends()).toEqual([]);
+	});
+
+	it("maintainer failure records stage error and prevents rewrite in the same update", async () => {
+		mockAgents.runMaintainer.mockRejectedValueOnce(new Error("maintain failed"));
+		const entries = [
+			rawMessage("raw-1", "aaaaaaaa"),
+			reflectionsRecordedEntry("om-ref", { reflections: [refA], coversUpToId: "raw-1" }),
+		];
+		const failure = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 999, maintainEveryNewReflections: 1, reflectionsPoolMaxTokens: 1 });
+
+		failure.fire();
+		await failure.runLaunchedWork();
+
+		expect(failure.runtime.lastMaintainerError).toBe("maintain failed");
+		expect(mockAgents.runRewrite).not.toHaveBeenCalled();
+	});
 
 	it("preserves stage failure boundaries", async () => {
 		mockAgents.runObserver.mockRejectedValueOnce(new Error("observe failed"));

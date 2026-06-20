@@ -8,10 +8,12 @@ import type { MemoryUpdateCtx, StageOutcome } from "./types.js";
 
 type ObserverStageModule = typeof import("./observer-stage.js");
 type ReflectorStageModule = typeof import("./reflector-stage.js");
+type MaintainerStageModule = typeof import("./maintainer-stage.js");
 type RewriteStageModule = typeof import("./rewrite-stage.js");
 
 let observerStageModule: Promise<ObserverStageModule> | undefined;
 let reflectorStageModule: Promise<ReflectorStageModule> | undefined;
+let maintainerStageModule: Promise<MaintainerStageModule> | undefined;
 let rewriteStageModule: Promise<RewriteStageModule> | undefined;
 
 function loadObserverStage(): Promise<ObserverStageModule> {
@@ -20,6 +22,10 @@ function loadObserverStage(): Promise<ObserverStageModule> {
 
 function loadReflectorStage(): Promise<ReflectorStageModule> {
 	return reflectorStageModule ??= import("./reflector-stage.js");
+}
+
+function loadMaintainerStage(): Promise<MaintainerStageModule> {
+	return maintainerStageModule ??= import("./maintainer-stage.js");
 }
 
 function loadRewriteStage(): Promise<RewriteStageModule> {
@@ -88,6 +94,22 @@ export async function runMemoryUpdate(
 			},
 		);
 		if (reflectorOutcome === "abort") return;
+		entries = ctx.sessionManager.getBranch() as Entry[];
+		work = computeMemoryStageWork(entries, runtime);
+	}
+
+	if (work.maintainerWork.length > 0) {
+		const maintainerOutcome = await runTrackedStage(
+			pi,
+			runtime,
+			ctx,
+			"maintainer",
+			async () => {
+				const { runMaintainerStage } = await loadMaintainerStage();
+				return runMaintainerStage(pi, runtime, ctx, resolveModel, work.maintainerWork);
+			},
+		);
+		if (maintainerOutcome === "abort") return;
 		entries = ctx.sessionManager.getBranch() as Entry[];
 		work = computeMemoryStageWork(entries, runtime);
 	}

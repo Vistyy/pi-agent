@@ -26,6 +26,7 @@ function setup(args: { entries: TestEntry[]; runtime?: Partial<Runtime> }) {
 			strategy: "replacement",
 			observeEveryMessages: 10,
 			reflectEveryObservations: 20,
+			maintainEveryNewReflections: 10,
 			reflectionsPoolMaxTokens: 30,
 		},
 		memoryUpdateInFlight: false,
@@ -33,6 +34,7 @@ function setup(args: { entries: TestEntry[]; runtime?: Partial<Runtime> }) {
 		compactHookInFlight: false,
 		lastObserverError: undefined,
 		lastReflectorError: undefined,
+		lastMaintainerError: undefined,
 		...args.runtime,
 	};
 	registerStatusCommand(pi, runtime as Runtime);
@@ -53,9 +55,10 @@ describe("/om:status", () => {
 		expect(output).toContain("── Memory ──");
 		expect(output).toContain("Context:      0 reflections");
 		expect(output).not.toContain("Next context:");
-		expect(output).toContain("Size:         ~0 context tokens; active reflections ~0 / 30 rewrite tokens");
+		expect(output).toContain("Size:         ~0 context tokens; active reflections ~0 / 30 budget tokens");
 		expect(output).toContain("Observe: 0 / 10 source entries");
 		expect(output).toContain("Reflect: 0 / 20 observations");
+		expect(output).toContain("Maintain: 0 / 10 new reflections");
 		expect(output).not.toContain("Strategy:");
 	});
 
@@ -76,6 +79,7 @@ describe("/om:status", () => {
 		expect(output).not.toContain("Next context:");
 		expect(output).toContain("Observe: 2 / 10 source entries");
 		expect(output).toContain("Reflect: 0 / 20 observations");
+		expect(output).toContain("Maintain: 1 / 10 new reflections");
 	});
 
 	it("shows full details on request", async () => {
@@ -103,12 +107,13 @@ describe("/om:status", () => {
 		const output = await setup({
 			entries: [],
 			runtime: {
-				config: { strategy: "off", observeEveryMessages: 10, reflectEveryObservations: 20, reflectionsPoolMaxTokens: 30 },
+				config: { strategy: "off", observeEveryMessages: 10, reflectEveryObservations: 20, maintainEveryNewReflections: 10, reflectionsPoolMaxTokens: 30 },
 				memoryUpdateInFlight: true,
 				memoryUpdatePhase: "reflector",
 				compactHookInFlight: true,
 				lastObserverError: "observer failed",
 				lastReflectorError: "reflect failed",
+				lastMaintainerError: "maintainer failed",
 			},
 		}).run("full");
 
@@ -117,6 +122,7 @@ describe("/om:status", () => {
 		expect(output).toContain("Compaction hook: running");
 		expect(output).toContain("Observer: observer failed");
 		expect(output).toContain("Reflector: reflect failed");
+		expect(output).toContain("Maintainer: maintainer failed");
 	});
 
 	it("shows memory update in flight without phase when phase is unavailable", async () => {

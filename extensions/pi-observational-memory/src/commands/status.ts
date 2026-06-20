@@ -1,5 +1,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { Runtime } from "../runtime.js";
+import { reflectionsRecordedSinceLastRetirement } from "../memory-update/due.js";
 import {
 	activeReflections,
 	foldLedger,
@@ -32,14 +33,17 @@ export async function runStatusCommand(args: unknown, ctx: any, runtime: Runtime
 	const contextTokens = reflectionTokenSum(reflections);
 	const obsProgress = sourceEntriesAfterIndex(entries, folded.lastObservationCoverageIndex).length;
 	const reflectionProgress = folded.unreflectedObservations.length;
+	const maintenanceProgress = reflectionsRecordedSinceLastRetirement(entries);
+	const maintainEveryNewReflections = runtime.config.maintainEveryNewReflections ?? 10;
 	const lines = [
 		"── Memory ──",
 		`Context:      ${reflections.length.toLocaleString()} reflections`,
-		`Size:         ~${contextTokens.toLocaleString()} context tokens; active reflections ~${contextTokens.toLocaleString()} / ${runtime.config.reflectionsPoolMaxTokens.toLocaleString()} rewrite tokens`,
+		`Size:         ~${contextTokens.toLocaleString()} context tokens; active reflections ~${contextTokens.toLocaleString()} / ${runtime.config.reflectionsPoolMaxTokens.toLocaleString()} budget tokens`,
 		"",
 		"── Next work ──",
 		`Observe: ${obsProgress.toLocaleString()} / ${runtime.config.observeEveryMessages.toLocaleString()} source entries`,
 		`Reflect: ${reflectionProgress.toLocaleString()} / ${runtime.config.reflectEveryObservations.toLocaleString()} observations`,
+		`Maintain: ${maintenanceProgress.toLocaleString()} / ${maintainEveryNewReflections.toLocaleString()} new reflections`,
 	];
 
 	if (mode === "full") {
@@ -61,10 +65,11 @@ export async function runStatusCommand(args: unknown, ctx: any, runtime: Runtime
 		if (runtime.compactHookInFlight) lines.push("Compaction hook: running");
 	}
 
-	if (runtime.lastObserverError || runtime.lastReflectorError) {
+	if (runtime.lastObserverError || runtime.lastReflectorError || runtime.lastMaintainerError) {
 		lines.push("", "── Last error ──");
 		if (runtime.lastObserverError) lines.push(`Observer: ${runtime.lastObserverError}`);
 		if (runtime.lastReflectorError) lines.push(`Reflector: ${runtime.lastReflectorError}`);
+		if (runtime.lastMaintainerError) lines.push(`Maintainer: ${runtime.lastMaintainerError}`);
 	}
 
 	ctx.ui.notify(lines.join("\n"), "info");
