@@ -54,7 +54,7 @@ export async function main() {
     }
   }
   const scoredRecords = records.filter((r) => r.score);
-  const byAgent = Object.fromEntries(['observer', 'reflector', 'rewrite'].map((agent) => {
+  const byAgent = Object.fromEntries(['observer', 'reflector', 'rewrite', 'maintainer'].map((agent) => {
     const agentRecords = records.filter((record) => record.agent === agent);
     return [agent, {
       passed: agentRecords.filter((record) => record.passed).length,

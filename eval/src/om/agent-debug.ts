@@ -55,6 +55,13 @@ async function promptFromDiagnostics(record: AgentEvalRecord): Promise<{ systemP
       userText: prompts.rewriteUserText(common.joinOrEmpty((diagnostics?.reflections ?? []).map(ledger.reflectionToSummaryLine))),
     };
   }
+  if (record.agent === 'maintainer') {
+    const prompts = await import(new URL('maintainer/prompts.ts', base).href) as { MAINTAINER_SYSTEM: string; maintainerUserText: (reflectionsText: string) => string };
+    return {
+      systemPrompt: prompts.MAINTAINER_SYSTEM,
+      userText: prompts.maintainerUserText(common.joinOrEmpty((diagnostics?.reflections ?? []).map(ledger.reflectionToSummaryLine))),
+    };
+  }
   return undefined;
 }
 

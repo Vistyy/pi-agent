@@ -10,7 +10,7 @@ export function optional<TOutput>(grader: OmGrader<TOutput>): OmGrader<TOutput> 
 
 export async function gradeAgentOutput<TOutput>(args: {
   id: string;
-  agent: 'observer' | 'reflector' | 'rewrite';
+  agent: AgentEvalRecord['agent'];
   output: TOutput | undefined;
   probe: Probe;
   judgeModel: string;

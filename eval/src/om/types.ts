@@ -11,11 +11,12 @@ export type OmAgents = {
   runObserver: (args: Record<string, unknown>) => Promise<Observation[] | undefined>;
   runReflector: (args: Record<string, unknown>) => Promise<Reflection[] | undefined>;
   runRewrite: (args: Record<string, unknown>) => Promise<RewriteResult | undefined>;
+  runMaintainer: (args: Record<string, unknown>) => Promise<MaintenanceResult | undefined>;
 };
 
 export type AgentEvalRecord = {
   id: string;
-  agent: 'observer' | 'reflector' | 'rewrite';
+  agent: 'observer' | 'reflector' | 'rewrite' | 'maintainer';
   output: unknown;
   judge?: unknown;
   passed: boolean;

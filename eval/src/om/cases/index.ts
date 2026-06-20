@@ -1,4 +1,5 @@
 import type { OmEvalCase } from '../types.js';
+import { maintainerBlastRadiusGuardCase, maintainerCompletedTrailCompressionCase, maintainerDirectParentProvenanceCase, maintainerDuplicateMergeCase, maintainerStaleCurrentPairCase, maintainerUnrelatedNoopCase } from './maintainer.js';
 import { observerAssistantProseBoundary, observerHiddenMutationPayloadBoundary, observerHiddenMutationReplacementEvidence, observerRealGiga32, observerRealGiga64v2, observerToolEvidenceBoundary } from './observer.js';
 import { reflectorAppendNewCompatibleFact, reflectorChurnFilter, reflectorDuplicateObservationNoop, reflectorFalseStalePrevention, reflectorGigaAppendNewFact, reflectorGigaDuplicateNoop, reflectorGigaStaleCorrection, reflectorRealGiga16v2, reflectorRealSessionConstraintsAndState, reflectorStaleCurrentReconciliation, reflectorSubtleStaleCorrection, reflectorTouchedFilesWeakContext } from './reflector.js';
 import { rewriteRealGiga40v2, rewriteRealGiga80, rewriteStaleRelationshipPreservation } from './rewrite.js';
@@ -24,6 +25,12 @@ export const allCases: OmEvalCase[] = [
   omCase('reflector-giga-append-new-fact', 'reflector', reflectorGigaAppendNewFact),
   omCase('reflector-giga-stale-correction', 'reflector', reflectorGigaStaleCorrection),
   omCase('reflector-real-session-constraints-and-state', 'reflector', reflectorRealSessionConstraintsAndState),
+  omCase('maintainer-duplicate-merge', 'maintainer', maintainerDuplicateMergeCase),
+  omCase('maintainer-stale-current-pair', 'maintainer', maintainerStaleCurrentPairCase),
+  omCase('maintainer-completed-trail-compression', 'maintainer', maintainerCompletedTrailCompressionCase),
+  omCase('maintainer-unrelated-noop', 'maintainer', maintainerUnrelatedNoopCase),
+  omCase('maintainer-direct-parent-provenance', 'maintainer', maintainerDirectParentProvenanceCase),
+  omCase('maintainer-blast-radius-guard', 'maintainer', maintainerBlastRadiusGuardCase),
   omCase('rewrite-stale-relationship-preservation', 'rewrite', rewriteStaleRelationshipPreservation),
   omCase('rewrite-real-giga-40-v2', 'rewrite', rewriteRealGiga40v2),
   omCase('rewrite-real-giga-80', 'rewrite', rewriteRealGiga80),

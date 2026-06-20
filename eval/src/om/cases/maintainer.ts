@@ -1,6 +1,8 @@
+import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
 import type { Probe } from '../../lib/types.js';
-import type { MaintenanceResult, OmEvalSuite, OmGrader, Reflection } from '../types.js';
-import { maintenanceEveryRetiredRefCovered, maintenanceForbidsAny, maintenanceMaxNewReflections, maintenanceMaxRetiredRefs, maintenanceNoop, maintenanceRequiresAll, maintenanceRequiresAny, maintenanceRetireIdsAllowed, maintenanceSourceIdsAllowed, maintenanceSourcesAreDirectRefs, optional } from '../diagnostics.js';
+import { runMaintainerEval } from '../agent-runner.js';
+import type { AgentEvalRecord, MaintenanceResult, OmEvalSuite, OmGrader, Reflection } from '../types.js';
+import { gradeAgentOutput, maintenanceEveryRetiredRefCovered, maintenanceForbidsAny, maintenanceMaxNewReflections, maintenanceMaxRetiredRefs, maintenanceNoop, maintenanceRequiresAll, maintenanceRequiresAny, maintenanceRetireIdsAllowed, maintenanceSourceIdsAllowed, maintenanceSourcesAreDirectRefs, optional } from '../diagnostics.js';
 import { ref } from '../runner.js';
 
 export type MaintainerEvalSpec = {
@@ -73,7 +75,7 @@ export const maintainerStaleCurrentPair: MaintainerEvalSpec = {
       ref('200000000003', 'Use short direct answers unless the user asks for detail.', ['obs_cccccccccccc']),
     ]),
     maintenanceRequiresAll('toolkit-v2'),
-    maintenanceRequiresAny('stale', 'replaced', 'superseded', 'no longer'),
+    maintenanceRequiresAny('stale', 'replaced', 'replacing', 'superseded', 'no longer'),
   ],
 };
 
@@ -175,6 +177,25 @@ export const maintainerBlastRadiusGuard: MaintainerEvalSpec = {
   ],
 };
 
+export async function runMaintainerSpec(spec: MaintainerEvalSpec, model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const started = Date.now();
+  const { output, usage, agentDurationMs, providerError } = await runMaintainerEval(model, thinkingLevel, spec.reflections);
+  return gradeAgentOutput({
+    id: spec.id,
+    agent: 'maintainer',
+    output,
+    probe: spec.probe,
+    judgeModel,
+    started,
+    graders: spec.graders,
+    usage: usage.total,
+    agentDurationMs,
+    diagnostics: { reflections: spec.reflections, providerError },
+    noToolCallLabel: 'No record_maintenance tool call',
+    providerError,
+  });
+}
+
 export const maintainerEvalSpecs: MaintainerEvalSpec[] = [
   maintainerDuplicateMerge,
   maintainerStaleCurrentPair,
@@ -183,3 +204,10 @@ export const maintainerEvalSpecs: MaintainerEvalSpec[] = [
   maintainerDirectParentProvenance,
   maintainerBlastRadiusGuard,
 ];
+
+export const maintainerDuplicateMergeCase = (model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel) => runMaintainerSpec(maintainerDuplicateMerge, model, judgeModel, thinkingLevel);
+export const maintainerStaleCurrentPairCase = (model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel) => runMaintainerSpec(maintainerStaleCurrentPair, model, judgeModel, thinkingLevel);
+export const maintainerCompletedTrailCompressionCase = (model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel) => runMaintainerSpec(maintainerCompletedTrailCompression, model, judgeModel, thinkingLevel);
+export const maintainerUnrelatedNoopCase = (model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel) => runMaintainerSpec(maintainerUnrelatedNoop, model, judgeModel, thinkingLevel);
+export const maintainerDirectParentProvenanceCase = (model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel) => runMaintainerSpec(maintainerDirectParentProvenance, model, judgeModel, thinkingLevel);
+export const maintainerBlastRadiusGuardCase = (model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel) => runMaintainerSpec(maintainerBlastRadiusGuard, model, judgeModel, thinkingLevel);

@@ -11,7 +11,8 @@ export async function loadOmAgents(): Promise<OmAgents> {
   const observer = await import(new URL('observer/agent.ts', base).href) as { runObserver: OmAgents['runObserver'] };
   const reflector = await import(new URL('reflector/agent.ts', base).href) as { runReflector: OmAgents['runReflector'] };
   const rewrite = await import(new URL('rewrite/agent.ts', base).href) as { runRewrite: OmAgents['runRewrite'] };
-  omAgents = { runObserver: observer.runObserver, runReflector: reflector.runReflector, runRewrite: rewrite.runRewrite };
+  const maintainer = await import(new URL('maintainer/agent.ts', base).href) as { runMaintainer: OmAgents['runMaintainer'] };
+  omAgents = { runObserver: observer.runObserver, runReflector: reflector.runReflector, runRewrite: rewrite.runRewrite, runMaintainer: maintainer.runMaintainer };
   return omAgents;
 }
 

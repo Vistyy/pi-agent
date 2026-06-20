@@ -1,5 +1,5 @@
 import type { ModelThinkingLevel } from '@earendil-works/pi-ai';
-import type { Observation, Reflection, RewriteResult } from './types.js';
+import type { MaintenanceResult, Observation, Reflection, RewriteResult } from './types.js';
 import { createUsageCollector, loadOmAgents, resolveModel } from './runner.js';
 
 export const OM_EVAL_MAX_TURNS = 4;
@@ -51,5 +51,20 @@ export async function runRewriteEval(modelSpec: string, thinkingLevel: ModelThin
     const providerError = providerErrorMessage(error);
     if (!providerError) throw error;
     return { result: undefined, output: undefined, usage, agentDurationMs: Date.now() - agentStarted, providerError };
+  }
+}
+
+export async function runMaintainerEval(modelSpec: string, thinkingLevel: ModelThinkingLevel, reflections: Reflection[]) {
+  const auth = await resolveModel(modelSpec);
+  const { runMaintainer } = await loadOmAgents();
+  const usage = createUsageCollector();
+  const agentStarted = Date.now();
+  try {
+    const output = await runMaintainer({ ...auth, reflections, thinkingLevel, maxTurns: OM_EVAL_MAX_TURNS, onUsage: usage.onUsage }) as MaintenanceResult | undefined;
+    return { output, usage, agentDurationMs: Date.now() - agentStarted };
+  } catch (error) {
+    const providerError = providerErrorMessage(error);
+    if (!providerError) throw error;
+    return { output: undefined, usage, agentDurationMs: Date.now() - agentStarted, providerError };
   }
 }
