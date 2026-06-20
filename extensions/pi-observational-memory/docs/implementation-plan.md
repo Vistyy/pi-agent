@@ -6,11 +6,11 @@ Make OM a cheap, continuous, bounded handoff pipeline:
 
 ```text
 source entries
-  -> observer   extracts durable observations from source-only input
-  -> reflector  synthesizes active reflections from current reflections + pending observations
-  -> rewrite    compresses current reflections into smaller handoff memory
+  -> observer    extracts durable observations from source-only input
+  -> reflector   synthesizes active reflections from current reflections + pending observations
+  -> maintainer  periodically performs small local reflection cleanup
   -> active memory renders reflections, plus temporary compaction handoff observations after a safety flush
-  -> recall     recovers exact evidence from obs_*/ref_* ids when needed
+  -> recall      recovers exact evidence from obs_*/ref_* ids when needed
 ```
 
 Core constraints:
@@ -18,7 +18,7 @@ Core constraints:
 - No OM agent receives full raw history by default.
 - Observations are durable evidence, not normal active context.
 - Reflections are active memory.
-- Rewrite is the only intentional lossy compression step.
+- The maintainer is the normal intentional compression step; global rewrite, if kept, is only an emergency fallback.
 - Recall is the evidence path for exact details.
 - Compaction stays near-instant and must not synchronously run reflector/rewrite.
 
@@ -58,39 +58,40 @@ Current status:
 - Pending-only observation input is implemented.
 - Remaining cleanup: simplify prompt and remove review-era/impossible empty-array wording.
 
-### Rewrite
+### Maintainer
 
-Role: current reflections -> smaller active handoff memory.
+Role: small local reflection hygiene, not global memory rewrite.
 
 Contract:
 
-- Input is current active reflections only.
-- Output is normal `ref_*` reflections with typed `sources`.
+- Runs periodically in the background, initially after every X new recorded reflections.
+- Input is a bounded cluster of active reflections, initially a newest-reflection window.
+- Output is normal `ref_*` replacement reflections plus the input `ref_*` ids they retire.
 - Retired reflections stay recallable.
-- Invalid or low-quality rewrite no-ops and retires nothing.
-- Prompt should frame the task as handoff memory for a future LLM, not as generic dedupe.
+- Replacement reflections cite direct parent `ref_*` ids; do not flatten transitive `obs_*` ancestry.
+- Empty maintenance output is a valid no-op.
+- Invalid output no-ops and retires nothing.
 
-Rewrite must include, when present:
+V1 maintainer may:
 
-- current user constraints, preferences, decisions, and corrections
-- active project state
-- unresolved blockers, deferred tasks, and next work
-- exact identifiers needed to act later: paths, commands, errors, ids, settings, schema/API names
-- stale/rejected/superseded relationships needed to avoid mistakes
-- source ids sufficient for recall traversal
+- merge duplicate or near-duplicate active reflections
+- combine local stale/current pairs
+- compress completed local implementation trail into a durable current outcome
+- no-op when no safe improvement exists
 
-Rewrite should drop:
+V1 maintainer must not:
 
-- duplicate or near-duplicate facts
-- stale facts not needed to explain current truth
-- procedural breadcrumbs
-- generic acknowledgements
-- validation receipts that do not affect future action
+- reconsider all active memory
+- retire refs outside its input cluster
+- include observations in its input
+- delete refs without replacement in v1
+- use tags/topics
+- emit audit summaries as memory
 
 Current status:
 
-- Rewrite worker, retirement event, backoff, and recall-through-ref chains are implemented.
-- Remaining cleanup: rewrite prompt as handoff memory; harden evals against sparse critical fact loss and stale/current loss.
+- Not implemented. See `docs/maintainer-design.md`.
+- Existing rewrite worker and retirement event can be reused or demoted once maintainer is implemented.
 
 ### Active memory and compaction
 
@@ -152,7 +153,7 @@ Current status:
 
 ## Prompt design rules
 
-Apply to observer, reflector, and rewrite:
+Apply to observer, reflector, maintainer, and any emergency rewrite fallback:
 
 1. State the handoff role: who consumes the output and why.
 2. Prefer include-shaped instructions over long negative lists.
@@ -165,14 +166,15 @@ Apply to observer, reflector, and rewrite:
 
 - Observer: source chunk only.
 - Reflector: current reflections + pending observations only.
-- Rewrite: current reflections only, with a deterministic cap if needed.
+- Maintainer: bounded active-reflection cluster only; no observation input in v1.
+- Emergency rewrite, if kept: current reflections only, background-only, after maintainer cannot recover budget.
 - Recall: exact id traversal with bounded excerpts.
 
 Planned tests:
 
 - observer call has no prior reflections/observations
 - reflector receives pending observations, not all active observations
-- rewrite receives active reflections only
+- maintainer receives only its bounded active-reflection cluster
 - compaction memory includes only just-flushed handoff observations
 - normal active memory never includes observations
 
@@ -193,7 +195,8 @@ Needed rubric fixes:
 - Reflector real cases must not expect one reflection per observation.
 - Replace output-count expectations with explicit fact coverage.
 - Replace literal keyword checks (`stale`, `deferred`) with semantic checks.
-- Rewrite cases must test sparse but critical fact retention, not just compression size.
+- Maintainer cases must test local cleanup, direct-parent provenance, no-op safety, and blast-radius limits.
+- Emergency rewrite cases, if kept, must test sparse but critical fact retention, not just compression size.
 - Observer cases must test source-only extraction, generic-validation restraint, and proposal-vs-current distinction.
 
 Needed hard cases:
@@ -202,8 +205,8 @@ Needed hard cases:
 - stale plan followed by accepted current correction
 - pending observation already covered by current reflection
 - pending observation supersedes a current reflection
-- rewrite with sparse critical user constraint among noisy dominant theme
-- rewrite preserving stale/current chain and recall provenance
+- maintainer preserving sparse critical user constraint in a noisy local cluster
+- maintainer preserving stale/current chain and recall provenance
 - compaction tail continuity after forced observer flush
 
 ## Telemetry and status
@@ -218,7 +221,17 @@ Per stage:
 - duration
 - no-op/failure reason
 
-Rewrite-specific:
+Maintainer-specific:
+
+- new reflections since last maintenance
+- active reflection tokens / budget
+- input cluster reflection count
+- output reflection count
+- retired count
+- compression ratio
+- no-op/failure reason
+
+Emergency-rewrite-specific, if kept:
 
 - active reflection tokens / budget
 - input reflection count
@@ -231,7 +244,7 @@ Status should expose:
 
 ```text
 Pending reflection observations: N
-Rewrite pressure: X / Y tokens
+Maintenance pressure: X / Y tokens
 Recent compaction handoff observations: N, when present
 Last observer/reflector error, when present
 ```
@@ -267,10 +280,10 @@ Last observer/reflector error, when present
    - Remove impossible empty-array instruction if schema remains non-empty.
    - Clarify current-reflections + pending-observations contract.
 
-3. Reframe rewrite prompt as handoff memory.
-   - Use include-shaped handoff sections/criteria.
-   - Add sparse-critical-fact safeguard.
-   - Avoid count-band requirements unless evals prove necessary.
+3. Add maintainer design/evals before changing production scheduling.
+   - Implement the minimal `record_maintenance` tool contract.
+   - Add local maintainer evals for duplicate merge, stale/current replacement, completed-trail compression, no-op, direct-parent provenance, and blast-radius guards.
+   - Keep global rewrite as current fallback until maintainer behavior is measured.
 
 4. Add compaction flushed observation tail.
    - Return/track observations created by forced compaction safety observe.
@@ -292,6 +305,7 @@ Last observer/reflector error, when present
 
 - Exposing recall to OM agents is not planned. Static bounded input remains preferred.
 - Semantic/search retrieval for reflector is not planned. Current reflections should carry active state; recall is for assistant evidence recovery.
-- Per-reflection deprecation/supersession is not preferred; use full active-memory rewrite unless evals prove item-level lifecycle is necessary.
+- Tags/topics are deferred until maintainer cluster selection proves it needs them.
+- Full active-memory rewrite is no longer the preferred normal lifecycle; if retained, it should be automatic emergency/background fallback only.
 - More config knobs only after evals prove a single policy insufficient.
 - Later follow-up: OM + fork interaction using instant compaction/always-on memory to send compacted context to forked agents instead of full context.

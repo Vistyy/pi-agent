@@ -12,7 +12,7 @@ active memory = current reflections only
 recall = exact evidence recovery
 ```
 
-Observations are not prompt memory. They are background evidence used by reflector and recall. Rewrite may preserve `obs_*` provenance ids already present in active reflections, but it does not inject observation contents into rewrite context for now.
+Observations are not prompt memory. They are background evidence used by reflector and recall. The normal compression path is small-cluster maintenance over active reflections. Global rewrite, if retained, is an emergency background fallback only.
 
 ## Non-goals
 
@@ -97,12 +97,13 @@ Normal reflector sources:
 obs_*
 ```
 
-Rewrite sources:
+Maintainer/rewrite replacement sources:
 
 ```text
-obs_*
-ref_*
+ref_* direct parents
 ```
+
+Replacement agents should not flatten transitive `obs_*` ancestry from parent refs. Reflector-created new facts may still cite direct `obs_*` evidence.
 
 `createdAt` is when the reflection record was produced. Stale/current reasoning should use source timestamps/order, not only rewritten reflection timestamps. A rewrite batch may create many reflections with the same `createdAt`; that is expected.
 
@@ -161,7 +162,7 @@ visible observation pressure
 Preferred replacement:
 
 ```text
-reflector + rewrite + recall
+reflector + maintainer + recall
 ```
 
 Optional fallback only if evals prove needed:
@@ -172,48 +173,50 @@ single-call low-thinking compression auditor
 
 A compression auditor may request reflection repair. It must not create a long-lived pinned observation pool.
 
-## Full active-memory rewrite
+## Small-cluster maintenance
 
-Rewrite bounds active reflection memory without per-item reflection lifecycle management.
+The normal memory-bounding path is a background maintainer, not a full active-memory rewrite.
 
 Trigger:
 
 ```text
-if projected active-memory tokens > budget
+every X new reflections recorded
 ```
 
-Projected active-memory tokens means rendered current active reflections. It does not mean total observation tokens or total ledger tokens.
+Initial policy should be simple, e.g. X = 10. Use a bounded active-reflection cluster, initially a newest-reflection window.
 
-Algorithm:
+Maintainer responsibilities:
+
+- merge duplicate or near-duplicate active reflections
+- combine local stale/current pairs
+- compress completed local implementation trail into a durable current outcome
+- no-op when no safe improvement exists
+
+Maintainer v1 does not use tags, observation input, semantic search, pure deletion, or audit summaries. It must not retire refs outside its input cluster.
+
+Replacement reflections cite direct parent `ref_*` ids only:
 
 ```text
-1. Deterministically select all current active reflections.
-2. Build rewrite input from active reflection summary lines only.
-3. Ask LLM for a smaller set of normal Reflection records.
-4. Mechanically validate output.
-5. If valid, append rewrite event:
-   - records new reflections
-   - retires rewritten active reflections from projection
-   - stores hidden audit metadata
-6. If invalid, no-op and retire nothing.
+ref_new.sources = [ref_old_a, ref_old_b]
 ```
 
-Start with full rewrite of all current active reflections. Do not add observation-content expansion, clustering, or multi-phase rewrite unless evals show reflection-only one-pass rewrite is insufficient. Partial observation evidence can mislead stale/current reasoning, and full evidence can explode context.
+Do not flatten ancestry into repeated `obs_*` source lists. Recall handles traversal depth.
 
-## Rewrite event
+Global full-memory rewrite is not the normal lifecycle. If retained, it is an automatic background emergency fallback after bounded maintainer bursts fail to recover a hard budget.
 
-Rewritten reflections are normal reflections. The rewrite event carries retirement and audit metadata.
+## Retirement event
+
+Maintained/replaced reflections are normal reflections. The existing rewrite/retirement event carries ids retired from active projection.
 
 ```ts
 interface ReflectionsRewrittenEvent {
   id: string; // rw_*
   retiredReflectionIds: string[];
-  summary?: string;
   failure?: undefined;
 }
 ```
 
-For failed attempts, record status/debug separately or as a failed rewrite event if useful:
+No maintainer summary field is needed in v1. For failed attempts, record status/debug separately or as a failed rewrite event if useful:
 
 ```ts
 interface ReflectionsRewriteFailedEvent {
@@ -226,7 +229,7 @@ interface ReflectionsRewriteFailedEvent {
 
 Hidden audit metadata is not rendered in active memory by default.
 
-## Rewrite validation
+## Maintenance validation
 
 Validator is deterministic. Bad output no-ops.
 
@@ -234,41 +237,42 @@ Hard checks:
 
 - all ids are typed and valid
 - every new reflection id is new and valid
-- every source id exists in the active reflection rewrite input or allowed provenance ids from those reflections
+- every replacement source id exists in the maintainer input cluster
 - every new reflection has at least one source
 - no invented sources
-- no retired id outside active candidate set
+- no retired id outside the maintainer input cluster
 - content is non-empty and single-line
 - content length under limit
 - reflection count under limit
 - no exact duplicate content
-- rewritten projection is smaller than old projection, unless explicitly configured for repair-only mode
+- maintained projection is smaller than old projection, unless explicitly configured for repair-only mode
+- in maintainer v1, every retired reflection is cited by at least one replacement reflection
 
-Do not require every retired reflection to be cited by a new reflection. That would preserve noise forever and may prevent real compaction.
+Pure deletion may be revisited later; v1 avoids silent forgetting.
 
 Semantic quality is evaluated by evals, not validator, except for deterministic hard cases.
 
-## Rewrite no-op and backoff
+## Maintenance no-op and backoff
 
-Invalid or low-quality rewrite must be safe:
+Invalid or low-quality maintenance must be safe:
 
 ```text
 no-op = keep old active memory unchanged, retire nothing
 ```
 
-Do not retry immediately by default.
+Do not retry the same cluster immediately by default.
 
 Policy:
 
 - record last failure reason
 - report active-memory pressure in status
-- retry when the active reflection set changes, or after manual trigger if one is added later
+- retry when the active reflection set changes, or when the next threshold is reached
 - if repeated failures occur, keep compaction working with larger active memory rather than losing information
 
 Status should make this visible:
 
 ```text
-Rewrite: blocked, last failure: <reason>
+Maintenance: blocked, last failure: <reason>
 Active memory: 24k / 20k tokens
 ```
 
@@ -340,14 +344,14 @@ A fact may remain in the ledger but disappear from active memory, so the agent d
 
 Mitigation:
 
-- conservative rewrite prompt
-- hard rewrite validation
-- hidden audit manifest for debugging
-- strong rewrite evals
+- conservative maintainer prompt
+- hard maintenance validation
+- strong maintainer evals
 - recall policy
-- no-op on bad rewrite
+- no-op on bad maintenance
+- emergency rewrite evals if a global fallback remains
 
-Rewrite must preserve decision-relevant handles, not every old reflection id.
+Maintainer replacements must preserve the local decision-relevant handles in their input cluster. Emergency rewrite, if retained, must preserve decision-relevant handles globally, not every old reflection id.
 
 Decision-relevant handles include:
 
@@ -361,40 +365,40 @@ Decision-relevant handles include:
 
 Noise, duplicate summaries, stale failed attempts, and routine meta chatter may be discarded from active memory.
 
-## Evals required before automatic rewrite
+## Evals required before automatic maintenance
 
-Do not enable automatic rewrite until realistic evals show no-op is rare and quality is acceptable.
+Do not enable automatic maintainer scheduling until realistic evals show no-op is safe and local maintenance quality is acceptable.
 
 ### Deterministic tests
 
-- valid rewrite applies
+- valid maintenance applies
 - invalid ids no-op
 - invented sources no-op
-- retiring non-active refs no-op
+- retiring refs outside the input cluster no-op
 - empty sources no-op
 - too many/too long reflections no-op
-- failed rewrite leaves active memory unchanged
-- successful rewrite keeps retired refs recallable
-- recall traverses rewritten ref -> old ref -> obs -> source
+- failed maintenance leaves active memory unchanged
+- successful maintenance keeps retired refs recallable
+- recall traverses maintained ref -> old ref -> obs -> source
 
 ### Model evals
 
-- stale/current pair rewritten correctly
-- unresolved blocker not marked fixed
+- duplicate local refs merged correctly
+- stale/current pair maintained correctly
+- completed trail compressed into current outcome
+- unrelated cluster no-ops
 - exact command/error/path retained or recallably anchored
-- noisy/meta reflections removed
-- overlapping reflections merged
-- provenance valid
-- active memory shrinks
-- invalid/unsafe rewrite no-ops
+- provenance uses direct parent refs
+- active memory shrinks locally
+- invalid/unsafe maintenance no-ops
 
 ### Historical evals
 
-Use giga-session-derived slices:
+Use giga-session-derived local clusters and emergency global slices:
 
-- 30 current reflections
-- 100 current reflections
-- final large reflection pool
+- recent-reflection windows
+- duplicate/stale-current clusters
+- 30/100/final large reflection pools only for emergency rewrite/stress coverage
 
 Track:
 
@@ -414,8 +418,9 @@ Track:
 4. Remove pin/unpin projection/status behavior.
 5. Add reflection `sources` and `createdAt` migration in code.
 6. Update recall traversal for typed ids and ref->ref chains.
-7. Implement rewrite event, validator, no-op/backoff status.
+7. Implement retirement event, validator, no-op/backoff status.
 8. Simplify reflector prompt/tools around observation-sourced reflections.
 9. Remove curator or reduce it to disabled/minimal audit path.
 10. Add hard realistic evals.
-11. Enable automatic rewrite only after eval baseline is good.
+11. Enable automatic maintainer scheduling only after eval baseline is good.
+12. Decide whether global rewrite remains as emergency fallback after maintainer results are measured.
