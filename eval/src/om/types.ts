@@ -5,6 +5,7 @@ export type Observation = { id: string; content: string; timestamp: string; sour
 export type Reflection = { id: string; content: string; sources: string[]; tokenCount: number };
 
 export type RewriteResult = { reflections: Reflection[]; summary?: string };
+export type MaintenanceResult = { retireReflectionIds: string[]; reflections: Reflection[] };
 
 export type OmAgents = {
   runObserver: (args: Record<string, unknown>) => Promise<Observation[] | undefined>;

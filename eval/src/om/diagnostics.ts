@@ -1,6 +1,6 @@
 import { runJudge } from '../lib/judge.js';
 import type { Probe, TokenUsage } from '../lib/types.js';
-import type { AgentEvalRecord, EvalScoreDimension, Observation, OmGrader, Reflection } from './types.js';
+import type { AgentEvalRecord, EvalScoreDimension, MaintenanceResult, Observation, OmGrader, Reflection } from './types.js';
 
 const MIN_SCORED_PASS_RATIO = 0.5;
 
@@ -127,4 +127,72 @@ export function reflectorForbidsSourceIds(...ids: string[]): OmGrader<Reflection
 export function reflectorSourceIdsAllowed(allowedIds: string[]): OmGrader<Reflection[]> {
   const allowed = new Set(allowedIds);
   return { label: `source ids limited to ${allowedIds.join(', ')}`, pass: (output) => reflectionSourceIds(output).every((id) => allowed.has(id)), detail: (output) => reflectionSourceIds(output) };
+}
+
+export function maintenanceText(output: MaintenanceResult | undefined): string {
+  return (output?.reflections ?? []).map((reflection) => reflection.content).join('\n');
+}
+
+export function maintenanceRetireIds(output: MaintenanceResult | undefined): string[] {
+  return output?.retireReflectionIds ?? [];
+}
+
+export function maintenanceSourceIds(output: MaintenanceResult | undefined): string[] {
+  return (output?.reflections ?? []).flatMap((reflection) => reflection.sources);
+}
+
+export function maintenanceNoop(): OmGrader<MaintenanceResult> {
+  return {
+    label: 'no maintenance output',
+    pass: (output) => maintenanceRetireIds(output).length === 0 && (output?.reflections ?? []).length === 0,
+    detail: (output) => ({ retireReflectionIds: maintenanceRetireIds(output), reflectionCount: output?.reflections.length ?? 0 }),
+  };
+}
+
+export function maintenanceRetireIdsAllowed(allowedIds: string[]): OmGrader<MaintenanceResult> {
+  const allowed = new Set(allowedIds);
+  return { label: `retire ids limited to ${allowedIds.join(', ')}`, pass: (output) => maintenanceRetireIds(output).every((id) => allowed.has(id)), detail: (output) => maintenanceRetireIds(output) };
+}
+
+export function maintenanceSourceIdsAllowed(allowedIds: string[]): OmGrader<MaintenanceResult> {
+  const allowed = new Set(allowedIds);
+  return { label: `source ids limited to ${allowedIds.join(', ')}`, pass: (output) => maintenanceSourceIds(output).every((id) => allowed.has(id)), detail: (output) => maintenanceSourceIds(output) };
+}
+
+export function maintenanceSourcesAreDirectRefs(): OmGrader<MaintenanceResult> {
+  return { label: 'sources are direct ref_* parents', pass: (output) => maintenanceSourceIds(output).every((id) => id.startsWith('ref_')), detail: (output) => maintenanceSourceIds(output) };
+}
+
+export function maintenanceEveryRetiredRefCovered(): OmGrader<MaintenanceResult> {
+  return {
+    label: 'every retired ref is cited by a replacement',
+    pass: (output) => {
+      const sources = new Set(maintenanceSourceIds(output));
+      return maintenanceRetireIds(output).every((id) => sources.has(id));
+    },
+    detail: (output) => ({ retireReflectionIds: maintenanceRetireIds(output), sources: maintenanceSourceIds(output) }),
+  };
+}
+
+export function maintenanceRequiresAll(...needles: string[]): OmGrader<MaintenanceResult> {
+  return { label: `requires ${needles.join(', ')}`, pass: (output) => needles.every((needle) => maintenanceText(output).includes(needle)), detail: (output) => maintenanceText(output) };
+}
+
+export function maintenanceRequiresAny(...needles: string[]): OmGrader<MaintenanceResult> {
+  return { label: `requires any of ${needles.join(', ')}`, pass: (output) => {
+    const text = maintenanceText(output).toLowerCase();
+    return needles.some((needle) => text.includes(needle.toLowerCase()));
+  }, detail: (output) => maintenanceText(output) };
+}
+
+export function maintenanceForbidsAny(...needles: string[]): OmGrader<MaintenanceResult> {
+  return { label: `forbids ${needles.join(', ')}`, pass: (output) => needles.every((needle) => !maintenanceText(output).includes(needle)), detail: (output) => maintenanceText(output) };
+}
+
+export function maintenanceMaxNewReflections(max: number): OmGrader<MaintenanceResult> {
+  return { label: `at most ${max} new reflections`, pass: (output) => (output?.reflections ?? []).length <= max, detail: (output) => ({ count: output?.reflections.length ?? 0 }) };
+}
+
+export function maintenanceMaxRetiredRefs(max: number): OmGrader<MaintenanceResult> {
+  return { label: `at most ${max} retired refs`, pass: (output) => maintenanceRetireIds(output).length <= max, detail: (output) => ({ count: maintenanceRetireIds(output).length }) };
 }
