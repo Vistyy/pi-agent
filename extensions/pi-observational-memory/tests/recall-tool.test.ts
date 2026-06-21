@@ -18,6 +18,7 @@ import {
 	rawMessage,
 	reflection,
 	reflectionsRecordedEntry,
+	reflectionsRewrittenEntry,
 	type TestEntry,
 } from "./fixtures/session.js";
 
@@ -120,6 +121,52 @@ describe("recall tool", () => {
 		expect(compact.text).toContain("ref_eeeeeeeeeeee -> ref_dddddddddddd");
 		expect(provenance.text).toContain("Supporting reflections:");
 		expect(provenance.text).toContain("[ref_dddddddddddd] User likes tea.");
+	});
+
+	it("recalls replacement reflections through retired parents", async () => {
+		const obs = observation("aaaaaaaaaaaa", { content: "User prefers pnpm.", sourceEntryIds: ["raw-1"] });
+		const retired = reflection("dddddddddddd", ["aaaaaaaaaaaa"], { content: "User prefers pnpm for package commands." });
+		const replacement = reflection("eeeeeeeeeeee", ["ref_dddddddddddd"], { content: "Use pnpm for package-manager commands." });
+		const entries = [
+			rawMessage("raw-1", "Please use pnpm, not npm."),
+			observationsRecordedEntry("om-obs", { observations: [obs], coversUpToId: "raw-1" }),
+			reflectionsRecordedEntry("om-ref-1", { reflections: [retired], coversUpToId: "om-obs" }),
+			reflectionsRewrittenEntry("om-rewrite", { retiredReflectionIds: ["ref_dddddddddddd"] }),
+			reflectionsRecordedEntry("om-ref-2", { reflections: [replacement], coversUpToId: "om-rewrite" }),
+		];
+
+		const evidence = await execute("ref_eeeeeeeeeeee", entries);
+		const provenance = await execute("ref_eeeeeeeeeeee", entries, { mode: "provenance" });
+
+		expect(evidence.result.details?.status).toBe("ok");
+		expect(evidence.result.details?.supportingReflections.map((item) => item.id)).toEqual(["ref_dddddddddddd"]);
+		expect(evidence.text).toContain("[ref_eeeeeeeeeeee] Use pnpm for package-manager commands.");
+		expect(evidence.text).toContain("ref_eeeeeeeeeeee -> ref_dddddddddddd");
+		expect(evidence.text).toContain("ref_dddddddddddd -> obs_aaaaaaaaaaaa");
+		expect(evidence.text).toContain("[obs_aaaaaaaaaaaa]");
+		expect(evidence.text).toContain("Please use pnpm, not npm.");
+		expect(evidence.text).not.toContain("Supporting reflections:");
+		expect(provenance.text).toContain("Supporting reflections:");
+		expect(provenance.text).toContain("[ref_dddddddddddd] User prefers pnpm for package commands.");
+	});
+
+	it("recalls retired reflections directly", async () => {
+		const obs = observation("aaaaaaaaaaaa", { content: "User prefers short answers.", sourceEntryIds: ["raw-1"] });
+		const retired = reflection("dddddddddddd", ["aaaaaaaaaaaa"], { content: "User prefers short answers." });
+		const entries = [
+			rawMessage("raw-1", "Please keep answers short."),
+			observationsRecordedEntry("om-obs", { observations: [obs], coversUpToId: "raw-1" }),
+			reflectionsRecordedEntry("om-ref-1", { reflections: [retired], coversUpToId: "om-obs" }),
+			reflectionsRewrittenEntry("om-rewrite", { retiredReflectionIds: ["ref_dddddddddddd"] }),
+		];
+
+		const { result, text } = await execute("ref_dddddddddddd", entries);
+
+		expect(result.details?.status).toBe("ok");
+		expect(result.details?.reflections.map((item) => item.id)).toEqual(["ref_dddddddddddd"]);
+		expect(text).toContain("[ref_dddddddddddd] User prefers short answers.");
+		expect(text).toContain("[obs_aaaaaaaaaaaa]");
+		expect(text).toContain("Please keep answers short.");
 	});
 
 	it("does not expose assistant thinking from source entries", async () => {

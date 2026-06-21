@@ -116,6 +116,8 @@ describe("session-ledger recall", () => {
 		expect(result.status).toBe("found");
 		if (result.status !== "found") return;
 		expect(result.reflections.map((match) => match.reflection.id)).toEqual([REF_2]);
+		expect(result.supportingReflections.map((match) => match.reflection.id)).toEqual([REF_1]);
+		expect(result.provenanceEdges).toEqual([{ fromId: REF_2, toId: REF_1 }, { fromId: REF_1, toId: OBS_1 }]);
 		expect(result.observations.map((match) => match.observation.id)).toEqual([OBS_1]);
 		expect(result.sourceEntries.map((entry) => entry.id)).toEqual(["src-1"]);
 		expect(result.partial).toBe(false);
