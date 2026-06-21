@@ -5,6 +5,7 @@ import { EFFORT_LEVELS, loadConfig, type ForkConfig } from "./config.js";
 import { type ForkDetails, type ForkEffort, type ForkEffortSource, type ForkEffortState, type ForkResult, emptyUsage, isResultError } from "./core/types.js";
 import { getResultSummaryText } from "./child-events/index.js";
 import { runFork } from "./runner/index.js";
+import { buildForkSessionSnapshotJsonl } from "./session-snapshot.js";
 import { renderForkCall, renderForkResult } from "./ui/render.js";
 
 export const FORK_TOOL_TEXT = {
@@ -34,23 +35,6 @@ const ForkParams = Type.Object({
     description: FORK_TOOL_TEXT.effortDescription,
   })),
 });
-
-interface SessionSnapshotSource {
-  getHeader: () => unknown;
-  getBranch: () => unknown[];
-}
-
-function buildForkSessionSnapshotJsonl(
-  sessionManager: SessionSnapshotSource,
-): string | null {
-  const header = sessionManager.getHeader();
-  if (!header || typeof header !== "object") return null;
-
-  const branchEntries = sessionManager.getBranch();
-  const lines = [JSON.stringify(header)];
-  for (const entry of branchEntries) lines.push(JSON.stringify(entry));
-  return `${lines.join("\n")}\n`;
-}
 
 function makeDetails(results: ForkResult[]): ForkDetails {
   return { results };
@@ -163,7 +147,10 @@ export function registerForkTool(pi: ExtensionAPI): void {
     async execute(_toolCallId, params, signal, onUpdate, ctx) {
       const config = loadConfig(ctx.cwd);
       const effort = resolveEffortState(params.effort, config);
-      const snapshot = buildForkSessionSnapshotJsonl(ctx.sessionManager);
+      const snapshot = buildForkSessionSnapshotJsonl(ctx.sessionManager, {
+        mode: config.sessionSnapshot,
+        recentTailEntryCount: config.sessionSnapshotRecentTailEntryCount,
+      });
       if (!snapshot) {
         const result = emptyFailedResult(
           params.task,

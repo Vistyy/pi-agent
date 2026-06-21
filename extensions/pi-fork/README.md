@@ -2,7 +2,8 @@
 
 Adds a `fork` tool for running focused work in a child Pi process.
 
-A fork starts from a temporary snapshot of the current active session branch, runs the requested task, and returns a structured report. Use it for noisy investigation, review, debugging, validation, or option analysis that would clutter the main conversation.
+A fork starts from a temporary snapshot of the current active session branch, runs the requested task, and returns a structured report.
+Use it for noisy investigation, review, debugging, validation, or option analysis that would clutter the main conversation.
 
 ## Tool
 
@@ -102,6 +103,24 @@ Sandbox defaults:
 
 `web_search`, `web_fetch`, and `web_content_get` are host-mediated text tools. They still work with shell network disabled because they are not run inside sandboxed `bash`. They fetch/extract/store text; they do not execute page JavaScript or fetched scripts.
 
+## Session snapshot
+
+Forks use the full active session branch by default.
+Projects that also use observational memory can opt into a compact snapshot to reduce child input cost:
+
+```json
+{
+  "pi-fork": {
+    "sessionSnapshot": "om-compact",
+    "sessionSnapshotRecentTailEntryCount": 20
+  }
+}
+```
+
+`om-compact` replaces older branch history with a synthetic compaction entry containing current OM active reflections, then keeps the most recent tail entries verbatim.
+It does not run OM observer, reflector, maintainer, or rewrite work during fork setup.
+It is intended for dogfooding and may omit details that are not reflected yet, so keep a recent tail.
+
 ## Config
 
 Config goes under `pi-fork` in `~/.pi/agent/settings.json` or `.pi/settings.json`.
@@ -147,6 +166,8 @@ offline: true
 sandbox.bashNetwork: false
 sandbox.tmpDir: /tmp
 costFooter: true
+sessionSnapshot: full
+sessionSnapshotRecentTailEntryCount: 20
 environment: {}
 ```
 
