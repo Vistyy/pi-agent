@@ -13,7 +13,7 @@ import type { AgentToolResult } from "@earendil-works/pi-agent-core";
 import { buildChildEnv } from "./env.js";
 import { buildForkTaskPrompt } from "./prompt.js";
 import type { ForkSandboxConfig } from "../config.js";
-import { compactForkSessionWithOm } from "./om-compact-preflight.js";
+import { compactForkSessionWithOmInSubprocess } from "./om-compact-preflight.js";
 import { type ForkDetails, type ForkEffort, type ForkEffortProfile, type ForkEffortState, type ForkResult, emptyUsage, normalizeCompletedResult } from "../core/types.js";
 import type { ForkSessionSnapshotMode } from "../session-snapshot.js";
 import { parseInheritedCliArgs } from "./cli.js";
@@ -199,7 +199,7 @@ export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
         if (!omCompactExtension) {
           throw new Error("Cannot fork with sessionSnapshot=\"om-compact\": pi-fork.omCompactExtension is not configured.");
         }
-        await compactForkSessionWithOm({ cwd, sessionPath: forkSessionTmpPath, signal, omExtensionPath: omCompactExtension });
+        await compactForkSessionWithOmInSubprocess({ cwd, sessionPath: forkSessionTmpPath, signal, omExtensionPath: omCompactExtension });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         result.exitCode = signal?.aborted ? 130 : 1;

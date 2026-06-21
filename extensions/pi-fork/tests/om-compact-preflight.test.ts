@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { applyOmCompactionToSession, compactForkSessionWithOm } from "../src/runner/om-compact-preflight.js";
+import { applyOmCompactionToSession, compactForkSessionWithOmInSubprocess } from "../src/runner/om-compact-preflight.js";
 
 const entry = { type: "message", id: "entry-1", parentId: null, timestamp: "2026-06-21T00:00:00.000Z", message: { role: "user", content: [{ type: "text", text: "old" }] } };
 const preparation = { firstKeptEntryId: "entry-1" };
@@ -131,7 +131,7 @@ describe("OM compact fork preflight", () => {
     ];
     writeFileSync(sessionPath, `${entries.map((value) => JSON.stringify(value)).join("\n")}\n`);
 
-    await compactForkSessionWithOm({ cwd, sessionPath, omExtensionPath: fakeOmPath });
+    await compactForkSessionWithOmInSubprocess({ cwd, sessionPath, omExtensionPath: fakeOmPath });
 
     expect(() => readFileSync(sideEffectPath, "utf-8")).toThrow();
     const compacted = readFileSync(sessionPath, "utf-8");

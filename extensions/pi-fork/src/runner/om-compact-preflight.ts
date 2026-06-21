@@ -1,4 +1,5 @@
 import * as path from "node:path";
+import { spawn } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   createAgentSession,
@@ -41,6 +42,8 @@ interface CompactForkSessionWithOmOptions {
   omExtensionPath: string;
 }
 
+const WORKER_STDERR_MAX_CHARS = 12_000;
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -56,9 +59,81 @@ function isOmCompaction(value: unknown): value is CompactionResult {
   );
 }
 
+function getPiCodingAgentEntry(): string {
+  return import.meta.resolve("@earendil-works/pi-coding-agent");
+}
+
 function getPiCodingAgentPackageDir(): string {
-  const indexPath = fileURLToPath(import.meta.resolve("@earendil-works/pi-coding-agent"));
+  const indexPath = fileURLToPath(getPiCodingAgentEntry());
   return path.dirname(path.dirname(indexPath));
+}
+
+function getOmCompactWorkerPath(): string {
+  return fileURLToPath(new URL("./om-compact-preflight-worker.js", import.meta.url));
+}
+
+function compactErrorFromStderr(stderr: string, fallback: string): Error {
+  const trimmed = stderr.trim();
+  return new Error(trimmed || fallback);
+}
+
+function appendCapped(buffer: string, chunk: Buffer): string {
+  const next = buffer + chunk.toString("utf8");
+  return next.length <= WORKER_STDERR_MAX_CHARS
+    ? next
+    : next.slice(next.length - WORKER_STDERR_MAX_CHARS);
+}
+
+export async function compactForkSessionWithOmInSubprocess(options: CompactForkSessionWithOmOptions): Promise<void> {
+  const node = process.env.PI_FORK_NODE || process.env.NODE || "node";
+  const payload = JSON.stringify({
+    cwd: options.cwd,
+    sessionPath: options.sessionPath,
+    omExtensionPath: options.omExtensionPath,
+    piCodingAgentEntry: getPiCodingAgentEntry(),
+  });
+
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn(node, [getOmCompactWorkerPath(), payload], {
+      cwd: options.cwd,
+      env: process.env,
+      stdio: ["ignore", "ignore", "pipe"],
+    });
+
+    let stderr = "";
+    let settled = false;
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      options.signal?.removeEventListener("abort", abort);
+      if (error) reject(error);
+      else resolve();
+    };
+    const abort = () => {
+      child.kill("SIGTERM");
+      finish(new Error("OM compact fork preflight was aborted."));
+    };
+
+    if (options.signal?.aborted) {
+      abort();
+      return;
+    }
+
+    options.signal?.addEventListener("abort", abort, { once: true });
+    child.stderr.on("data", (chunk: Buffer) => { stderr = appendCapped(stderr, chunk); });
+    child.on("error", (error) => finish(error));
+    child.on("exit", (code, signal) => {
+      if (settled) return;
+      if (code === 0) {
+        finish();
+        return;
+      }
+      const fallback = signal
+        ? `Cannot fork with sessionSnapshot=\"om-compact\": preflight exited with signal ${signal}.`
+        : `Cannot fork with sessionSnapshot=\"om-compact\": preflight exited with code ${code ?? "unknown"}.`;
+      finish(compactErrorFromStderr(stderr, fallback));
+    });
+  });
 }
 
 async function loadPrepareCompaction(): Promise<PrepareCompaction> {
