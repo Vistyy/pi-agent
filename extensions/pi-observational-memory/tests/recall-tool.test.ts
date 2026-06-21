@@ -2,6 +2,7 @@ import type { AgentToolResult } from "@earendil-works/pi-agent-core";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { describe, expect, it, vi } from "vitest";
 
+import observationalMemory from "../src/index.js";
 import {
 	RECALL_OBSERVATION_TOOL_NAME,
 	formatRecallCallForTui,
@@ -36,14 +37,27 @@ async function execute(id: string, entries: TestEntry[]) {
 }
 
 describe("recall tool", () => {
-	it("keeps the public tool name and TUI call rendering", () => {
+	it("keeps the public tool name, typed-id schema, and TUI call rendering", () => {
 		const pi = toolApi();
 		registerRecallTool(pi);
 
 		expect(RECALL_OBSERVATION_TOOL_NAME).toBe("recall");
 		expect(recallObservationTool.name).toBe("recall");
 		expect(recallObservationTool.label).toBe("Recall memory evidence");
-		expect(formatRecallCallForTui("aaaaaaaaaaaa")).toBe("recall aaaaaaaaaaaa");
+		expect((recallObservationTool.parameters as any).properties.id.pattern).toBe("^(?:[a-f0-9]{12}|obs_[a-f0-9]{12}|ref_[a-f0-9]{12})$");
+		expect(formatRecallCallForTui("obs_aaaaaaaaaaaa")).toBe("recall obs_aaaaaaaaaaaa");
+		expect(pi.registerTool).toHaveBeenCalledWith(recallObservationTool);
+	});
+
+	it("registers the canonical recall tool from the extension entrypoint", () => {
+		const pi = {
+			registerTool: vi.fn(),
+			registerCommand: vi.fn(),
+			on: vi.fn(),
+		} as any;
+
+		observationalMemory(pi);
+
 		expect(pi.registerTool).toHaveBeenCalledWith(recallObservationTool);
 	});
 
@@ -97,7 +111,7 @@ describe("recall tool", () => {
 		const { result, text, getBranch } = await execute("not-valid", []);
 
 		expect(result.details?.status).toBe("invalid_id");
-		expect(text).toContain("Memory id must be 12 lowercase hex characters");
+		expect(text).toContain("Memory id must be a typed obs_* or ref_* id");
 		expect(getBranch).not.toHaveBeenCalled();
 	});
 

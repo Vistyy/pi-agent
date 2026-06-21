@@ -443,18 +443,18 @@ export const recallObservationTool = defineTool({
 		"Use when compressed memory is important and original source context is needed before acting.",
 	promptSnippet: "Use recall(<id>) to recover exact source context behind compacted memory observations/reflections when precision matters.",
 	promptGuidelines: [
-		"Use recall before making an important decision that depends on a compacted observation or reflection whose details are unclear.",
+		"Use recall before making an important decision that depends on a compacted observation or reflection id whose details are unclear.",
 		"Use recall when you need exact wording, rationale, file paths, commands, errors, commits, user constraints, or provenance behind a remembered claim.",
 		"Use recall when a broad reflection is relevant but you need its supporting observations or raw sources to continue safely.",
 		"Use recall when the user asks why you believe something, what supports a memory, or what was decided earlier.",
-		"Do not use recall as semantic search or transcript browsing; you must already have a specific 12-character memory id.",
+		"Do not use recall as semantic search or transcript browsing; you must already have a specific obs_*, ref_*, or legacy 12-character memory id.",
 		"Do not recall every id preemptively. Recall only when exact source context will materially improve the next action.",
 	],
 	executionMode: "parallel",
 	parameters: Type.Object({
 		id: Type.String({
-			pattern: "^[a-f0-9]{12}$",
-			description: "12-character lowercase hex observation or reflection id shown in compacted memory, /om:view, or a previous recall result. Must be a specific id; this tool does not search by topic.",
+			pattern: "^(?:[a-f0-9]{12}|obs_[a-f0-9]{12}|ref_[a-f0-9]{12})$",
+			description: "Typed obs_* or ref_* memory id, or legacy 12-character lowercase hex id, shown in compacted memory, /om:view, or a previous recall result. Must be a specific id; this tool does not search by topic.",
 		}),
 	}),
 	renderCall(args) {
@@ -466,7 +466,7 @@ export const recallObservationTool = defineTool({
 	async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
 		const memoryId = params.id;
 		if (!MEMORY_ID_PATTERN.test(memoryId)) {
-			const message = `Memory id must be 12 lowercase hex characters. Received: ${memoryId}`;
+			const message = `Memory id must be a typed obs_* or ref_* id, or a legacy 12-character lowercase hex id. Received: ${memoryId}`;
 			return textResult(message, emptyDetails("invalid_id", memoryId, message));
 		}
 		const branchEntries = ctx.sessionManager.getBranch() as Entry[];

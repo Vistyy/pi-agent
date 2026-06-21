@@ -266,7 +266,7 @@ Last observer/reflector error, when present
 - Rewrite is retained only as an emergency over-budget fallback after normal maintenance.
 - Rewrite safety hardened: direct input `ref_*` sources only, no unchanged/duplicate replacement content, no empty/invalid result application, and stage-level smaller-than-active/under-budget checks.
 - Rewrite backoff for unchanged failed/no-op active sets implemented.
-- Recall traverses typed observation/reflection provenance.
+- Recall traverses typed observation/reflection provenance, and the public recall tool now uses the canonical typed-id surface from extension registration.
 - Observer source serialization is policy-based and bounded.
 - Observer stage now sends source chunk only.
 - Reflector stage now sends pending/unreflected observations only.
@@ -286,9 +286,9 @@ Last observer/reflector error, when present
    - Stable implementation facts are not automatically active memory; active memory should carry decision-relevant constraints, not a categorized changelog.
    - Prefer focused boundary evals over additional broad prompt tuning.
 
-3. Refactor and evaluate recall behavior for the current reflection-only OM architecture.
-   - Verify recall follows typed `obs_*`/`ref_*` provenance as the required evidence path.
-   - Add evals for when the assistant should use recall before relying on compacted memory.
+3. Continue recall behavior hardening for the current reflection-only OM architecture.
+   - First pass done: canonical recall registration/schema accepts typed `obs_*`/`ref_*` ids, and assistant-facing recall-use evals cover required exact-id recall plus no semantic-search recall.
+   - Add more recall-use evals around broad reflection provenance, stale/current ambiguity, and when recall is unnecessary.
    - Ensure the recall tool returns enough source context without reintroducing active raw observations.
 
 4. Cleanup OM documentation.
