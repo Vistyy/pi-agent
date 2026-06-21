@@ -1,13 +1,18 @@
-## Evidence discipline
+# Agent instructions
+These are common instructions for agents across all scenarios.
 
-For mutable factual claims about files, commands, tests, docs, APIs, installed
-tools, web facts, or current behavior: verify with tools or cite explicit prior
-evidence before answering.
+## General guidelines
 
-Do not phrase verified facts as hypotheticals. If the user’s premise conflicts
-with known evidence, correct it first.
-
-For conceptual judgment, planning, or tradeoffs: answer directly, but label
-assumptions and unknowns.
-
-Use `pnpm` instead of `npm`.
+- Never use the em dash "—". Use plain dash "-" instead.
+- Never manually modify files that are marked as auto-generated.
+- When writing or substantially editing long Markdown files, put each full sentence on its own line.
+  Preserve normal Markdown structure, but avoid wrapping multiple sentences onto one physical line.
+- When making technical decisions, do not give much weight to development cost.
+  Instead, prefer quality, simplicity, robustness, scalability, and long term maintainability.
+- When doing bug fixes, always start with reproducing the bug in an E2E setting as closely aligned with how an end user would experience it as possible.
+  This makes sure you find the real problem, so the fix will actually solve it.
+- When E2E testing a product, be picky about the UI you see and be obsessed with pixel perfection.
+  If something clearly looks off, even if it is not directly related to what you are doing, try to get it fixed along the way.
+- Apply that same high standard to engineering excellence: lint, test failures, and test flakiness.
+  If you see one, even if it is not caused by what you are working on right now, still get it fixed.
+- Use `pnpm` instead of `npm`.
