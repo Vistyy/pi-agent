@@ -2,7 +2,8 @@
 
 Pi extension for session-local observational memory.
 
-It records compact observations/reflections from the current branch, preserves exact details like commands, paths, errors, decisions, and run results, and can expose that memory after compaction.
+It records durable observations as ledger evidence and current reflections as active memory.
+It preserves exact details like commands, paths, errors, decisions, and run results, then exposes current reflections after compaction.
 
 ## Strategy
 
@@ -18,8 +19,8 @@ Configure under `observational-memory` in Pi settings:
 
 Strategies:
 
-- `replacement` — default. Replace Pi compaction with an observational-memory summary.
-- `off` — disable memory workers and memory compaction behavior.
+- `replacement` - default. Replace Pi compaction with an observational-memory summary.
+- `off` - disable memory workers and memory compaction behavior.
 
 OM does not schedule compaction. Pi/manual/eval compaction triggers still run; OM renders deterministic memory at the compaction boundary and can replace the resulting context depending on strategy.
 
@@ -47,12 +48,14 @@ Active memory renders current reflections only. Observations remain durable ledg
 
 ## Commands
 
-- `/om:status` — show memory state. Use `/om:status full` for ledger/debug details.
-- `/om:view` — show context memory. Use `/om:view recorded` for recorded observations and reflections.
+- `/om:status` - show memory state. Use `/om:status full` for ledger/debug details.
+- `/om:view` - show context memory. Use `/om:view recorded` for recorded observations and reflections.
 
 ## Recall
 
-Memory entries include ids such as `obs_...` and `ref_...`. Use `recall(id)` when exact source context behind an observation or reflection is needed.
+Memory entries include ids such as `obs_...` and `ref_...`.
+Use `recall({ id, mode?, depth? })` when exact source context behind an observation or reflection is needed.
+Use `mode: "provenance"` when intermediate reflection contents are needed; default evidence mode shows provenance ids, terminal observations, and source entries.
 
 ## Lifecycle
 
@@ -61,7 +64,9 @@ source entries
   -> observer: source-backed durable observations
   -> reflector: active facts backed by typed source ids
   -> active memory rendering: current active reflections
-  -> recall: exact evidence recovery from reflections, observations, and source entries
+  -> maintainer: local active-reflection cleanup
+  -> emergency rewrite: rare over-budget fallback
+  -> recall: exact evidence recovery from reflections, observations, retired reflections, and source entries
 ```
 
 Terms:
@@ -74,4 +79,5 @@ Safety rules:
 
 - Never compact away unobserved source.
 - Observations remain recallable even when hidden from active memory.
-- No-tool worker response must not count as reviewed.
+- Retired reflections remain recallable by exact id.
+- No-tool worker response must not count as covered.

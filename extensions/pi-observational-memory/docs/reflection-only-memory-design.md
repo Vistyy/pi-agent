@@ -18,9 +18,11 @@ Observations are not prompt memory. They are background evidence used by reflect
 
 - No semantic/search recall.
 - No pinned observation pool.
-- No per-reflection curator lifecycle by default.
-- No synchronous rewrite/reflector/curator work during compaction.
-- No backcompat requirement for pin/unpin behavior in this redesign. Readers should still tolerate old ledger events without crashing; old pin/unpin events are ignored rather than interpreted as active state.
+- No curator lifecycle.
+- No synchronous rewrite, reflector, curator, or maintainer work during compaction.
+- No backcompat requirement for pin/unpin behavior in active state.
+  Readers should still tolerate old ledger events without crashing.
+  Old pin/unpin events are ignored rather than interpreted as active state.
 
 ## Ledger vs projection
 
@@ -146,32 +148,18 @@ active memory = current active reflections
 
 No raw-observation fallback by default. If reflector lag or failures prove unsafe in evals or real sessions, add an explicit emergency fallback later. Do not silently reintroduce observation projection.
 
-## Pinning and curator
+## Removed surfaces
 
-Remove pin/unpin completely.
+Pin/unpin and curator are removed from the live architecture.
 
-Remove current curator responsibilities tied to pinning:
-
-```text
-pin
-unpin
-pinned observations
-visible observation pressure
-```
-
-Preferred replacement:
+The replacement is:
 
 ```text
 reflector + maintainer + recall
 ```
 
-Optional fallback only if evals prove needed:
-
-```text
-single-call low-thinking compression auditor
-```
-
-A compression auditor may request reflection repair. It must not create a long-lived pinned observation pool.
+A future compression auditor is optional only if dogfooding or evals prove a gap.
+It must not create a pinned observation pool or become synchronous compaction work.
 
 ## Small-cluster maintenance
 
@@ -206,26 +194,22 @@ Global full-memory rewrite is not the normal lifecycle. If retained, it is an au
 
 ## Retirement event
 
-Maintained/replaced reflections are normal reflections. The existing rewrite/retirement event carries ids retired from active projection.
+Maintained/replaced reflections are normal reflections.
+The rewrite/retirement event carries ids retired from active projection.
 
 ```ts
 interface ReflectionsRewrittenEvent {
   id: string; // rw_*
   retiredReflectionIds: string[];
-  failure?: undefined;
+  newReflectionIds: string[];
+  retainedSourceIds: string[];
+  discardedReflectionIds: string[];
+  discardedSummary?: string;
 }
 ```
 
-No maintainer summary field is needed in v1. For failed attempts, record status/debug separately or as a failed rewrite event if useful:
-
-```ts
-interface ReflectionsRewriteFailedEvent {
-  id: string; // rw_*
-  candidateReflectionIds: string[];
-  reason: string;
-  details?: unknown;
-}
-```
+Retired reflections stay in ledger history and remain recallable by exact id.
+They are hidden from active projection.
 
 Hidden audit metadata is not rendered in active memory by default.
 
@@ -278,9 +262,9 @@ Active memory: 24k / 20k tokens
 
 ## Recall policy
 
-Since observations and retired reflections are hidden, recall becomes the exact evidence path.
+Since observations and retired reflections are hidden, recall is the exact evidence path.
 
-Recall must traverse:
+Recall traverses:
 
 ```text
 ref_* -> ref_* -> obs_* -> source entries
@@ -288,7 +272,22 @@ ref_* -> obs_* -> source entries
 obs_* -> source entries
 ```
 
-Active memory is for orientation. Recall is for evidence.
+Recall accepts exact `obs_*`, `ref_*`, or legacy 12-character ids only.
+It is not semantic search.
+
+Rendering modes:
+
+```text
+evidence   = requested memory, provenance ids, terminal observations, source entries
+provenance = evidence mode plus intermediate reflection contents
+```
+
+`depth` can explicitly limit ref-to-ref traversal.
+Rendered source output and details are bounded.
+Assistant thinking and assistant tool-call payloads are not exposed.
+
+Active memory is for orientation.
+Recall is for evidence.
 
 Agent should recall before relying on memory for:
 
@@ -302,7 +301,8 @@ Agent should recall before relying on memory for:
 - user constraints/preferences with implementation impact
 - explanations of why something is believed
 
-No semantic/search recall is planned. Therefore active rewritten reflections must preserve useful handles. Hidden audit manifests are for audit/debug, not normal agent behavior.
+Active rewritten reflections must preserve useful handles so the assistant knows what to recall.
+Hidden audit manifests are for audit/debug, not normal agent behavior.
 
 ## Compaction behavior
 
@@ -412,17 +412,25 @@ Track:
 - latency
 - retained exact evidence
 
-## Implementation order
+## Current implementation status
 
-1. Finish and review this design spec.
-2. Add typed-id/data-model helpers and deterministic projection tests.
-3. Change projection to active reflections only.
-4. Remove pin/unpin projection/status behavior.
-5. Add reflection `sources` and `createdAt` migration in code.
-6. Update recall traversal for typed ids and ref->ref chains.
-7. Implement retirement event, validator, no-op/backoff status.
-8. Simplify reflector prompt/tools around observation-sourced reflections.
-9. Remove curator or reduce it to disabled/minimal audit path.
-10. Add hard realistic evals.
-11. Enable automatic maintainer scheduling only after eval baseline is good. Done: maintainer runs after every 10 new reflections using a capped newest-window input.
-12. Decide whether global rewrite remains as emergency fallback after maintainer results are measured. Done for now: rewrite remains as a rare over-budget emergency fallback with strict safety checks and current-reality eval coverage.
+Implemented:
+
+- typed ids and typed `sources`
+- active projection as current reflections only
+- legacy normalization at read boundaries
+- removed pin/unpin and curator live surfaces
+- observer source-only input
+- reflector pending-observation input
+- maintainer as normal bounded cleanup path
+- rewrite as rare over-budget emergency fallback
+- retirement event and retired-reflection recall
+- recall traversal for typed ids and ref-to-ref chains
+- recall `mode: "evidence" | "provenance"`
+- realistic OM eval suite with judge scoring
+
+Current follow-up work:
+
+- dogfood OM before further reflector prompt tuning
+- improve telemetry/status for maintenance, rewrite skips, and memory quality/cost
+- revisit OM plus fork context handoff after docs and telemetry cleanup

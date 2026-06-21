@@ -268,32 +268,37 @@ Last observer/reflector error, when present
 - Rewrite is retained only as an emergency over-budget fallback after normal maintenance.
 - Rewrite safety hardened: direct input `ref_*` sources only, no unchanged/duplicate replacement content, no empty/invalid result application, and stage-level smaller-than-active/under-budget checks.
 - Rewrite backoff for unchanged failed/no-op active sets implemented.
-- Recall traverses typed observation/reflection provenance, reports provenance edges/missing intermediate refs, and the public recall tool now uses the canonical typed-id surface from extension registration with optional intermediate-ref content.
+- Recall traverses typed observation/reflection provenance, reports provenance edges/missing intermediate refs, and the public recall tool uses `mode: "evidence" | "provenance"` with no legacy intermediate-content alias.
 - Observer source serialization is policy-based and bounded.
 - Observer stage now sends source chunk only.
 - Reflector stage now sends pending/unreflected observations only.
 - Real-session OM eval fixtures and low-thinking suite exist.
-- Judge-based OM eval scoring exists; maintainer and emergency rewrite rubrics are hardened. `reflector-implementation-churn-noop` covers the focused churn-noop regression, while `reflector-real-giga-16-v2` remains a semantic stress case for durable-contract admission rather than a clean hard blocker.
+- Judge-based OM eval scoring exists; maintainer and emergency rewrite rubrics are hardened.
+- Full OM eval rerun on 2026-06-21 passed 31/32.
+  The only failure was optional observer grader quality in `observer-real-giga-64-v2`; all reflector, maintainer, and rewrite cases passed, including `reflector-real-giga-16-v2`.
 
 ## Next work, recommended order
 
-1. Triage full-suite eval failures.
-   - Default low-thinking smoke on 2026-06-21 after the reflector churn-noop split: 31/32 passed; the only failure was `reflector-real-giga-16-v2` durable-contract admission quality.
-   - `reflector-real-giga-16-v2` is intentionally reframed as a semantic stress case: stable OM command/data-model/tool-contract facts may be durable, while local code motion, fixture churn, search receipts, validation receipts, and generic usage/progress plumbing should not become active memory.
-   - `openrouter/openai/gpt-5.4-nano` low-thinking smoke on 2026-06-21: 21/31 passed; weak spots were observer prose filtering, reflector giga cases, multiple maintainer semantic-judge cases, and one rewrite current-reality judge case.
+1. Triage full-suite eval failures after more dogfooding.
+   - Default low-thinking smoke on 2026-06-21 after recall cleanup: 31/32 passed.
+   - The only failure was `observer-real-giga-64-v2` optional grader quality, not a hard safety failure.
+   - `reflector-real-giga-16-v2` passed in this run and should stay dogfood-deferred rather than being prompt-tuned now.
+   - `openrouter/openai/gpt-5.4-nano` low-thinking smoke on 2026-06-21 remains older signal: 21/31 passed; weak spots were observer prose filtering, reflector giga cases, multiple maintainer semantic-judge cases, and one rewrite current-reality judge case.
 
-2. Clarify the reflector admission principle without enumerating allowed fact types.
+2. Clarify the reflector admission principle after dogfooding without enumerating allowed fact types.
    - Avoid a fixed taxonomy of recordable categories.
    - The core boundary is whether a reflection would materially improve future agent behavior before reading files or recalling evidence.
    - Stable implementation facts are not automatically active memory; active memory should carry decision-relevant constraints, not a categorized changelog.
    - Prefer focused boundary evals over additional broad prompt tuning.
 
-3. Continue recall behavior hardening for the current reflection-only OM architecture.
-   - Current pass done: canonical recall registration/schema accepts typed `obs_*`/`ref_*` ids; recall returns provenance edges, missing supporting refs, explicit depth-limited refs, and optional intermediate reflection contents.
-   - Assistant-facing recall-use evals now use a fork-style mock-tool harness by default, with real extension wiring as optional smoke. The old direct smoke cases were replaced by seeded/noisy compacted-memory scenarios covering relevant-id selection, recent-context no-call, stale/current conflict recall, broad provenance with intermediate refs, partial/missing evidence, and no-id/no-search behavior.
-   - Judge-based answer quality now covers stale/current status, broad provenance rationale, and partial/missing evidence caveats.
-   - Overfit audit removed tool-selection hints from recall-use prompts/seeds, tightened unexpected `depth` checking, and simplified recall tool guidance to principle-level wording plus relevant-id selectivity.
-   - Recall source rendering now shares the safe serialization model with observer input for assistant content, never exposes assistant thinking or assistant tool-call payloads, always shows observation text for direct observation recall, and bounds rendered source output/details.
+3. Continue recall behavior hardening only as dogfooding finds gaps.
+   - Canonical recall registration/schema accepts typed `obs_*`/`ref_*` ids.
+   - Recall returns provenance edges, missing supporting refs, explicit depth-limited refs, and `mode: "evidence" | "provenance"` rendering.
+   - Retired/rewritten reflection recall is covered at core and tool levels.
+   - Assistant-facing recall-use evals use a fork-style mock-tool harness by default, with real extension wiring as optional smoke.
+   - Seeded/noisy compacted-memory scenarios cover relevant-id selection, recent-context no-call, stale/current conflict recall, broad provenance with intermediate refs, partial/missing evidence, and no-id/no-search behavior.
+   - Judge-based answer quality covers stale/current status, broad provenance rationale, and partial/missing evidence caveats.
+   - Recall source rendering shares the safe serialization model with observer input for assistant content, never exposes assistant thinking or assistant tool-call payloads, always shows observation text for direct observation recall, and bounds rendered source output/details.
    - Recall API cleanup removed `includeIntermediate`, slimmed details aliases, and split the tool implementation into focused modules.
 
 4. Cleanup OM documentation.
