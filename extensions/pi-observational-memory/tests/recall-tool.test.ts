@@ -45,6 +45,7 @@ describe("recall tool", () => {
 		expect(recallObservationTool.name).toBe("recall");
 		expect(recallObservationTool.label).toBe("Recall memory evidence");
 		expect((recallObservationTool.parameters as any).properties.id.pattern).toBe("^(?:[a-f0-9]{12}|obs_[a-f0-9]{12}|ref_[a-f0-9]{12})$");
+		expect((recallObservationTool.parameters as any).properties.mode).toBeTruthy();
 		expect((recallObservationTool.parameters as any).properties.includeIntermediate).toBeTruthy();
 		expect((recallObservationTool.parameters as any).properties.depth).toBeTruthy();
 		expect(formatRecallCallForTui("obs_aaaaaaaaaaaa")).toBe("recall obs_aaaaaaaaaaaa");
@@ -112,13 +113,15 @@ describe("recall tool", () => {
 		];
 
 		const compact = await execute("ref_eeeeeeeeeeee", entries);
-		const expanded = await execute("ref_eeeeeeeeeeee", entries, { includeIntermediate: true });
+		const provenance = await execute("ref_eeeeeeeeeeee", entries, { mode: "provenance" });
+		const legacyExpanded = await execute("ref_eeeeeeeeeeee", entries, { includeIntermediate: true });
 
 		expect(compact.text).not.toContain("Supporting reflections:");
 		expect(compact.result.details?.supportingReflections.map((item) => item.id)).toEqual(["ref_dddddddddddd"]);
 		expect(compact.text).toContain("ref_eeeeeeeeeeee -> ref_dddddddddddd");
-		expect(expanded.text).toContain("Supporting reflections:");
-		expect(expanded.text).toContain("[ref_dddddddddddd] User likes tea.");
+		expect(provenance.text).toContain("Supporting reflections:");
+		expect(provenance.text).toContain("[ref_dddddddddddd] User likes tea.");
+		expect(legacyExpanded.text).toContain("Supporting reflections:");
 	});
 
 	it("does not expose assistant thinking from source entries", async () => {

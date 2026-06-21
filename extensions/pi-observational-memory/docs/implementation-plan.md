@@ -151,7 +151,8 @@ obs_* -> source entries
 Current status:
 
 - Typed ids and ref/obs traversal exist.
-- Remaining work: polish recall wording and tests for rewritten-reflection output.
+- The tool now exposes `mode: "evidence" | "provenance"`; `includeIntermediate` remains only as a legacy alias for provenance mode.
+- Remaining work: split the large recall tool module and polish tests for rewritten-reflection output.
 
 ## Prompt design rules
 

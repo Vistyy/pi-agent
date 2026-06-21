@@ -11,6 +11,9 @@ function compareExpectedCall(expected: ExpectedRecallCall, actual: RecallCall, i
   const failures: string[] = [];
   const call = index + 1;
   if (actual.id !== expected.id) failures.push(`call ${call}: expected id ${expected.id}, got ${actual.id ?? 'omitted'}`);
+  if (expected.mode !== undefined && expected.mode !== 'any' && actual.mode !== expected.mode) {
+    failures.push(`call ${call}: expected mode ${expected.mode}, got ${actual.mode ?? 'omitted'}`);
+  }
   if (expected.includeIntermediate !== undefined && expected.includeIntermediate !== 'any' && actual.includeIntermediate !== expected.includeIntermediate) {
     failures.push(`call ${call}: expected includeIntermediate ${expected.includeIntermediate}, got ${actual.includeIntermediate ?? 'omitted'}`);
   }

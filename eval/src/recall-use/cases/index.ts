@@ -64,7 +64,7 @@ export const cases: RecallUseCase[] = [
       content: `Compacted OM memory excerpt:\nCurrent rewrite policy:\n- ref_300000000001: Rewrite is emergency fallback only, supported by nested maintainer/rewrite rationale.\nOther active-memory entries:\n- ref_300000000002: A local docs cleanup note.\n- ref_300000000003: A stale rewrite-green assumption rejected by later eval results.`,
     }],
     prompt: 'Why do we believe the rewrite path should stay emergency-only rather than normal cleanup? I need the intermediate rationale behind the current policy.',
-    expectedCalls: [{ id: 'ref_300000000001', includeIntermediate: true }],
+    expectedCalls: [{ id: 'ref_300000000001', mode: 'provenance' }],
     mockResults: {
       ref_300000000001: 'Reflections:\n[ref_300000000001] Rewrite remains an emergency fallback; maintainer is the default cleanup path before revisiting rewrite.\n\nProvenance:\nref_300000000001 -> ref_300000000004\nref_300000000004 -> obs_300000000004\n\nSupporting reflections:\n[ref_300000000004] Maintainer hardening is green, while rewrite eval still fails on rewrite-real-giga-40-v2, so production should prefer maintainer and keep rewrite non-normal.\n\nObservations:\n[obs_300000000004] Rewrite eval rerun still failed on rewrite-real-giga-40-v2 with score 6/20 after hardening, while maintainer evals passed 30/30.',
     },

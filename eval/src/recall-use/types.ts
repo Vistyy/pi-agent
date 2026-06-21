@@ -4,8 +4,11 @@ import type { Probe, TokenUsage } from '../lib/types.js';
 
 export type SeedMessage = { role: 'user' | 'assistant'; content: string };
 
+export type RecallMode = 'evidence' | 'provenance';
+
 export type ExpectedRecallCall = {
   id: string;
+  mode?: RecallMode | 'any';
   includeIntermediate?: boolean | 'any';
   depth?: number | 'any';
 };
@@ -24,6 +27,7 @@ export type RecallUseCase = {
 
 export type RecallCall = {
   id?: string;
+  mode?: RecallMode;
   includeIntermediate?: boolean;
   depth?: number;
   result?: unknown;

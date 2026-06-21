@@ -14,6 +14,7 @@ type RecallToolText = {
   promptSnippet: string;
   promptGuidelines: string[];
   idDescription: string;
+  modeDescription: string;
   includeIntermediateDescription: string;
   depthDescription: string;
 };
@@ -29,9 +30,10 @@ export function loadRecallToolText(): RecallToolText {
 export const RECALL_TOOL_TEXT = loadRecallToolText();
 
 export function recallArgs(call: ToolCallRecord): RecallCall {
-  const args = call.args as { id?: unknown; includeIntermediate?: unknown; depth?: unknown } | undefined;
+  const args = call.args as { id?: unknown; mode?: unknown; includeIntermediate?: unknown; depth?: unknown } | undefined;
   return {
     id: typeof args?.id === 'string' ? args.id : undefined,
+    mode: args?.mode === 'evidence' || args?.mode === 'provenance' ? args.mode : undefined,
     includeIntermediate: typeof args?.includeIntermediate === 'boolean' ? args.includeIntermediate : undefined,
     depth: typeof args?.depth === 'number' ? args.depth : undefined,
     result: call.result,
@@ -51,6 +53,7 @@ export function makeMockRecallTool(results: Record<string, string> = {}): ToolDe
         pattern: '^(?:[a-f0-9]{12}|obs_[a-f0-9]{12}|ref_[a-f0-9]{12})$',
         description: RECALL_TOOL_TEXT.idDescription,
       }),
+      mode: Type.Optional(Type.Union([Type.Literal('evidence'), Type.Literal('provenance')], { description: RECALL_TOOL_TEXT.modeDescription })),
       includeIntermediate: Type.Optional(Type.Boolean({ description: RECALL_TOOL_TEXT.includeIntermediateDescription })),
       depth: Type.Optional(Type.Number({ description: RECALL_TOOL_TEXT.depthDescription })),
     }),

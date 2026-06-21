@@ -24,16 +24,20 @@ export const RECALL_TOOL_TEXT = {
 		"Use recall when a decision depends on details hidden behind a specific compacted-memory id.",
 		"Use recall when the user asks for the evidence, source context, or provenance behind a known memory.",
 		"Select only the specific memory id or ids whose hidden details are needed for the answer; do not recall every id in a memory excerpt or nearby ids from unrelated topics.",
-		"Use includeIntermediate only when intermediate reflection contents are needed, not just their ids.",
+		"Use mode: \"provenance\" only when intermediate reflection contents are needed, not just their ids; otherwise use the default evidence mode.",
+		"includeIntermediate is a legacy alias for provenance mode; prefer mode for new calls.",
 		"Do not use recall as semantic search or transcript browsing; you must already have a specific obs_*, ref_*, or legacy 12-character memory id.",
 		"Do not recall ids whose details are already clear from recent conversation or active context.",
 	],
 	idDescription: "Specific typed obs_* or ref_* memory id, or legacy 12-character lowercase hex id. This tool does not search by topic.",
-	includeIntermediateDescription: "Include full content for intermediate supporting reflections. Default false shows only their ids in provenance edges while still returning terminal observations and source evidence.",
+	modeDescription: "Recall rendering mode. evidence returns requested memory, terminal observations, source entries, and intermediate refs as provenance ids. provenance also materializes intermediate reflection contents.",
+	includeIntermediateDescription: "Legacy alias for mode: provenance. Prefer mode for new calls.",
 	depthDescription: "Optional explicit cap on ref-to-ref provenance traversal depth. Omit to traverse all reachable supporting reflections.",
 } as const;
 
 const MEMORY_ID_PATTERN = /^(?:[a-f0-9]{12}|obs_[a-f0-9]{12}|ref_[a-f0-9]{12})$/;
+
+export type RecallRenderMode = "evidence" | "provenance";
 
 type RecallObservationToolStatus =
 	| "ok"
@@ -339,11 +343,11 @@ function provenanceLineText(edge: RecallProvenanceEdge): string {
 	return `${edge.fromId} -> ${edge.toId}`;
 }
 
-function renderMemoryText(result: Extract<RecallResult, { status: "found" }>, includeIntermediate: boolean): string {
+function renderMemoryText(result: Extract<RecallResult, { status: "found" }>, mode: RecallRenderMode): string {
 	const sections: string[] = [];
 	if (result.collision) sections.push(`Memory id ${result.memoryId} matched multiple observations/reflections; returning all available evidence from the current branch.`);
 	if (result.reflections.length > 0) sections.push(`Reflections:\n${result.reflections.map((match) => reflectionLineText(reflectionDetails(match.reflection, match.reflectionRecordIndex))).join("\n")}`);
-	if (includeIntermediate && result.supportingReflections.length > 0) sections.push(`Supporting reflections:\n${result.supportingReflections.map((match) => reflectionLineText(reflectionDetails(match.reflection, match.reflectionRecordIndex))).join("\n")}`);
+	if (mode === "provenance" && result.supportingReflections.length > 0) sections.push(`Supporting reflections:\n${result.supportingReflections.map((match) => reflectionLineText(reflectionDetails(match.reflection, match.reflectionRecordIndex))).join("\n")}`);
 	if (result.provenanceEdges.length > 0) sections.push(`Provenance:\n${result.provenanceEdges.map(provenanceLineText).join("\n")}`);
 	if (result.observations.length > 0) sections.push(`Observations:\n${result.observations.map((match) => observationLineText(observationDetails(match.observation, match.status))).join("\n")}`);
 	if (result.missingSupportingObservationIds.length > 0) sections.push(`Unavailable supporting observations:\n${result.missingSupportingObservationIds.map((id) => unavailableSupportingLineText({ observationId: id })).join("\n")}`);
@@ -394,9 +398,16 @@ function isObservationOnly(details: RecallObservationToolDetails): boolean {
 	return details.reflections.length === 0 && details.supportingReflections.length === 0 && details.unavailableSupportingObservations.length === 0 && details.unavailableSupportingReflections.length === 0;
 }
 
-function renderFoundResult(result: Extract<RecallResult, { status: "found" }>, includeIntermediate: boolean): ReturnType<typeof textResult> {
+function recallRenderMode(params: { mode?: unknown; includeIntermediate?: unknown }): RecallRenderMode {
+	if (params.mode === "provenance") return "provenance";
+	if (params.mode === "evidence") return "evidence";
+	if (params.includeIntermediate === true) return "provenance";
+	return "evidence";
+}
+
+function renderFoundResult(result: Extract<RecallResult, { status: "found" }>, mode: RecallRenderMode): ReturnType<typeof textResult> {
 	const details = resultDetails(result);
-	const text = result.kind === "observation" ? renderObservationOnlyTextFromResult(result) : renderMemoryText(result, includeIntermediate);
+	const text = result.kind === "observation" ? renderObservationOnlyTextFromResult(result) : renderMemoryText(result, mode);
 	return textResult(text, details);
 }
 
@@ -555,6 +566,9 @@ export const recallObservationTool = defineTool({
 			pattern: "^(?:[a-f0-9]{12}|obs_[a-f0-9]{12}|ref_[a-f0-9]{12})$",
 			description: RECALL_TOOL_TEXT.idDescription,
 		}),
+		mode: Type.Optional(Type.Union([Type.Literal("evidence"), Type.Literal("provenance")], {
+			description: RECALL_TOOL_TEXT.modeDescription,
+		})),
 		includeIntermediate: Type.Optional(Type.Boolean({
 			description: RECALL_TOOL_TEXT.includeIntermediateDescription,
 		})),
@@ -580,7 +594,7 @@ export const recallObservationTool = defineTool({
 			const message = `No observation or reflection with id ${memoryId} was found on the current branch.`;
 			return textResult(message, emptyDetails("not_found", memoryId, message));
 		}
-		return renderFoundResult(result, params.includeIntermediate === true);
+		return renderFoundResult(result, recallRenderMode(params));
 	},
 });
 
