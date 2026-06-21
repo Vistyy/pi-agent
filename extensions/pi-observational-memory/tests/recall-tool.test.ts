@@ -10,7 +10,7 @@ import {
 	recallObservationTool,
 	registerRecallTool,
 	type RecallObservationToolDetails,
-} from "../src/tools/recall-observation.js";
+} from "../src/tools/recall.js";
 import { toolApi } from "./fixtures/pi.js";
 import {
 	observation,

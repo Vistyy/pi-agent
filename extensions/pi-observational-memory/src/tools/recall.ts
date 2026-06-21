@@ -17,6 +17,22 @@ import { estimateEntryTokens } from "../memory/token-estimate.js";
 
 export const RECALL_OBSERVATION_TOOL_NAME = "recall";
 
+export const RECALL_TOOL_TEXT = {
+	description: "Recover exact evidence and source context behind a compacted observational-memory observation or reflection id on the current branch. Use when compressed memory is important and original source context is needed before acting.",
+	promptSnippet: "Use recall(<id>) to recover exact source context behind compacted memory observations/reflections when precision matters.",
+	promptGuidelines: [
+		"Use recall before making an important decision that depends on a compacted observation or reflection id whose details are unclear.",
+		"Use recall when you need exact wording, rationale, file paths, commands, errors, commits, user constraints, or provenance behind a remembered claim.",
+		"Use recall when a broad reflection is relevant but you need its supporting observations or raw sources to continue safely.",
+		"Use recall when the user asks why you believe something, what supports a memory, or what was decided earlier.",
+		"Do not use recall as semantic search or transcript browsing; you must already have a specific obs_*, ref_*, or legacy 12-character memory id.",
+		"Do not recall every id preemptively. Recall only when exact source context will materially improve the next action.",
+	],
+	idDescription: "Typed obs_* or ref_* memory id, or legacy 12-character lowercase hex id, shown in compacted memory, /om:view, or a previous recall result. Must be a specific id; this tool does not search by topic.",
+	includeIntermediateDescription: "Include full content for intermediate supporting reflections. Default false shows only their ids in provenance edges while still returning terminal observations and source evidence.",
+	depthDescription: "Optional explicit cap on ref-to-ref provenance traversal depth. Omit to traverse all reachable supporting reflections.",
+} as const;
+
 const MEMORY_ID_PATTERN = /^(?:[a-f0-9]{12}|obs_[a-f0-9]{12}|ref_[a-f0-9]{12})$/;
 
 type RecallObservationToolStatus =
@@ -470,29 +486,20 @@ export function formatRecallRenderedResultForTui(result: AgentToolResult<RecallO
 export const recallObservationTool = defineTool({
 	name: RECALL_OBSERVATION_TOOL_NAME,
 	label: "Recall memory evidence",
-	description:
-		"Recover exact evidence and source context behind a compacted observational-memory observation or reflection id on the current branch. " +
-		"Use when compressed memory is important and original source context is needed before acting.",
-	promptSnippet: "Use recall(<id>) to recover exact source context behind compacted memory observations/reflections when precision matters.",
-	promptGuidelines: [
-		"Use recall before making an important decision that depends on a compacted observation or reflection id whose details are unclear.",
-		"Use recall when you need exact wording, rationale, file paths, commands, errors, commits, user constraints, or provenance behind a remembered claim.",
-		"Use recall when a broad reflection is relevant but you need its supporting observations or raw sources to continue safely.",
-		"Use recall when the user asks why you believe something, what supports a memory, or what was decided earlier.",
-		"Do not use recall as semantic search or transcript browsing; you must already have a specific obs_*, ref_*, or legacy 12-character memory id.",
-		"Do not recall every id preemptively. Recall only when exact source context will materially improve the next action.",
-	],
+	description: RECALL_TOOL_TEXT.description,
+	promptSnippet: RECALL_TOOL_TEXT.promptSnippet,
+	promptGuidelines: [...RECALL_TOOL_TEXT.promptGuidelines],
 	executionMode: "parallel",
 	parameters: Type.Object({
 		id: Type.String({
 			pattern: "^(?:[a-f0-9]{12}|obs_[a-f0-9]{12}|ref_[a-f0-9]{12})$",
-			description: "Typed obs_* or ref_* memory id, or legacy 12-character lowercase hex id, shown in compacted memory, /om:view, or a previous recall result. Must be a specific id; this tool does not search by topic.",
+			description: RECALL_TOOL_TEXT.idDescription,
 		}),
 		includeIntermediate: Type.Optional(Type.Boolean({
-			description: "Include full content for intermediate supporting reflections. Default false shows only their ids in provenance edges while still returning terminal observations and source evidence.",
+			description: RECALL_TOOL_TEXT.includeIntermediateDescription,
 		})),
 		depth: Type.Optional(Type.Number({
-			description: "Optional explicit cap on ref-to-ref provenance traversal depth. Omit to traverse all reachable supporting reflections.",
+			description: RECALL_TOOL_TEXT.depthDescription,
 		})),
 	}),
 	renderCall(args) {

@@ -2,7 +2,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { registerCompactionHook } from "./hooks/compaction-hook.js";
 import { registerMemoryUpdateHook } from "./memory-update/scheduler.js";
 import { Runtime } from "./runtime.js";
-import { registerRecallTool } from "./tools/recall-observation.js";
+import { registerRecallTool } from "./tools/recall.js";
 
 export default function observationalMemory(pi: ExtensionAPI) {
 	const runtime = new Runtime();
