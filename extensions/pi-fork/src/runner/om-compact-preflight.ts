@@ -164,9 +164,7 @@ export async function applyOmCompactionToSession(
   const prepareCompaction = options.prepareCompaction ?? await loadPrepareCompaction();
   const branchEntries = runtime.sessionManager.getBranch();
   const preparation = prepareCompaction(branchEntries, runtime.settingsManager.getCompactionSettings());
-  if (!preparation) {
-    throw new Error("Cannot fork with sessionSnapshot=\"om-compact\": nothing to compact.");
-  }
+  if (!preparation) return;
 
   assertNotAborted(options.signal);
   if (!runtime.extensionRunner.hasHandlers("session_before_compact")) {

@@ -2,10 +2,10 @@ import { StringEnum, Type } from "@earendil-works/pi-ai";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { buildUsageRecordedData, PI_USAGE_RECORDED } from "./usage.js";
 import { EFFORT_LEVELS, loadConfig, type ForkConfig } from "./config.js";
-import { type ForkDetails, type ForkEffort, type ForkEffortSource, type ForkEffortState, type ForkResult, emptyUsage, isResultError } from "./core/types.js";
+import { type ForkDetails, type ForkEffort, type ForkEffortSource, type ForkEffortState, type ForkResult, isResultError } from "./core/types.js";
 import { getResultSummaryText } from "./child-events/index.js";
 import { runFork } from "./runner/index.js";
-import { buildForkSessionSnapshotJsonl } from "./session-snapshot.js";
+import { writeForkSessionSnapshotJsonl } from "./session-snapshot.js";
 import { renderForkCall, renderForkResult } from "./ui/render.js";
 
 export const FORK_TOOL_TEXT = {
@@ -120,18 +120,6 @@ export function resolveModelContextWindow(
   return undefined;
 }
 
-function emptyFailedResult(task: string, message: string): ForkResult {
-  return {
-    task,
-    exitCode: 1,
-    messages: [],
-    stderr: message,
-    usage: emptyUsage(),
-    stopReason: "error",
-    errorMessage: message,
-  };
-}
-
 export function registerForkTool(pi: ExtensionAPI): void {
   pi.registerTool({
     name: "fork",
@@ -147,24 +135,10 @@ export function registerForkTool(pi: ExtensionAPI): void {
     async execute(_toolCallId, params, signal, onUpdate, ctx) {
       const config = loadConfig(ctx.cwd);
       const effort = resolveEffortState(params.effort, config);
-      const snapshot = buildForkSessionSnapshotJsonl(ctx.sessionManager);
-      if (!snapshot) {
-        const result = emptyFailedResult(
-          params.task,
-          "Cannot fork: failed to snapshot current session context.",
-        );
-        if (effort) result.effort = effort;
-        return {
-          content: [{ type: "text" as const, text: formatResultContent(result, true) }],
-          details: makeDetails([result]),
-          isError: true,
-        };
-      }
-
       const result = await runFork({
         cwd: ctx.cwd,
         task: params.task,
-        forkSessionSnapshotJsonl: snapshot,
+        writeForkSessionSnapshot: (filePath) => writeForkSessionSnapshotJsonl(ctx.sessionManager, filePath),
         extensions: config.extensions,
         environment: config.environment,
         tools: config.tools,

@@ -63,9 +63,7 @@ function getExtensionRunner(session) {
 async function applyOmCompactionToSession(runtime, prepareCompaction) {
   const branchEntries = runtime.sessionManager.getBranch();
   const preparation = prepareCompaction(branchEntries, runtime.settingsManager.getCompactionSettings());
-  if (!preparation) {
-    throw new Error("Cannot fork with sessionSnapshot=\"om-compact\": nothing to compact.");
-  }
+  if (!preparation) return;
 
   if (!runtime.extensionRunner.hasHandlers("session_before_compact")) {
     throw new Error(OM_COMPACT_ERROR);

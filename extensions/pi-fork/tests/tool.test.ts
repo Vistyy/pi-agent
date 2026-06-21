@@ -39,7 +39,11 @@ describe("fork tool usage recording", () => {
       sessionManager: { getHeader: () => ({ type: "header" }), getBranch: () => [] },
     });
 
-    expect(mockRunFork).toHaveBeenCalledWith(expect.objectContaining({ sessionSnapshot: "full" }));
+    expect(mockRunFork).toHaveBeenCalledWith(expect.objectContaining({
+      sessionSnapshot: "full",
+      writeForkSessionSnapshot: expect.any(Function),
+    }));
+    expect(mockRunFork.mock.calls[0]?.[0]).not.toHaveProperty("forkSessionSnapshotJsonl");
     expect(appendEntry).toHaveBeenCalledWith(PI_USAGE_RECORDED, expect.objectContaining({
       extension: "fork",
       agent: "child-agent",

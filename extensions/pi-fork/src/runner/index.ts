@@ -30,13 +30,9 @@ export function resolvePiSpawn(): { command: string; prefixArgs: string[] } {
   return { command: configured || "pi", prefixArgs: [] };
 }
 
-function writeForkSessionToTempFile(
-  sessionJsonl: string,
-): { dir: string; filePath: string } {
+function createForkSessionTempFile(): { dir: string; filePath: string } {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-fork-"));
-  const filePath = path.join(tmpDir, "fork.jsonl");
-  fs.writeFileSync(filePath, sessionJsonl, { encoding: "utf-8", mode: 0o600 });
-  return { dir: tmpDir, filePath };
+  return { dir: tmpDir, filePath: path.join(tmpDir, "fork.jsonl") };
 }
 
 function cleanupTempDir(dir: string | null): void {
@@ -109,7 +105,8 @@ export function buildPiArgs(
 export interface RunForkOptions {
   cwd: string;
   task: string;
-  forkSessionSnapshotJsonl: string;
+  forkSessionSnapshotJsonl?: string;
+  writeForkSessionSnapshot?: (filePath: string) => boolean;
   extensions?: string[] | null;
   environment?: Record<string, string>;
   tools?: string | null;
@@ -129,6 +126,7 @@ export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
     cwd,
     task,
     forkSessionSnapshotJsonl,
+    writeForkSessionSnapshot,
     extensions = null,
     environment = {},
     tools = null,
@@ -143,7 +141,7 @@ export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
     omCompactExtension,
   } = opts;
 
-  if (!forkSessionSnapshotJsonl.trim()) {
+  if (!writeForkSessionSnapshot && !forkSessionSnapshotJsonl?.trim()) {
     const failedResult: ForkResult = {
       task,
       exitCode: 1,
@@ -187,13 +185,34 @@ export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
     });
   };
 
+  const failBeforeSpawn = (message: string): ForkResult => {
+    result.exitCode = signal?.aborted ? 130 : 1;
+    result.stderr = message;
+    result.stopReason = signal?.aborted ? "aborted" : "error";
+    result.errorMessage = message;
+    return result;
+  };
+
   let forkSessionTmpDir: string | null = null;
   let forkSessionTmpPath: string | null = null;
-  const tmp = writeForkSessionToTempFile(forkSessionSnapshotJsonl);
+  const tmp = createForkSessionTempFile();
   forkSessionTmpDir = tmp.dir;
   forkSessionTmpPath = tmp.filePath;
 
   try {
+    try {
+      if (writeForkSessionSnapshot) {
+        if (!writeForkSessionSnapshot(forkSessionTmpPath)) {
+          return failBeforeSpawn("Cannot fork: failed to snapshot current session context.");
+        }
+      } else {
+        fs.writeFileSync(forkSessionTmpPath, forkSessionSnapshotJsonl || "", { encoding: "utf-8", mode: 0o600 });
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return failBeforeSpawn(message);
+    }
+
     if (sessionSnapshot === "om-compact") {
       try {
         if (!omCompactExtension) {
@@ -202,11 +221,7 @@ export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
         await compactForkSessionWithOmInSubprocess({ cwd, sessionPath: forkSessionTmpPath, signal, omExtensionPath: omCompactExtension });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        result.exitCode = signal?.aborted ? 130 : 1;
-        result.stderr = message;
-        result.stopReason = signal?.aborted ? "aborted" : "error";
-        result.errorMessage = message;
-        return result;
+        return failBeforeSpawn(message);
       }
     }
 

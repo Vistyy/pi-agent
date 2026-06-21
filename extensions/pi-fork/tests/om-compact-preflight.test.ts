@@ -66,10 +66,13 @@ describe("OM compact fork preflight", () => {
     expect(rt.value.extensionRunner.emit).toHaveBeenCalledWith(expect.objectContaining({ type: "session_compact", compactionEntry: expect.objectContaining({ id: "compact-1" }), fromExtension: true }));
   });
 
-  it("fails when no compaction can be prepared", async () => {
+  it("skips when no compaction can be prepared", async () => {
     const rt = runtime();
 
-    await expect(applyOmCompactionToSession(rt.value as any, { prepareCompaction: () => undefined })).rejects.toThrow("nothing to compact");
+    await expect(applyOmCompactionToSession(rt.value as any, { prepareCompaction: () => undefined })).resolves.toBeUndefined();
+
+    expect(rt.value.extensionRunner.emit).not.toHaveBeenCalled();
+    expect(rt.value.sessionManager.appendCompaction).not.toHaveBeenCalled();
   });
 
   it("fails when no compaction hook is registered", async () => {
