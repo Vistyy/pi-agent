@@ -154,6 +154,27 @@ export function maintenanceRetireIdsAllowed(allowedIds: string[]): OmGrader<Main
   return { label: `retire ids limited to ${allowedIds.join(', ')}`, pass: (output) => maintenanceRetireIds(output).every((id) => allowed.has(id)), detail: (output) => maintenanceRetireIds(output) };
 }
 
+export function maintenanceRequiresRetireIds(...ids: string[]): OmGrader<MaintenanceResult> {
+  return { label: `retires ${ids.join(', ')}`, pass: (output) => {
+    const retired = new Set(maintenanceRetireIds(output));
+    return ids.every((id) => retired.has(id));
+  }, detail: (output) => maintenanceRetireIds(output) };
+}
+
+export function maintenanceForbidsRetireIds(...ids: string[]): OmGrader<MaintenanceResult> {
+  return { label: `does not retire ${ids.join(', ')}`, pass: (output) => {
+    const retired = new Set(maintenanceRetireIds(output));
+    return ids.every((id) => !retired.has(id));
+  }, detail: (output) => maintenanceRetireIds(output) };
+}
+
+export function maintenanceRetireCountBetween(min: number, max: number): OmGrader<MaintenanceResult> {
+  return { label: `retires ${min}-${max} refs`, pass: (output) => {
+    const count = maintenanceRetireIds(output).length;
+    return count >= min && count <= max;
+  }, detail: (output) => ({ count: maintenanceRetireIds(output).length }) };
+}
+
 export function maintenanceSourceIdsAllowed(allowedIds: string[]): OmGrader<MaintenanceResult> {
   const allowed = new Set(allowedIds);
   return { label: `source ids limited to ${allowedIds.join(', ')}`, pass: (output) => maintenanceSourceIds(output).every((id) => allowed.has(id)), detail: (output) => maintenanceSourceIds(output) };

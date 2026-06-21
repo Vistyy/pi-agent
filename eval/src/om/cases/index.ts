@@ -1,5 +1,5 @@
 import type { OmEvalCase } from '../types.js';
-import { maintainerBlastRadiusGuardCase, maintainerCompletedTrailCompressionCase, maintainerDirectParentProvenanceCase, maintainerDuplicateMergeCase, maintainerStaleCurrentPairCase, maintainerUnrelatedNoopCase } from './maintainer.js';
+import { maintainerBlastRadiusGuardCase, maintainerCompletedTrailCompressionCase, maintainerCompletedTrailWithUnresolvedSiblingCase, maintainerDirectParentProvenanceCase, maintainerDuplicateMergeCase, maintainerNoisyDuplicateMergeCase, maintainerPartialOverlapNoopCase, maintainerStaleCurrentPairCase, maintainerUnlabeledStaleCurrentCase, maintainerUnrelatedNoopCase } from './maintainer.js';
 import { observerAssistantProseBoundary, observerHiddenMutationPayloadBoundary, observerHiddenMutationReplacementEvidence, observerRealGiga32, observerRealGiga64v2, observerToolEvidenceBoundary } from './observer.js';
 import { reflectorAppendNewCompatibleFact, reflectorChurnFilter, reflectorDuplicateObservationNoop, reflectorFalseStalePrevention, reflectorGigaAppendNewFact, reflectorGigaDuplicateNoop, reflectorGigaStaleCorrection, reflectorRealGiga16v2, reflectorRealSessionConstraintsAndState, reflectorStaleCurrentReconciliation, reflectorSubtleStaleCorrection, reflectorTouchedFilesWeakContext } from './reflector.js';
 import { rewriteRealGiga40v2, rewriteRealGiga80, rewriteStaleRelationshipPreservation } from './rewrite.js';
@@ -31,6 +31,10 @@ export const allCases: OmEvalCase[] = [
   omCase('maintainer-unrelated-noop', 'maintainer', maintainerUnrelatedNoopCase),
   omCase('maintainer-direct-parent-provenance', 'maintainer', maintainerDirectParentProvenanceCase),
   omCase('maintainer-blast-radius-guard', 'maintainer', maintainerBlastRadiusGuardCase),
+  omCase('maintainer-noisy-duplicate-merge', 'maintainer', maintainerNoisyDuplicateMergeCase),
+  omCase('maintainer-partial-overlap-noop', 'maintainer', maintainerPartialOverlapNoopCase),
+  omCase('maintainer-unlabeled-stale-current', 'maintainer', maintainerUnlabeledStaleCurrentCase),
+  omCase('maintainer-completed-trail-with-unresolved-sibling', 'maintainer', maintainerCompletedTrailWithUnresolvedSiblingCase),
   omCase('rewrite-stale-relationship-preservation', 'rewrite', rewriteStaleRelationshipPreservation),
   omCase('rewrite-real-giga-40-v2', 'rewrite', rewriteRealGiga40v2),
   omCase('rewrite-real-giga-80', 'rewrite', rewriteRealGiga80),

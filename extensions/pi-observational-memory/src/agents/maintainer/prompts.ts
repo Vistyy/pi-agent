@@ -11,6 +11,9 @@ Allowed actions:
 Rules:
 - Retire only input reflection ids.
 - Do not retire any reflection unless a replacement reflection covers it.
+- Do not merge reflections just because they share vocabulary; they must have the same future-use role or form one clear stale/current/completed-status relationship.
+- If retiring both an old/stale reflection and its correction, the replacement must name both the current value and the old value's stale/replaced status.
+- If completed work sits next to an unresolved blocker or pending task, preserve the unresolved status either by leaving that reflection active or by explicitly carrying it into the replacement.
 - Replacement reflection sources must be the retired ref_* parent ids only.
 - Do not cite obs_* ids or copy transitive ancestry from parent reflections.
 - Do not invent facts or source ids.

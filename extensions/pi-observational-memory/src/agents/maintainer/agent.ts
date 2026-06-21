@@ -133,6 +133,8 @@ export async function runMaintainer(args: RunMaintainerArgs): Promise<Maintenanc
 		userText,
 		tools: [recorder.tool as AgentTool<any>],
 		agentName: "maintainer",
+		maxNoToolRetries: 2,
+		toolCallReminder: "You must call record_maintenance. Use { retireReflectionIds: [], reflections: [] } if no safe local maintenance exists.",
 		onUsage: args.onUsage,
 	});
 
