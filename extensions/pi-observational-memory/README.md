@@ -1,30 +1,33 @@
 # pi-observational-memory
 
-Pi extension for session-local observational memory.
+Session-local memory for Pi.
 
-It records durable observations as ledger evidence and current reflections as active memory.
-It preserves exact details like commands, paths, errors, decisions, and run results, then exposes current reflections after compaction.
+OM records source-backed observations as durable evidence and renders only current reflections as active memory.
+Use recall when exact evidence is needed.
 
-## Strategy
+## How it works
 
-Configure under `observational-memory` in Pi settings:
-
-```json
-{
-  "observational-memory": {
-    "strategy": "replacement"
-  }
-}
+```text
+source entries
+  -> observer: durable obs_* evidence
+  -> reflector: active ref_* memory from pending observations
+  -> maintainer: small local cleanup of active reflections
+  -> emergency rewrite: rare over-budget fallback
+  -> compaction: observer tail flush + deterministic memory render
+  -> recall: exact evidence and provenance recovery
 ```
 
-Strategies:
+Key rules:
 
-- `replacement` - default. Replace Pi compaction with an observational-memory summary.
-- `off` - disable memory workers and memory compaction behavior.
+- Active memory is current `ref_*` reflections only.
+- Observations are hidden from active context but remain recallable.
+- Retired reflections remain recallable by exact id.
+- Compaction does not run reflector, maintainer, or rewrite synchronously.
+- No-tool worker responses must not advance coverage.
 
-OM does not schedule compaction. Pi/manual/eval compaction triggers still run; OM renders deterministic memory at the compaction boundary and can replace the resulting context depending on strategy.
+## Configuration
 
-## Useful options
+Configure under `observational-memory`:
 
 ```json
 {
@@ -42,42 +45,37 @@ OM does not schedule compaction. Pi/manual/eval compaction triggers still run; O
 }
 ```
 
-`maxInitialObserveTokens` prevents expensive backfill when the extension starts on an already-large session. It marks old history covered and observes future turns.
+Strategies:
 
-Active memory renders current reflections only. Observations remain durable ledger evidence for reflector input and recall.
+- `replacement` - replace Pi compaction output with an OM summary.
+- `off` - disable OM workers and OM compaction behavior.
+
+`maxInitialObserveTokens` prevents expensive backfill when OM starts on an already-large session.
+Old history may be marked covered; future turns are still observed.
+
+`reflectionsPoolMaxTokens` is the hard pressure point for maintainer and emergency rewrite behavior.
 
 ## Commands
 
-- `/om:status` - show memory state. Use `/om:status full` for ledger/debug details.
-- `/om:view` - show context memory. Use `/om:view recorded` for recorded observations and reflections.
+- `/om:status` - show memory state.
+- `/om:status full` - include ledger/debug details.
+- `/om:view` - show active context memory.
+- `/om:view recorded` - show recorded observations and reflections.
 
 ## Recall
 
-Memory entries include ids such as `obs_...` and `ref_...`.
-Use `recall({ id, mode?, depth? })` when exact source context behind an observation or reflection is needed.
-Use `mode: "provenance"` when intermediate reflection contents are needed; default evidence mode shows provenance ids, terminal observations, and source entries.
+Memory ids look like `obs_...` and `ref_...`.
+Recall is exact-id evidence navigation, not semantic search.
 
-## Lifecycle
+Use recall before relying on memory for exact paths, commands, errors, API names, pass/fail claims, stale/current relationships, or implementation-impacting user constraints.
 
-```text
-source entries
-  -> observer: source-backed durable observations
-  -> reflector: active facts backed by typed source ids
-  -> active memory rendering: current active reflections
-  -> maintainer: local active-reflection cleanup
-  -> emergency rewrite: rare over-budget fallback
-  -> recall: exact evidence recovery from reflections, observations, retired reflections, and source entries
+Modes:
+
+- `evidence` - requested memory, provenance ids, terminal observations, and source entries.
+- `provenance` - evidence plus intermediate reflection contents.
+
+Example:
+
+```ts
+recall({ id: "ref_...", mode: "evidence" })
 ```
-
-Terms:
-
-- Observation = source-backed durable evidence.
-- Reflection = active memory backed by typed source ids.
-- Active memory = current reflections only.
-
-Safety rules:
-
-- Never compact away unobserved source.
-- Observations remain recallable even when hidden from active memory.
-- Retired reflections remain recallable by exact id.
-- No-tool worker response must not count as covered.
