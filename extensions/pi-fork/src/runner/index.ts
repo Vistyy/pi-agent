@@ -121,6 +121,7 @@ export interface RunForkOptions {
   effort?: ForkEffortState;
   resolveContextWindow?: ContextWindowResolver;
   sessionSnapshot?: ForkSessionSnapshotMode;
+  omCompactExtension?: string;
 }
 
 export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
@@ -139,6 +140,7 @@ export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
     effort,
     resolveContextWindow,
     sessionSnapshot = "full",
+    omCompactExtension,
   } = opts;
 
   if (!forkSessionSnapshotJsonl.trim()) {
@@ -194,7 +196,10 @@ export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
   try {
     if (sessionSnapshot === "om-compact") {
       try {
-        await compactForkSessionWithOm({ cwd, sessionPath: forkSessionTmpPath, signal });
+        if (!omCompactExtension) {
+          throw new Error("Cannot fork with sessionSnapshot=\"om-compact\": pi-fork.omCompactExtension is not configured.");
+        }
+        await compactForkSessionWithOm({ cwd, sessionPath: forkSessionTmpPath, signal, omExtensionPath: omCompactExtension });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         result.exitCode = signal?.aborted ? 130 : 1;

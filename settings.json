@@ -30,6 +30,7 @@
     },
     "costFooter": true,
     "sessionSnapshot": "om-compact",
+    "omCompactExtension": "./extensions/pi-observational-memory/index.ts",
     "defaultEffort": "balanced",
     "effortProfiles": {
       "fast": {

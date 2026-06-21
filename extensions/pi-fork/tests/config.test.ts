@@ -101,10 +101,11 @@ describe("loadConfig", () => {
     const agentDir = tempDir("agent");
     process.env.PI_CODING_AGENT_DIR = agentDir;
     writeJson(join(agentDir, "settings.json"), {
-      "pi-fork": { sessionSnapshot: "om-compact" },
+      "pi-fork": { sessionSnapshot: "om-compact", omCompactExtension: "./extensions/pi-observational-memory/index.ts" },
     });
 
     expect(loadConfig(cwd).sessionSnapshot).toBe("om-compact");
+    expect(loadConfig(cwd).omCompactExtension).toBe(join(agentDir, "extensions/pi-observational-memory/index.ts"));
   });
 
   it("ignores invalid compact session snapshot settings", () => {

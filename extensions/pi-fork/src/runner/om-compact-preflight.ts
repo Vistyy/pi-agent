@@ -1,4 +1,3 @@
-import { existsSync } from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import {
@@ -39,7 +38,7 @@ interface CompactForkSessionWithOmOptions {
   cwd: string;
   sessionPath: string;
   signal?: AbortSignal;
-  omExtensionPath?: string;
+  omExtensionPath: string;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -55,13 +54,6 @@ function isOmCompaction(value: unknown): value is CompactionResult {
     isRecord(value.details) &&
     value.details.type === OM_FOLDED
   );
-}
-
-function resolveOmExtensionPath(cwd: string): string {
-  const siblingPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../pi-observational-memory/index.ts");
-  if (existsSync(siblingPath)) return siblingPath;
-
-  return path.resolve(cwd, "extensions/pi-observational-memory/index.ts");
 }
 
 function getPiCodingAgentPackageDir(): string {
@@ -147,7 +139,7 @@ export async function compactForkSessionWithOm(options: CompactForkSessionWithOm
     noPromptTemplates: true,
     noThemes: true,
     noContextFiles: true,
-    additionalExtensionPaths: [options.omExtensionPath ?? resolveOmExtensionPath(options.cwd)],
+    additionalExtensionPaths: [options.omExtensionPath],
   });
   await resourceLoader.reload();
 

@@ -49,6 +49,9 @@ export interface ForkConfig {
   /** Parent session snapshot strategy for child fork processes. */
   sessionSnapshot: ForkSessionSnapshotMode;
 
+  /** Observational memory extension source used for sessionSnapshot="om-compact" preflight. */
+  omCompactExtension?: string;
+
   /** Effort to use when a fork call omits the effort parameter. */
   defaultEffort?: ForkEffort;
 
@@ -125,6 +128,12 @@ function mergeEffortProfiles(
   return Object.keys(merged).length > 0 ? merged : undefined;
 }
 
+function parseConfiguredSource(raw: unknown, baseDir: string): string | undefined {
+  if (typeof raw !== "string") return undefined;
+  const trimmed = raw.trim();
+  return trimmed ? resolveConfiguredPath(trimmed, baseDir) : undefined;
+}
+
 function parseExtensions(raw: unknown, baseDir: string): string[] | null | undefined {
   if (raw === undefined) return undefined;
   if (raw === null) return null;
@@ -132,10 +141,8 @@ function parseExtensions(raw: unknown, baseDir: string): string[] | null | undef
 
   const extensions: string[] = [];
   for (const value of raw) {
-    if (typeof value !== "string") continue;
-    const trimmed = value.trim();
-    if (!trimmed) continue;
-    extensions.push(resolveConfiguredPath(trimmed, baseDir));
+    const source = parseConfiguredSource(value, baseDir);
+    if (source) extensions.push(source);
   }
   return extensions;
 }
@@ -269,7 +276,9 @@ function readNamespacedConfig(settingsPath: string, baseDir: string): ParsedFork
     if (sandbox !== undefined) parsed.sandbox = sandbox;
     if (typeof config.costFooter === "boolean") parsed.costFooter = config.costFooter;
     const sessionSnapshot = parseSessionSnapshot(config.sessionSnapshot);
+    const omCompactExtension = parseConfiguredSource(config.omCompactExtension, baseDir);
     if (sessionSnapshot !== undefined) parsed.sessionSnapshot = sessionSnapshot;
+    if (omCompactExtension !== undefined) parsed.omCompactExtension = omCompactExtension;
     if (defaultEffort !== undefined) parsed.defaultEffort = defaultEffort;
     if (effortProfiles !== undefined) parsed.effortProfiles = effortProfiles;
     return parsed;
