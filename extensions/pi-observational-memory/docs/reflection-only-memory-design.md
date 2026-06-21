@@ -365,9 +365,9 @@ Decision-relevant handles include:
 
 Noise, duplicate summaries, stale failed attempts, and routine meta chatter may be discarded from active memory.
 
-## Evals required before automatic maintenance
+## Evals and automatic maintenance
 
-Do not enable automatic maintainer scheduling until realistic evals show no-op is safe and local maintenance quality is acceptable.
+Automatic maintainer scheduling is now enabled as the normal cleanup path after realistic local evals showed safe no-op and acceptable local maintenance quality. Continue treating evals as regression gates for prompt/contract changes.
 
 ### Deterministic tests
 
@@ -384,9 +384,11 @@ Do not enable automatic maintainer scheduling until realistic evals show no-op i
 ### Model evals
 
 - duplicate local refs merged correctly
-- stale/current pair maintained correctly
+- noisy duplicate local refs merged correctly
+- stale/current pair maintained correctly, including unlabeled stale/current pairs
 - completed trail compressed into current outcome
-- unrelated cluster no-ops
+- completed trail with unresolved sibling preserves blocker status
+- unrelated and partial-overlap clusters no-op
 - exact command/error/path retained or recallably anchored
 - provenance uses direct parent refs
 - active memory shrinks locally
@@ -422,5 +424,5 @@ Track:
 8. Simplify reflector prompt/tools around observation-sourced reflections.
 9. Remove curator or reduce it to disabled/minimal audit path.
 10. Add hard realistic evals.
-11. Enable automatic maintainer scheduling only after eval baseline is good.
-12. Decide whether global rewrite remains as emergency fallback after maintainer results are measured.
+11. Enable automatic maintainer scheduling only after eval baseline is good. Done: maintainer runs after every 10 new reflections using a capped newest-window input.
+12. Decide whether global rewrite remains as emergency fallback after maintainer results are measured. Done for now: rewrite remains as a rare over-budget emergency fallback with strict safety checks and current-reality eval coverage.

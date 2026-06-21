@@ -131,24 +131,29 @@ Hard budget:
 run bounded background maintainer bursts
 ```
 
-If maintainer cannot recover the budget, an automatic emergency fallback is still an open design decision. Options include:
+If maintainer cannot recover the budget, the current automatic fallback is rare background emergency rewrite. Rewrite is not the normal lifecycle and only applies when its output is useful:
 
-- keep current global rewrite as rare background emergency
-- temporary projection cap without retiring hidden refs
-- stricter maintainer burst policy
+- non-empty replacements
+- smaller than the active reflection pool
+- under `reflectionsPoolMaxTokens`
+- direct input `ref_*` sources only
+- replacement ids do not overlap retired active refs
+
+Other fallback options, such as a temporary projection cap or stricter maintainer bursts, remain deferred unless evals/telemetry show emergency rewrite is unsafe or too weak.
 
 Do not run maintenance or global rewrite synchronously inside compaction.
 
 ## Evals
 
-Primary maintainer evals should be local:
+Primary maintainer evals are local and currently cover:
 
 - duplicate local merge
-- stale/current local replacement
+- noisy duplicate local merge
+- stale/current local replacement, including unlabeled stale/current pairs
 - completed-trail compression
-- no-op for unrelated cluster
+- completed-trail compression with unresolved sibling preservation
+- no-op for unrelated or partial-overlap clusters
 - direct-parent provenance
 - blast-radius guard for retire ids
-- repeated maintainer burst preserving anchors while reducing count/tokens
 
-Current global rewrite evals should become emergency/stress coverage if global rewrite remains.
+Emergency rewrite evals are now emergency/stress coverage for the current architecture: reflection-only active memory, typed ids/`sources`, maintainer as normal cleanup, rewrite as emergency fallback, instant compaction, recall evidence path, and removed curator/pin surface.

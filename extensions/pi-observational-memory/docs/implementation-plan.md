@@ -90,8 +90,10 @@ V1 maintainer must not:
 
 Current status:
 
-- Not implemented. See `docs/maintainer-design.md`.
-- Existing rewrite worker and retirement event can be reused or demoted once maintainer is implemented.
+- Implemented as the default local cleanup path.
+- Runs after every 10 new reflections using a capped newest-window input.
+- Stricter contract is implemented: non-noop maintenance retires 2-4 input refs, emits 1-2 replacements, and every replacement cites all retired direct `ref_*` parents only.
+- Invalid or unsafe output is rejected and retires nothing.
 
 ### Active memory and compaction
 
@@ -195,8 +197,8 @@ Needed rubric fixes:
 - Reflector real cases must not expect one reflection per observation.
 - Replace output-count expectations with explicit fact coverage.
 - Replace literal keyword checks (`stale`, `deferred`) with semantic checks.
-- Maintainer cases must test local cleanup, direct-parent provenance, no-op safety, and blast-radius limits.
-- Emergency rewrite cases, if kept, must test sparse but critical fact retention, not just compression size.
+- Maintainer cases test local cleanup, direct-parent provenance, no-op safety, and blast-radius limits.
+- Emergency rewrite cases test current architecture retention: reflection-only active memory, typed ids/`sources`, maintainer as normal cleanup, rewrite as emergency fallback, instant compaction, recall evidence path, and removed curator/pin surface.
 - Observer cases must test source-only extraction, generic-validation restraint, and proposal-vs-current distinction.
 
 Needed hard cases:
@@ -259,46 +261,38 @@ Last observer/reflector error, when present
 - Active memory renders current reflections only.
 - Curator, pin/unpin, follow-up flags, dropped observations, and reviewed markers removed from runtime/evals.
 - Reflector default thinking is `low`.
+- Maintainer implemented as the default local cleanup path, with direct-parent provenance and hardened no-op/rejection behavior.
 - Rewrite worker and `om.reflections.rewritten` retirement event implemented.
+- Rewrite is retained only as an emergency over-budget fallback after normal maintenance.
+- Rewrite safety hardened: direct input `ref_*` sources only, no unchanged/duplicate replacement content, no empty/invalid result application, and stage-level smaller-than-active/under-budget checks.
 - Rewrite backoff for unchanged failed/no-op active sets implemented.
 - Recall traverses typed observation/reflection provenance.
 - Observer source serialization is policy-based and bounded.
 - Observer stage now sends source chunk only.
 - Reflector stage now sends pending/unreflected observations only.
 - Real-session OM eval fixtures and low-thinking suite exist.
-- Judge-based OM eval scoring exists, but rubrics need hardening.
+- Judge-based OM eval scoring exists; maintainer and emergency rewrite rubrics are hardened, while observer/reflector real-session cases still show residual failures.
 
 ## Next work, recommended order
 
-1. Simplify observer prompt/tool contract.
+1. Triage full-suite eval failures.
+   - Default low-thinking smoke on 2026-06-21: 29/31 passed; failures were `observer-real-giga-32` optional score threshold and `reflector-real-giga-16-v2` churn/duplicate reflection quality.
+   - `openrouter/openai/gpt-5.4-nano` low-thinking smoke on 2026-06-21: 21/31 passed; weak spots were observer prose filtering, reflector giga cases, multiple maintainer semantic-judge cases, and one rewrite current-reality judge case.
+
+2. Simplify observer prompt/tool contract.
    - Remove `mark_observed_no_observations`.
    - Use `record_observations({ observations: [] })` for no durable observations.
    - Remove stale prior-memory and fork/delegation special-case wording.
 
-2. Simplify reflector prompt.
+3. Simplify reflector prompt/evals.
    - Remove review-era wording.
-   - Remove impossible empty-array instruction if schema remains non-empty.
    - Clarify current-reflections + pending-observations contract.
+   - Tighten real-session churn filtering and duplicate-current-memory behavior.
 
-3. Add maintainer design/evals before changing production scheduling.
-   - Implement the minimal `record_maintenance` tool contract.
-   - Add local maintainer evals for duplicate merge, stale/current replacement, completed-trail compression, no-op, direct-parent provenance, and blast-radius guards.
-   - Keep global rewrite as current fallback until maintainer behavior is measured.
-
-4. Add compaction flushed observation tail.
-   - Return/track observations created by forced compaction safety observe.
-   - Render only that bounded tail in compaction memory.
-   - Add tests for normal active memory vs compaction memory.
-
-5. Harden eval rubrics.
-   - Remove reflector count bias.
-   - Add semantic judge expectations for stale/current, deferred tasks, exact anchors, and sparse critical facts.
-   - Require judge pass plus score threshold.
-
-6. Add telemetry/status improvements.
+4. Add telemetry/status improvements.
    - Make real cost/quality tuning visible.
 
-7. Optional later: structured reflection categories.
+5. Optional later: structured reflection categories.
    - Defer data-model change unless one-line reflections plus better prompts/evals are insufficient.
 
 ## Deferred / conditional
