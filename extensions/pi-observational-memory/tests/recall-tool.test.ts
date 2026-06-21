@@ -46,7 +46,7 @@ describe("recall tool", () => {
 		expect(recallObservationTool.label).toBe("Recall memory evidence");
 		expect((recallObservationTool.parameters as any).properties.id.pattern).toBe("^(?:[a-f0-9]{12}|obs_[a-f0-9]{12}|ref_[a-f0-9]{12})$");
 		expect((recallObservationTool.parameters as any).properties.mode).toBeTruthy();
-		expect((recallObservationTool.parameters as any).properties.includeIntermediate).toBeTruthy();
+		expect((recallObservationTool.parameters as any).properties.includeIntermediate).toBeUndefined();
 		expect((recallObservationTool.parameters as any).properties.depth).toBeTruthy();
 		expect(formatRecallCallForTui("obs_aaaaaaaaaaaa")).toBe("recall obs_aaaaaaaaaaaa");
 		expect(pi.registerTool).toHaveBeenCalledWith(recallObservationTool);
@@ -73,7 +73,7 @@ describe("recall tool", () => {
 		expect(getBranch).toHaveBeenCalledOnce();
 		expect(getEntries).not.toHaveBeenCalled();
 		expect(result.details?.status).toBe("ok");
-		expect(result.details?.matches[0].observation.status).toBe("active");
+		expect(result.details?.observations[0].observation.status).toBe("active");
 		expect(text).toContain("I like tea.");
 		expect(formatRecallRenderedResultForTui(result, false)).toContain("✓ observation");
 	});
@@ -114,14 +114,12 @@ describe("recall tool", () => {
 
 		const compact = await execute("ref_eeeeeeeeeeee", entries);
 		const provenance = await execute("ref_eeeeeeeeeeee", entries, { mode: "provenance" });
-		const legacyExpanded = await execute("ref_eeeeeeeeeeee", entries, { includeIntermediate: true });
 
 		expect(compact.text).not.toContain("Supporting reflections:");
 		expect(compact.result.details?.supportingReflections.map((item) => item.id)).toEqual(["ref_dddddddddddd"]);
 		expect(compact.text).toContain("ref_eeeeeeeeeeee -> ref_dddddddddddd");
 		expect(provenance.text).toContain("Supporting reflections:");
 		expect(provenance.text).toContain("[ref_dddddddddddd] User likes tea.");
-		expect(legacyExpanded.text).toContain("Supporting reflections:");
 	});
 
 	it("does not expose assistant thinking from source entries", async () => {
@@ -166,7 +164,6 @@ describe("recall tool", () => {
 		expect(text).toContain("[truncated");
 		expect(text).not.toContain(" end");
 		expect(text.length).toBeLessThan(13_000);
-		expect(result.details?.sourceCharacterCount).toBeGreaterThan(20_000);
 		expect(result.details?.sourceEntries[0].content?.length).toBeLessThan(4_100);
 	});
 

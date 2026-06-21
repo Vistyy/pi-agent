@@ -216,17 +216,27 @@ describe("memory serialization", () => {
 		expect(text).toBe("");
 	});
 
-	it("keeps recall evidence source-oriented without exposing assistant thinking", () => {
+	it("keeps recall evidence source-oriented without exposing assistant thinking or tool-call payloads", () => {
 		const entry = {
 			type: "message",
 			id: "assistant-1",
 			timestamp: "2026-05-02T10:00:00.000Z",
-			message: { role: "assistant", timestamp: 1777716000000, content: [{ type: "thinking", thinking: "Internal rationale." }, { type: "text", text: "Visible answer." }] },
+			message: {
+				role: "assistant",
+				timestamp: 1777716000000,
+				content: [
+					{ type: "thinking", thinking: "Internal rationale." },
+					{ type: "text", text: "Visible answer." },
+					{ type: "toolCall", name: "edit", arguments: { path: "secret.txt" } },
+				],
+			},
 		};
 
 		const rendered = renderRecallSourceEntry(entry as any);
 		expect(rendered).toContain("[thinking omitted]");
 		expect(rendered).toContain("Visible answer.");
 		expect(rendered).not.toContain("Internal rationale.");
+		expect(rendered).not.toContain("secret.txt");
+		expect(rendered).not.toContain("edit(");
 	});
 });

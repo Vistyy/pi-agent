@@ -22,6 +22,7 @@ function renderRecallMessage(entry: RenderableEntry): string | null {
 		const body = textAndPlaceholders(msg.content, {
 			includeThinking: false,
 			omitRedactedThinking: true,
+			omitToolCalls: true,
 		})
 			.split("\n")
 			.filter(Boolean)
@@ -64,9 +65,3 @@ export function renderRecallSourceEntry(entry: RenderableEntry): string | null {
 	return null;
 }
 
-export function renderRecallSourceEntries(entries: RenderableEntry[]): string {
-	return entries
-		.map(renderRecallSourceEntry)
-		.filter((block): block is string => block !== null && block.trim().length > 0)
-		.join("\n\n");
-}

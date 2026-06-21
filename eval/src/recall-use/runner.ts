@@ -14,9 +14,6 @@ function compareExpectedCall(expected: ExpectedRecallCall, actual: RecallCall, i
   if (expected.mode !== undefined && expected.mode !== 'any' && actual.mode !== expected.mode) {
     failures.push(`call ${call}: expected mode ${expected.mode}, got ${actual.mode ?? 'omitted'}`);
   }
-  if (expected.includeIntermediate !== undefined && expected.includeIntermediate !== 'any' && actual.includeIntermediate !== expected.includeIntermediate) {
-    failures.push(`call ${call}: expected includeIntermediate ${expected.includeIntermediate}, got ${actual.includeIntermediate ?? 'omitted'}`);
-  }
   if (expected.depth === undefined) {
     if (actual.depth !== undefined) failures.push(`call ${call}: unexpected depth ${actual.depth}`);
   } else if (expected.depth !== 'any' && actual.depth !== expected.depth) {

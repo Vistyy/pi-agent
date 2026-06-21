@@ -9,7 +9,6 @@ export type RecallMode = 'evidence' | 'provenance';
 export type ExpectedRecallCall = {
   id: string;
   mode?: RecallMode | 'any';
-  includeIntermediate?: boolean | 'any';
   depth?: number | 'any';
 };
 
@@ -28,7 +27,6 @@ export type RecallUseCase = {
 export type RecallCall = {
   id?: string;
   mode?: RecallMode;
-  includeIntermediate?: boolean;
   depth?: number;
   result?: unknown;
   isError?: boolean;

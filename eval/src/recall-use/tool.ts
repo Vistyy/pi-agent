@@ -15,26 +15,24 @@ type RecallToolText = {
   promptGuidelines: string[];
   idDescription: string;
   modeDescription: string;
-  includeIntermediateDescription: string;
   depthDescription: string;
 };
 
 export function loadRecallToolText(): RecallToolText {
-  const toolPath = path.join(repoRoot(), 'extensions/pi-observational-memory/src/tools/recall.ts');
-  const source = fs.readFileSync(toolPath, 'utf8');
+  const constantsPath = path.join(repoRoot(), 'extensions/pi-observational-memory/src/tools/recall/constants.ts');
+  const source = fs.readFileSync(constantsPath, 'utf8');
   const match = source.match(/export const RECALL_TOOL_TEXT = (\{[\s\S]*?\n\}) as const;/);
-  if (!match?.[1]) throw new Error(`failed to extract RECALL_TOOL_TEXT from ${toolPath}`);
+  if (!match?.[1]) throw new Error(`failed to extract RECALL_TOOL_TEXT from ${constantsPath}`);
   return Function(`"use strict"; return (${match[1]});`)() as RecallToolText;
 }
 
 export const RECALL_TOOL_TEXT = loadRecallToolText();
 
 export function recallArgs(call: ToolCallRecord): RecallCall {
-  const args = call.args as { id?: unknown; mode?: unknown; includeIntermediate?: unknown; depth?: unknown } | undefined;
+  const args = call.args as { id?: unknown; mode?: unknown; depth?: unknown } | undefined;
   return {
     id: typeof args?.id === 'string' ? args.id : undefined,
     mode: args?.mode === 'evidence' || args?.mode === 'provenance' ? args.mode : undefined,
-    includeIntermediate: typeof args?.includeIntermediate === 'boolean' ? args.includeIntermediate : undefined,
     depth: typeof args?.depth === 'number' ? args.depth : undefined,
     result: call.result,
     isError: call.isError,
@@ -54,7 +52,6 @@ export function makeMockRecallTool(results: Record<string, string> = {}): ToolDe
         description: RECALL_TOOL_TEXT.idDescription,
       }),
       mode: Type.Optional(Type.Union([Type.Literal('evidence'), Type.Literal('provenance')], { description: RECALL_TOOL_TEXT.modeDescription })),
-      includeIntermediate: Type.Optional(Type.Boolean({ description: RECALL_TOOL_TEXT.includeIntermediateDescription })),
       depth: Type.Optional(Type.Number({ description: RECALL_TOOL_TEXT.depthDescription })),
     }),
     async execute(_toolCallId, params) {
