@@ -20,7 +20,7 @@ function renderRecallMessage(entry: RenderableEntry): string | null {
 	}
 	if (msg.role === "assistant") {
 		const body = textAndPlaceholders(msg.content, {
-			includeThinking: true,
+			includeThinking: false,
 			omitRedactedThinking: true,
 		})
 			.split("\n")

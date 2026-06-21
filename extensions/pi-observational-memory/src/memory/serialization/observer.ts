@@ -68,21 +68,6 @@ function inputSummary(msg: Record<string, any>): string | undefined {
 	return truncateMiddle(candidates.join(" "), 300);
 }
 
-function renderAssistantContent(content: unknown): string {
-	if (typeof content === "string") return content;
-	if (!Array.isArray(content)) return "";
-
-	const parts: string[] = [];
-	for (const block of content as Array<Record<string, unknown>>) {
-		if (!block || typeof block !== "object") continue;
-		if (block.type === "text" && typeof block.text === "string") {
-			parts.push(block.text);
-			continue;
-		}
-	}
-	return parts.join("\n");
-}
-
 function renderToolEvidence(args: {
 	time: string;
 	toolName: string;
@@ -121,7 +106,7 @@ function renderObserverMessage(entry: RenderableEntry, options: ObserverToolRend
 		return body ? `[User @ ${time}]: ${truncateMiddle(body, OBSERVER_ENTRY_MAX_CHARS)}` : null;
 	}
 	if (msg.role === "assistant") {
-		const body = normalizeBody(renderAssistantContent(msg.content));
+		const body = normalizeBody(textAndPlaceholders(msg.content, { omitThinking: true, omitToolCalls: true }));
 		return body ? `[Assistant @ ${time}]: ${truncateMiddle(body, OBSERVER_ENTRY_MAX_CHARS)}` : null;
 	}
 	if (msg.role === "toolResult") {

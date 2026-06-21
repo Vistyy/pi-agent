@@ -216,7 +216,7 @@ describe("memory serialization", () => {
 		expect(text).toBe("");
 	});
 
-	it("keeps recall evidence higher fidelity than observer input", () => {
+	it("keeps recall evidence source-oriented without exposing assistant thinking", () => {
 		const entry = {
 			type: "message",
 			id: "assistant-1",
@@ -224,6 +224,9 @@ describe("memory serialization", () => {
 			message: { role: "assistant", timestamp: 1777716000000, content: [{ type: "thinking", thinking: "Internal rationale." }, { type: "text", text: "Visible answer." }] },
 		};
 
-		expect(renderRecallSourceEntry(entry as any)).toContain("[thinking: Internal rationale.]");
+		const rendered = renderRecallSourceEntry(entry as any);
+		expect(rendered).toContain("[thinking omitted]");
+		expect(rendered).toContain("Visible answer.");
+		expect(rendered).not.toContain("Internal rationale.");
 	});
 });

@@ -291,6 +291,7 @@ Last observer/reflector error, when present
    - Assistant-facing recall-use evals now use a fork-style mock-tool harness by default, with real extension wiring as optional smoke. The old direct smoke cases were replaced by seeded/noisy compacted-memory scenarios covering relevant-id selection, recent-context no-call, stale/current conflict recall, broad provenance with intermediate refs, partial/missing evidence, and no-id/no-search behavior.
    - Judge-based answer quality now covers stale/current status, broad provenance rationale, and partial/missing evidence caveats.
    - Overfit audit removed tool-selection hints from recall-use prompts/seeds, tightened unexpected `depth` checking, and simplified recall tool guidance to principle-level wording plus relevant-id selectivity.
+   - Recall source rendering now shares the safe serialization model with observer input for assistant content, never exposes assistant thinking, always shows observation text for direct observation recall, and bounds rendered source output/details.
 
 4. Cleanup OM documentation.
    - Extract the most important current architecture and usage guidance into `README.md`.

@@ -121,6 +121,71 @@ describe("recall tool", () => {
 		expect(expanded.text).toContain("[ref_dddddddddddd] User likes tea.");
 	});
 
+	it("does not expose assistant thinking from source entries", async () => {
+		const obs = observation("aaaaaaaaaaaa", { content: "Safe observation.", sourceEntryIds: ["assistant-raw"] });
+		const ref = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"], { content: "Safe reflection." });
+		const assistantSource = rawMessage("assistant-raw", "", {
+			message: {
+				role: "assistant",
+				content: [
+					{ type: "thinking", thinking: "secret chain of thought" },
+					{ type: "text", text: "Visible assistant answer." },
+				],
+			},
+		});
+		const entries = [
+			assistantSource,
+			observationsRecordedEntry("om-obs", { observations: [obs], coversUpToId: "assistant-raw" }),
+			reflectionsRecordedEntry("om-ref", { reflections: [ref], coversUpToId: "om-obs" }),
+		];
+
+		const { text, result } = await execute("ref_eeeeeeeeeeee", entries);
+
+		expect(text).toContain("Visible assistant answer.");
+		expect(text).toContain("[thinking omitted]");
+		expect(text).not.toContain("secret chain of thought");
+		expect(result.details?.sourceEntries[0].content).not.toContain("secret chain of thought");
+	});
+
+	it("bounds long source output deterministically", async () => {
+		const longText = `start ${"x".repeat(20_000)} end`;
+		const obs = observation("aaaaaaaaaaaa", { content: "Long source observation.", sourceEntryIds: ["raw-1"] });
+		const ref = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"], { content: "Long source reflection." });
+		const entries = [
+			rawMessage("raw-1", longText),
+			observationsRecordedEntry("om-obs", { observations: [obs], coversUpToId: "raw-1" }),
+			reflectionsRecordedEntry("om-ref", { reflections: [ref], coversUpToId: "om-obs" }),
+		];
+
+		const { text, result } = await execute("ref_eeeeeeeeeeee", entries);
+
+		expect(text).toContain("[recall sources truncated:");
+		expect(text).toContain("[truncated");
+		expect(text).not.toContain(" end");
+		expect(text.length).toBeLessThan(13_000);
+		expect(result.details?.sourceCharacterCount).toBeGreaterThan(20_000);
+		expect(result.details?.sourceEntries[0].content?.length).toBeLessThan(4_100);
+	});
+
+	it("bounds source entry count in text and details", async () => {
+		const sourceIds = Array.from({ length: 25 }, (_, index) => `raw-${index + 1}`);
+		const obs = observation("aaaaaaaaaaaa", { content: "Many sources observation.", sourceEntryIds: sourceIds });
+		const ref = reflection("eeeeeeeeeeee", ["aaaaaaaaaaaa"], { content: "Many sources reflection." });
+		const entries = [
+			...sourceIds.map((id) => rawMessage(id, `source ${id}`)),
+			observationsRecordedEntry("om-obs", { observations: [obs], coversUpToId: "raw-25" }),
+			reflectionsRecordedEntry("om-ref", { reflections: [ref], coversUpToId: "om-obs" }),
+		];
+
+		const { text, result } = await execute("ref_eeeeeeeeeeee", entries);
+
+		expect(text).toContain("source raw-20");
+		expect(text).not.toContain("source raw-21");
+		expect(text).toContain("omitted 5 entries");
+		expect(result.details?.sourceEntries).toHaveLength(20);
+		expect(result.details?.observations[0].sourceEntries).toHaveLength(20);
+	});
+
 	it("reports missing sources as partial", async () => {
 		const obs = observation("aaaaaaaaaaaa", { sourceEntryIds: ["missing-raw"] });
 		const entries = [observationsRecordedEntry("om-obs", { observations: [obs], coversUpToId: "om-obs" })];

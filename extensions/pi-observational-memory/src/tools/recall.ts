@@ -23,7 +23,7 @@ export const RECALL_TOOL_TEXT = {
 	promptGuidelines: [
 		"Use recall when a decision depends on details hidden behind a specific compacted-memory id.",
 		"Use recall when the user asks for the evidence, source context, or provenance behind a known memory.",
-		"Select only the specific memory id or ids whose hidden details are needed for the answer; do not recall visible nearby ids from unrelated topics.",
+		"Select only the specific memory id or ids whose hidden details are needed for the answer; do not recall every id in a memory excerpt or nearby ids from unrelated topics.",
 		"Use includeIntermediate only when intermediate reflection contents are needed, not just their ids.",
 		"Do not use recall as semantic search or transcript browsing; you must already have a specific obs_*, ref_*, or legacy 12-character memory id.",
 		"Do not recall ids whose details are already clear from recent conversation or active context.",
@@ -74,6 +74,10 @@ type RecallUnavailableSupportingObservationDetails = {
 type RecallUnavailableSupportingReflectionDetails = {
 	reflectionId: string;
 };
+
+const MAX_RECALL_SOURCE_CHARS = 12_000;
+const MAX_RECALL_SOURCE_ENTRIES = 20;
+const MAX_RECALL_SOURCE_ENTRY_CONTENT_CHARS = 4_000;
 
 export type RecallObservationToolDetails = {
 	status: RecallObservationToolStatus;
@@ -149,6 +153,11 @@ function sourceOriginAndQualifiers(entry: Entry): { origin: string; timestamp: s
 	return { origin: entry.type || "Entry", timestamp: formatDisplayTimestamp(entry.timestamp), qualifiers: [] };
 }
 
+function truncateText(text: string, maxChars: number): { text: string; truncated: boolean } {
+	if (text.length <= maxChars) return { text, truncated: false };
+	return { text: `${text.slice(0, Math.max(0, maxChars - 35)).trimEnd()}\n[truncated ${text.length - maxChars} characters]`, truncated: true };
+}
+
 function renderSourceEntryContentOnly(entry: Entry): string | undefined {
 	const rendered = renderRecallSourceEntry(entry);
 	return rendered?.replace(/^\[[^\]]+\]:\s?/, "") || undefined;
@@ -157,14 +166,19 @@ function renderSourceEntryContentOnly(entry: Entry): string | undefined {
 function sourceEntryDetails(entry: Entry, includeContent: boolean): RecallSourceEntryDetails {
 	const { origin, timestamp, qualifiers } = sourceOriginAndQualifiers(entry);
 	const content = renderSourceEntryContentOnly(entry);
+	const boundedContent = content ? truncateText(content, MAX_RECALL_SOURCE_ENTRY_CONTENT_CHARS) : undefined;
 	return {
 		id: entry.id,
 		origin,
 		timestamp,
 		tokens: estimateEntryTokens(entry),
 		qualifiers,
-		...(includeContent && content ? { content } : {}),
+		...(includeContent && boundedContent ? { content: boundedContent.text } : {}),
 	};
+}
+
+function sourceEntryDetailsList(entries: Entry[], includeContent: boolean): RecallSourceEntryDetails[] {
+	return entries.slice(0, MAX_RECALL_SOURCE_ENTRIES).map((entry) => sourceEntryDetails(entry, includeContent));
 }
 
 function observationDetails(observation: Observation, status?: "active"): ObservationDetails {
@@ -184,7 +198,7 @@ function observationMatchDetails(match: RecalledObservation, includeSourceConten
 		observationRecordIndex: match.observationRecordIndex,
 		observation: observationDetails(match.observation, match.status),
 		sourceEntryIds: match.sourceEntryIds,
-		sourceEntries: match.sourceEntries.map((entry) => sourceEntryDetails(entry, includeSourceContent)),
+		sourceEntries: sourceEntryDetailsList(match.sourceEntries, includeSourceContent),
 		missingSourceEntryIds: match.missingSourceEntryIds,
 		nonSourceEntryIds: match.nonSourceEntryIds,
 		sourceCharacterCount: renderRecallSourceEntries(match.sourceEntries).length,
@@ -250,10 +264,55 @@ function directObservationMatches(result: Extract<RecallResult, { status: "found
 	return result.observations.filter((match) => match.observation.id === lookupId);
 }
 
+type BoundedSourceText = {
+	text: string;
+	originalCharacterCount: number;
+	truncated: boolean;
+	omittedEntryCount: number;
+};
+
+function renderRecallSourceEntriesBounded(entries: Entry[]): BoundedSourceText {
+	const blocks: string[] = [];
+	let originalCharacterCount = 0;
+	let truncated = false;
+	let omittedEntryCount = 0;
+	for (const entry of entries) {
+		const rendered = renderRecallSourceEntry(entry);
+		if (!rendered || rendered.trim().length === 0) continue;
+		originalCharacterCount += rendered.length;
+		if (blocks.length >= MAX_RECALL_SOURCE_ENTRIES) {
+			omittedEntryCount += 1;
+			truncated = true;
+			continue;
+		}
+		const prefix = blocks.length > 0 ? "\n\n" : "";
+		const remaining = MAX_RECALL_SOURCE_CHARS - blocks.join("\n\n").length - prefix.length;
+		if (remaining <= 0) {
+			omittedEntryCount += 1;
+			truncated = true;
+			continue;
+		}
+		const bounded = truncateText(rendered, remaining);
+		blocks.push(bounded.text);
+		if (bounded.truncated) {
+			truncated = true;
+			omittedEntryCount += 1;
+		}
+	}
+	let text = blocks.join("\n\n");
+	if (truncated) {
+		const note = `[recall sources truncated: rendered ${Math.min(originalCharacterCount, MAX_RECALL_SOURCE_CHARS).toLocaleString()} of ${originalCharacterCount.toLocaleString()} chars; omitted ${omittedEntryCount.toLocaleString()} entr${omittedEntryCount === 1 ? "y" : "ies"}]`;
+		text = text ? `${text}\n\n${note}` : note;
+	}
+	return { text, originalCharacterCount, truncated, omittedEntryCount };
+}
+
 function renderObservationOnlyTextFromResult(result: Extract<RecallResult, { status: "found" }>): string {
 	const sections: string[] = [];
 	if (result.collision) sections.push(`Memory id ${result.memoryId} matched multiple observations; returning all matching source results from the current branch.`);
-	for (const match of directObservationMatches(result)) {
+	const matches = directObservationMatches(result);
+	if (matches.length > 0) sections.push(`Observations:\n${matches.map((match) => observationLineText(observationDetails(match.observation, match.status))).join("\n")}`);
+	for (const match of matches) {
 		if (match.missingSourceEntryIds.length > 0 || match.nonSourceEntryIds.length > 0) {
 			sections.push(friendlySourceUnavailableMessage(observationMatchDetails(match, false)));
 			continue;
@@ -262,8 +321,8 @@ function renderObservationOnlyTextFromResult(result: Extract<RecallResult, { sta
 			sections.push(friendlyNoSourceMessage(match.observation.id));
 			continue;
 		}
-		const sourceText = renderRecallSourceEntries(match.sourceEntries);
-		sections.push(sourceText.trim() ? sourceText : `Observation ${match.observation.id} has source entries associated, but they rendered no text content.`);
+		const sourceText = renderRecallSourceEntriesBounded(match.sourceEntries).text;
+		sections.push(sourceText.trim() ? `Sources:\n${sourceText}` : `Observation ${match.observation.id} has source entries associated, but they rendered no text content.`);
 	}
 	return sections.join("\n\n");
 }
@@ -296,7 +355,7 @@ function renderMemoryText(result: Extract<RecallResult, { status: "found" }>, in
 		if (result.nonSourceEntryIds.length > 0) parts.push(`non-source: ${result.nonSourceEntryIds.join(", ")}`);
 		sections.push(`Unavailable source entries: ${parts.join("; ")}`);
 	}
-	const sourceText = renderRecallSourceEntries(result.sourceEntries);
+	const sourceText = renderRecallSourceEntriesBounded(result.sourceEntries).text;
 	if (sourceText.trim()) sections.push(`Sources:\n${sourceText}`);
 	if (sections.length === 0) sections.push(`Memory ${result.memoryId} was found, but no source evidence rendered.`);
 	return sections.join("\n\n");
@@ -307,7 +366,8 @@ function resultDetails(result: Extract<RecallResult, { status: "found" }>, inclu
 	const supportingReflections = result.supportingReflections.map((match) => reflectionDetails(match.reflection, match.reflectionRecordIndex));
 	const observations = result.observations.map((match) => observationMatchDetails(match, includeSourceContent));
 	const directMatches = directObservationMatches(result).map((match) => observationMatchDetails(match, includeSourceContent));
-	const sourceEntries = result.sourceEntries.map((entry) => sourceEntryDetails(entry, includeSourceContent));
+	const sourceEntries = sourceEntryDetailsList(result.sourceEntries, includeSourceContent);
+	const boundedSourceText = renderRecallSourceEntriesBounded(result.sourceEntries);
 	const detailWithoutStatus = {
 		memoryId: result.memoryId,
 		observationId: result.memoryId,
@@ -325,7 +385,7 @@ function resultDetails(result: Extract<RecallResult, { status: "found" }>, inclu
 		depthLimitedReflectionIds: result.depthLimitedReflectionIds,
 		missingSourceEntryIds: result.missingSourceEntryIds,
 		nonSourceEntryIds: result.nonSourceEntryIds,
-		sourceCharacterCount: renderRecallSourceEntries(result.sourceEntries).length,
+		sourceCharacterCount: boundedSourceText.originalCharacterCount,
 	};
 	return { status: aggregateStatus(detailWithoutStatus), ...detailWithoutStatus };
 }

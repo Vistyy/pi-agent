@@ -47,7 +47,7 @@ export function truncateMiddle(content: string, maxChars: number): string {
 
 export function textAndPlaceholders(
 	content: unknown,
-	options: { omitRedactedThinking?: boolean; includeThinking?: boolean } = {},
+	options: { omitRedactedThinking?: boolean; includeThinking?: boolean; omitThinking?: boolean; omitToolCalls?: boolean } = {},
 ): string {
 	if (typeof content === "string") return content;
 	if (!Array.isArray(content)) return "[non-text content omitted]";
@@ -63,7 +63,7 @@ export function textAndPlaceholders(
 			continue;
 		}
 		if (block.type === "thinking") {
-			if (options.omitRedactedThinking && block.redacted === true) continue;
+			if (options.omitThinking || (options.omitRedactedThinking && block.redacted === true)) continue;
 			if (options.includeThinking && typeof block.thinking === "string") {
 				parts.push(`[thinking: ${block.thinking}]`);
 				continue;
@@ -72,6 +72,7 @@ export function textAndPlaceholders(
 			continue;
 		}
 		if (block.type === "toolCall" && typeof block.name === "string") {
+			if (options.omitToolCalls) continue;
 			parts.push(`[${block.name}(${JSON.stringify(block.arguments ?? {})})]`);
 			continue;
 		}
