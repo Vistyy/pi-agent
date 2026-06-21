@@ -17,4 +17,3 @@ These are common instructions for agents across all scenarios.
   If you see one, even if it is not caused by what you are working on right now, still get it fixed.
 - When refactoring never leave dual-path, compatibility or legacy code in place. Do not claim a refactor code change complete until the previous code is removed or updated.
   Only explicit user approval to leave a legacy implementation in place can supersede this rule.
-- Use `pnpm` instead of `npm`.
