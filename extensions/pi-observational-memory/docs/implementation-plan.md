@@ -288,8 +288,8 @@ Last observer/reflector error, when present
 
 3. Continue recall behavior hardening for the current reflection-only OM architecture.
    - Current pass done: canonical recall registration/schema accepts typed `obs_*`/`ref_*` ids; recall returns provenance edges, missing supporting refs, explicit depth-limited refs, and optional intermediate reflection contents.
-   - Assistant-facing recall-use evals now use a fork-style mock-tool harness by default, with real extension wiring as optional smoke. Cases cover exact-command recall, stale/current conflict recall, broad provenance with intermediate refs, partial/missing evidence, no semantic-search recall, and no recall for conceptual guidance.
-   - Next add harder recall-use evals around realistic compacted-memory prompts and judge-based answer quality.
+   - Assistant-facing recall-use evals now use a fork-style mock-tool harness by default, with real extension wiring as optional smoke. The old direct smoke cases were replaced by seeded/noisy compacted-memory scenarios covering relevant-id selection, recent-context no-call, stale/current conflict recall, broad provenance with intermediate refs, partial/missing evidence, and no-id/no-search behavior.
+   - Next add judge-based answer quality for cases where substring checks are too weak.
 
 4. Cleanup OM documentation.
    - Extract the most important current architecture and usage guidance into `README.md`.

@@ -23,8 +23,16 @@ function compareExpectedCall(expected: ExpectedRecallCall, actual: RecallCall, i
 export function compareRecallCalls(expected: ExpectedRecallCall[], calls: RecallCall[]): string[] {
   const failures: string[] = [];
   if (calls.length !== expected.length) failures.push(`expected ${expected.length} recall calls, got ${calls.length}`);
-  const n = Math.min(expected.length, calls.length);
-  for (let i = 0; i < n; i += 1) failures.push(...compareExpectedCall(expected[i], calls[i], i));
+  const used = new Set<number>();
+  for (let i = 0; i < expected.length; i += 1) {
+    const matchIndex = calls.findIndex((call, index) => !used.has(index) && call.id === expected[i].id);
+    if (matchIndex < 0) {
+      failures.push(`expected recall id ${expected[i].id}`);
+      continue;
+    }
+    used.add(matchIndex);
+    failures.push(...compareExpectedCall(expected[i], calls[matchIndex], i));
+  }
   return failures;
 }
 

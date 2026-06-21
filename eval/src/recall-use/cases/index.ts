@@ -4,51 +4,76 @@ const VALIDATION_COMMAND = 'cd extensions/pi-observational-memory && pnpm run ty
 
 export const cases: RecallUseCase[] = [
   {
-    id: 'recall-exact-command-from-known-ref',
-    prompt: 'Compacted memory ref_222222222222 says there is a required validation command for the OM recall refactor, but not the exact command. What exact command should I run?',
-    expectedCalls: [{ id: 'ref_222222222222' }],
+    id: 'recall-seeded-noisy-command-id',
+    seedMessages: [{
+      role: 'assistant',
+      content: `Compacted OM memory excerpt:\n- ref_100000000001: User likes compact final answers.\n- ref_100000000002: A compacted OM memory contains the exact validation command for the recall refactor; recall before quoting it.\n- ref_100000000003: Stale note about an old typecheck failure; superseded later.\n- ref_100000000004: Follow-up idea about cost telemetry, not relevant now.`,
+    }],
+    prompt: 'What exact validation command should I run for the recall refactor? Use the compacted memory evidence if needed, but do not recall unrelated ids.',
+    expectedCalls: [{ id: 'ref_100000000002' }],
     mockResults: {
-      ref_222222222222: `Reflections:\n[ref_222222222222] A compacted OM memory contains the required validation command for the recall refactor.\n\nProvenance:\nref_222222222222 -> obs_111111111111\n\nObservations:\n[obs_111111111111] User confirmed the required OM recall-refactor validation command is \`${VALIDATION_COMMAND}\`.`,
+      ref_100000000002: `Reflections:\n[ref_100000000002] A compacted OM memory contains the exact validation command for the recall refactor.\n\nProvenance:\nref_100000000002 -> obs_100000000002\n\nObservations:\n[obs_100000000002] User confirmed the recall-refactor validation command is \`${VALIDATION_COMMAND}\`.`,
     },
     requiredAnswerText: [VALIDATION_COMMAND],
   },
   {
-    id: 'recall-stale-current-conflict',
-    prompt: 'Compacted memories ref_666666666666 and ref_777777777777 disagree about the recall-use eval retry budget, but their exact values are hidden behind recall. What is the current retry budget, and which value is stale?',
-    expectedCalls: [{ id: 'ref_666666666666' }, { id: 'ref_777777777777' }],
-    mockResults: {
-      ref_666666666666: 'Reflections:\n[ref_666666666666] Earlier retry-budget value for recall-use evals.\n\nObservations:\n[obs_444444444444] Earlier plan: the retry budget for recall-use evals was 2 attempts.',
-      ref_777777777777: 'Reflections:\n[ref_777777777777] Current retry-budget correction for recall-use evals.\n\nObservations:\n[obs_555555555555] User corrected the recall-use eval retry budget: current value is 5 attempts, and the earlier value 2 is stale.',
-    },
-    requiredAnswerText: ['5', '2', 'stale'],
+    id: 'recall-recent-context-no-call',
+    seedMessages: [{
+      role: 'user',
+      content: `For this next recall refactor, the exact validation command is: ${VALIDATION_COMMAND}`,
+    }],
+    prompt: 'What command did I just tell you to run? Do not look up memory if the recent conversation already has it.',
+    expectedCalls: [],
+    requiredAnswerText: [VALIDATION_COMMAND],
   },
   {
-    id: 'recall-broad-ref-provenance-needs-intermediate',
-    prompt: 'Compacted memory ref_aaaaaaaaaaaa is a broad reflection with nested provenance. I need the exact intermediate rationale too, not just terminal observations. What supports it?',
-    expectedCalls: [{ id: 'ref_aaaaaaaaaaaa', includeIntermediate: true }],
+    id: 'recall-noisy-stale-current-status',
+    seedMessages: [{
+      role: 'assistant',
+      content: `Compacted OM memory excerpt:\n- ref_200000000001: Maintainer eval was not green; unresolved failures around noisy duplicate merge.\n- ref_200000000002: Rewrite eval failed on rewrite-real-giga-40-v2; unrelated to maintainer status and should not be recalled for maintainer status.\n- ref_200000000003: Maintainer hardening supersedes earlier unresolved maintainer failures and records the latest validation result.\n- ref_200000000004: User prefers principle-level reflector guidance.`,
+    }],
+    prompt: 'I need to report the current maintainer hardening status. The compacted memories include stale and current-looking maintainer facts. Verify only the maintainer conflict and answer with the current status plus what is stale.',
+    expectedCalls: [{ id: 'ref_200000000001' }, { id: 'ref_200000000003' }],
     mockResults: {
-      ref_aaaaaaaaaaaa: 'Reflections:\n[ref_aaaaaaaaaaaa] Current plan is to keep rewrite deferred and harden maintainer first.\n\nProvenance:\nref_aaaaaaaaaaaa -> ref_bbbbbbbbbbbb\nref_bbbbbbbbbbbb -> obs_cccccccccccc\n\nSupporting reflections:\n[ref_bbbbbbbbbbbb] Maintainer evals are now green after contract hardening.\n\nObservations:\n[obs_cccccccccccc] Maintainer evals passed 30/30 trials=3 after commit 93048e1.',
+      ref_200000000001: 'Reflections:\n[ref_200000000001] Maintainer eval is still not green; noisy duplicate-merge had unresolved failures.\n\nObservations:\n[obs_200000000001] Earlier maintainer rerun failed because one trial retired only one duplicate and another returned no accepted output.',
+      ref_200000000003: 'Reflections:\n[ref_200000000003] Maintainer hardening is committed as 93048e1 and validation reported typecheck/tests passed plus maintainer evals 30/30 passed, trials=3; this supersedes earlier unresolved maintainer failures.\n\nObservations:\n[obs_200000000003] Maintainer hardening path passed after stricter contract changes.',
     },
-    requiredAnswerText: ['maintainer', '30/30', '93048e1'],
+    requiredAnswerText: ['93048e1', '30/30', 'stale'],
   },
   {
-    id: 'recall-partial-evidence-reports-uncertainty',
-    prompt: 'Memory ref_dddddddddddd matters for a decision, but it may have partial or missing evidence. Recall it and tell me what is known and what is unavailable.',
-    expectedCalls: [{ id: 'ref_dddddddddddd' }],
+    id: 'recall-broad-provenance-include-intermediate',
+    seedMessages: [{
+      role: 'assistant',
+      content: `Compacted OM memory excerpt:\n- ref_300000000001: Current rewrite policy is emergency fallback only, supported by nested maintainer/rewrite rationale.\n- ref_300000000002: A local docs cleanup note.\n- ref_300000000003: A stale rewrite-green assumption rejected by later eval results; do not recall it unless the user asks to audit stale rewrite-green claims.`,
+    }],
+    prompt: 'Why do we believe the rewrite path should stay emergency-only rather than normal cleanup? I need the intermediate rationale behind the current policy, not a separate audit of stale rewrite-green claims.',
+    expectedCalls: [{ id: 'ref_300000000001', includeIntermediate: true }],
     mockResults: {
-      ref_dddddddddddd: 'Reflections:\n[ref_dddddddddddd] A prior decision depends on an unavailable supporting observation.\n\nProvenance:\nref_dddddddddddd -> obs_eeeeeeeeeeee\n\nUnavailable supporting observations: obs_eeeeeeeeeeee\nUnavailable source entries: missing: src-lost',
+      ref_300000000001: 'Reflections:\n[ref_300000000001] Rewrite remains an emergency fallback; maintainer is the default cleanup path before revisiting rewrite.\n\nProvenance:\nref_300000000001 -> ref_300000000004\nref_300000000004 -> obs_300000000004\n\nSupporting reflections:\n[ref_300000000004] Maintainer hardening is green, while rewrite eval still fails on rewrite-real-giga-40-v2, so production should prefer maintainer and keep rewrite non-normal.\n\nObservations:\n[obs_300000000004] Rewrite eval rerun still failed on rewrite-real-giga-40-v2 with score 6/20 after hardening, while maintainer evals passed 30/30.',
     },
-    requiredAnswerText: ['unavailable', 'obs_eeeeeeeeeeee'],
+    requiredAnswerText: ['emergency', 'maintainer', 'rewrite-real-giga-40-v2'],
   },
   {
-    id: 'recall-not-semantic-search',
-    prompt: 'Use recall to find any memory about validation commands. I do not have a memory id.',
+    id: 'recall-partial-missing-evidence-caveat',
+    seedMessages: [{
+      role: 'assistant',
+      content: `Compacted OM memory excerpt:\n- ref_400000000001: A remembered user constraint depends on partial provenance; verify before treating it as authoritative.\n- ref_400000000002: Unrelated reminder about using pnpm.`,
+    }],
+    prompt: 'Before I enforce the remembered constraint in ref_400000000001, recover its evidence and tell me what is known versus unavailable.',
+    expectedCalls: [{ id: 'ref_400000000001' }],
+    mockResults: {
+      ref_400000000001: 'Reflections:\n[ref_400000000001] A remembered constraint says never leave compatibility shims in core paths.\n\nProvenance:\nref_400000000001 -> obs_400000000001\nref_400000000001 -> ref_400000000003\n\nObservations:\n[obs_400000000001] User confirmed the typed-id migration should avoid long-lived shims and keep compatibility only at boundaries.\n\nUnavailable supporting reflections: ref_400000000003\nUnavailable source entries: missing: src-400000000001',
+    },
+    requiredAnswerText: ['shims', 'unavailable', 'ref_400000000003'],
+  },
+  {
+    id: 'recall-no-id-no-semantic-search',
+    seedMessages: [{
+      role: 'assistant',
+      content: 'The active context mentions that some validation commands exist in compacted OM, but no memory ids are visible in this conversation.',
+    }],
+    prompt: 'Use recall to find whatever memory contains the validation command. I do not have an obs/ref id.',
     expectedCalls: [],
     forbiddenAnswerText: [VALIDATION_COMMAND],
-  },
-  {
-    id: 'recall-not-needed-for-conceptual-guidance',
-    prompt: 'Conceptually, why should recall not be used as semantic search? Do not look up any memory id.',
-    expectedCalls: [],
   },
 ];
