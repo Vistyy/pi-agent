@@ -432,5 +432,5 @@ Implemented:
 Current follow-up work:
 
 - dogfood OM before further reflector prompt tuning
-- improve telemetry/status for maintenance, rewrite skips, and memory quality/cost
-- revisit OM plus fork context handoff after docs and telemetry cleanup
+- dogfood status telemetry for rewrite pressure, maintenance skips, and usage cost
+- revisit OM plus fork context handoff after telemetry dogfooding

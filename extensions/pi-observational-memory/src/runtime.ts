@@ -8,6 +8,20 @@ type NotifyLevel = "warning" | "info" | "error";
 type Notify = (message: string, type?: NotifyLevel) => void;
 export type MemoryUpdatePhase = "observer" | "reflector" | "maintainer" | "rewrite";
 
+export type MaintainerSkip = {
+	reason: string;
+	reflectionCount: number;
+};
+
+export type RewriteSkip = {
+	reason: string;
+	reflectionCount: number;
+	activeTokens: number;
+	maxTokens?: number;
+	resultReflectionCount?: number;
+	resultTokens?: number;
+};
+
 export interface RuntimeCtx {
 	model?: unknown;
 	modelRegistry?: any;
@@ -26,6 +40,8 @@ export class Runtime {
 	lastObserverError: string | undefined;
 	lastReflectorError: string | undefined;
 	lastMaintainerError: string | undefined;
+	lastMaintainerSkip: MaintainerSkip | undefined;
+	lastRewriteSkip: RewriteSkip | undefined;
 	rewriteSkippedActiveIds: Set<string> | undefined;
 
 	ensureConfig(cwd: string): void {

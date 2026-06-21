@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { registerStatusCommand } from "../src/commands/status.js";
 import type { Runtime } from "../src/runtime.js";
+import { PI_USAGE_RECORDED } from "../src/usage.js";
 import {
 	compactionEntry,
 	memoryDetails,
@@ -35,6 +36,8 @@ function setup(args: { entries: TestEntry[]; runtime?: Partial<Runtime> }) {
 		lastObserverError: undefined,
 		lastReflectorError: undefined,
 		lastMaintainerError: undefined,
+		lastMaintainerSkip: undefined,
+		lastRewriteSkip: undefined,
 		...args.runtime,
 	};
 	registerStatusCommand(pi, runtime as Runtime);
@@ -59,6 +62,7 @@ describe("/om:status", () => {
 		expect(output).toContain("Observe: 0 / 10 source entries");
 		expect(output).toContain("Reflect: 0 / 20 observations");
 		expect(output).toContain("Maintain: 0 / 10 new reflections");
+		expect(output).toContain("Rewrite: ~0 / 30 active-reflection tokens");
 		expect(output).not.toContain("Strategy:");
 	});
 
@@ -80,6 +84,7 @@ describe("/om:status", () => {
 		expect(output).toContain("Observe: 2 / 10 source entries");
 		expect(output).toContain("Reflect: 0 / 20 observations");
 		expect(output).toContain("Maintain: 1 / 10 new reflections");
+		expect(output).toContain("Rewrite: ~");
 	});
 
 	it("shows full details on request", async () => {
@@ -95,6 +100,43 @@ describe("/om:status", () => {
 		expect(output).toContain("Strategy: replacement");
 		expect(output).toContain("Ledger observations: 1 recorded");
 		expect(output).toContain("Source entries since reflection cursor: 1");
+	});
+
+	it("shows usage totals in full mode", async () => {
+		const usageEntry: TestEntry = {
+			type: "custom",
+			id: "usage-1",
+			parentId: null,
+			timestamp: "2026-05-02T10:00:00.000Z",
+			customType: PI_USAGE_RECORDED,
+			data: {
+				schemaVersion: 1,
+				source: "extension",
+				extension: "observational-memory",
+				agent: "reflector",
+				usage: { input: 100, output: 20, cacheRead: 5, cacheWrite: 0, totalTokens: 125, cost: 0.0123 },
+			},
+		};
+
+		const output = await setup({ entries: [usageEntry] }).run("full");
+
+		expect(output).toContain("── Usage ──");
+		expect(output).toContain("Total: ~125 tokens, $0.0123");
+		expect(output).toContain("reflector: ~125 tokens, $0.0123");
+	});
+
+	it("shows last maintainer and rewrite skips", async () => {
+		const output = await setup({
+			entries: [],
+			runtime: {
+				lastMaintainerSkip: { reason: "no_op", reflectionCount: 10 },
+				lastRewriteSkip: { reason: "unchanged_after_noop", reflectionCount: 12, activeTokens: 96, maxTokens: 30, resultTokens: 88 },
+			},
+		}).run();
+
+		expect(output).toContain("── Last skip ──");
+		expect(output).toContain("Maintainer: no_op (10 reflections)");
+		expect(output).toContain("Rewrite: unchanged_after_noop (12 reflections, ~96 active tokens, 30 budget, result ~88 tokens)");
 	});
 
 	it("rejects unsupported status arguments", async () => {

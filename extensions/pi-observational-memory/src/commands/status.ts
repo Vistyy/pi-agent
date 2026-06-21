@@ -1,5 +1,5 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import type { Runtime } from "../runtime.js";
+import type { MaintainerSkip, RewriteSkip, Runtime } from "../runtime.js";
 import { reflectionsRecordedSinceLastRetirement } from "../memory-update/due.js";
 import {
 	activeReflections,
@@ -8,6 +8,60 @@ import {
 	sourceEntriesAfterIndex,
 	type Entry,
 } from "../session-ledger/index.js";
+import { PI_USAGE_RECORDED, normalizeUsage, type UsageTotals } from "../usage.js";
+
+type UsageSummary = {
+	total: UsageTotals;
+	byAgent: Map<string, UsageTotals>;
+};
+
+function emptyUsage(): UsageTotals {
+	return { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: 0 };
+}
+
+function addUsage(target: UsageTotals, usage: UsageTotals): void {
+	target.input += usage.input;
+	target.output += usage.output;
+	target.cacheRead += usage.cacheRead;
+	target.cacheWrite += usage.cacheWrite;
+	target.totalTokens += usage.totalTokens;
+	target.cost += usage.cost;
+}
+
+function summarizeUsage(entries: Entry[]): UsageSummary {
+	const summary: UsageSummary = { total: emptyUsage(), byAgent: new Map() };
+	for (const entry of entries) {
+		if (entry.type !== "custom" || entry.customType !== PI_USAGE_RECORDED || !entry.data || typeof entry.data !== "object") continue;
+		const data = entry.data as { extension?: unknown; agent?: unknown; usage?: unknown };
+		if (data.extension !== "observational-memory") continue;
+		const usage = normalizeUsage(data.usage);
+		addUsage(summary.total, usage);
+		const agent = typeof data.agent === "string" && data.agent ? data.agent : "unknown";
+		const agentTotal = summary.byAgent.get(agent) ?? emptyUsage();
+		addUsage(agentTotal, usage);
+		summary.byAgent.set(agent, agentTotal);
+	}
+	return summary;
+}
+
+function formatCost(cost: number): string {
+	return `$${cost.toFixed(4)}`;
+}
+
+function formatUsageLine(label: string, usage: UsageTotals): string {
+	return `${label}: ~${usage.totalTokens.toLocaleString()} tokens, ${formatCost(usage.cost)}`;
+}
+
+function formatMaintainerSkip(skip: MaintainerSkip): string {
+	return `${skip.reason} (${skip.reflectionCount.toLocaleString()} reflections)`;
+}
+
+function formatRewriteSkip(skip: RewriteSkip): string {
+	const parts = [`${skip.reason} (${skip.reflectionCount.toLocaleString()} reflections`, `~${skip.activeTokens.toLocaleString()} active tokens`];
+	if (skip.maxTokens !== undefined) parts.push(`${skip.maxTokens.toLocaleString()} budget`);
+	if (skip.resultTokens !== undefined) parts.push(`result ~${skip.resultTokens.toLocaleString()} tokens`);
+	return `${parts.join(", ")})`;
+}
 
 function firstArg(args: unknown): string | undefined {
 	if (Array.isArray(args)) return typeof args[0] === "string" ? args[0] : undefined;
@@ -44,6 +98,7 @@ export async function runStatusCommand(args: unknown, ctx: any, runtime: Runtime
 		`Observe: ${obsProgress.toLocaleString()} / ${runtime.config.observeEveryMessages.toLocaleString()} source entries`,
 		`Reflect: ${reflectionProgress.toLocaleString()} / ${runtime.config.reflectEveryObservations.toLocaleString()} observations`,
 		`Maintain: ${maintenanceProgress.toLocaleString()} / ${maintainEveryNewReflections.toLocaleString()} new reflections`,
+		`Rewrite: ~${contextTokens.toLocaleString()} / ${runtime.config.reflectionsPoolMaxTokens.toLocaleString()} active-reflection tokens`,
 	];
 
 	if (mode === "full") {
@@ -54,6 +109,19 @@ export async function runStatusCommand(args: unknown, ctx: any, runtime: Runtime
 			`Ledger observations: ${folded.observations.length.toLocaleString()} recorded`,
 			`Source entries since reflection cursor: ${sourceEntriesAfterIndex(entries, folded.lastReflectionCoverageIndex).length.toLocaleString()}`,
 		);
+		const usage = summarizeUsage(entries);
+		if (usage.total.totalTokens > 0 || usage.total.cost > 0) {
+			lines.push("", "── Usage ──", formatUsageLine("Total", usage.total));
+			for (const [agent, totals] of Array.from(usage.byAgent.entries()).sort(([a], [b]) => a.localeCompare(b))) {
+				lines.push(formatUsageLine(agent, totals));
+			}
+		}
+	}
+
+	if (runtime.lastMaintainerSkip || runtime.lastRewriteSkip) {
+		lines.push("", "── Last skip ──");
+		if (runtime.lastMaintainerSkip) lines.push(`Maintainer: ${formatMaintainerSkip(runtime.lastMaintainerSkip)}`);
+		if (runtime.lastRewriteSkip) lines.push(`Rewrite: ${formatRewriteSkip(runtime.lastRewriteSkip)}`);
 	}
 
 	if (runtime.memoryUpdateInFlight || runtime.compactHookInFlight) {

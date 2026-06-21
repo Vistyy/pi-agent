@@ -30,7 +30,9 @@ export async function runMaintainerStage(
 		reflections,
 	});
 	if (!result || result.retireReflectionIds.length === 0 || result.reflections.length === 0) {
-		debugLog("maintainer.skip", { reason: result ? "no_op" : "invalid_or_no_tool", reflectionCount: reflections.length });
+		const reason = result ? "no_op" : "invalid_or_no_tool";
+		runtime.lastMaintainerSkip = { reason, reflectionCount: reflections.length };
+		debugLog("maintainer.skip", { reason, reflectionCount: reflections.length });
 		return "continue";
 	}
 
@@ -38,6 +40,7 @@ export async function runMaintainerStage(
 	const recordedData = buildReflectionsRecordedData(result.reflections, entries.at(-1)?.id ?? "maintainer");
 	const rewrittenData = buildReflectionsRewrittenData({ retiredReflectionIds: result.retireReflectionIds });
 	if (!recordedData || !rewrittenData) return "continue";
+	runtime.lastMaintainerSkip = undefined;
 	pi.appendEntry(OM_REFLECTIONS_RECORDED, recordedData);
 	pi.appendEntry(OM_REFLECTIONS_REWRITTEN, rewrittenData);
 	return "continue";

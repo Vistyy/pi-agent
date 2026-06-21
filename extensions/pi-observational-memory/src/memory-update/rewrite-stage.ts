@@ -46,12 +46,14 @@ export async function runRewriteStage(
 	const folded = foldLedger(entries);
 	const activeTokens = reflectionTokenSum(folded.reflections);
 	if (folded.reflections.length < MIN_REWRITE_REFLECTIONS || activeTokens < runtime.config.reflectionsPoolMaxTokens) {
+		runtime.lastRewriteSkip = { reason: "below_threshold", reflectionCount: folded.reflections.length, activeTokens, maxTokens: runtime.config.reflectionsPoolMaxTokens };
 		debugLog("rewrite.skip", { reason: "below_threshold", reflectionCount: folded.reflections.length, activeTokens, reflectionsPoolMaxTokens: runtime.config.reflectionsPoolMaxTokens });
 		return "continue";
 	}
 
 	const activeReflectionIds = folded.reflections.map((reflection) => reflection.id);
 	if (sameIds(runtime.rewriteSkippedActiveIds, activeReflectionIds)) {
+		runtime.lastRewriteSkip = { reason: "unchanged_after_noop", reflectionCount: folded.reflections.length, activeTokens, maxTokens: runtime.config.reflectionsPoolMaxTokens };
 		debugLog("rewrite.skip", { reason: "unchanged_after_noop", reflectionCount: folded.reflections.length, activeTokens });
 		return "continue";
 	}
@@ -72,12 +74,16 @@ export async function runRewriteStage(
 	}
 	if (!result || !isUsefulEmergencyRewrite(result.reflections, activeReflectionIds, activeTokens, runtime.config.reflectionsPoolMaxTokens)) {
 		runtime.rewriteSkippedActiveIds = new Set(activeReflectionIds);
+		const reason = result ? "not_useful_emergency_rewrite" : "no_result";
+		const resultReflectionCount = result?.reflections.length ?? 0;
+		const resultTokens = result ? reflectionTokenSum(result.reflections) : 0;
+		runtime.lastRewriteSkip = { reason, reflectionCount: folded.reflections.length, activeTokens, maxTokens: runtime.config.reflectionsPoolMaxTokens, resultReflectionCount, resultTokens };
 		debugLog("rewrite.skip", {
-			reason: result ? "not_useful_emergency_rewrite" : "no_result",
+			reason,
 			reflectionCount: folded.reflections.length,
 			activeTokens,
-			resultReflectionCount: result?.reflections.length ?? 0,
-			resultTokens: result ? reflectionTokenSum(result.reflections) : 0,
+			resultReflectionCount,
+			resultTokens,
 		});
 		return "continue";
 	}
@@ -89,6 +95,7 @@ export async function runRewriteStage(
 	});
 	if (!recordedData || !rewrittenData) return "continue";
 	runtime.rewriteSkippedActiveIds = undefined;
+	runtime.lastRewriteSkip = undefined;
 	pi.appendEntry(OM_REFLECTIONS_RECORDED, recordedData);
 	pi.appendEntry(OM_REFLECTIONS_REWRITTEN, rewrittenData);
 	return "continue";

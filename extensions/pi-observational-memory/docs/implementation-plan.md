@@ -307,7 +307,8 @@ Last observer/reflector error, when present
    - Audit this plan against implemented behavior and remove completed/stale steps.
 
 5. Add telemetry/status improvements.
-   - Make real cost/quality tuning visible.
+   - Status now shows rewrite pressure, last maintainer/rewrite skip reasons, and full-mode OM usage totals from recorded usage events.
+   - Remaining telemetry work should come from dogfooding rather than speculative counters.
 
 6. Optional later: structured reflection categories.
    - Defer data-model change unless one-line reflections plus better prompts/evals are insufficient.
