@@ -117,7 +117,8 @@ Projects that also use observational memory can opt into OM-backed compact snaps
 ```
 
 `om-compact` first copies the full parent session to the fork temp session.
-It then runs Pi's native `session_before_compact` extension hook against that copy and requires observational memory to return an `om.folded` compaction.
+It then loads only the observational memory extension in a preflight runtime, runs Pi's native `session_before_compact` extension hook against that copy, and requires observational memory to return an `om.folded` compaction.
+Other local/global extensions are not loaded during this preflight, so provider overrides and extension side effects stay out of the parent process.
 The parent session is not mutated.
 If observational memory is unavailable or does not provide compaction, the fork fails instead of falling back to model-based native compaction.
 The actual fork child still runs as a separate Pi process on the compacted temp session.

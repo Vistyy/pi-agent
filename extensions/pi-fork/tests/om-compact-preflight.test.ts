@@ -102,9 +102,18 @@ describe("OM compact fork preflight", () => {
     process.env.PI_CODING_AGENT_DIR = tempDir("om-compact-agent");
     const extensionsDir = join(cwd, ".pi", "extensions");
     mkdirSync(extensionsDir, { recursive: true });
-    writeFileSync(join(extensionsDir, "fake-om.ts"), `
+    const fakeOmPath = join(cwd, "fake-om.ts");
+    const sideEffectPath = join(cwd, "side-effect-loaded");
+    writeFileSync(join(extensionsDir, "fake-swop.ts"), `
+      import { writeFileSync } from "node:fs";
+      export default function fakeSwop() {
+        writeFileSync(${JSON.stringify(sideEffectPath)}, "loaded");
+      }
+    `);
+    writeFileSync(fakeOmPath, `
       export default function fakeOm(pi) {
         pi.on("session_before_compact", async (event) => ({
+
           compaction: {
             summary: "Fake OM summary",
             firstKeptEntryId: event.preparation.firstKeptEntryId,
@@ -122,8 +131,9 @@ describe("OM compact fork preflight", () => {
     ];
     writeFileSync(sessionPath, `${entries.map((value) => JSON.stringify(value)).join("\n")}\n`);
 
-    await compactForkSessionWithOm({ cwd, sessionPath });
+    await compactForkSessionWithOm({ cwd, sessionPath, omExtensionPath: fakeOmPath });
 
+    expect(() => readFileSync(sideEffectPath, "utf-8")).toThrow();
     const compacted = readFileSync(sessionPath, "utf-8");
     expect(compacted).toContain("Fake OM summary");
     expect(compacted).toContain('"fromHook":true');
