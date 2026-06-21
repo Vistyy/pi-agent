@@ -185,6 +185,7 @@ export function registerForkTool(pi: ExtensionAPI): void {
         environment: config.environment,
         tools: config.tools,
         offline: config.offline,
+        sandbox: config.sandbox,
         signal,
         onUpdate,
         makeDetails,

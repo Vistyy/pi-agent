@@ -58,9 +58,9 @@ Fork children load no extensions by default.
 
 If `pi-fork` is allowlisted, children can call `fork` recursively.
 
-## Read-only fork children
+## Guarded exploratory fork children
 
-A practical read-only setup removes file-writing tools and loads the sandbox hook:
+A practical guarded setup removes file-writing tools and loads the sandbox hook:
 
 ```json
 {
@@ -74,18 +74,39 @@ A practical read-only setup removes file-writing tools and loads the sandbox hoo
 }
 ```
 
+This is a workflow guardrail for exploratory fork work, not a security boundary for hostile repositories.
+
 This does two things:
 
 - `--tools` removes `edit` and `write` from the child process.
-- `sandbox.ts` wraps `bash` with bwrap so the repo is mounted read-only, `/tmp` is writable, inherited environment variables are cleared, and shell network is disabled.
+- `sandbox.ts` wraps `bash` with bwrap so the repo is mounted read-only, the configured temp dir is writable, inherited environment variables are cleared, and shell network follows `pi-fork.sandbox.bashNetwork`.
 
 The sandbox hook must be present in `pi-fork.extensions`. If a project overrides `pi-fork.extensions`, include `./extensions/pi-fork/sandbox.ts` there too or the bash hook will not load.
+
+Sandbox defaults:
+
+```json
+{
+  "pi-fork": {
+    "sandbox": {
+      "bashNetwork": false,
+      "tmpDir": "/tmp"
+    }
+  }
+}
+```
+
+`bashNetwork: false` isolates sandboxed `bash` from the host network. Set it to `true` to add `bwrap --share-net`, for example when a fork needs `git clone` or package-manager fetches. This is separate from `offline`.
+
+`tmpDir` controls writable `TMPDIR` for sandboxed `bash` and must be under `/tmp` or `/var/tmp`. Child prompts mention this directory so fork agents know where to put scratch files, downloads, clones, and quick experiments.
 
 `web_search`, `web_fetch`, and `web_content_get` are host-mediated text tools. They still work with shell network disabled because they are not run inside sandboxed `bash`. They fetch/extract/store text; they do not execute page JavaScript or fetched scripts.
 
 ## Config
 
 Config goes under `pi-fork` in `~/.pi/agent/settings.json` or `.pi/settings.json`.
+
+Precedence is: defaults < global `~/.pi/agent/settings.json` < project `.pi/settings.json`. Project settings can intentionally override fork tools, extensions, sandbox options, and environment for that project.
 
 ```json
 {
@@ -123,11 +144,15 @@ Defaults:
 extensions: []
 tools: null
 offline: true
+sandbox.bashNetwork: false
+sandbox.tmpDir: /tmp
 costFooter: true
 environment: {}
 ```
 
 `offline: true` sets `PI_OFFLINE=1` for children. This is Pi's internal offline mode; it skips version checks and tool binary downloads. It does not sandbox network access for `bash` or child extensions. Set `offline: false` when child extension sources need network install behavior.
+
+Shell network access is controlled only by `sandbox.bashNetwork` when `./extensions/pi-fork/sandbox.ts` is loaded.
 
 `costFooter: true` shows aggregate fork cost in the footer, for example:
 

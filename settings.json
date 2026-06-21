@@ -24,6 +24,10 @@
       "./extensions/pi-fork/sandbox.ts"
     ],
     "offline": true,
+    "sandbox": {
+      "bashNetwork": true,
+      "tmpDir": "/tmp"
+    },
     "costFooter": true,
     "defaultEffort": "balanced",
     "effortProfiles": {

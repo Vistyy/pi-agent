@@ -55,4 +55,19 @@ describe("buildPiArgs", () => {
       "--thinking", "high",
     ]));
   });
+
+  it("tells the child about the writable temp directory", () => {
+    const args = buildPiArgs(
+      "task",
+      "/tmp/session.jsonl",
+      [],
+      undefined,
+      inherited,
+      undefined,
+      undefined,
+      { bashNetwork: false, tmpDir: "/tmp/pi-fork" },
+    );
+
+    expect(args.at(-1)).toContain("writable temp directory: /tmp/pi-fork");
+  });
 });

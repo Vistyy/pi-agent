@@ -30,6 +30,10 @@ describe("loadConfig", () => {
 
     expect(loadConfig(cwd).extensions).toEqual([]);
     expect(loadConfig(cwd).tools).toBeNull();
+    expect(loadConfig(cwd).sandbox).toEqual({
+      bashNetwork: false,
+      tmpDir: "/tmp",
+    });
     expect(DEFAULT_CONFIG.extensions).toEqual([]);
   });
 
@@ -105,5 +109,36 @@ describe("loadConfig", () => {
     });
 
     expect(loadConfig(cwd).environment).toEqual({ A: "global", B: "project", C: "project" });
+  });
+
+  it("merges sandbox config separately from offline mode", () => {
+    const cwd = tempDir("cwd");
+    const agentDir = tempDir("agent");
+    const projectSettingsDir = join(cwd, ".pi");
+    mkdirSync(projectSettingsDir, { recursive: true });
+    process.env.PI_CODING_AGENT_DIR = agentDir;
+    writeJson(join(agentDir, "settings.json"), {
+      "pi-fork": { offline: true, sandbox: { bashNetwork: true, tmpDir: "/tmp/global" } },
+    });
+    writeJson(join(projectSettingsDir, "settings.json"), {
+      "pi-fork": { sandbox: { tmpDir: "/tmp/project" } },
+    });
+
+    expect(loadConfig(cwd).offline).toBe(true);
+    expect(loadConfig(cwd).sandbox).toEqual({
+      bashNetwork: true,
+      tmpDir: "/tmp/project",
+    });
+  });
+
+  it("ignores sandbox tmp dirs outside /tmp and /var/tmp", () => {
+    const cwd = tempDir("cwd");
+    const agentDir = tempDir("agent");
+    process.env.PI_CODING_AGENT_DIR = agentDir;
+    writeJson(join(agentDir, "settings.json"), {
+      "pi-fork": { sandbox: { tmpDir: "/home/user/scratch" } },
+    });
+
+    expect(loadConfig(cwd).sandbox.tmpDir).toBe("/tmp");
   });
 });

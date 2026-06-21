@@ -12,6 +12,7 @@ import * as path from "node:path";
 import type { AgentToolResult } from "@earendil-works/pi-agent-core";
 import { buildChildEnv } from "./env.js";
 import { buildForkTaskPrompt } from "./prompt.js";
+import type { ForkSandboxConfig } from "../config.js";
 import { type ForkDetails, type ForkEffort, type ForkEffortProfile, type ForkEffortState, type ForkResult, emptyUsage, normalizeCompletedResult } from "../core/types.js";
 import { parseInheritedCliArgs } from "./cli.js";
 import { getForkProgressText, processPiJsonLine } from "../child-events/index.js";
@@ -55,6 +56,7 @@ export function buildPiArgs(
   inherited = inheritedCliArgs,
   effort?: ForkEffort,
   tools?: string | null,
+  sandbox?: ForkSandboxConfig,
 ): string[] {
   const args: string[] = [
     "--mode",
@@ -98,7 +100,7 @@ export function buildPiArgs(
     }
   }
 
-  args.push(buildForkTaskPrompt(task, effort));
+  args.push(buildForkTaskPrompt(task, effort, { writableTmpDir: sandbox?.tmpDir }));
   return args;
 }
 
@@ -110,6 +112,7 @@ export interface RunForkOptions {
   environment?: Record<string, string>;
   tools?: string | null;
   offline?: boolean;
+  sandbox?: ForkSandboxConfig;
   signal?: AbortSignal;
   onUpdate?: OnUpdateCallback;
   makeDetails: (results: ForkResult[]) => ForkDetails;
@@ -126,6 +129,7 @@ export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
     environment = {},
     tools = null,
     offline = true,
+    sandbox,
     signal,
     onUpdate,
     makeDetails,
@@ -184,7 +188,7 @@ export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
   forkSessionTmpPath = tmp.filePath;
 
   try {
-    const piArgs = buildPiArgs(task, forkSessionTmpPath, extensions, effort?.profile, inheritedCliArgs, effort?.selected, tools);
+    const piArgs = buildPiArgs(task, forkSessionTmpPath, extensions, effort?.profile, inheritedCliArgs, effort?.selected, tools, sandbox);
     let wasAborted = false;
 
     const exitCode = await new Promise<number>((resolve) => {

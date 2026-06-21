@@ -8,6 +8,14 @@ import type { ForkEffort, ForkEffortProfile } from "./core/types.js";
 export const EFFORT_LEVELS = ["fast", "balanced", "deep"] as const;
 export const THINKING_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh"] as const;
 
+export interface ForkSandboxConfig {
+  /** Whether sandboxed bash may use the host network. */
+  bashNetwork: boolean;
+
+  /** Writable TMPDIR inside sandboxed bash. Must be under /tmp or /var/tmp. */
+  tmpDir: string;
+}
+
 export interface ForkConfig {
   /**
    * Extensions to load in child fork processes.
@@ -28,8 +36,11 @@ export interface ForkConfig {
    */
   tools: string | null;
 
-  /** Whether child fork processes force Pi offline mode. */
+  /** Controls PI_OFFLINE for child Pi processes only. Does not affect sandbox network access. */
   offline: boolean;
+
+  /** Sandbox policy for child extension hooks such as sandboxed bash. */
+  sandbox: ForkSandboxConfig;
 
   /** Show fork cost as an extra footer status line. */
   costFooter: boolean;
@@ -43,11 +54,17 @@ export interface ForkConfig {
 
 const SETTINGS_KEY = "pi-fork";
 
+export const DEFAULT_SANDBOX_CONFIG: ForkSandboxConfig = {
+  bashNetwork: false,
+  tmpDir: "/tmp",
+};
+
 export const DEFAULT_CONFIG: ForkConfig = {
   extensions: [],
   environment: {},
   tools: null,
   offline: true,
+  sandbox: DEFAULT_SANDBOX_CONFIG,
   costFooter: true,
 };
 
@@ -129,6 +146,26 @@ function parseTools(raw: unknown): string | null | undefined {
   return names.join(",");
 }
 
+function parseSandboxTmpDir(raw: unknown): string | undefined {
+  if (typeof raw !== "string") return undefined;
+  const tmpDir = path.posix.normalize(raw.trim());
+  if (tmpDir === "/tmp" || tmpDir.startsWith("/tmp/")) return tmpDir;
+  if (tmpDir === "/var/tmp" || tmpDir.startsWith("/var/tmp/")) return tmpDir;
+  return undefined;
+}
+
+function parseSandbox(raw: unknown): Partial<ForkSandboxConfig> | undefined {
+  if (raw === undefined) return undefined;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+
+  const config = raw as Record<string, unknown>;
+  const sandbox: Partial<ForkSandboxConfig> = {};
+  const tmpDir = parseSandboxTmpDir(config.tmpDir);
+  if (typeof config.bashNetwork === "boolean") sandbox.bashNetwork = config.bashNetwork;
+  if (tmpDir !== undefined) sandbox.tmpDir = tmpDir;
+  return Object.keys(sandbox).length > 0 ? sandbox : undefined;
+}
+
 function defineEnvironmentValue(
   target: Record<string, string>,
   key: string,
@@ -196,7 +233,11 @@ export function mergeEnvironment(
   return environment;
 }
 
-function readNamespacedConfig(settingsPath: string, baseDir: string): Partial<ForkConfig> {
+type ParsedForkConfig = Omit<Partial<ForkConfig>, "sandbox"> & {
+  sandbox?: Partial<ForkSandboxConfig>;
+};
+
+function readNamespacedConfig(settingsPath: string, baseDir: string): ParsedForkConfig {
   if (!existsSync(settingsPath)) return {};
 
   try {
@@ -208,13 +249,15 @@ function readNamespacedConfig(settingsPath: string, baseDir: string): Partial<Fo
     const extensions = parseExtensions(config.extensions, baseDir);
     const environment = parseEnvironment(config.environment);
     const tools = parseTools(config.tools);
-    const parsed: Partial<ForkConfig> = {};
+    const parsed: ParsedForkConfig = {};
     const defaultEffort = parseDefaultEffort(config.defaultEffort);
     const effortProfiles = parseEffortProfiles(config.effortProfiles);
+    const sandbox = parseSandbox(config.sandbox);
     if (extensions !== undefined) parsed.extensions = extensions;
     if (environment !== undefined) parsed.environment = environment;
     if (tools !== undefined) parsed.tools = tools;
     if (typeof config.offline === "boolean") parsed.offline = config.offline;
+    if (sandbox !== undefined) parsed.sandbox = sandbox;
     if (typeof config.costFooter === "boolean") parsed.costFooter = config.costFooter;
     if (defaultEffort !== undefined) parsed.defaultEffort = defaultEffort;
     if (effortProfiles !== undefined) parsed.effortProfiles = effortProfiles;
@@ -238,6 +281,11 @@ export function loadConfig(cwd: string): ForkConfig {
     ...globalConfig,
     ...projectConfig,
     environment: mergeEnvironment(globalConfig.environment, projectConfig.environment),
+    sandbox: {
+      ...DEFAULT_CONFIG.sandbox,
+      ...globalConfig.sandbox,
+      ...projectConfig.sandbox,
+    },
   };
   if (effortProfiles !== undefined) resolved.effortProfiles = effortProfiles;
   else delete resolved.effortProfiles;
