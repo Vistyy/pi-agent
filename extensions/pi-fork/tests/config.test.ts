@@ -31,7 +31,6 @@ describe("loadConfig", () => {
     expect(loadConfig(cwd).extensions).toEqual([]);
     expect(loadConfig(cwd).tools).toBeNull();
     expect(loadConfig(cwd).sessionSnapshot).toBe("full");
-    expect(loadConfig(cwd).sessionSnapshotRecentTailEntryCount).toBe(20);
     expect(loadConfig(cwd).sandbox).toEqual({
       bashNetwork: false,
       tmpDir: "/tmp",
@@ -102,11 +101,10 @@ describe("loadConfig", () => {
     const agentDir = tempDir("agent");
     process.env.PI_CODING_AGENT_DIR = agentDir;
     writeJson(join(agentDir, "settings.json"), {
-      "pi-fork": { sessionSnapshot: "om-compact", sessionSnapshotRecentTailEntryCount: 7 },
+      "pi-fork": { sessionSnapshot: "om-compact" },
     });
 
     expect(loadConfig(cwd).sessionSnapshot).toBe("om-compact");
-    expect(loadConfig(cwd).sessionSnapshotRecentTailEntryCount).toBe(7);
   });
 
   it("ignores invalid compact session snapshot settings", () => {
@@ -114,11 +112,10 @@ describe("loadConfig", () => {
     const agentDir = tempDir("agent");
     process.env.PI_CODING_AGENT_DIR = agentDir;
     writeJson(join(agentDir, "settings.json"), {
-      "pi-fork": { sessionSnapshot: "bad", sessionSnapshotRecentTailEntryCount: -1 },
+      "pi-fork": { sessionSnapshot: "bad" },
     });
 
     expect(loadConfig(cwd).sessionSnapshot).toBe("full");
-    expect(loadConfig(cwd).sessionSnapshotRecentTailEntryCount).toBe(20);
   });
 
   it("merges environment with project values overriding global values", () => {

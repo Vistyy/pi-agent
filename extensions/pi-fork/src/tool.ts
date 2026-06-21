@@ -147,10 +147,7 @@ export function registerForkTool(pi: ExtensionAPI): void {
     async execute(_toolCallId, params, signal, onUpdate, ctx) {
       const config = loadConfig(ctx.cwd);
       const effort = resolveEffortState(params.effort, config);
-      const snapshot = buildForkSessionSnapshotJsonl(ctx.sessionManager, {
-        mode: config.sessionSnapshot,
-        recentTailEntryCount: config.sessionSnapshotRecentTailEntryCount,
-      });
+      const snapshot = buildForkSessionSnapshotJsonl(ctx.sessionManager);
       if (!snapshot) {
         const result = emptyFailedResult(
           params.task,
@@ -177,6 +174,7 @@ export function registerForkTool(pi: ExtensionAPI): void {
         onUpdate,
         makeDetails,
         effort,
+        sessionSnapshot: config.sessionSnapshot,
         resolveContextWindow: (provider, model) => resolveModelContextWindow(ctx.modelRegistry, provider, model),
       });
 

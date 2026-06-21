@@ -5,7 +5,7 @@ const mockRunFork = vi.hoisted(() => vi.fn());
 vi.mock("../src/runner/index.js", () => ({ runFork: mockRunFork }));
 vi.mock("../src/config.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../src/config.js")>();
-  return { ...actual, loadConfig: () => ({ extensions: [], environment: {}, tools: null, offline: true, costFooter: true, sessionSnapshot: "full", sessionSnapshotRecentTailEntryCount: 20, defaultEffort: "balanced" }) };
+  return { ...actual, loadConfig: () => ({ extensions: [], environment: {}, tools: null, offline: true, costFooter: true, sessionSnapshot: "full", defaultEffort: "balanced" }) };
 });
 
 import { PI_USAGE_RECORDED } from "../src/usage.js";
@@ -39,6 +39,7 @@ describe("fork tool usage recording", () => {
       sessionManager: { getHeader: () => ({ type: "header" }), getBranch: () => [] },
     });
 
+    expect(mockRunFork).toHaveBeenCalledWith(expect.objectContaining({ sessionSnapshot: "full" }));
     expect(appendEntry).toHaveBeenCalledWith(PI_USAGE_RECORDED, expect.objectContaining({
       extension: "fork",
       agent: "child-agent",

@@ -49,9 +49,6 @@ export interface ForkConfig {
   /** Parent session snapshot strategy for child fork processes. */
   sessionSnapshot: ForkSessionSnapshotMode;
 
-  /** Number of most recent branch entries to keep after compact snapshot context. */
-  sessionSnapshotRecentTailEntryCount: number;
-
   /** Effort to use when a fork call omits the effort parameter. */
   defaultEffort?: ForkEffort;
 
@@ -74,7 +71,6 @@ export const DEFAULT_CONFIG: ForkConfig = {
   sandbox: DEFAULT_SANDBOX_CONFIG,
   costFooter: true,
   sessionSnapshot: "full",
-  sessionSnapshotRecentTailEntryCount: 20,
 };
 
 function isPackageSource(value: string): boolean {
@@ -165,10 +161,6 @@ function parseSandboxTmpDir(raw: unknown): string | undefined {
 
 function parseSessionSnapshot(raw: unknown): ForkSessionSnapshotMode | undefined {
   return raw === "full" || raw === "om-compact" ? raw : undefined;
-}
-
-function parseNonNegativeInteger(raw: unknown): number | undefined {
-  return typeof raw === "number" && Number.isInteger(raw) && raw >= 0 ? raw : undefined;
 }
 
 function parseSandbox(raw: unknown): Partial<ForkSandboxConfig> | undefined {
@@ -277,9 +269,7 @@ function readNamespacedConfig(settingsPath: string, baseDir: string): ParsedFork
     if (sandbox !== undefined) parsed.sandbox = sandbox;
     if (typeof config.costFooter === "boolean") parsed.costFooter = config.costFooter;
     const sessionSnapshot = parseSessionSnapshot(config.sessionSnapshot);
-    const sessionSnapshotRecentTailEntryCount = parseNonNegativeInteger(config.sessionSnapshotRecentTailEntryCount);
     if (sessionSnapshot !== undefined) parsed.sessionSnapshot = sessionSnapshot;
-    if (sessionSnapshotRecentTailEntryCount !== undefined) parsed.sessionSnapshotRecentTailEntryCount = sessionSnapshotRecentTailEntryCount;
     if (defaultEffort !== undefined) parsed.defaultEffort = defaultEffort;
     if (effortProfiles !== undefined) parsed.effortProfiles = effortProfiles;
     return parsed;

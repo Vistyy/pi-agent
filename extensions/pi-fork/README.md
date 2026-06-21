@@ -106,20 +106,21 @@ Sandbox defaults:
 ## Session snapshot
 
 Forks use the full active session branch by default.
-Projects that also use observational memory can opt into a compact snapshot to reduce child input cost:
+Projects that also use observational memory can opt into OM-backed compact snapshots to reduce child input cost:
 
 ```json
 {
   "pi-fork": {
-    "sessionSnapshot": "om-compact",
-    "sessionSnapshotRecentTailEntryCount": 20
+    "sessionSnapshot": "om-compact"
   }
 }
 ```
 
-`om-compact` replaces older branch history with a synthetic compaction entry containing current OM active reflections, then keeps the most recent tail entries verbatim.
-It does not run OM observer, reflector, maintainer, or rewrite work during fork setup.
-It is intended for dogfooding and may omit details that are not reflected yet, so keep a recent tail.
+`om-compact` first copies the full parent session to the fork temp session.
+It then runs Pi's native `session_before_compact` extension hook against that copy and requires observational memory to return an `om.folded` compaction.
+The parent session is not mutated.
+If observational memory is unavailable or does not provide compaction, the fork fails instead of falling back to model-based native compaction.
+The actual fork child still runs as a separate Pi process on the compacted temp session.
 
 ## Config
 
@@ -167,7 +168,6 @@ sandbox.bashNetwork: false
 sandbox.tmpDir: /tmp
 costFooter: true
 sessionSnapshot: full
-sessionSnapshotRecentTailEntryCount: 20
 environment: {}
 ```
 

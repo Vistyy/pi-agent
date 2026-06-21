@@ -13,7 +13,9 @@ import type { AgentToolResult } from "@earendil-works/pi-agent-core";
 import { buildChildEnv } from "./env.js";
 import { buildForkTaskPrompt } from "./prompt.js";
 import type { ForkSandboxConfig } from "../config.js";
+import { compactForkSessionWithOm } from "./om-compact-preflight.js";
 import { type ForkDetails, type ForkEffort, type ForkEffortProfile, type ForkEffortState, type ForkResult, emptyUsage, normalizeCompletedResult } from "../core/types.js";
+import type { ForkSessionSnapshotMode } from "../session-snapshot.js";
 import { parseInheritedCliArgs } from "./cli.js";
 import { getForkProgressText, processPiJsonLine } from "../child-events/index.js";
 
@@ -118,6 +120,7 @@ export interface RunForkOptions {
   makeDetails: (results: ForkResult[]) => ForkDetails;
   effort?: ForkEffortState;
   resolveContextWindow?: ContextWindowResolver;
+  sessionSnapshot?: ForkSessionSnapshotMode;
 }
 
 export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
@@ -135,6 +138,7 @@ export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
     makeDetails,
     effort,
     resolveContextWindow,
+    sessionSnapshot = "full",
   } = opts;
 
   if (!forkSessionSnapshotJsonl.trim()) {
@@ -188,6 +192,19 @@ export async function runFork(opts: RunForkOptions): Promise<ForkResult> {
   forkSessionTmpPath = tmp.filePath;
 
   try {
+    if (sessionSnapshot === "om-compact") {
+      try {
+        await compactForkSessionWithOm({ cwd, sessionPath: forkSessionTmpPath, signal });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        result.exitCode = signal?.aborted ? 130 : 1;
+        result.stderr = message;
+        result.stopReason = signal?.aborted ? "aborted" : "error";
+        result.errorMessage = message;
+        return result;
+      }
+    }
+
     const piArgs = buildPiArgs(task, forkSessionTmpPath, extensions, effort?.profile, inheritedCliArgs, effort?.selected, tools, sandbox);
     let wasAborted = false;
 
