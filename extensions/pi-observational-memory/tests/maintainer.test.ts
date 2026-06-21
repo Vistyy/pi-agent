@@ -51,15 +51,15 @@ describe("maintainer agent", () => {
 	it("rejects obs sources and sources outside retired parents", async () => {
 		await expect(runMaintainer({ ...baseArgs, agentLoop: fakeAgentLoop(async (_prompts, context) => {
 			await context.tools[0].execute("tool-1", {
-				retireReflectionIds: [oldA.id],
-				reflections: [{ content: "Use pnpm.", sources: ["obs_111111111111"] }],
+				retireReflectionIds: [oldA.id, oldB.id],
+				reflections: [{ content: "Use pnpm.", sources: ["obs_111111111111", oldB.id] }],
 			});
 		}) })).resolves.toBeUndefined();
 
 		await expect(runMaintainer({ ...baseArgs, agentLoop: fakeAgentLoop(async (_prompts, context) => {
 			await context.tools[0].execute("tool-1", {
-				retireReflectionIds: [oldA.id],
-				reflections: [{ content: "Use pnpm.", sources: [oldC.id] }],
+				retireReflectionIds: [oldA.id, oldB.id],
+				reflections: [{ content: "Use pnpm.", sources: [oldA.id, oldC.id] }],
 			});
 		}) })).resolves.toBeUndefined();
 	});
@@ -87,10 +87,10 @@ describe("maintainer agent", () => {
 		const content = "Use pnpm for package commands.";
 		const loop = fakeAgentLoop(async (_prompts, context) => {
 			await context.tools[0].execute("tool-1", {
-				retireReflectionIds: [oldA.id],
+				retireReflectionIds: [oldA.id, oldB.id],
 				reflections: [
-					{ content, sources: [oldA.id] },
-					{ content, sources: [oldA.id] },
+					{ content, sources: [oldA.id, oldB.id] },
+					{ content, sources: [oldA.id, oldB.id] },
 				],
 			});
 		});
@@ -98,7 +98,16 @@ describe("maintainer agent", () => {
 		const result = await runMaintainer({ ...baseArgs, agentLoop: loop });
 
 		expect(result?.reflections).toHaveLength(1);
-		expect(result?.reflections[0].sources).toEqual([oldA.id]);
+		expect(result?.reflections[0].sources).toEqual([oldA.id, oldB.id]);
+	});
+
+	it("rejects single-ref paraphrase maintenance", async () => {
+		await expect(runMaintainer({ ...baseArgs, agentLoop: fakeAgentLoop(async (_prompts, context) => {
+			await context.tools[0].execute("tool-1", {
+				retireReflectionIds: [oldA.id],
+				reflections: [{ content: "Use pnpm for package commands.", sources: [oldA.id] }],
+			});
+		}) })).resolves.toBeUndefined();
 	});
 
 	it("returns undefined for empty input, no tool call, or all invalid proposals", async () => {

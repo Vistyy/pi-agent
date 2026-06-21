@@ -34,6 +34,7 @@ export function fakeAgentLoop(handler: AgentLoopHandler) {
 			try {
 				await handler(prompts, context, config);
 			} catch (error) {
+				if (error instanceof Error && error.message.startsWith("Rejected ")) return {};
 				if (!(error instanceof TypeError && String(error.message).includes("undefined"))) throw error;
 			}
 			return {};

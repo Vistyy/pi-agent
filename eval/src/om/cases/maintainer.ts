@@ -234,7 +234,7 @@ export const maintainerPartialOverlapNoop: MaintainerEvalSpec = {
     ref('800000000001', 'Use pnpm rather than npm for package-manager commands.', ['obs_aaaaaaaaaaaa']),
     ref('800000000002', 'The required validation contract is `pnpm run typecheck && pnpm test` before claiming risky OM changes are green.', ['obs_bbbbbbbbbbbb']),
     ref('800000000003', 'Validation receipts are not durable memory unless they mark a blocker, contract, or final risky-change state.', ['obs_cccccccccccc']),
-    ref('800000000004', 'Recall exact evidence before relying on memory for pass/fail claims.', ['obs_dddddddddddd']),
+    ref('800000000004', 'Recall exact ids before relying on memory for exact commands or errors.', ['obs_dddddddddddd']),
   ],
   probe: {
     id: 'maintainer-partial-overlap-noop',
@@ -316,12 +316,14 @@ export const maintainerCompletedTrailWithUnresolvedSibling: MaintainerEvalSpec =
       detail: (output) => ({ retireReflectionIds: output?.retireReflectionIds ?? [], content: (output?.reflections ?? []).map((reflection) => reflection.content).join('\n') }),
     },
     {
-      label: 'preserves blocker if retiring it',
+      label: 'preserves unresolved blocker if retiring it',
       pass: (output) => {
         const retired = new Set(output?.retireReflectionIds ?? []);
         if (!retired.has('ref_910000000004')) return true;
         const text = (output?.reflections ?? []).map((reflection) => reflection.content).join('\n').toLowerCase();
-        return ['refresh-token', 'rotation tests', 'still missing', 'unresolved', 'blocker'].some((needle) => text.includes(needle));
+        const hasTopic = ['refresh-token', 'rotation tests'].some((needle) => text.includes(needle));
+        const hasUnresolved = ['still missing', 'unresolved', 'blocker', 'missing', 'not yet'].some((needle) => text.includes(needle));
+        return hasTopic && hasUnresolved;
       },
       detail: (output) => ({ retireReflectionIds: output?.retireReflectionIds ?? [], content: (output?.reflections ?? []).map((reflection) => reflection.content).join('\n') }),
     },

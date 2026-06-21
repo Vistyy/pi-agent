@@ -50,6 +50,10 @@ function maintenanceRecordTool(inputReflections: Reflection[]): MaintenanceToolR
 		execute: async (_id, params: RecordMaintenanceArgs) => {
 			called = true;
 			accepted = undefined;
+			const reject = (message: string): never => {
+				rejected++;
+				throw new Error(message);
+			};
 
 			if (params.retireReflectionIds.length === 0 && params.reflections.length === 0) {
 				accepted = { retireReflectionIds: [], reflections: [] };
@@ -57,9 +61,11 @@ function maintenanceRecordTool(inputReflections: Reflection[]): MaintenanceToolR
 			}
 
 			const retireReflectionIds = normalizeAllowedIdsStrict(params.retireReflectionIds, allowedReflectionIds);
-			if (!retireReflectionIds || retireReflectionIds.length > MAX_RETIRED_REFLECTIONS || params.reflections.length === 0 || params.reflections.length > MAX_NEW_REFLECTIONS) {
-				rejected++;
-				return { content: [{ type: "text", text: "Rejected invalid maintenance action." }], details: { accepted: 0, rejected }, terminate: true };
+			if (!retireReflectionIds) {
+				return reject("Rejected invalid maintenance action: retired ids must be input reflections.");
+			}
+			if (retireReflectionIds.length < 2 || retireReflectionIds.length > MAX_RETIRED_REFLECTIONS || params.reflections.length === 0 || params.reflections.length > MAX_NEW_REFLECTIONS) {
+				return reject("Rejected invalid maintenance action: non-noop maintenance must retire 2-4 input reflections and create 1-2 replacements.");
 			}
 
 			const retired = new Set(retireReflectionIds);
@@ -81,8 +87,8 @@ function maintenanceRecordTool(inputReflections: Reflection[]): MaintenanceToolR
 			const replacementSources = new Set(reflections.flatMap((reflection) => reflection.sources));
 			const allRetiredCovered = retireReflectionIds.every((id) => replacementSources.has(id));
 			if (reflections.length === 0 || proposalRejected > 0 || !allRetiredCovered) {
-				rejected += Math.max(1, proposalRejected);
-				return { content: [{ type: "text", text: "Rejected unsafe maintenance action." }], details: { accepted: 0, rejected }, terminate: true };
+				rejected += Math.max(1, proposalRejected) - 1;
+				return reject("Rejected unsafe maintenance action: replacements must cite every retired direct ref_* parent and no other source ids.");
 			}
 
 			accepted = { retireReflectionIds, reflections };
