@@ -30,12 +30,16 @@ function judgeCase(testCase: RecallUseCase, answer: string, toolCalls: ToolCallR
   const reasons: string[] = [];
   if (testCase.expectRecall && recallCalls.length === 0) reasons.push('expected a recall tool call');
   if (!testCase.expectRecall && recallCalls.length > 0) reasons.push('expected no recall tool call');
-  if (testCase.expectedId && !recallCalls.some((call) => recallArgsId(call) === testCase.expectedId)) reasons.push(`expected recall id ${testCase.expectedId}`);
+  const expectedIds = testCase.expectedIds ?? (testCase.expectedId ? [testCase.expectedId] : []);
+  for (const expectedId of expectedIds) {
+    if (!recallCalls.some((call) => recallArgsId(call) === expectedId)) reasons.push(`expected recall id ${expectedId}`);
+  }
+  const answerLower = answer.toLowerCase();
   for (const text of testCase.requiredAnswerText ?? []) {
-    if (!answer.includes(text)) reasons.push(`answer missing required text: ${text}`);
+    if (!answerLower.includes(text.toLowerCase())) reasons.push(`answer missing required text: ${text}`);
   }
   for (const text of testCase.forbiddenAnswerText ?? []) {
-    if (answer.includes(text)) reasons.push(`answer included forbidden text: ${text}`);
+    if (answerLower.includes(text.toLowerCase())) reasons.push(`answer included forbidden text: ${text}`);
   }
   return {
     id: testCase.id,

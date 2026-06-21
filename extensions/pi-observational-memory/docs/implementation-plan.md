@@ -266,7 +266,7 @@ Last observer/reflector error, when present
 - Rewrite is retained only as an emergency over-budget fallback after normal maintenance.
 - Rewrite safety hardened: direct input `ref_*` sources only, no unchanged/duplicate replacement content, no empty/invalid result application, and stage-level smaller-than-active/under-budget checks.
 - Rewrite backoff for unchanged failed/no-op active sets implemented.
-- Recall traverses typed observation/reflection provenance, and the public recall tool now uses the canonical typed-id surface from extension registration.
+- Recall traverses typed observation/reflection provenance, reports provenance edges/missing intermediate refs, and the public recall tool now uses the canonical typed-id surface from extension registration with optional intermediate-ref content.
 - Observer source serialization is policy-based and bounded.
 - Observer stage now sends source chunk only.
 - Reflector stage now sends pending/unreflected observations only.
@@ -287,9 +287,9 @@ Last observer/reflector error, when present
    - Prefer focused boundary evals over additional broad prompt tuning.
 
 3. Continue recall behavior hardening for the current reflection-only OM architecture.
-   - First pass done: canonical recall registration/schema accepts typed `obs_*`/`ref_*` ids, and assistant-facing recall-use evals cover required exact-id recall plus no semantic-search recall.
-   - Add more recall-use evals around broad reflection provenance, stale/current ambiguity, and when recall is unnecessary.
-   - Ensure the recall tool returns enough source context without reintroducing active raw observations.
+   - Current pass done: canonical recall registration/schema accepts typed `obs_*`/`ref_*` ids; recall returns provenance edges, missing supporting refs, explicit depth-limited refs, and optional intermediate reflection contents.
+   - Assistant-facing recall-use evals now cover exact-command recall, stale/current conflict recall, no semantic-search recall, and no recall for conceptual guidance.
+   - Next add harder recall-use evals around broad reflection provenance and partial/missing evidence handling under realistic compacted-memory prompts.
 
 4. Cleanup OM documentation.
    - Extract the most important current architecture and usage guidance into `README.md`.

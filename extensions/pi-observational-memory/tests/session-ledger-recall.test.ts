@@ -6,7 +6,9 @@ const OBS_1 = "obs_aaaaaaaaaaaa";
 const OBS_2 = "obs_bbbbbbbbbbbb";
 const REF_1 = "ref_cccccccccccc";
 const REF_2 = "ref_dddddddddddd";
+const REF_3 = "ref_ffffffffffff";
 const MISSING_OBS = "obs_eeeeeeeeeeee";
+const MISSING_REF = "ref_111111111111";
 
 function sourceEntry(id: string, content = `source ${id}`): Entry {
 	return { type: "custom_message", id, timestamp: "2026-05-19T00:00:00.000Z", content };
@@ -93,6 +95,8 @@ describe("session-ledger recall", () => {
 		expect(result.status).toBe("found");
 		if (result.status !== "found") return;
 		expect(result.reflections.map((match) => match.reflection.id)).toEqual([REF_2]);
+		expect(result.supportingReflections.map((match) => match.reflection.id)).toEqual([REF_1]);
+		expect(result.provenanceEdges).toEqual([{ fromId: REF_2, toId: REF_1 }, { fromId: REF_1, toId: OBS_1 }]);
 		expect(result.observations.map((match) => match.observation.id)).toEqual([OBS_1]);
 		expect(result.sourceEntries.map((entry) => entry.id)).toEqual(["src-1"]);
 		expect(result.partial).toBe(false);
@@ -158,7 +162,40 @@ describe("session-ledger recall", () => {
 		if (result.status !== "found") return;
 		expect(result.partial).toBe(true);
 		expect(result.missingSupportingObservationIds).toEqual([MISSING_OBS]);
+		expect(result.provenanceEdges).toEqual([{ fromId: REF_1, toId: MISSING_OBS }]);
 		expect(result.observations).toEqual([]);
+	});
+
+	it("reports missing supporting reflections as partial reflection recall", () => {
+		const entries = [reflectionsEntry("ref-entry-1", [reflection(REF_1, [MISSING_REF])])];
+
+		const result = recallMemorySources(entries, REF_1);
+
+		expect(result.status).toBe("found");
+		if (result.status !== "found") return;
+		expect(result.partial).toBe(true);
+		expect(result.missingSupportingReflectionIds).toEqual([MISSING_REF]);
+		expect(result.provenanceEdges).toEqual([{ fromId: REF_1, toId: MISSING_REF }]);
+	});
+
+	it("supports explicit depth-limited ref traversal", () => {
+		const entries = [
+			sourceEntry("src-1"),
+			observationsEntry("obs-entry-1", [observation(OBS_1, ["src-1"])]),
+			reflectionsEntry("ref-entry-1", [reflection(REF_1, [OBS_1])]),
+			reflectionsEntry("ref-entry-2", [reflection(REF_2, [REF_1])]),
+			reflectionsEntry("ref-entry-3", [reflection(REF_3, [REF_2])]),
+		];
+
+		const result = recallMemorySources(entries, REF_3, { depth: 1 });
+
+		expect(result.status).toBe("found");
+		if (result.status !== "found") return;
+		expect(result.partial).toBe(true);
+		expect(result.supportingReflections.map((match) => match.reflection.id)).toEqual([REF_2]);
+		expect(result.depthLimitedReflectionIds).toEqual([REF_1]);
+		expect(result.observations).toEqual([]);
+		expect(result.provenanceEdges).toEqual([{ fromId: REF_3, toId: REF_2 }, { fromId: REF_2, toId: REF_1 }]);
 	});
 
 	it("returns not_found for unknown ids", () => {

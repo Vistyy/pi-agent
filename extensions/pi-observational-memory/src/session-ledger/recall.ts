@@ -40,6 +40,15 @@ export type RecalledReflection = {
 	reflectionRecordIndex: number;
 };
 
+export type RecallProvenanceEdge = {
+	fromId: string;
+	toId: string;
+};
+
+export type RecallOptions = {
+	depth?: number;
+};
+
 export type RecallResult =
 	| {
 			status: "not_found";
@@ -51,6 +60,10 @@ export type RecallResult =
 			missingSourceEntryIds: [];
 			nonSourceEntryIds: [];
 			missingSupportingObservationIds: [];
+			missingSupportingReflectionIds: [];
+			depthLimitedReflectionIds: [];
+			supportingReflections: [];
+			provenanceEdges: [];
 			collision: false;
 			partial: false;
 	  }
@@ -64,6 +77,10 @@ export type RecallResult =
 			missingSourceEntryIds: string[];
 			nonSourceEntryIds: string[];
 			missingSupportingObservationIds: string[];
+			missingSupportingReflectionIds: string[];
+			depthLimitedReflectionIds: string[];
+			supportingReflections: RecalledReflection[];
+			provenanceEdges: RecallProvenanceEdge[];
 			collision: boolean;
 			partial: boolean;
 	  };
@@ -88,6 +105,13 @@ function uniqueById(entries: Entry[]): Entry[] {
 
 function uniqueStrings(values: string[]): string[] {
 	return Array.from(new Set(values));
+}
+
+function recallDepth(options?: RecallOptions): number | undefined {
+	const raw = options?.depth;
+	if (raw === undefined) return undefined;
+	if (!Number.isFinite(raw)) return undefined;
+	return Math.max(0, Math.floor(raw));
 }
 
 function indexLedger(entries: Entry[]): {
@@ -160,12 +184,24 @@ function notFound(memoryId: string): RecallResult {
 		missingSourceEntryIds: [],
 		nonSourceEntryIds: [],
 		missingSupportingObservationIds: [],
+		missingSupportingReflectionIds: [],
+		depthLimitedReflectionIds: [],
+		supportingReflections: [],
+		provenanceEdges: [],
 		collision: false,
 		partial: false,
 	};
 }
 
-export function recallMemorySources(entries: Entry[], memoryId: string): RecallResult {
+function recalledReflection(indexed: IndexedReflection): RecalledReflection {
+	return {
+		reflection: indexed.reflection,
+		reflectionEntryId: indexed.entryId,
+		reflectionRecordIndex: indexed.recordIndex,
+	};
+}
+
+export function recallMemorySources(entries: Entry[], memoryId: string, options?: RecallOptions): RecallResult {
 	const { observations: indexedObservations, reflections: indexedReflections } = indexLedger(entries);
 	const observationLookupId = isLegacyMemoryId(memoryId) ? observationId(memoryId) : memoryId;
 	const reflectionLookupId = isLegacyMemoryId(memoryId) ? reflectionId(memoryId) : memoryId;
@@ -184,7 +220,13 @@ export function recallMemorySources(entries: Entry[], memoryId: string): RecallR
 	}
 
 	const recalledByKey = new Map<string, RecalledObservation>();
+	const supportingReflectionByKey = new Map<string, RecalledReflection>();
 	const missingSupportingObservationIds: string[] = [];
+	const missingSupportingReflectionIds: string[] = [];
+	const depthLimitedReflectionIds: string[] = [];
+	const provenanceEdges: RecallProvenanceEdge[] = [];
+	const maxDepth = recallDepth(options);
+	const directReflectionKeys = new Set(reflectionMatches.map((match) => `${match.entryId}:${match.recordIndex}`));
 
 	function addObservation(indexed: IndexedObservation): void {
 		const key = `${indexed.entryId}:${indexed.recordIndex}`;
@@ -194,13 +236,20 @@ export function recallMemorySources(entries: Entry[], memoryId: string): RecallR
 		recalledByKey.set(key, recalled);
 	}
 
+	function addSupportingReflection(indexed: IndexedReflection): void {
+		const key = `${indexed.entryId}:${indexed.recordIndex}`;
+		if (directReflectionKeys.has(key) || supportingReflectionByKey.has(key)) return;
+		supportingReflectionByKey.set(key, recalledReflection(indexed));
+	}
+
 	for (const match of directObservationMatches) addObservation(match);
 
 	const visitedReflectionIds = new Set<string>();
-	function addReflectionSources(reflection: Reflection): void {
+	function addReflectionSources(reflection: Reflection, currentDepth: number): void {
 		if (visitedReflectionIds.has(reflection.id)) return;
 		visitedReflectionIds.add(reflection.id);
 		for (const source of uniqueStrings(reflection.sources)) {
+			provenanceEdges.push({ fromId: reflection.id, toId: source });
 			if (source.startsWith("obs_")) {
 				const indexed = observationsById.get(source);
 				if (!indexed) {
@@ -211,24 +260,32 @@ export function recallMemorySources(entries: Entry[], memoryId: string): RecallR
 				continue;
 			}
 			if (source.startsWith("ref_")) {
+				if (maxDepth !== undefined && currentDepth >= maxDepth) {
+					depthLimitedReflectionIds.push(source);
+					continue;
+				}
 				const indexed = reflectionsById.get(source);
-				if (indexed) addReflectionSources(indexed.reflection);
+				if (!indexed) {
+					missingSupportingReflectionIds.push(source);
+					continue;
+				}
+				addSupportingReflection(indexed);
+				addReflectionSources(indexed.reflection, currentDepth + 1);
 			}
 		}
 	}
 
-	for (const { reflection } of reflectionMatches) addReflectionSources(reflection);
+	for (const { reflection } of reflectionMatches) addReflectionSources(reflection, 0);
 
 	const recalledObservations = Array.from(recalledByKey.values());
-	const recalledReflections: RecalledReflection[] = reflectionMatches.map(({ reflection, entryId, recordIndex }) => ({
-		reflection,
-		reflectionEntryId: entryId,
-		reflectionRecordIndex: recordIndex,
-	}));
+	const recalledReflections: RecalledReflection[] = reflectionMatches.map(recalledReflection);
+	const supportingReflections = Array.from(supportingReflectionByKey.values());
 	const sourceEntries = uniqueById(recalledObservations.flatMap((match) => match.sourceEntries));
 	const missingSourceEntryIds = uniqueStrings(recalledObservations.flatMap((match) => match.missingSourceEntryIds));
 	const nonSourceEntryIds = uniqueStrings(recalledObservations.flatMap((match) => match.nonSourceEntryIds));
 	const uniqueMissingSupportingObservationIds = uniqueStrings(missingSupportingObservationIds);
+	const uniqueMissingSupportingReflectionIds = uniqueStrings(missingSupportingReflectionIds);
+	const uniqueDepthLimitedReflectionIds = uniqueStrings(depthLimitedReflectionIds);
 	const matchCount = directObservationMatches.length + reflectionMatches.length;
 
 	return {
@@ -245,7 +302,11 @@ export function recallMemorySources(entries: Entry[], memoryId: string): RecallR
 		missingSourceEntryIds,
 		nonSourceEntryIds,
 		missingSupportingObservationIds: uniqueMissingSupportingObservationIds,
+		missingSupportingReflectionIds: uniqueMissingSupportingReflectionIds,
+		depthLimitedReflectionIds: uniqueDepthLimitedReflectionIds,
+		supportingReflections,
+		provenanceEdges,
 		collision: matchCount > 1,
-		partial: missingSourceEntryIds.length > 0 || nonSourceEntryIds.length > 0 || uniqueMissingSupportingObservationIds.length > 0,
+		partial: missingSourceEntryIds.length > 0 || nonSourceEntryIds.length > 0 || uniqueMissingSupportingObservationIds.length > 0 || uniqueMissingSupportingReflectionIds.length > 0 || uniqueDepthLimitedReflectionIds.length > 0,
 	};
 }

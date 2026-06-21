@@ -29,9 +29,9 @@ function fakeCtx(entries: TestEntry[]) {
 	return { ctx: { sessionManager: { getBranch, getEntries } } as unknown as ExtensionContext, getBranch, getEntries };
 }
 
-async function execute(id: string, entries: TestEntry[]) {
+async function execute(id: string, entries: TestEntry[], params: Record<string, unknown> = {}) {
 	const { ctx, getBranch, getEntries } = fakeCtx(entries);
-	const result = await recallObservationTool.execute("tool-1", { id }, undefined, undefined, ctx) as AgentToolResult<RecallObservationToolDetails>;
+	const result = await recallObservationTool.execute("tool-1", { id, ...params }, undefined, undefined, ctx) as AgentToolResult<RecallObservationToolDetails>;
 	const text = result.content.filter((part): part is { type: "text"; text: string } => part.type === "text").map((part) => part.text).join("\n");
 	return { result, text, getBranch, getEntries };
 }
@@ -45,6 +45,8 @@ describe("recall tool", () => {
 		expect(recallObservationTool.name).toBe("recall");
 		expect(recallObservationTool.label).toBe("Recall memory evidence");
 		expect((recallObservationTool.parameters as any).properties.id.pattern).toBe("^(?:[a-f0-9]{12}|obs_[a-f0-9]{12}|ref_[a-f0-9]{12})$");
+		expect((recallObservationTool.parameters as any).properties.includeIntermediate).toBeTruthy();
+		expect((recallObservationTool.parameters as any).properties.depth).toBeTruthy();
 		expect(formatRecallCallForTui("obs_aaaaaaaaaaaa")).toBe("recall obs_aaaaaaaaaaaa");
 		expect(pi.registerTool).toHaveBeenCalledWith(recallObservationTool);
 	});
@@ -91,9 +93,32 @@ describe("recall tool", () => {
 		expect(result.details?.observations).toHaveLength(1);
 		expect(text).toContain("Reflections:");
 		expect(text).toContain("[ref_eeeeeeeeeeee] User likes tea.");
+		expect(text).toContain("Provenance:");
+		expect(text).toContain("ref_eeeeeeeeeeee -> obs_aaaaaaaaaaaa");
 		expect(text).toContain("Observations:");
 		expect(text).toContain("Sources:");
 		expect(text).toContain("I like tea.");
+	});
+
+	it("can include intermediate reflection content", async () => {
+		const obs = observation("aaaaaaaaaaaa", { content: "User likes tea.", sourceEntryIds: ["raw-1"] });
+		const parent = reflection("dddddddddddd", ["aaaaaaaaaaaa"], { content: "User likes tea." });
+		const child = reflection("eeeeeeeeeeee", ["ref_dddddddddddd"], { content: "User beverage preference is tea." });
+		const entries = [
+			rawMessage("raw-1", "I like tea."),
+			observationsRecordedEntry("om-obs", { observations: [obs], coversUpToId: "raw-1" }),
+			reflectionsRecordedEntry("om-ref-1", { reflections: [parent], coversUpToId: "om-obs" }),
+			reflectionsRecordedEntry("om-ref-2", { reflections: [child], coversUpToId: "om-ref-1" }),
+		];
+
+		const compact = await execute("ref_eeeeeeeeeeee", entries);
+		const expanded = await execute("ref_eeeeeeeeeeee", entries, { includeIntermediate: true });
+
+		expect(compact.text).not.toContain("Supporting reflections:");
+		expect(compact.result.details?.supportingReflections.map((item) => item.id)).toEqual(["ref_dddddddddddd"]);
+		expect(compact.text).toContain("ref_eeeeeeeeeeee -> ref_dddddddddddd");
+		expect(expanded.text).toContain("Supporting reflections:");
+		expect(expanded.text).toContain("[ref_dddddddddddd] User likes tea.");
 	});
 
 	it("reports missing sources as partial", async () => {
