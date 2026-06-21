@@ -15,7 +15,7 @@ describe("rewrite agent", () => {
 		const loop = fakeAgentLoop(async (_prompts, context) => {
 			await context.tools[0].execute("tool-1", {
 				summary: "Merged duplicate verbose details.",
-				reflections: [{ content, sources: [oldB.id, oldA.id, "obs_111111111111"] }],
+				reflections: [{ content, sources: [oldB.id, oldA.id] }],
 			});
 		});
 
@@ -24,7 +24,7 @@ describe("rewrite agent", () => {
 		expect(result?.summary).toBe("Merged duplicate verbose details.");
 		expect(result?.reflections[0].id).toBe(`ref_${hashId(content)}`);
 		expect(result?.reflections.map(({ content, sources }) => ({ content, sources }))).toEqual([
-			{ content, sources: [oldA.id, "obs_111111111111", oldB.id] },
+			{ content, sources: [oldA.id, oldB.id] },
 		]);
 	});
 
@@ -42,11 +42,11 @@ describe("rewrite agent", () => {
 		await expect(runRewrite({ ...baseArgs, agentLoop: loop })).resolves.toBeUndefined();
 	});
 
-	it("dedupes identical rewritten content", async () => {
+	it("rejects duplicate replacement content", async () => {
 		const content = "Compact rewritten fact.";
 		const loop = fakeAgentLoop(async (_prompts, context) => {
 			await context.tools[0].execute("tool-1", {
-				summary: "Merged duplicate proposal.",
+				summary: "Duplicate proposal.",
 				reflections: [
 					{ content, sources: [oldA.id] },
 					{ content, sources: [oldB.id] },
@@ -54,10 +54,17 @@ describe("rewrite agent", () => {
 			});
 		});
 
-		const result = await runRewrite({ ...baseArgs, agentLoop: loop });
+		await expect(runRewrite({ ...baseArgs, agentLoop: loop })).resolves.toBeUndefined();
+	});
 
-		expect(result?.reflections).toHaveLength(1);
-		expect(result?.reflections[0].sources).toEqual([oldA.id]);
+	it("rejects unchanged replacement content because rewrite retires old ids", async () => {
+		const loop = fakeAgentLoop(async (_prompts, context) => {
+			await context.tools[0].execute("tool-1", {
+				reflections: [{ content: oldA.content, sources: [oldA.id] }],
+			});
+		});
+
+		await expect(runRewrite({ ...baseArgs, agentLoop: loop })).resolves.toBeUndefined();
 	});
 
 	it("returns undefined for no-op cases", async () => {

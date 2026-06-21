@@ -2,7 +2,7 @@ import type { OmEvalCase } from '../types.js';
 import { maintainerBlastRadiusGuardCase, maintainerCompletedTrailCompressionCase, maintainerCompletedTrailWithUnresolvedSiblingCase, maintainerDirectParentProvenanceCase, maintainerDuplicateMergeCase, maintainerNoisyDuplicateMergeCase, maintainerPartialOverlapNoopCase, maintainerStaleCurrentPairCase, maintainerUnlabeledStaleCurrentCase, maintainerUnrelatedNoopCase } from './maintainer.js';
 import { observerAssistantProseBoundary, observerHiddenMutationPayloadBoundary, observerHiddenMutationReplacementEvidence, observerRealGiga32, observerRealGiga64v2, observerToolEvidenceBoundary } from './observer.js';
 import { reflectorAppendNewCompatibleFact, reflectorChurnFilter, reflectorDuplicateObservationNoop, reflectorFalseStalePrevention, reflectorGigaAppendNewFact, reflectorGigaDuplicateNoop, reflectorGigaStaleCorrection, reflectorRealGiga16v2, reflectorRealSessionConstraintsAndState, reflectorStaleCurrentReconciliation, reflectorSubtleStaleCorrection, reflectorTouchedFilesWeakContext } from './reflector.js';
-import { rewriteRealGiga40v2, rewriteRealGiga80, rewriteStaleRelationshipPreservation } from './rewrite.js';
+import { rewriteEmergencyFallbackCurrentReality, rewriteRemovedCuratorPinningCleanup, rewriteStaleRelationshipPreservation } from './rewrite.js';
 
 const omCase = (id: string, agent: OmEvalCase['agent'], run: OmEvalCase['run'], suite: OmEvalCase['suite'] = 'baseline'): OmEvalCase => ({ id, agent, run, suite });
 
@@ -36,6 +36,6 @@ export const allCases: OmEvalCase[] = [
   omCase('maintainer-unlabeled-stale-current', 'maintainer', maintainerUnlabeledStaleCurrentCase),
   omCase('maintainer-completed-trail-with-unresolved-sibling', 'maintainer', maintainerCompletedTrailWithUnresolvedSiblingCase),
   omCase('rewrite-stale-relationship-preservation', 'rewrite', rewriteStaleRelationshipPreservation),
-  omCase('rewrite-real-giga-40-v2', 'rewrite', rewriteRealGiga40v2),
-  omCase('rewrite-real-giga-80', 'rewrite', rewriteRealGiga80),
+  omCase('rewrite-emergency-fallback-current-reality', 'rewrite', rewriteEmergencyFallbackCurrentReality),
+  omCase('rewrite-removed-curator-pinning-cleanup', 'rewrite', rewriteRemovedCuratorPinningCleanup),
 ];

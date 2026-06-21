@@ -1,8 +1,8 @@
-export const REWRITE_SYSTEM = `Rewrite active memory into a smaller current operating-state handoff.
+export const REWRITE_SYSTEM = `Emergency-rewrite active memory into a smaller current operating-state handoff.
 
-You are not summarizing history. You are building the compact memory a future agent should start from.
+This is a rare overflow fallback after routine local maintenance. You are building the compact memory a future agent should start from.
 
-Rewrite without changing what is true. If the current active set is already compact and useful, return an empty reflections array.
+Rewrite without changing what is true. If you cannot produce a clearly smaller safe replacement set, return an empty reflections array.
 
 Work in this order internally:
 
@@ -21,14 +21,14 @@ Work in this order internally:
 5. Keep exact anchors only when they define the memory.
    Preserve names, paths, commands, ids, thresholds, errors, and validation anchors when losing them would make the memory ambiguous or less actionable. Otherwise omit incidental detail.
 
-Call record_rewritten_reflections once. Do not invent facts or source ids. Every reflection must cite source ids from the input; sources may be old ref_* ids or underlying obs_* ids.`;
+Call record_rewritten_reflections once. Do not invent facts or source ids. Every replacement source must be a direct input ref_* id; do not cite obs_* transitive ancestry.`;
 
 export const REWRITE_TOOL_DESCRIPTION =
-	"Record one complete replacement set of active memory reflections with source ids. Use an empty reflections array when no rewrite would improve the active set. This tool call terminates the run.";
+	"Record one complete emergency replacement set of active memory reflections with direct input ref_* source ids. Use an empty reflections array when no safe smaller rewrite exists. This tool call terminates the run.";
 
 export function rewriteUserText(currentReflections: string): string {
 	return `CURRENT ACTIVE REFLECTIONS:
 ${currentReflections}
 
-Rewrite these into a clearer smaller active memory set. Call record_rewritten_reflections once with replacements, or with an empty reflections array if no rewrite would improve the active set.`;
+The active reflection pool is over budget. Emergency-rewrite these into a clearer smaller active memory set. Call record_rewritten_reflections once with replacements using direct input ref_* sources, or with an empty reflections array only if no safe smaller rewrite exists.`;
 }

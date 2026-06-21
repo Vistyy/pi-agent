@@ -10,6 +10,7 @@ import {
 	foldLedger,
 	reflectionTokenSum,
 	type Entry,
+	type Reflection,
 } from "../session-ledger/index.js";
 import { commonAgentArgs } from "./agent-args.js";
 import type { MemoryUpdateCtx, ResolveMemoryModel, StageOutcome } from "./types.js";
@@ -18,6 +19,21 @@ const MIN_REWRITE_REFLECTIONS = 5;
 
 function sameIds(a: Set<string> | undefined, b: string[]): boolean {
 	return !!a && a.size === b.length && b.every((id) => a.has(id));
+}
+
+function isUsefulEmergencyRewrite(resultReflections: Reflection[], activeReflectionIds: string[], activeTokens: number, maxTokens: number): boolean {
+	const activeIds = new Set(activeReflectionIds);
+	const resultTokens = reflectionTokenSum(resultReflections);
+	return (
+		resultReflections.length > 0 &&
+		resultTokens < activeTokens &&
+		resultTokens < maxTokens &&
+		resultReflections.every((reflection) => (
+			!activeIds.has(reflection.id) &&
+			reflection.sources.length > 0 &&
+			reflection.sources.every((source) => activeIds.has(source))
+		))
+	);
 }
 
 export async function runRewriteStage(
@@ -54,8 +70,15 @@ export async function runRewriteStage(
 		runtime.rewriteSkippedActiveIds = new Set(activeReflectionIds);
 		throw error;
 	}
-	if (!result) {
+	if (!result || !isUsefulEmergencyRewrite(result.reflections, activeReflectionIds, activeTokens, runtime.config.reflectionsPoolMaxTokens)) {
 		runtime.rewriteSkippedActiveIds = new Set(activeReflectionIds);
+		debugLog("rewrite.skip", {
+			reason: result ? "not_useful_emergency_rewrite" : "no_result",
+			reflectionCount: folded.reflections.length,
+			activeTokens,
+			resultReflectionCount: result?.reflections.length ?? 0,
+			resultTokens: result ? reflectionTokenSum(result.reflections) : 0,
+		});
 		return "continue";
 	}
 

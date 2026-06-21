@@ -84,6 +84,7 @@ function setup(args: {
 		lastObserverError: undefined as string | undefined,
 		lastReflectorError: undefined as string | undefined,
 		lastMaintainerError: undefined as string | undefined,
+		rewriteSkippedActiveIds: undefined as Set<string> | undefined,
 		ensureConfig: vi.fn(),
 		resolveModel: vi.fn(async () => ({ ok: true, model: { reasoning: true }, apiKey: "key", headers: { h: "v" } })),
 		launchMemoryUpdateTask: vi.fn((_ctx, work) => {
@@ -467,6 +468,43 @@ describe("memory update hook", () => {
 
 		expect(mockAgents.runMaintainer).toHaveBeenCalledOnce();
 		expect(getMemoryAppends()).toEqual([]);
+	});
+
+	it("runs rewrite only when emergency replacement gets active reflections under budget", async () => {
+		const refs = Array.from({ length: 5 }, (_, index) => reflection(`70000000000${index}`, [`obs_${index}00000000000`], { content: `Verbose reflection ${index} with enough repeated detail to exceed the tiny emergency rewrite budget.` }));
+		const replacement = reflection("999999999999", refs.map((ref) => ref.id), { content: "Compact emergency rewrite." });
+		mockAgents.runRewrite.mockResolvedValueOnce({ reflections: [replacement], summary: "Emergency compacted." });
+		const entries = [
+			rawMessage("raw-1", "aaaaaaaa"),
+			reflectionsRecordedEntry("om-ref", { reflections: refs, coversUpToId: "raw-1" }),
+		];
+		const { fire, runLaunchedWork, getMemoryAppends } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 999, maintainEveryNewReflections: 999, reflectionsPoolMaxTokens: 20 });
+
+		fire();
+		await runLaunchedWork();
+
+		expect(mockAgents.runRewrite).toHaveBeenCalledWith(expect.objectContaining({ reflections: refs, maxTurns: 9, thinkingLevel: "minimal" }));
+		expect(getMemoryAppends()).toEqual([
+			{ customType: OM_REFLECTIONS_RECORDED, data: { reflections: [replacement], coversUpToId: "om-ref" } },
+			{ customType: OM_REFLECTIONS_REWRITTEN, data: { retiredReflectionIds: refs.map((ref) => ref.id), summary: "Emergency compacted." } },
+		]);
+	});
+
+	it("skips unsafe or ineffective rewrite output", async () => {
+		const refs = Array.from({ length: 5 }, (_, index) => reflection(`80000000000${index}`, [`obs_${index}11111111111`], { content: `Verbose reflection ${index} with enough repeated detail to exceed the tiny emergency rewrite budget.` }));
+		const unchanged = { ...refs[0]!, sources: [refs[0]!.id] };
+		mockAgents.runRewrite.mockResolvedValueOnce({ reflections: [unchanged], summary: "Unsafe unchanged." });
+		const entries = [
+			rawMessage("raw-1", "aaaaaaaa"),
+			reflectionsRecordedEntry("om-ref", { reflections: refs, coversUpToId: "raw-1" }),
+		];
+		const { fire, runLaunchedWork, getMemoryAppends, runtime } = setup({ entries, observeEveryMessages: 999, reflectEveryObservations: 999, maintainEveryNewReflections: 999, reflectionsPoolMaxTokens: 20 });
+
+		fire();
+		await runLaunchedWork();
+
+		expect(getMemoryAppends()).toEqual([]);
+		expect(runtime.rewriteSkippedActiveIds).toEqual(new Set(refs.map((ref) => ref.id)));
 	});
 
 	it("maintainer failure records stage error and prevents rewrite in the same update", async () => {
