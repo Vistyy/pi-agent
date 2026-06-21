@@ -7,9 +7,9 @@ export const cases: RecallUseCase[] = [
     id: 'recall-seeded-noisy-command-id',
     seedMessages: [{
       role: 'assistant',
-      content: `Compacted OM memory excerpt:\n- ref_100000000001: User likes compact final answers.\n- ref_100000000002: A compacted OM memory contains the exact validation command for the recall refactor; recall before quoting it.\n- ref_100000000003: Stale note about an old typecheck failure; superseded later.\n- ref_100000000004: Follow-up idea about cost telemetry, not relevant now.`,
+      content: `Compacted OM memory excerpt:\n- ref_100000000001: User likes compact final answers.\n- ref_100000000002: A compacted OM memory contains the exact validation command for the recall refactor.\n- ref_100000000003: Stale note about an old typecheck failure; superseded later.\n- ref_100000000004: Follow-up idea about cost telemetry, not relevant now.`,
     }],
-    prompt: 'What exact validation command should I run for the recall refactor? Use the compacted memory evidence if needed, but do not recall unrelated ids.',
+    prompt: 'What exact validation command should I run for the recall refactor?',
     expectedCalls: [{ id: 'ref_100000000002' }],
     mockResults: {
       ref_100000000002: `Reflections:\n[ref_100000000002] A compacted OM memory contains the exact validation command for the recall refactor.\n\nProvenance:\nref_100000000002 -> obs_100000000002\n\nObservations:\n[obs_100000000002] User confirmed the recall-refactor validation command is \`${VALIDATION_COMMAND}\`.`,
@@ -22,7 +22,7 @@ export const cases: RecallUseCase[] = [
       role: 'user',
       content: `For this next recall refactor, the exact validation command is: ${VALIDATION_COMMAND}`,
     }],
-    prompt: 'What command did I just tell you to run? Do not look up memory if the recent conversation already has it.',
+    prompt: 'What command did I just tell you to run?',
     expectedCalls: [],
     requiredAnswerText: [VALIDATION_COMMAND],
   },
@@ -30,9 +30,9 @@ export const cases: RecallUseCase[] = [
     id: 'recall-noisy-stale-current-status',
     seedMessages: [{
       role: 'assistant',
-      content: `Compacted OM memory excerpt:\n- ref_200000000001: Maintainer eval was not green; unresolved failures around noisy duplicate merge.\n- ref_200000000002: Rewrite eval failed on rewrite-real-giga-40-v2; unrelated to maintainer status and should not be recalled for maintainer status.\n- ref_200000000003: Maintainer hardening supersedes earlier unresolved maintainer failures and records the latest validation result.\n- ref_200000000004: User prefers principle-level reflector guidance.`,
+      content: `Compacted OM memory excerpt:\nMaintainer status:\n- ref_200000000001: Maintainer eval was not green; unresolved failures around noisy duplicate merge.\n- ref_200000000003: Maintainer hardening supersedes earlier unresolved maintainer failures and records the latest validation result.\nOther active-memory entries:\n- ref_200000000002: Rewrite eval failed on rewrite-real-giga-40-v2.\n- ref_200000000004: User prefers principle-level reflector guidance.`,
     }],
-    prompt: 'I need to report the current maintainer hardening status. The compacted memories include stale and current-looking maintainer facts. Verify only the maintainer conflict and answer with the current status plus what is stale.',
+    prompt: 'I need to report the exact current maintainer hardening validation result. The compacted memories include stale and current-looking maintainer facts plus unrelated noise. Answer with the exact current status and what is stale.',
     expectedCalls: [{ id: 'ref_200000000001' }, { id: 'ref_200000000003' }],
     mockResults: {
       ref_200000000001: 'Reflections:\n[ref_200000000001] Maintainer eval is still not green; noisy duplicate-merge had unresolved failures.\n\nObservations:\n[obs_200000000001] Earlier maintainer rerun failed because one trial retired only one duplicate and another returned no accepted output.',
@@ -61,9 +61,9 @@ export const cases: RecallUseCase[] = [
     id: 'recall-broad-provenance-include-intermediate',
     seedMessages: [{
       role: 'assistant',
-      content: `Compacted OM memory excerpt:\n- ref_300000000001: Current rewrite policy is emergency fallback only, supported by nested maintainer/rewrite rationale.\n- ref_300000000002: A local docs cleanup note.\n- ref_300000000003: A stale rewrite-green assumption rejected by later eval results; do not recall it unless the user asks to audit stale rewrite-green claims.`,
+      content: `Compacted OM memory excerpt:\n- ref_300000000001: Current rewrite policy is emergency fallback only, supported by nested maintainer/rewrite rationale.\n- ref_300000000002: A local docs cleanup note.\n- ref_300000000003: A stale rewrite-green assumption rejected by later eval results.`,
     }],
-    prompt: 'Why do we believe the rewrite path should stay emergency-only rather than normal cleanup? I need the intermediate rationale behind the current policy, not a separate audit of stale rewrite-green claims.',
+    prompt: 'Why do we believe the rewrite path should stay emergency-only rather than normal cleanup? I need the intermediate rationale behind the current policy.',
     expectedCalls: [{ id: 'ref_300000000001', includeIntermediate: true }],
     mockResults: {
       ref_300000000001: 'Reflections:\n[ref_300000000001] Rewrite remains an emergency fallback; maintainer is the default cleanup path before revisiting rewrite.\n\nProvenance:\nref_300000000001 -> ref_300000000004\nref_300000000004 -> obs_300000000004\n\nSupporting reflections:\n[ref_300000000004] Maintainer hardening is green, while rewrite eval still fails on rewrite-real-giga-40-v2, so production should prefer maintainer and keep rewrite non-normal.\n\nObservations:\n[obs_300000000004] Rewrite eval rerun still failed on rewrite-real-giga-40-v2 with score 6/20 after hardening, while maintainer evals passed 30/30.',
@@ -91,7 +91,7 @@ export const cases: RecallUseCase[] = [
     id: 'recall-partial-missing-evidence-caveat',
     seedMessages: [{
       role: 'assistant',
-      content: `Compacted OM memory excerpt:\n- ref_400000000001: A remembered user constraint depends on partial provenance; verify before treating it as authoritative.\n- ref_400000000002: Unrelated reminder about using pnpm.`,
+      content: `Compacted OM memory excerpt:\n- ref_400000000001: A remembered user constraint has partial provenance.\n- ref_400000000002: Unrelated reminder about using pnpm.`,
     }],
     prompt: 'Before I enforce the remembered constraint in ref_400000000001, recover its evidence and tell me what is known versus unavailable.',
     expectedCalls: [{ id: 'ref_400000000001' }],

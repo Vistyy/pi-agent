@@ -18,17 +18,17 @@ import { estimateEntryTokens } from "../memory/token-estimate.js";
 export const RECALL_OBSERVATION_TOOL_NAME = "recall";
 
 export const RECALL_TOOL_TEXT = {
-	description: "Recover exact evidence and source context behind a compacted observational-memory observation or reflection id on the current branch. Use when compressed memory is important and original source context is needed before acting.",
-	promptSnippet: "Use recall(<id>) to recover exact source context behind compacted memory observations/reflections when precision matters.",
+	description: "Recover source evidence and provenance for a known observational-memory id on the current branch.",
+	promptSnippet: "Use recall(<id>) when a known compacted-memory id needs exact evidence or provenance.",
 	promptGuidelines: [
-		"Use recall before making an important decision that depends on a compacted observation or reflection id whose details are unclear.",
-		"Use recall when you need exact wording, rationale, file paths, commands, errors, commits, user constraints, or provenance behind a remembered claim.",
-		"Use recall when a broad reflection is relevant but you need its supporting observations or raw sources to continue safely.",
-		"Use recall when the user asks why you believe something, what supports a memory, or what was decided earlier.",
+		"Use recall when a decision depends on details hidden behind a specific compacted-memory id.",
+		"Use recall when the user asks for the evidence, source context, or provenance behind a known memory.",
+		"Select only the specific memory id or ids whose hidden details are needed for the answer; do not recall visible nearby ids from unrelated topics.",
+		"Use includeIntermediate only when intermediate reflection contents are needed, not just their ids.",
 		"Do not use recall as semantic search or transcript browsing; you must already have a specific obs_*, ref_*, or legacy 12-character memory id.",
-		"Do not recall every id preemptively. Recall only when exact source context will materially improve the next action.",
+		"Do not recall ids whose details are already clear from recent conversation or active context.",
 	],
-	idDescription: "Typed obs_* or ref_* memory id, or legacy 12-character lowercase hex id, shown in compacted memory, /om:view, or a previous recall result. Must be a specific id; this tool does not search by topic.",
+	idDescription: "Specific typed obs_* or ref_* memory id, or legacy 12-character lowercase hex id. This tool does not search by topic.",
 	includeIntermediateDescription: "Include full content for intermediate supporting reflections. Default false shows only their ids in provenance edges while still returning terminal observations and source evidence.",
 	depthDescription: "Optional explicit cap on ref-to-ref provenance traversal depth. Omit to traverse all reachable supporting reflections.",
 } as const;
