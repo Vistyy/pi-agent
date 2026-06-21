@@ -29,6 +29,7 @@
       "tmpDir": "/tmp"
     },
     "costFooter": true,
+    "sessionSnapshot": "om-compact",
     "defaultEffort": "balanced",
     "effortProfiles": {
       "fast": {
