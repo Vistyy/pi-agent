@@ -271,28 +271,35 @@ Last observer/reflector error, when present
 - Observer stage now sends source chunk only.
 - Reflector stage now sends pending/unreflected observations only.
 - Real-session OM eval fixtures and low-thinking suite exist.
-- Judge-based OM eval scoring exists; maintainer and emergency rewrite rubrics are hardened, while observer/reflector real-session cases still show residual failures.
+- Judge-based OM eval scoring exists; maintainer and emergency rewrite rubrics are hardened. `reflector-implementation-churn-noop` covers the focused churn-noop regression, while `reflector-real-giga-16-v2` remains a semantic stress case for durable-contract admission rather than a clean hard blocker.
 
 ## Next work, recommended order
 
 1. Triage full-suite eval failures.
-   - Default low-thinking smoke on 2026-06-21: 29/31 passed; failures were `observer-real-giga-32` optional score threshold and `reflector-real-giga-16-v2` churn/duplicate reflection quality.
+   - Default low-thinking smoke on 2026-06-21 after the reflector churn-noop split: 31/32 passed; the only failure was `reflector-real-giga-16-v2` durable-contract admission quality.
+   - `reflector-real-giga-16-v2` is intentionally reframed as a semantic stress case: stable OM command/data-model/tool-contract facts may be durable, while local code motion, fixture churn, search receipts, validation receipts, and generic usage/progress plumbing should not become active memory.
    - `openrouter/openai/gpt-5.4-nano` low-thinking smoke on 2026-06-21: 21/31 passed; weak spots were observer prose filtering, reflector giga cases, multiple maintainer semantic-judge cases, and one rewrite current-reality judge case.
 
-2. Simplify observer prompt/tool contract.
-   - Remove `mark_observed_no_observations`.
-   - Use `record_observations({ observations: [] })` for no durable observations.
-   - Remove stale prior-memory and fork/delegation special-case wording.
+2. Clarify the reflector admission principle without enumerating allowed fact types.
+   - Avoid a fixed taxonomy of recordable categories.
+   - The core boundary is whether a reflection would materially improve future agent behavior before reading files or recalling evidence.
+   - Stable implementation facts are not automatically active memory; active memory should carry decision-relevant constraints, not a categorized changelog.
+   - Prefer focused boundary evals over additional broad prompt tuning.
 
-3. Simplify reflector prompt/evals.
-   - Remove review-era wording.
-   - Clarify current-reflections + pending-observations contract.
-   - Tighten real-session churn filtering and duplicate-current-memory behavior.
+3. Refactor and evaluate recall behavior for the current reflection-only OM architecture.
+   - Verify recall follows typed `obs_*`/`ref_*` provenance as the required evidence path.
+   - Add evals for when the assistant should use recall before relying on compacted memory.
+   - Ensure the recall tool returns enough source context without reintroducing active raw observations.
 
-4. Add telemetry/status improvements.
+4. Cleanup OM documentation.
+   - Extract the most important current architecture and usage guidance into `README.md`.
+   - Prune or mark stale design docs.
+   - Audit this plan against implemented behavior and remove completed/stale steps.
+
+5. Add telemetry/status improvements.
    - Make real cost/quality tuning visible.
 
-5. Optional later: structured reflection categories.
+6. Optional later: structured reflection categories.
    - Defer data-model change unless one-line reflections plus better prompts/evals are insufficient.
 
 ## Deferred / conditional

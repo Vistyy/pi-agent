@@ -4,6 +4,8 @@ An observation is a source-backed statement that a future agent could use as evi
 
 Record what was said, decided, shown, changed, failed, validated, blocked, or corrected when the source makes it explicit.
 
+When a chunk contains more evidence than is worth recording, prefer source facts with durable future-use value over incidental detail.
+
 Do not record transcript mechanics: tool calls, hidden or omitted payload markers, generic success receipts, acknowledgements, routine progress, or plans with no accepted outcome.
 
 Stay source-close. Do not infer beyond visible text. If the source is an assistant summary, say the assistant reported it.

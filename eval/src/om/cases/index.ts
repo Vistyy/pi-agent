@@ -1,7 +1,7 @@
 import type { OmEvalCase } from '../types.js';
 import { maintainerBlastRadiusGuardCase, maintainerCompletedTrailCompressionCase, maintainerCompletedTrailWithUnresolvedSiblingCase, maintainerDirectParentProvenanceCase, maintainerDuplicateMergeCase, maintainerNoisyDuplicateMergeCase, maintainerPartialOverlapNoopCase, maintainerStaleCurrentPairCase, maintainerUnlabeledStaleCurrentCase, maintainerUnrelatedNoopCase } from './maintainer.js';
 import { observerAssistantProseBoundary, observerHiddenMutationPayloadBoundary, observerHiddenMutationReplacementEvidence, observerRealGiga32, observerRealGiga64v2, observerToolEvidenceBoundary } from './observer.js';
-import { reflectorAppendNewCompatibleFact, reflectorChurnFilter, reflectorDuplicateObservationNoop, reflectorFalseStalePrevention, reflectorGigaAppendNewFact, reflectorGigaDuplicateNoop, reflectorGigaStaleCorrection, reflectorRealGiga16v2, reflectorRealSessionConstraintsAndState, reflectorStaleCurrentReconciliation, reflectorSubtleStaleCorrection, reflectorTouchedFilesWeakContext } from './reflector.js';
+import { reflectorAppendNewCompatibleFact, reflectorChurnFilter, reflectorDuplicateObservationNoop, reflectorFalseStalePrevention, reflectorGigaAppendNewFact, reflectorGigaDuplicateNoop, reflectorGigaStaleCorrection, reflectorImplementationChurnNoop, reflectorRealGiga16v2, reflectorRealSessionConstraintsAndState, reflectorStaleCurrentReconciliation, reflectorSubtleStaleCorrection, reflectorTouchedFilesWeakContext } from './reflector.js';
 import { rewriteEmergencyFallbackCurrentReality, rewriteRemovedCuratorPinningCleanup, rewriteStaleRelationshipPreservation } from './rewrite.js';
 
 const omCase = (id: string, agent: OmEvalCase['agent'], run: OmEvalCase['run'], suite: OmEvalCase['suite'] = 'baseline'): OmEvalCase => ({ id, agent, run, suite });
@@ -20,6 +20,7 @@ export const allCases: OmEvalCase[] = [
   omCase('reflector-subtle-stale-correction', 'reflector', reflectorSubtleStaleCorrection),
   omCase('reflector-false-stale-prevention', 'reflector', reflectorFalseStalePrevention),
   omCase('reflector-churn-filter', 'reflector', reflectorChurnFilter),
+  omCase('reflector-implementation-churn-noop', 'reflector', reflectorImplementationChurnNoop),
   omCase('reflector-real-giga-16-v2', 'reflector', reflectorRealGiga16v2),
   omCase('reflector-giga-duplicate-noop', 'reflector', reflectorGigaDuplicateNoop),
   omCase('reflector-giga-append-new-fact', 'reflector', reflectorGigaAppendNewFact),

@@ -36,6 +36,15 @@ function realGigaReflections(): Reflection[] {
   return (realReflector16v2.reflections ?? []).map(normalizeFixtureReflection);
 }
 
+function cleanGigaCurrentReflections(): Reflection[] {
+  return [
+    ref('100000000001', 'OM active memory is current reflections only; observations are durable evidence used by reflector and recall, not normal assistant-visible active context.', ['obs_100000000001']),
+    ref('100000000002', 'Observation ids use `obs_*`, reflection ids use `ref_*`, and reflection provenance is stored in a single typed `sources` array.', ['obs_100000000002']),
+    ref('100000000003', 'Compaction stays near-instant: flush any unobserved tail through observer, then render deterministic active reflection projection without synchronous reflector/rewrite work.', ['obs_100000000003']),
+    ref('100000000004', 'Recall is the evidence path for exact source context behind compacted memory ids before acting on exact paths, commands, errors, APIs, or pass/fail claims.', ['obs_100000000004']),
+  ];
+}
+
 export async function reflectorTouchedFilesWeakContext(model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
   const observations = [
     obs('aaaaaaaaaaaa', 'User asked to update the retry default, but no source output, assistant summary, read result, or validation stated the resulting value.', '2026-06-12T09:00:00.000Z'),
@@ -120,19 +129,47 @@ export async function reflectorChurnFilter(model: string, judgeModel: string, th
   });
 }
 
-export async function reflectorRealGiga16v2(model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
-  const observations = realReflector16v2.observations.map(normalizeFixtureObservation);
-  const reflections = realGigaReflections();
+export async function reflectorImplementationChurnNoop(model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const observations = [
+    obs('999999999981', '`src/session-ledger/index.ts` was added as a barrel re-export for ledger helper modules.', '2026-06-16T16:47:00.000Z'),
+    obs('999999999982', '`src/memory-update/scheduler.ts` was edited to import a renamed helper and update internal work gate checks.', '2026-06-16T16:48:00.000Z'),
+    obs('999999999983', 'Test fixtures were updated after observation record shape cleanup, and old expectations were removed from session-ledger tests.', '2026-06-16T16:49:00.000Z'),
+    obs('999999999984', '`pnpm run typecheck` and `pnpm test` passed after the local implementation cleanup.', '2026-06-16T16:50:00.000Z'),
+  ];
+  const reflections = cleanGigaCurrentReflections();
   return gradeReflector({
-    id: 'reflector-real-giga-16-v2', model, judgeModel, thinkingLevel, observations, reflections,
-    probe: { id: 'reflector-real-giga-16-v2', question: `Run a stateful reflector append pass over ${observations.length} production-shaped pending observations and ${reflections.length} active reflections from the giga OM session. Evaluate only the newly emitted reflections.`, rubric: { pass_if: ['Emits only durable new or changed handoff memory from pending observations.', 'Uses current reflections to avoid duplicate/churn output.', 'Skips searches and transient validation/process receipts unless recording final validation state allowed by policy.'], fail_if: ['Restates existing active memory.', 'Records search/log output as semantic source evidence.', 'Turns implementation churn into broad active memory.'] } },
+    id: 'reflector-implementation-churn-noop', model, judgeModel, thinkingLevel, observations, reflections,
+    probe: { id: 'reflector-implementation-churn-noop', question: 'With clean current reflections, skip local implementation mechanics that do not establish new durable handoff memory.', rubric: { pass_if: ['Returns an empty reflections array.', 'Does not turn file motion, helper renames, fixture updates, or validation receipts into active memory.'], fail_if: ['Adds changelog-style reflections.', 'Records routine validation or local code-motion as active handoff memory.'] } },
     graders: [
       reflectorSourceIdsAllowed(observations.map((o) => o.id)),
-      reflectorForbidsSourceIds('obs_af38122c3f37'),
-      reflectorForbidsAny('search was run', 'usage/progress-related symbols'),
-      optional(reflectorRequiresAny('reflectionRecordTool', 'record_reflections', 'record_rewritten_reflections')),
-      optional(reflectorMaxCount(4)),
+      reflectorMaxCount(0),
     ],
+  });
+}
+
+export async function reflectorRealGiga16v2(model: string, judgeModel: string, thinkingLevel: ModelThinkingLevel): Promise<AgentEvalRecord> {
+  const observations = realReflector16v2.observations.map(normalizeFixtureObservation);
+  const reflections = cleanGigaCurrentReflections();
+  const churnSourceIds = [
+    'obs_1213ce82c8f1', // session-ledger re-export barrel
+    'obs_bb279199ee00', // deleted stale files/tests
+    'obs_0c9a79503679', // transient typecheck failure
+    'obs_251eca683f2d', // scheduler import rewrite
+    'obs_5eccd71ac347', // validation receipt only
+    'obs_eee294053797', // transient test failures / expectation updates
+    'obs_af38122c3f37', // search receipt
+    'obs_b4fbecc4334d', // validation receipt only
+  ];
+  return gradeReflector({
+    id: 'reflector-real-giga-16-v2', model, judgeModel, thinkingLevel, observations, reflections,
+    probe: { id: 'reflector-real-giga-16-v2', question: `Run a stateful reflector append pass over ${observations.length} production-shaped pending observations and ${reflections.length} clean current reflections from the giga OM session. Evaluate only the newly emitted reflections.`, rubric: { pass_if: ['Emits only durable new or changed handoff memory from pending observations.', 'Uses current reflections to avoid duplicate/churn output.', 'Skips searches, fixture/test churn, local code-motion, transient validation/process receipts, and usage/progress plumbing.', 'May no-op if non-churn observations are not durable or are already covered.'], fail_if: ['Restates existing active memory.', 'Records search/log output as semantic source evidence.', 'Turns local code-motion or transient validation churn into broad active memory.'] } },
+    graders: [
+      reflectorSourceIdsAllowed(observations.map((o) => o.id)),
+      reflectorForbidsSourceIds(...churnSourceIds),
+      reflectorForbidsAny('search was run', 'usage/progress-related symbols', 're-export barrel', 'logging plumbing'),
+      optional(reflectorMaxCount(6)),
+    ],
+    forceJudge: true,
   });
 }
 

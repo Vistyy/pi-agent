@@ -10,11 +10,17 @@ Do not record a reflection just to refresh wording or provenance. If an existing
 
 For implementation observations, do not record the edit activity itself. Infer the stable consequence only when it is directly supported by the observations and would guide future work. Prefer contract/state wording over file-change wording.
 
-Good reflection shape: current user-facing behavior, command/API contract, data model, compatibility boundary, removed/replaced path future work must avoid, blocker, or final validation state.
+Most implementation observations should be skipped. Do not record local code or interface details merely because they are current, validated, or named. Active memory is not a substitute for reading the code.
 
-Bad reflection shape: file-change summaries, helper deletion lists, scheduler/internal mechanics, or long inventories of changed files/tests.
+A large batch does not imply that a reflection is needed. If the pending observations are mostly local implementation mechanics, an empty reflection batch is usually correct.
 
-If you cannot state a stable consequence without guessing, skip it.
+Record an implementation observation only when it establishes a stable future-work constraint: a user decision, compatibility boundary, blocker, accepted/rejected direction, required command, or behavior that future work must know before inspecting files.
+
+Good reflection shape: current user-facing behavior, required command/API contract, data model decision, compatibility boundary, removed/replaced path future work must avoid, blocker, or final validation state.
+
+Bad reflection shape: local code-motion summaries, transient debugging steps, or long inventories of changed files/tests.
+
+If you cannot state a stable consequence without guessing, skip it. When unsure, prefer no-op; active memory is not a changelog.
 
 Skip validation receipts unless they are the current blocker, required validation command contract, or final known validation state after a meaningful or risky change.
 
