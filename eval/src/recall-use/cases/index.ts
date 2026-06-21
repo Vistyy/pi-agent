@@ -39,6 +39,23 @@ export const cases: RecallUseCase[] = [
       ref_200000000003: 'Reflections:\n[ref_200000000003] Maintainer hardening is committed as 93048e1 and validation reported typecheck/tests passed plus maintainer evals 30/30 passed, trials=3; this supersedes earlier unresolved maintainer failures.\n\nObservations:\n[obs_200000000003] Maintainer hardening path passed after stricter contract changes.',
     },
     requiredAnswerText: ['93048e1', '30/30', 'stale'],
+    judge: {
+      id: 'stale-current-answer-quality',
+      question: 'Did the answer clearly identify the current maintainer status and distinguish it from the stale earlier failure without treating unrelated rewrite status as part of the maintainer answer?',
+      rubric: {
+        pass_if: [
+          'States that current maintainer hardening is green or passed after commit 93048e1.',
+          'Mentions maintainer evals passed 30/30 or equivalent validation success.',
+          'Identifies the earlier unresolved/noisy duplicate-merge maintainer failure as stale or superseded.',
+          'Does not present rewrite eval status as the maintainer status.',
+        ],
+        fail_if: [
+          'Treats the old maintainer failure as current.',
+          'Omits the stale/current distinction.',
+          'Uses unrelated rewrite status as the main answer.',
+        ],
+      },
+    },
   },
   {
     id: 'recall-broad-provenance-include-intermediate',
@@ -52,6 +69,23 @@ export const cases: RecallUseCase[] = [
       ref_300000000001: 'Reflections:\n[ref_300000000001] Rewrite remains an emergency fallback; maintainer is the default cleanup path before revisiting rewrite.\n\nProvenance:\nref_300000000001 -> ref_300000000004\nref_300000000004 -> obs_300000000004\n\nSupporting reflections:\n[ref_300000000004] Maintainer hardening is green, while rewrite eval still fails on rewrite-real-giga-40-v2, so production should prefer maintainer and keep rewrite non-normal.\n\nObservations:\n[obs_300000000004] Rewrite eval rerun still failed on rewrite-real-giga-40-v2 with score 6/20 after hardening, while maintainer evals passed 30/30.',
     },
     requiredAnswerText: ['emergency', 'maintainer', 'rewrite-real-giga-40-v2'],
+    judge: {
+      id: 'broad-provenance-answer-quality',
+      question: 'Did the answer use the recalled intermediate rationale to explain why rewrite should stay emergency-only?',
+      rubric: {
+        pass_if: [
+          'Explains that maintainer is the preferred/default cleanup path.',
+          'Explains that rewrite remains emergency-only because rewrite eval evidence is still weak or failing.',
+          'Uses the intermediate rationale rather than only restating terminal observations.',
+          'Mentions rewrite-real-giga-40-v2 or an equivalent specific failing rewrite eval signal.',
+        ],
+        fail_if: [
+          'Only says rewrite is emergency-only without explaining why.',
+          'Ignores the maintainer-vs-rewrite comparison.',
+          'Claims rewrite is green or suitable as normal cleanup.',
+        ],
+      },
+    },
   },
   {
     id: 'recall-partial-missing-evidence-caveat',
@@ -65,6 +99,23 @@ export const cases: RecallUseCase[] = [
       ref_400000000001: 'Reflections:\n[ref_400000000001] A remembered constraint says never leave compatibility shims in core paths.\n\nProvenance:\nref_400000000001 -> obs_400000000001\nref_400000000001 -> ref_400000000003\n\nObservations:\n[obs_400000000001] User confirmed the typed-id migration should avoid long-lived shims and keep compatibility only at boundaries.\n\nUnavailable supporting reflections: ref_400000000003\nUnavailable source entries: missing: src-400000000001',
     },
     requiredAnswerText: ['shims', 'unavailable', 'ref_400000000003'],
+    judge: {
+      id: 'partial-evidence-caveat-quality',
+      question: 'Did the answer preserve the known constraint while clearly caveating unavailable supporting evidence?',
+      rubric: {
+        pass_if: [
+          'States the known constraint about avoiding long-lived compatibility shims or keeping compatibility at boundaries.',
+          'Clearly says some evidence is unavailable or partial.',
+          'Names the unavailable supporting reflection ref_400000000003 or equivalent missing support.',
+          'Does not overstate the memory as fully verified.',
+        ],
+        fail_if: [
+          'Treats the memory as fully verified with no caveat.',
+          'Omits the unavailable evidence.',
+          'Fails to recover the actual shim/boundary constraint.',
+        ],
+      },
+    },
   },
   {
     id: 'recall-no-id-no-semantic-search',
