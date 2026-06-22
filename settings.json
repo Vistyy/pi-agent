@@ -21,6 +21,7 @@
     "tools": "read,bash,grep,find,ls,web_search,web_fetch,web_content_get",
     "extensions": [
       "./extensions/web-search",
+      "./extensions/package-manager-policy",
       "./extensions/pi-fork/sandbox.ts"
     ],
     "offline": true,
