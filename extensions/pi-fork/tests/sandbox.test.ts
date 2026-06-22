@@ -1,5 +1,8 @@
+import { mkdtempSync, realpathSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { buildBwrapArgs, buildSandboxedCommand } from "../src/sandbox.js";
+import { buildBwrapArgs, buildSandboxedCommand, resolveCaBundlePath } from "../src/sandbox.js";
 
 function optionValues(args: string[], option: string): string[] {
   const values: string[] = [];
@@ -42,6 +45,34 @@ describe("sandbox command wrapper", () => {
       "--ro-bind-try", "/etc/nsswitch.conf", "/etc/nsswitch.conf",
     ]));
     expect(optionValues(args, "--ro-bind-try")).not.toContain("/etc");
+  });
+
+  it("exposes the resolved public CA bundle without mounting broad /etc paths", () => {
+    const args = buildBwrapArgs();
+    const caBundlePath = resolveCaBundlePath();
+
+    if (!caBundlePath) return;
+
+    expect(args).toEqual(expect.arrayContaining([
+      "--ro-bind-try", caBundlePath, "/tmp/pi-fork-ca-bundle.crt",
+      "--setenv", "SSL_CERT_FILE", "/tmp/pi-fork-ca-bundle.crt",
+      "--setenv", "GIT_SSL_CAINFO", "/tmp/pi-fork-ca-bundle.crt",
+      "--setenv", "NODE_EXTRA_CA_CERTS", "/tmp/pi-fork-ca-bundle.crt",
+    ]));
+    expect(args.indexOf("--clearenv")).toBeLessThan(args.indexOf("SSL_CERT_FILE") - 1);
+    expect(optionValues(args, "--ro-bind-try")).not.toContain("/etc/ssl");
+    expect(optionValues(args, "--ro-bind-try")).not.toContain("/etc/pki");
+    expect(optionValues(args, "--ro-bind-try")).not.toContain("/etc/static");
+  });
+
+  it("resolves CA bundle symlinks before exposing them", () => {
+    const dir = mkdtempSync(join(tmpdir(), "pi-fork-ca-"));
+    const target = join(dir, "ca-bundle.crt");
+    const link = join(dir, "linked-bundle.crt");
+    writeFileSync(target, "certificate data");
+    symlinkSync(target, link);
+
+    expect(resolveCaBundlePath([join(dir, "missing.crt"), link])).toBe(realpathSync(target));
   });
 
   it("allows arbitrary shell syntax by relying on the sandbox, not regex filtering", () => {
