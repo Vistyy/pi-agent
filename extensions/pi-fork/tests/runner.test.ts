@@ -56,6 +56,13 @@ describe("buildPiArgs", () => {
     ]));
   });
 
+  it("tells the child it is the forked child", () => {
+    const args = buildPiArgs("task", "/tmp/session.jsonl", [], undefined, inherited);
+
+    expect(args.at(-1)).toContain("You are the forked child agent, not the main session.");
+    expect(args.at(-1)).toContain("Do not spawn another fork. Forking inside a fork is not allowed.");
+  });
+
   it("tells the child about the writable temp directory", () => {
     const args = buildPiArgs(
       "task",

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockRunFork = vi.hoisted(() => vi.fn());
 
@@ -8,8 +8,35 @@ vi.mock("../src/config.js", async (importOriginal) => {
   return { ...actual, loadConfig: () => ({ extensions: [], environment: {}, tools: null, offline: true, costFooter: true, sessionSnapshot: "full", defaultEffort: "balanced" }) };
 });
 
+import { PI_FORK_CHILD_ENV } from "../src/runner/env.js";
 import { PI_USAGE_RECORDED } from "../src/usage.js";
 import { registerForkTool } from "../src/tool.js";
+
+let originalForkChildEnv: string | undefined;
+
+beforeEach(() => {
+  originalForkChildEnv = process.env[PI_FORK_CHILD_ENV];
+  delete process.env[PI_FORK_CHILD_ENV];
+});
+
+afterEach(() => {
+  if (originalForkChildEnv === undefined) delete process.env[PI_FORK_CHILD_ENV];
+  else process.env[PI_FORK_CHILD_ENV] = originalForkChildEnv;
+});
+
+describe("fork tool registration", () => {
+  it("does not register inside a fork child process", () => {
+    process.env[PI_FORK_CHILD_ENV] = "1";
+    const pi = {
+      appendEntry: vi.fn(),
+      registerTool: vi.fn(),
+    } as any;
+
+    registerForkTool(pi);
+
+    expect(pi.registerTool).not.toHaveBeenCalled();
+  });
+});
 
 describe("fork tool usage recording", () => {
   it("records generic usage with effort tag", async () => {

@@ -57,7 +57,8 @@ Fork children load no extensions by default.
 | `null` | normal Pi extension discovery |
 | `["<source>"]` | only listed extension sources |
 
-If `pi-fork` is allowlisted, children can call `fork` recursively.
+Nested forks are not allowed.
+Fork child processes do not register the `fork` tool, even if `pi-fork` is allowlisted as a child extension.
 
 ## Guarded exploratory fork children
 

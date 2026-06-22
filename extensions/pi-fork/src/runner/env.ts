@@ -1,3 +1,4 @@
+export const PI_FORK_CHILD_ENV = "PI_FORK_CHILD";
 const PI_OFFLINE_ENV = "PI_OFFLINE";
 
 function defineEnvValue(
@@ -58,5 +59,6 @@ export function buildChildEnv(
   }
   if (offline) setEnvValue(env, PI_OFFLINE_ENV, "1", platform);
   else deleteEnvValue(env, PI_OFFLINE_ENV, platform);
+  setEnvValue(env, PI_FORK_CHILD_ENV, "1", platform);
   return env;
 }

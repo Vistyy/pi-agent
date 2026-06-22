@@ -5,6 +5,17 @@ export interface ForkPromptOptions {
   writableTmpDir?: string;
 }
 
+function appendForkChildContext(prompt: string): string {
+  return `${prompt}
+Fork child context:
+- You are the forked child agent, not the main session.
+- The parent agent delegated this bounded task to you and is waiting for your report.
+- Do not continue the parent session's broader work.
+- Do not spawn another fork. Forking inside a fork is not allowed.
+- Return findings, evidence, caveats, and next steps for the parent to act on.
+`;
+}
+
 function appendRuntimeNotes(prompt: string, options: ForkPromptOptions): string {
   if (!options.writableTmpDir) return prompt;
   return `${prompt}
@@ -23,5 +34,5 @@ export function buildForkTaskPrompt(
     : effort === "deep"
       ? deepPrompt(task)
       : balancedPrompt(task);
-  return appendRuntimeNotes(prompt, options);
+  return appendRuntimeNotes(appendForkChildContext(prompt), options);
 }

@@ -4,6 +4,7 @@ import { buildUsageRecordedData, PI_USAGE_RECORDED } from "./usage.js";
 import { EFFORT_LEVELS, loadConfig, type ForkConfig } from "./config.js";
 import { type ForkDetails, type ForkEffort, type ForkEffortSource, type ForkEffortState, type ForkResult, isResultError } from "./core/types.js";
 import { getResultSummaryText } from "./child-events/index.js";
+import { PI_FORK_CHILD_ENV } from "./runner/env.js";
 import { runFork } from "./runner/index.js";
 import { writeForkSessionSnapshotJsonl } from "./session-snapshot.js";
 import { renderForkCall, renderForkResult } from "./ui/render.js";
@@ -121,6 +122,8 @@ export function resolveModelContextWindow(
 }
 
 export function registerForkTool(pi: ExtensionAPI): void {
+  if (process.env[PI_FORK_CHILD_ENV] === "1") return;
+
   pi.registerTool({
     name: "fork",
     label: "Fork",
