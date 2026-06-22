@@ -20,7 +20,7 @@ const policies: readonly Policy[] = [
   {
     commandPattern: "npm|npx",
     message:
-      "Blocked npm/npx usage. Use pnpm instead. For npx, use pnpm dlx <package> or pnpm exec <command>.",
+      "Blocked npm/npx usage. Use pnpm instead. For npx, use pnpx <package> or pnpm exec <command>.",
   },
   {
     commandPattern: "pip(?:3(?:\\.\\d+)?)?|pipx|virtualenv",

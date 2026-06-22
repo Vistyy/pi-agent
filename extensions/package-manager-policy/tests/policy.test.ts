@@ -42,6 +42,7 @@ describe("package manager policy", () => {
   it.each([
     "pnpm install",
     "pnpm dlx eslint .",
+    "pnpx eslint .",
     "uv add pytest",
     "uv pip install pytest",
     "uvx ruff",
