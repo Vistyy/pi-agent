@@ -22,6 +22,9 @@ import {
 } from "./usage";
 import { STATUS_KEY } from "./types";
 
+const LOGIN_TIMEOUT_MS = 10 * 60 * 1000;
+const LOGIN_MAX_POLL_INTERVAL_MS = 15_000;
+
 export function registerCommand(pi: ExtensionAPI) {
   pi.registerCommand("codex-usage", {
     description: "Refresh Codex ChatGPT subscription usage status",
@@ -193,9 +196,16 @@ async function cmdLogin(ctx: ExtensionContext): Promise<void> {
     );
 
     let creds = null;
+    let intervalMs = Math.min(
+      Math.max(device.intervalSeconds, 1) * 1000,
+      LOGIN_MAX_POLL_INTERVAL_MS,
+    );
+    const deadline = Date.now() + LOGIN_TIMEOUT_MS;
     while (!creds) {
-      await sleep(device.intervalSeconds * 1000);
+      if (Date.now() > deadline) throw new Error("login timed out");
+      await sleep(intervalMs, ctx.signal);
       creds = await pollDeviceToken(device.deviceAuthId, device.userCode);
+      intervalMs = Math.min(intervalMs + 1000, LOGIN_MAX_POLL_INTERVAL_MS);
     }
 
     const email = decodeEmail(creds.access) ?? `codex-${Date.now()}`;
@@ -230,8 +240,22 @@ async function cmdLogin(ctx: ExtensionContext): Promise<void> {
   }
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new Error("cancelled"));
+      return;
+    }
+    const timeout = setTimeout(resolve, ms);
+    signal?.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(timeout);
+        reject(new Error("cancelled"));
+      },
+      { once: true },
+    );
+  });
 }
 
 // ── rm ────────────────────────────────────────────────────────
