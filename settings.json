@@ -6,7 +6,9 @@
   "doubleEscapeAction": "tree",
   "theme": "syzom-dark",
   "packages": [
-    "../../projects/pi-extensions/pi-lavish"
+    "../../projects/pi-extensions/pi-lavish",
+    "../../projects/pi-extensions/pi-fork",
+    "../../projects/pi-extensions/pi-observational-memory"
   ],
   "terminal": {
     "clearOnShrink": false
@@ -24,7 +26,7 @@
     "extensions": [
       "./extensions/web-search",
       "./extensions/package-manager-policy",
-      "./extensions/pi-fork/sandbox.ts"
+      "~/projects/pi-extensions/pi-fork/sandbox.ts"
     ],
     "offline": true,
     "sandbox": {
@@ -33,7 +35,7 @@
     },
     "costFooter": true,
     "sessionSnapshot": "om-compact",
-    "omCompactExtension": "./extensions/pi-observational-memory/index.ts",
+    "omCompactExtension": "~/projects/pi-extensions/pi-observational-memory/index.ts",
     "defaultEffort": "balanced",
     "effortProfiles": {
       "fast": {
