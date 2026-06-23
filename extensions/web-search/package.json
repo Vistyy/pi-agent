@@ -1,6 +1,7 @@
 {
   "name": "local-web-search-extension",
   "type": "module",
+  "packageManager": "pnpm@11.5.3",
   "dependencies": {
     "@mozilla/readability": "0.5.0",
     "linkedom": "0.18.12",
