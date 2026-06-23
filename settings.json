@@ -5,7 +5,9 @@
   "defaultThinkingLevel": "high",
   "doubleEscapeAction": "tree",
   "theme": "syzom-dark",
-  "packages": [],
+  "packages": [
+    "../../projects/pi-extensions/pi-lavish"
+  ],
   "terminal": {
     "clearOnShrink": false
   },
