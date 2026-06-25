@@ -1,153 +1,66 @@
 ---
 name: improve-codebase-architecture
-description: Scan a codebase for deepening opportunities, present them as a Lavish architecture report, then grill through whichever candidate the user picks.
+description: Scan a codebase for deepening opportunities, present them as a visual HTML report, then grill through whichever one you pick.
 disable-model-invocation: true
 ---
 
 # Improve Codebase Architecture
 
-Surface architectural friction and propose **deepening opportunities**.
-A deepening opportunity is a refactor that turns shallow modules into deep ones, improving testability, locality, leverage, and AI-navigability.
+Surface architectural friction and propose **deepening opportunities** - refactors that turn shallow modules into deep ones. The aim is testability and AI-navigability.
 
-This skill owns the discovery and visual review workflow.
-It does not design final interfaces until the user chooses a candidate.
+This command is _informed_ by the project's domain model and built on a shared design vocabulary:
 
-## Required vocabulary
-
-Use the `codebase-design` skill for the architecture vocabulary and principles.
-Load it before classifying or naming candidates.
-
-Use these terms exactly:
-
-- **module**
-- **interface**
-- **implementation**
-- **depth**
-- **deep**
-- **shallow**
-- **seam**
-- **adapter**
-- **leverage**
-- **locality**
-
-Do not substitute component, service, API, boundary, unit, layer, or wrapper when one of the vocabulary terms is meant.
-
-Read the project's domain model before proposing candidates.
-Prefer `CONTEXT.md` at the repo root.
-If the repo has `CONTEXT-MAP.md`, follow it to the relevant context files.
-Read ADRs in `docs/adr/` and any local ADR directory in the area under review.
+- Use the `codebase-design` skill for the architecture vocabulary (**module**, **interface**, **depth**, **seam**, **adapter**, **leverage**, **locality**) and its principles (the deletion test, "the interface is the test surface", "one adapter = hypothetical seam, two = real"). Use these terms exactly in every suggestion - don't drift into "component," "service," "API," or "boundary."
+- The domain language in `CONTEXT.md` gives names to good seams; ADRs in `docs/adr/` record decisions this command should not re-litigate.
 
 ## Process
 
 ### 1. Explore
 
-Start by reading the domain glossary and relevant ADRs.
-Then inspect the codebase for friction.
+Read the project's domain glossary (`CONTEXT.md`) and any ADRs in the area you're touching first.
 
-Use `fork` for broad read-only discovery when the area is unknown and fork is available.
-If the task is already narrow, or if fork is unavailable, inspect directly with `read`, `bash`, search, and tests as needed.
+Then use `fork` for broad codebase exploration when useful, or inspect directly when the area is already narrow. Don't follow rigid heuristics - explore organically and note where you experience friction:
 
-Do not follow rigid heuristics.
-Explore organically and note where understanding gets expensive.
+- Where does understanding one concept require bouncing between many small modules?
+- Where are modules **shallow** - interface nearly as complex as the implementation?
+- Where have pure functions been extracted just for testability, but the real bugs hide in how they're called (no **locality**)?
+- Where do tightly-coupled modules leak across their seams?
+- Which parts of the codebase are untested, or hard to test through their current interface?
 
-Look for:
+Apply the **deletion test** to anything you suspect is shallow: would deleting it concentrate complexity, or just move it? A "yes, concentrates" is the signal you want.
 
-- Understanding one concept requires bouncing between many small modules.
-- A module is shallow because its interface is nearly as complex as its implementation.
-- Pure functions were extracted only for testability, while the real bugs hide in how they are called.
-- Tightly-coupled modules leak across their seams.
-- Tests need to reach past the interface to verify behavior.
-- A seam has only one adapter and therefore may be hypothetical.
-- A cluster has two real adapters and therefore may deserve a real seam.
+### 2. Present candidates as an HTML report
 
-Apply the **deletion test** to suspected shallow modules.
-Ask whether deleting the module would concentrate complexity or merely move it into callers.
-A module earns its keep when deleting it would spread complexity across callers.
+Create a self-contained HTML artifact under `.lavish/reviews/architecture-review-<timestamp>.html` and review it with the Pi Lavish tools. Follow the Lavish design guidance and relevant playbooks before writing; fix layout warnings before treating the report as ready.
 
-### 2. Present candidates as a Lavish report
+The report uses **Tailwind via CDN** for layout and styling, and **Mermaid via CDN** for diagrams where a graph/flow/sequence reliably communicates the structure. Mix Mermaid with hand-crafted CSS/SVG visuals - use Mermaid when relationships are graph-shaped (call graphs, dependencies, sequences), and hand-built divs/SVG when you want something more editorial (mass diagrams, cross-sections, collapse animations). Each candidate gets a **before/after visualisation**. Be visual.
 
-Create a visual architecture report with Lavish.
-Do not write the report to the OS temp directory.
-Do not open it with `xdg-open`, `open`, or `start`.
+For each candidate, render a card with:
 
-Use this artifact path pattern unless the user asks for another location:
+- **Files** - which files/modules are involved
+- **Problem** - why the current architecture is causing friction
+- **Solution** - plain English description of what would change
+- **Benefits** - explained in terms of locality and leverage, and how tests would improve
+- **Before / After diagram** - side-by-side, custom-drawn, illustrating the shallowness and the deepening
+- **Recommendation strength** - one of `Strong`, `Worth exploring`, `Speculative`, rendered as a badge
 
-```text
-.lavish/reviews/architecture-review-<task-id>.html
-```
+End the report with a **Top recommendation** section: which candidate you'd tackle first and why.
 
-Before writing the HTML, use Lavish guidance:
+**Use CONTEXT.md vocabulary for the domain, and the `codebase-design` vocabulary for the architecture.** If `CONTEXT.md` defines "Order," talk about "the Order intake module" - not "the FooBarHandler," and not "the Order service."
 
-- `lavish_reference(action: "design")`
-- `lavish_reference(action: "playbook", playbookId: "comparison")`
-- `lavish_reference(action: "playbook", playbookId: "diagram")`
-- `lavish_reference(action: "playbook", playbookId: "plan")`
-- `lavish_reference(action: "playbook", playbookId: "input")` if the artifact collects the candidate choice
+**ADR conflicts**: if a candidate contradicts an existing ADR, only surface it when the friction is real enough to warrant revisiting the ADR. Mark it clearly in the card (e.g. a warning callout: _"contradicts ADR-0007 - but worth reopening because…"_). Don't list every theoretical refactor an ADR forbids.
 
-Use [HTML-REPORT.md](HTML-REPORT.md) for the report structure and visual patterns.
-Call `lavish_review` after writing the artifact.
-Fix any layout warnings before treating the report as ready.
+See [HTML-REPORT.md](HTML-REPORT.md) for the full HTML scaffold, diagram patterns, and styling guidance.
 
-Each candidate card must include:
+Do NOT propose interfaces yet. After the file is written, ask the user: "Which of these would you like to explore?"
 
-- **Files** - which files or modules are involved.
-- **Problem** - why the current architecture causes friction.
-- **Solution** - plain English description of what would change.
-- **Benefits** - explained with locality, leverage, and testability.
-- **Before / After diagram** - side-by-side visual explanation of the shallowness and the deepening.
-- **Recommendation strength** - one of `Strong`, `Worth exploring`, or `Speculative`.
+### 3. Grilling loop
 
-End with a **Top recommendation** section.
-Name the first candidate you would explore and why.
+Once the user picks a candidate, use the `grilling` skill to walk the design tree with them - constraints, dependencies, the shape of the deepened module, what sits behind the seam, what tests survive.
 
-Use domain vocabulary from `CONTEXT.md` for domain concepts.
-Use `codebase-design` vocabulary for architecture.
-If `CONTEXT.md` defines `Order`, say `Order intake module`, not `FooBarHandler` or `Order service`.
+Side effects happen inline as decisions crystallize - use the `domain-modeling` skill to keep the domain model current as you go:
 
-For ADR conflicts, only surface a contradiction when the friction is real enough to justify reopening the decision.
-Mark the conflict clearly in the candidate card.
-Do not list every theoretical refactor an ADR forbids.
-
-Do not propose final interfaces in the report.
-After the report is ready, ask:
-
-> Which candidate would you like to explore?
-
-### 3. Grill the selected candidate
-
-Once the user picks a candidate, use `grilling` to walk the design tree.
-Ask one question at a time.
-Focus on constraints, dependencies, the shape of the deepened module, what sits behind the seam, and which tests should survive.
-
-Use `domain-modeling` while decisions crystallize.
-Keep domain language current as part of the same conversation.
-
-Update the domain model when:
-
-- A deepened module needs a domain term that is missing from `CONTEXT.md`.
-- A fuzzy term becomes precise.
-- The selected seam depends on a domain distinction future agents must preserve.
-
-Offer an ADR when:
-
-- The user rejects a candidate for a durable reason.
-- A decision would help future architecture reviews avoid relitigating the same option.
-- A candidate intentionally reopens or supersedes an earlier ADR.
-
-Skip ADRs for ephemeral reasons such as lack of time or immediate priority.
-
-### 4. Hand off interface design only after selection
-
-If the user wants concrete interface alternatives for the selected candidate, use `codebase-design`.
-For multiple alternatives, follow `DESIGN-IT-TWICE.md` and use the `interface-designer` subagent identity when appropriate.
-
-Do not run design-it-twice before the user selects a candidate.
-Candidate discovery and interface design are separate phases.
-
-## Completion criteria
-
-The skill is complete when one of these is true:
-
-- The user selects a candidate and the grilling loop has resolved the next decision.
-- The user decides not to pursue any candidate, and any load-bearing rejection has been offered as an ADR.
-- The user asks only for the report, and the Lavish review is finished.
+- **Naming a deepened module after a concept not in `CONTEXT.md`?** Add the term to `CONTEXT.md`. Create the file lazily if it doesn't exist.
+- **Sharpening a fuzzy term during the conversation?** Update `CONTEXT.md` right there.
+- **User rejects the candidate with a load-bearing reason?** Offer an ADR, framed as: _"Want me to record this as an ADR so future architecture reviews don't re-suggest it?"_ Only offer when the reason would actually be needed by a future explorer to avoid re-suggesting the same thing - skip ephemeral reasons ("not worth it right now") and self-evident ones.
+- **Want to explore alternative interfaces for the deepened module?** Use the `codebase-design` skill and its design-it-twice parallel subagent pattern.
