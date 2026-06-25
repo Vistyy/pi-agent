@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.79.10",
+  "lastChangelogVersion": "0.80.2",
   "defaultProvider": "openai-codex",
   "defaultModel": "gpt-5.5",
   "defaultThinkingLevel": "high",
@@ -8,7 +8,8 @@
   "packages": [
     "../../projects/pi-extensions/pi-lavish",
     "../../projects/pi-extensions/pi-fork",
-    "../../projects/pi-extensions/pi-observational-memory"
+    "../../projects/pi-extensions/pi-observational-memory",
+    "../../projects/pi-extensions/pi-subagent"
   ],
   "terminal": {
     "clearOnShrink": false
@@ -18,6 +19,10 @@
     "model": {
       "provider": "openai-codex",
       "id": "gpt-5.4-mini"
+    },
+    "observerToolOutputPolicies": {
+      "fork": "full-excerpt",
+      "subagent": "full-excerpt"
     },
     "debugLog": true
   },
@@ -65,5 +70,13 @@
     "openrouter/xiaomi/mimo-v2.5",
     "openrouter/xiaomi/mimo-v2.5-pro",
     "openrouter/moonshotai/kimi-k2.7-code"
-  ]
+  ],
+  "pi-subagent": {
+    "tools": "read,bash,grep,find,ls,web_search,web_fetch,web_content_get",
+    "extensions": [
+      "./extensions/web-search",
+      "./extensions/package-manager-policy"
+    ],
+    "offline": true
+  }
 }
