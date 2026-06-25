@@ -13,6 +13,8 @@
 !keybindings.json
 
 # Track resource directories
+!agents/
+!agents/**
 !extensions/
 !extensions/**
 !prompts/
