@@ -1,6 +1,6 @@
 ---
 name: improve-codebase-architecture
-description: Scan a codebase for deepening opportunities, present them as a visual HTML report, then grill through whichever one you pick.
+description: Review codebase architecture, produce a visual deepening report, then grill one candidate.
 disable-model-invocation: true
 ---
 
@@ -10,7 +10,9 @@ Surface architectural friction and propose **deepening opportunities** - refacto
 
 This command is _informed_ by the project's domain model and built on a shared design vocabulary:
 
-- Use the `codebase-design` skill for the architecture vocabulary (**module**, **interface**, **depth**, **seam**, **adapter**, **leverage**, **locality**) and its principles (the deletion test, "the interface is the test surface", "one adapter = hypothetical seam, two = real"). Use these terms exactly in every suggestion - don't drift into "component," "service," "API," or "boundary."
+- Before starting, use the `codebase-design` skill for the architecture vocabulary (**module**, **interface**, **depth**, **seam**, **adapter**, **leverage**, **locality**) and its principles (the deletion test, "the interface is the test surface", "one adapter = hypothetical seam, two = real").
+  Use these terms for architectural claims.
+  Do not substitute "component," "service," "API," or "boundary" when you mean module, interface, or seam.
 - The domain language in `CONTEXT.md` gives names to good seams; ADRs in `docs/adr/` record decisions this command should not re-litigate.
 
 ## Process
@@ -19,7 +21,9 @@ This command is _informed_ by the project's domain model and built on a shared d
 
 Read the project's domain glossary (`CONTEXT.md`) and any ADRs in the area you're touching first.
 
-Then use `fork` for broad codebase exploration when useful, or inspect directly when the area is already narrow. Don't follow rigid heuristics - explore organically and note where you experience friction:
+Use `fork` when the target area spans multiple directories, unclear ownership, or more than one domain concept.
+Inspect directly when the user named a specific module, file, or seam.
+Explore for these signals:
 
 - Where does understanding one concept require bouncing between many small modules?
 - Where are modules **shallow** - interface nearly as complex as the implementation?
@@ -27,24 +31,17 @@ Then use `fork` for broad codebase exploration when useful, or inspect directly 
 - Where do tightly-coupled modules leak across their seams?
 - Which parts of the codebase are untested, or hard to test through their current interface?
 
-Apply the **deletion test** to anything you suspect is shallow: would deleting it concentrate complexity, or just move it? A "yes, concentrates" is the signal you want.
+Apply the **deletion test** to each suspected shallow module: would deleting it concentrate complexity, or just move it?
+A "yes, concentrates" is the signal you want.
+Exploration is complete when you have either three credible deepening candidates or can explain why fewer exist.
+For each candidate, record the involved files, the shallow interface, the hidden implementation complexity, and the deletion-test result.
 
 ### 2. Present candidates as an HTML report
 
-Create a self-contained HTML artifact under `.lavish/reviews/architecture-review-<timestamp>.html` and review it with the Pi Lavish tools. Follow the Lavish design guidance and relevant playbooks before writing; fix layout warnings before treating the report as ready.
-
-The report uses **Tailwind via CDN** for layout and styling, and **Mermaid via CDN** for diagrams where a graph/flow/sequence reliably communicates the structure. Mix Mermaid with hand-crafted CSS/SVG visuals - use Mermaid when relationships are graph-shaped (call graphs, dependencies, sequences), and hand-built divs/SVG when you want something more editorial (mass diagrams, cross-sections, collapse animations). Each candidate gets a **before/after visualisation**. Be visual.
-
-For each candidate, render a card with:
-
-- **Files** - which files/modules are involved
-- **Problem** - why the current architecture is causing friction
-- **Solution** - plain English description of what would change
-- **Benefits** - explained in terms of locality and leverage, and how tests would improve
-- **Before / After diagram** - side-by-side, custom-drawn, illustrating the shallowness and the deepening
-- **Recommendation strength** - one of `Strong`, `Worth exploring`, `Speculative`, rendered as a badge
-
-End the report with a **Top recommendation** section: which candidate you'd tackle first and why.
+Use the `lavish` skill before writing the report.
+Create `.lavish/reviews/architecture-review-<timestamp>.html` using [HTML-REPORT.md](HTML-REPORT.md).
+Include every credible candidate, before/after visuals, and a top recommendation.
+Run the Lavish review and do not hand off until the artifact has no layout warnings.
 
 **Use CONTEXT.md vocabulary for the domain, and the `codebase-design` vocabulary for the architecture.** If `CONTEXT.md` defines "Order," talk about "the Order intake module" - not "the FooBarHandler," and not "the Order service."
 
@@ -57,6 +54,7 @@ Do NOT propose interfaces yet. After the file is written, ask the user: "Which o
 ### 3. Grilling loop
 
 Once the user picks a candidate, use the `grilling` skill to walk the design tree with them - constraints, dependencies, the shape of the deepened module, what sits behind the seam, what tests survive.
+The loop is done when the chosen candidate has a named deep module, proposed interface, hidden implementation, adapters if any, surviving tests, and domain or ADR updates completed or explicitly declined.
 
 Side effects happen inline as decisions crystallize - use the `domain-modeling` skill to keep the domain model current as you go:
 

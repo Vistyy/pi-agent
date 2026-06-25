@@ -1,6 +1,9 @@
 # HTML Report Format
 
-The architectural review is rendered as a single self-contained HTML artifact under `.lavish/reviews/` and reviewed with the Pi Lavish tools. Tailwind and Mermaid both come from CDNs unless the target project or Lavish design guidance points to a better fit. Mermaid handles graph-shaped diagrams reliably; hand-built divs and inline SVG handle the more editorial visuals (mass diagrams, cross-sections). Mix the two - don't lean on Mermaid for everything, it'll start to look generic.
+The architectural review is a single self-contained HTML artifact under `.lavish/reviews/`, reviewed with the `lavish` skill.
+Default to Tailwind and Mermaid from CDNs; deviate only when `lavish` guidance for the target project says to.
+Mermaid handles graph-shaped diagrams reliably; hand-built divs and inline SVG handle the more editorial visuals (mass diagrams, cross-sections).
+Mix the two - don't lean on Mermaid for everything, it'll start to look generic.
 
 ## Scaffold
 
@@ -97,7 +100,8 @@ Before: a tree of function calls rendered as nested boxes. After: the same tree 
 - Colour sparingly: one accent (emerald or indigo) plus red for leakage and amber for warnings.
 - Keep diagrams ~320px tall so before/after sits comfortably side by side without scrolling.
 - Use `text-xs uppercase tracking-wider` for module labels inside diagrams - they should read as schematic, not as UI.
-- The only scripts are the Tailwind CDN and the Mermaid ESM import. The report is otherwise static - no app code, no interactivity beyond Mermaid's own rendering.
+- Scripts stay limited to the Tailwind CDN and Mermaid ESM import unless `lavish` guidance says otherwise.
+  The report is otherwise static - no app code, no interactivity beyond Mermaid's own rendering.
 
 ## Top recommendation section
 

@@ -42,6 +42,7 @@ Write down the plan in one line, in the prototype's location or a top-of-file co
 > "Three variants of the settings page, switchable via `?variant=`, on the existing `/settings` route."
 
 This works whether the user is here to push back or not.
+Complete when the question, route shape, and variant count are written down.
 
 ### 2. Generate radically different variants
 
@@ -51,7 +52,10 @@ Draft each variant. Hold each one to:
 - The project's component library / styling system (TailwindCSS, shadcn, MUI, plain CSS, whatever).
 - A clear exported component name, e.g. `VariantA`, `VariantB`, `VariantC`.
 
-Variants must be **structurally different** - different layout, different information hierarchy, different primary affordance, not just different colours. Three slightly-tweaked card grids isn't a UI prototype, it's wallpaper. If two drafts come out too similar, redo one with explicit "do not use a card grid" guidance.
+Variants must be **structurally different** - different layout, different information hierarchy, different primary affordance, not just different colours.
+Three slightly-tweaked card grids isn't a UI prototype, it's wallpaper.
+If two drafts come out too similar, redo one with explicit "do not use a card grid" guidance.
+Complete when every variant has a distinct layout, information hierarchy, and primary affordance.
 
 ### 3. Wire them together
 
@@ -89,13 +93,21 @@ Behaviour:
 - Visually distinct from the page (e.g. high-contrast pill, subtle shadow) so it's obviously not part of the design being evaluated.
 - Hidden in production builds - gate on `process.env.NODE_ENV !== 'production'` or an equivalent check, so a stray prototype merge can't ship the bar to users.
 
-Put the switcher in a single shared component so both sub-shapes can reuse it. Locate it wherever shared UI lives in the project.
+Put the switcher in a single shared component so both sub-shapes can reuse it.
+Locate it wherever shared UI lives in the project.
+Complete when both direct `?variant=` changes and switcher clicks update the rendered variant, and the current variant survives reload.
 
 ### 5. Hand it over
 
-Before handing it over, use `chrome-devtools-axi` to open the URL, switch through each variant, and check the console. Fix obvious layout breakage or console errors first. If side-by-side screenshots or annotation would help the user choose, create a Lavish review artifact; do not replace the in-app prototype with Lavish.
+Before handing it over, use the `chrome-devtools-axi` skill to open the URL, switch through each variant, and check the console.
+Fix obvious layout breakage or console errors first.
+If side-by-side screenshots or annotation would help the user choose, use the `lavish` skill to create a review artifact; do not replace the in-app prototype with Lavish.
+Complete when each variant loads in the browser, the switcher changes the URL and rendered variant, and the console has no prototype-breaking errors.
 
-Surface the URL (and the `?variant=` keys). The user will flip through whenever they get to it. The interesting feedback is usually **"I want the header from B with the sidebar from C"** - that's the actual design they want.
+Surface the URL and the `?variant=` keys.
+If the app is not already running under the standard dev command, include the command too.
+The user will flip through whenever they get to it.
+The interesting feedback is usually **"I want the header from B with the sidebar from C"** - that's the actual design they want.
 
 ### 6. Capture the answer and clean up
 
@@ -104,7 +116,9 @@ Once a variant has won, write down which one and why (commit message, ADR, issue
 - **Sub-shape A** - delete the losing variants and the switcher; fold the winner into the existing page.
 - **Sub-shape B** - promote the winning variant to a real route, delete the throwaway route and the switcher.
 
-Don't leave variant components or the switcher lying around. They rot fast and confuse the next reader.
+Don't leave variant components or the switcher lying around.
+They rot fast and confuse the next reader.
+Cleanup is complete when only the winning production code and the durable answer remain.
 
 ## Anti-patterns
 

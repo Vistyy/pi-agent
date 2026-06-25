@@ -15,7 +15,10 @@ If the question is "what should this look like" - wrong branch. Use [UI.md](UI.m
 
 ### 1. State the question
 
-Before writing code, write down what state model and what question you're prototyping. One paragraph, in the prototype's README or a comment at the top of the file. A logic prototype that answers the wrong question is pure waste - make the question explicit so it can be checked later, whether the user is watching now or returning to it AFK.
+Before writing code, write down what state model and what question you're prototyping.
+One paragraph, in the prototype's README or a comment at the top of the file.
+A logic prototype that answers the wrong question is pure waste - make the question explicit so it can be checked later, whether the user is watching now or returning to it AFK.
+Complete when the state model, question, and initial action set are written down.
 
 ### 2. Pick the language
 
@@ -36,7 +39,9 @@ The right shape depends on the question:
 
 Pick whichever shape best fits the question being asked, *not* whichever is easiest to wire to a TUI. Keep it pure: no I/O, no terminal code, no `console.log` for control flow. The TUI imports it and calls into it; nothing flows the other direction.
 
-This is what makes the prototype useful past its own lifetime. When the question's been answered, the validated reducer / machine / function set can be lifted into the real module - the TUI shell gets deleted.
+This is what makes the prototype useful past its own lifetime.
+When the question's been answered, the validated reducer / machine / function set can be lifted into the real module - the TUI shell gets deleted.
+Complete when the logic can be imported and exercised without terminal code.
 
 ### 4. Build the smallest TUI that exposes the state
 
@@ -54,21 +59,29 @@ Behaviour:
 3. **Re-render** the full frame after every action - don't append, replace.
 4. **Loop until quit.**
 
-The whole frame should fit on one screen.
+Complete when startup renders a full frame, every action re-renders in place, quit exits, and the whole frame fits on one screen.
 
 ### 5. Make it runnable in one command
 
-Add a script to the project's existing task runner (`package.json` scripts, `Makefile`, `justfile`, `pyproject.toml`). The user should run `pnpm run <prototype-name>` or equivalent - never need to remember a path.
-
+Add a script to the project's existing task runner (`package.json` scripts, `Makefile`, `justfile`, `pyproject.toml`).
+The user should run `pnpm run <prototype-name>` or equivalent - never need to remember a path.
 If the host project has no task runner, just put the command at the top of the prototype's README.
+Complete when the documented command starts the prototype from a clean checkout without the user remembering a file path.
 
 ### 6. Hand it over
 
-Give the user the run command. They'll drive it themselves; the interesting moments are when they say "wait, that shouldn't be possible" or "huh, I assumed X would be different" - those are the bugs in the _idea_, which is the whole point. If they want new actions added, add them. Prototypes evolve.
+Give the user the run command.
+They'll drive it themselves; the interesting moments are when they say "wait, that shouldn't be possible" or "huh, I assumed X would be different" - those are the bugs in the _idea_, which is the whole point.
+If they want new actions added, add them.
+Prototypes evolve.
+Hand-off is complete when the user has the command and the current action list.
 
 ### 7. Capture the answer
 
-When the prototype has done its job, the answer to the question is the only thing worth keeping. If the user is around, ask what it taught them. If not, leave a `NOTES.md` next to the prototype so the answer can be filled in (or filled in by you, if you've watched the session) before the prototype gets deleted.
+When the prototype has done its job, the answer to the question is the only thing worth keeping.
+If the user is around, ask what it taught them.
+If not, leave a `NOTES.md` next to the prototype so the answer can be filled in, or fill it in yourself if you watched the session.
+Complete when the answer is captured or a `NOTES.md` placeholder exists before deletion.
 
 ## Anti-patterns
 
