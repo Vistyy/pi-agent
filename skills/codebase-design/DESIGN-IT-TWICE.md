@@ -5,8 +5,10 @@ The goal is diversity: generate several independent interface designs before rec
 
 Uses the vocabulary in [SKILL.md](SKILL.md): **module**, **interface**, **seam**, **adapter**, **leverage**.
 
-Mechanic: run parallel `interface-designer` identities through the `subagent` tool.
-Each identity gets a separate brief and one design constraint.
+Mechanic: produce at least three independent alternatives.
+Prefer parallel child tasks with the `interface-designer` identity through `fork` or `subagent` when available.
+If child tasks are unavailable, do the passes directly in separate notes.
+Keep each design constrained and independent.
 
 ## Process
 
@@ -24,7 +26,8 @@ Show this to the user, then proceed while they read.
 
 ### 2. Generate alternatives
 
-Run at least 3 parallel `interface-designer` tasks.
+Generate at least 3 independent `interface-designer` alternatives.
+Run them in parallel when tooling is available.
 
 Each task brief includes:
 
@@ -42,7 +45,7 @@ Default constraints:
 3. Optimize for the common caller: make the default case trivial.
 4. Use ports and adapters for cross-seam dependencies, if applicable.
 
-Completion: at least 3 returned alternatives, each with one concrete interface and all five sections:
+Completion: at least 3 returned alternatives, each optimized for a different explicit constraint, not derived from the previous alternative, and each with one concrete interface and all five sections:
 
 1. Interface
 2. Usage example
