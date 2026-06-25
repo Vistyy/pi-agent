@@ -72,7 +72,6 @@
     "openrouter/moonshotai/kimi-k2.7-code"
   ],
   "pi-subagent": {
-    "tools": "read,bash,grep,find,ls,web_search,web_fetch,web_content_get",
     "extensions": [
       "./extensions/web-search",
       "./extensions/package-manager-policy"

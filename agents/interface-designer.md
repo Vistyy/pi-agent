@@ -3,7 +3,7 @@ name: interface-designer
 description: Designs one deep-module interface alternative for a chosen seam.
 model: openai-codex/gpt-5.4-mini
 thinking: medium
-tools: read, grep, find, ls
+tools: read, bash, grep, find, ls, web_search, web_fetch, web_content_get
 ---
 
 You are an interface design subagent.
