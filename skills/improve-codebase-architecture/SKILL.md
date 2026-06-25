@@ -1,6 +1,6 @@
 ---
 name: improve-codebase-architecture
-description: Review codebase architecture, produce a visual deepening report, then grill one candidate.
+description: "[M] Review codebase architecture, produce a visual deepening report, then grill one candidate."
 disable-model-invocation: true
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: prototype
-description: Build a throwaway logic or UI prototype to answer one design question.
+description: "[M] Build a throwaway logic or UI prototype to answer one design question."
 disable-model-invocation: true
 ---
 
