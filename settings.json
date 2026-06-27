@@ -21,8 +21,8 @@
       "id": "gpt-5.4-mini"
     },
     "observerToolOutputPolicies": {
-      "fork": "full-excerpt",
-      "subagent": "full-excerpt"
+      "fork": "full",
+      "subagent": "full"
     },
     "debugLog": true
   },
