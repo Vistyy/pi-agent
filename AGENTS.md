@@ -9,6 +9,11 @@ These are common instructions for agents across all scenarios.
   Preserve normal Markdown structure, but avoid wrapping multiple sentences onto one physical line.
 - When making technical decisions, do not give much weight to development cost.
   Instead, prefer quality, simplicity, robustness, scalability, and long term maintainability.
+- Never put speed over quality when creating solutions.
+  Design a solution so it is easy to maintain, not easy or quick to implement.
+- Always verify facts or hypotheses before stating them.
+  Partial evidence or common sense assumptions are never good enough.
+  If you cannot verify it, say what is unknown.
 - When doing bug fixes, always start with reproducing the bug in an E2E setting as closely aligned with how an end user would experience it as possible.
   This makes sure you find the real problem, so the fix will actually solve it.
 - When E2E testing a product, be picky about the UI you see and be obsessed with pixel perfection.
