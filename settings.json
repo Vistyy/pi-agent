@@ -21,6 +21,13 @@
       "~/projects/pi-extensions/pi-fork/sandbox.ts"
     ],
     "offline": true,
+    "activation": {
+      "command": "direnv",
+      "args": [
+        "exec",
+        "{cwd}"
+      ]
+    },
     "sandbox": {
       "bashNetwork": true,
       "tmpDir": "/tmp"
