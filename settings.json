@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.80.2",
+  "lastChangelogVersion": "0.80.3",
   "defaultProvider": "openai-codex",
   "defaultModel": "gpt-5.5",
   "defaultThinkingLevel": "high",
@@ -9,6 +9,9 @@
     "../../projects/pi-extensions/pi-lavish",
     "../../projects/pi-extensions/pi-fork",
     "../../projects/pi-extensions/pi-subagent"
+  ],
+  "extensions": [
+    "-extensions/pi-swop/index.ts"
   ],
   "terminal": {
     "clearOnShrink": false
