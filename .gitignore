@@ -21,6 +21,8 @@
 !prompts/**
 !skills/
 !skills/**
+!user-skills/
+!user-skills/**
 !themes/
 !themes/**
 !docs/

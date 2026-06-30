@@ -1,6 +1,6 @@
 ---
 name: grill-batch
-description: "[M]Batch the remaining grill questions into one response."
+description: "[M] Batch the remaining grill questions into one response."
 disable-model-invocation: true
 ---
 
