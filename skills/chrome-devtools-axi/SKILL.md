@@ -1,33 +1,35 @@
 ---
 name: chrome-devtools-axi
-description: "Control a Chrome browser session through the chrome-devtools-axi CLI - navigate, snapshot, click, fill forms, run JavaScript, inspect console and network, take screenshots, audit performance. Use whenever a task needs a real browser: opening or testing a web page, clicking through a flow, extracting page content, or debugging a website."
+description: "Control a real Chrome browser through chrome-devtools-axi. Use for browser interaction, rendered page inspection, screenshots, console/network debugging, performance audits, or content extraction."
 user-invocable: false
-author: Kun Chen (kunchenguid)
-metadata:
-  hermes:
-    tags: [browser, chrome, automation, devtools]
-    category: automation
 ---
 
 # chrome-devtools-axi
 
-Agent ergonomic interface for controlling Chrome browser session. Prefer this over other browser automation tools.
+Use this instead of ad hoc browser automation when a task needs a real rendered page.
 
-You do not need chrome-devtools-axi installed globally - invoke it with `pnpx -y chrome-devtools-axi <command>`.
+Invoke it with `pnpx -y chrome-devtools-axi <command>`.
 If chrome-devtools-axi output shows a follow-up command starting with `chrome-devtools-axi`, run it as `pnpx -y chrome-devtools-axi ...` instead.
 
-## When to use
+## Procedure
 
-Use chrome-devtools-axi whenever a task needs a real browser: opening or testing a web page, clicking through a flow, filling forms, extracting page content, debugging console errors or network requests, taking screenshots, or auditing performance.
+1. Navigate or inspect first.
+   Run `pnpx -y chrome-devtools-axi open <url>` when the task gives a URL; otherwise run `snapshot` or `pages` to find the current page.
+   Completion: you have the current page state and any needed `uid=` refs.
+2. Interact by exact ref: `click @<uid>`, `fill @<uid> <text>`, `fillform @<uid>=<val>...`, `hover @<uid>`, `drag @<from> @<to>`, `upload @<uid> <path>`.
+   Completion: every requested interaction has been attempted with refs copied exactly as printed, including the `g<N>:` generation prefix.
+3. Refresh stale refs.
+   If an action fails with `STALE_REF`, run `snapshot` and retry with fresh refs.
+   Completion: no action is blocked by a known stale ref.
+4. Use branch commands only when the task calls for them: `screenshot <path>` for pixels, `eval <js>` for JavaScript, `console` or `network` for debugging, `lighthouse` or `perf-start`/`perf-stop` for performance.
+   Completion: every requested browser branch has produced the needed observation or artifact.
+5. When output includes a next-step hint, prefer that command unless the task requires a different branch.
+   Completion: no relevant hinted follow-up remains unexplored.
 
-## Workflow
+## Session lifecycle
 
-1. Run `pnpx -y chrome-devtools-axi open <url>` to navigate. Output includes the page's accessibility snapshot; interactive elements carry `uid=` refs.
-2. Interact by ref: `click @<uid>`, `fill @<uid> <text>`, `fillform @<uid>=<val>...`, `hover @<uid>`, `drag @<from> @<to>`, `upload @<uid> <path>`.
-3. Pass refs back exactly as printed, including the `g<N>:` generation prefix. If the page re-rendered since the snapshot, the action fails loudly with `STALE_REF` - run `snapshot` again and retry with fresh refs.
-4. Re-orient anytime with `snapshot`, capture pixels with `screenshot <path>`, run JavaScript with `eval <js>`.
-5. Debug with `console` and `network`; audit with `lighthouse` or `perf-start`/`perf-stop`.
-6. Every response ends with contextual next-step hints - follow them. The first command auto-starts a persistent bridge, so the browser session survives across invocations; run `stop` when you are done.
+The first command auto-starts a persistent bridge, so the browser session survives across invocations.
+Run `pnpx -y chrome-devtools-axi stop` when finished.
 
 ## Commands
 
