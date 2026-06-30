@@ -12,4 +12,6 @@ Run typechecking regularly, single test files regularly, and the full test suite
 
 Once done, use /review to review the work.
 
+Once approved mark the piece of work as done.
+
 Commit your work to the current branch.
