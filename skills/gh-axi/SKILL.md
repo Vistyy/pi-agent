@@ -1,7 +1,6 @@
 ---
 name: gh-axi
 description: "Operate GitHub through gh-axi. Use for GitHub issues, pull requests, CI workflow runs, releases, repository metadata, labels, search, or raw GitHub API calls."
-user-invocable: false
 ---
 
 # gh-axi

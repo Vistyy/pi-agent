@@ -1,7 +1,6 @@
 ---
 name: chrome-devtools-axi
 description: "Control a real Chrome browser through chrome-devtools-axi. Use for browser interaction, rendered page inspection, screenshots, console/network debugging, performance audits, or content extraction."
-user-invocable: false
 ---
 
 # chrome-devtools-axi
