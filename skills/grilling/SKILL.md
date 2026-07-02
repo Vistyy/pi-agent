@@ -17,7 +17,7 @@ For each turn:
 2. Name the current decision in one sentence.
 3. If code or docs can answer it, investigate instead of asking.
 4. If the ledger supports a preferred answer, give that recommendation and why.
-5. Ask exactly one question to confirm, reject, or narrow the recommendation.
+5. Ask exactly one question to confirm, reject, or narrow the recommendation just made.
 6. If no recommendation survives the ledger, say why and ask one narrowing question.
 
 A grilling turn is complete only after it either gives a ledger-supported recommendation plus one question, or explains why no recommendation is safe yet plus one question.
