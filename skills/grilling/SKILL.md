@@ -14,12 +14,13 @@ Show only entries relevant to the current question, and occasionally checkpoint 
 For each turn:
 
 1. Update the ledger from the user's last answer.
-2. Name the current decision in one sentence.
-3. If code or docs can answer it, investigate instead of asking.
-4. If the ledger supports a preferred answer, give that recommendation and why.
-5. Ask exactly one question to confirm, reject, or narrow the recommendation just made.
-6. If no recommendation survives the ledger, say why and ask one narrowing question.
+2. If code or docs can answer the current decision, investigate instead of asking.
+3. If the ledger supports a recommendation, state it in one flow: `For <decision>, I recommend <answer>. Reason: <why>. Do you want to accept that?`
+4. If no recommendation survives, say why and ask one narrowing question.
 
-A grilling turn is complete only after it either gives a ledger-supported recommendation plus one question, or explains why no recommendation is safe yet plus one question.
+Keep the current decision implicit when it would duplicate the question.
+Ask exactly one question.
+
+A grilling turn is complete only after it gives one recommendation plus one confirming or narrowing question, or one no-safe-recommendation reason plus one narrowing question.
 
 Never repackage a rejected mechanism under a new name.
