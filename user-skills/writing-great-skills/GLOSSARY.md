@@ -158,6 +158,20 @@ _Failure mode._ Ending the current step before it is genuinely done, because the
 
 _Avoid_: premature closure, the rush, rushing, shortcutting
 
+### Negation
+
+_Failure mode._
+Steering by prohibition: telling the agent what not to do.
+This names the forbidden behavior and makes it more available in context.
+"Do not think of an elephant" makes the elephant salient; "never write verbose comments" activates verbosity.
+The weak negative modifier can be overwhelmed by the strongly activated concept.
+
+Its **leading word** is the _elephant_: the behavior introduced by the prohibition.
+State the **positive** target behavior instead, such as "write one-line comments", so attention lands on supported behavior.
+Use a prohibition only as a hard guardrail when the behavior cannot be expressed positively, and pair it with the positive target.
+
+_Avoid_: ironic rebound, don't-prompting, the pink elephant
+
 ## Pruning
 
 Keeping a skill lean — each remedy paired with the failure it cures.
