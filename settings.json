@@ -4,8 +4,8 @@
     "user-skills"
   ],
   "defaultProvider": "openai-codex",
-  "defaultModel": "gpt-5.5",
-  "defaultThinkingLevel": "high",
+  "defaultModel": "gpt-5.6-sol",
+  "defaultThinkingLevel": "medium",
   "doubleEscapeAction": "tree",
   "theme": "syzom-dark",
   "packages": [
@@ -43,18 +43,18 @@
     "effortProfiles": {
       "fast": {
         "provider": "openai-codex",
-        "id": "gpt-5.4-mini",
+        "id": "gpt-5.6-luna",
         "thinking": "low"
       },
       "balanced": {
         "provider": "openai-codex",
-        "id": "gpt-5.5",
-        "thinking": "low"
+        "id": "gpt-5.6-terra",
+        "thinking": "medium"
       },
       "deep": {
         "provider": "openai-codex",
-        "id": "gpt-5.5",
-        "thinking": "high"
+        "id": "gpt-5.6-sol",
+        "thinking": "medium"
       }
     }
   },

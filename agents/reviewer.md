@@ -1,7 +1,7 @@
 ---
 name: reviewer
 description: Reviews a bounded diff against one supplied axis and returns concise findings.
-model: openai-codex/gpt-5.5
+model: openai-codex/gpt-5.6-terra
 thinking: medium
 tools: read, bash, grep, find, ls, web_search, web_fetch, web_content_get
 ---

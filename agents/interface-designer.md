@@ -1,7 +1,7 @@
 ---
 name: interface-designer
 description: Designs one deep-module interface alternative for a chosen seam.
-model: openai-codex/gpt-5.4-mini
+model: openai-codex/gpt-5.6-terra
 thinking: medium
 tools: read, bash, grep, find, ls, web_search, web_fetch, web_content_get
 ---
