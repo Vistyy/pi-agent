@@ -13,6 +13,11 @@ These are common instructions for agents across all scenarios.
 - Evaluate designs by their end state, not their apparent implementation cost.
   Large implementation changes are often cheap for you to make.
   Do not reject a better architecture or design because it seems expensive to build.
+- Write the positive contract.
+  State the behavior, API, path, or workflow that is valid now.
+  In tests, assert the new observable behavior instead of the absence of a retired implementation.
+  In instructions, comments, and docs, direct readers to the supported path instead of warning them away from the old one.
+  Name retired or forbidden paths only when they are likely hazards, and pair the warning with the supported replacement.
 - Verify before confidence.
   Do not describe something as true, likely, probably, or apparent when you can check it directly.
   Check first, then state the result.
