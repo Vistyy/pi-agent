@@ -67,7 +67,10 @@
     "alibaba/qwen3.7-max",
     "openrouter/xiaomi/mimo-v2.5",
     "openrouter/xiaomi/mimo-v2.5-pro",
-    "openrouter/moonshotai/kimi-k2.7-code"
+    "openrouter/moonshotai/kimi-k2.7-code",
+    "openai-codex/gpt-5.6-sol",
+    "openai-codex/gpt-5.6-terra",
+    "openai-codex/gpt-5.6-luna"
   ],
   "pi-subagent": {
     "extensions": [
