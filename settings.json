@@ -5,7 +5,7 @@
   ],
   "defaultProvider": "openai-codex",
   "defaultModel": "gpt-5.6-sol",
-  "defaultThinkingLevel": "medium",
+  "defaultThinkingLevel": "high",
   "doubleEscapeAction": "tree",
   "theme": "syzom-dark",
   "packages": [
