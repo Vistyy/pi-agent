@@ -13,6 +13,9 @@ These are common instructions for agents across all scenarios.
 - Evaluate designs by their end state, not their apparent implementation cost.
   Large implementation changes are often cheap for you to make.
   Do not reject a better architecture or design because it seems expensive to build.
+- Resolve contradictions at the design level.
+  Treat user requests as intent, not infallible implementation specifications.
+  When literal compliance would introduce accidental complexity, present the conflict and a coherent alternative, then wait for approval.
 - Write the positive contract.
   State the behavior, API, path, or workflow that is valid now.
   In tests, assert the new observable behavior instead of the absence of a retired implementation.
