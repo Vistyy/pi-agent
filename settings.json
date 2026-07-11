@@ -50,12 +50,12 @@
       "balanced": {
         "provider": "openai-codex",
         "id": "gpt-5.6-luna",
-        "thinking": "xhigh"
+        "thinking": "medium"
       },
       "deep": {
         "provider": "openai-codex",
-        "id": "gpt-5.6-sol",
-        "thinking": "medium"
+        "id": "gpt-5.6-luna",
+        "thinking": "max"
       }
     }
   },
