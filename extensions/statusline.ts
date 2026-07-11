@@ -28,10 +28,13 @@ export default function statusline(pi: ExtensionAPI) {
           const git = branch ? gitSummary(ctx.cwd) : undefined;
           const statuses = footerData.getExtensionStatuses();
           const codex = statuses.get("codex-usage");
+          const fast = statuses.get("openai-fast");
 
           const divider = theme.fg("borderMuted", "  │  ");
 
-          const model = segment(theme.fg("accent", "π"), theme.fg("text", `${ctx.model?.id ?? "no model"}:${shortThinking(thinkingLevel)}`));
+          const modelName = theme.fg("text", `${ctx.model?.id ?? "no model"}:${shortThinking(thinkingLevel)}`);
+          const fastIndicator = fast ? theme.fg("accent", stripAnsi(fast)) : "";
+          const model = segment(theme.fg("accent", "π"), `${fastIndicator}${modelName}`);
           const ctxPct = contextUsage?.percent != null ? segment(theme.fg("dim", "ctx"), theme.fg(contextUsage.percent >= 80 ? "warning" : "muted", `${Math.round(contextUsage.percent)}%`)) : undefined;
           const ctxFull = contextUsage?.tokens != null
             ? segment(theme.fg("dim", "ctx"), theme.fg(contextUsage.percent != null && contextUsage.percent >= 80 ? "warning" : "muted", `${Math.round(contextUsage.percent ?? 0)}%/${fmt(contextUsage.contextWindow)}`))

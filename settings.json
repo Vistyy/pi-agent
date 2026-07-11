@@ -22,6 +22,7 @@
   "pi-fork": {
     "tools": "read,bash,grep,find,ls,web_search,web_fetch,web_content_get",
     "extensions": [
+      "./extensions/openai-fast.ts",
       "./extensions/web-search",
       "./extensions/package-manager-policy",
       "~/projects/pi-extensions/pi-fork/sandbox.ts"
@@ -74,6 +75,7 @@
   ],
   "pi-subagent": {
     "extensions": [
+      "./extensions/openai-fast.ts",
       "./extensions/web-search",
       "./extensions/package-manager-policy"
     ],
