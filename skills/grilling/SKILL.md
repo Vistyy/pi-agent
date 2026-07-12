@@ -23,6 +23,7 @@ Only ask an open narrowing question when no defensible recommendation exists.
 If so, explain why first.
 
 Ask exactly one question.
+When asking a question provide enough context that a person not well-versed in the project can understand the topic and question completely.
 
 Never repackage a rejected mechanism under a new name.
 Do not generate proposals just to keep momentum.
