@@ -4,7 +4,7 @@
     "user-skills"
   ],
   "defaultProvider": "openai-codex",
-  "defaultModel": "gpt-5.6-luna",
+  "defaultModel": "gpt-5.6-sol",
   "defaultThinkingLevel": "high",
   "doubleEscapeAction": "tree",
   "theme": "syzom-dark",
@@ -60,15 +60,6 @@
     }
   },
   "enabledModels": [
-    "openai-codex/gpt-5.5",
-    "deepseek/deepseek-v4-flash",
-    "deepseek/deepseek-v4-pro",
-    "openrouter/minimax/minimax-m3",
-    "alibaba/qwen3.7-plus",
-    "alibaba/qwen3.7-max",
-    "openrouter/xiaomi/mimo-v2.5",
-    "openrouter/xiaomi/mimo-v2.5-pro",
-    "openrouter/moonshotai/kimi-k2.7-code",
     "openai-codex/gpt-5.6-sol",
     "openai-codex/gpt-5.6-terra",
     "openai-codex/gpt-5.6-luna"
