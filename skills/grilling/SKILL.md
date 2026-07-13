@@ -29,4 +29,6 @@ Never repackage a rejected mechanism under a new name.
 Do not generate proposals just to keep momentum.
 
 After all decisions are resolved, summarize the shared understanding and ask for final confirmation.
-Record the approved plan, then stop.
+Record the approved plan.
+When the plan is headed toward implementation, recommend `/skill:to-spec` to formalize it, or `/skill:to-tasks` when its specification is already complete and ready for decomposition.
+Then stop.
