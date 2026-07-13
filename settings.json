@@ -4,7 +4,7 @@
     "user-skills"
   ],
   "defaultProvider": "openai-codex",
-  "defaultModel": "gpt-5.6-sol",
+  "defaultModel": "gpt-5.6-luna",
   "defaultThinkingLevel": "high",
   "doubleEscapeAction": "tree",
   "theme": "syzom-dark",
@@ -54,8 +54,8 @@
       },
       "deep": {
         "provider": "openai-codex",
-        "id": "gpt-5.6-luna",
-        "thinking": "xhigh"
+        "id": "gpt-5.6-terra",
+        "thinking": "high"
       }
     }
   },
