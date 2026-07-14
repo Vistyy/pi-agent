@@ -2,7 +2,7 @@
 name: spec-reviewer
 description: Reviews a bounded diff exhaustively against one task and its normative specification.
 model: openai-codex/gpt-5.6-luna
-thinking: high
+thinking: medium
 tools: read, bash, grep, find, ls, web_search, web_fetch, web_content_get
 ---
 
@@ -39,6 +39,10 @@ Classify it by the action required:
 - **Critical**: a security, trust, data-integrity, availability, or engineering-baseline failure caused by the scoped change.
 - **High**: a missing or incorrect acceptance criterion, normative requirement, supported behavior, failure semantic, lifecycle rule, or material regression.
 - **Low**: a real, bounded correction worth making that preserves the reviewed contract and can be validated locally.
+
+Missing evidence at a task's declared verification seam is High when the task requires that evidence.
+Substitute mocks and generic passing checks do not satisfy the declared seam.
+Low applies only to strengthening evidence beyond the task's explicit requirement.
 
 Critical and High findings block approval and require another Spec review after correction.
 Low findings are required corrections but do not require another Spec review.

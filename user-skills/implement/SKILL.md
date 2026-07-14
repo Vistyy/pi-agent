@@ -56,7 +56,8 @@ Preserve each review axis latch:
 - `APPROVED WITH REQUIRED COMMENTS` latches before its findings are fixed.
 - `APPROVED` latches immediately.
 
-After each correction batch, rerun the required checks and commit.
+A correction batch resolves every finding returned by the preceding review invocation.
+After the complete correction batch is implemented, rerun the required checks and commit.
 Invoke `/code-review` again with the same baseline and task source only while an axis remains pending.
 The review lifecycle reruns pending axes and never reruns a latched axis.
 
@@ -70,4 +71,4 @@ Commit that update and rerun the required checks without reopening either review
 A substantive implementation or contract change returns to delivery and starts a new review lifecycle after it is complete.
 Report the final commit, verification evidence, completed task reference, and both latched review statuses.
 
-Completion criterion: the reviewed implementation is committed, the administrative completion update is committed, every required check passes, both review axes are latched, and the task is marked done.
+Completion criterion: the reviewed implementation is committed, the administrative completion update is committed, every acceptance criterion remains demonstrated, every reviewer finding remains resolved, every required check passes, both review axes are latched, and the task is marked done.

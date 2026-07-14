@@ -1,17 +1,19 @@
 ---
 name: code-review
-description: Review a bounded change along Standards and Spec axes. Use when the user wants a branch, task, pull request, or work-in-progress change reviewed from a fixed point.
+description: Review a bounded change along Spec and Standards axes. Use when the user wants a branch, task, pull request, or work-in-progress change reviewed from a fixed point.
 ---
 
 # Code Review
 
-Review one bounded diff through two independent axes:
+Review one bounded diff through two sequential axes:
 
-- **Standards**: repository standards and long-term design health.
 - **Spec**: the approved task and its normative specification.
+- **Standards**: repository standards and long-term design health.
 
 Each axis has a dedicated reviewer identity.
 A review axis **latches** when it approves and remains latched for the rest of that review lifecycle.
+A latch controls reviewer invocation only.
+Every reported finding remains required implementation work.
 
 ## 1. Pin the review
 
@@ -37,15 +39,9 @@ Start a new lifecycle only when one of those values changes or the user explicit
 
 Completion criterion: the repository, fixed point, and task resolve, the diff is non-empty, and both axis states are known.
 
-## 2. Run pending axes
+## 2. Run the Spec gate
 
-Run all pending axes in one parallel `subagent` call with the repository as each child's working directory.
-Do not run a latched axis.
-
-For each pending axis, invoke only its matching identity.
-Invoke `standards-reviewer` only when Standards is pending.
-Invoke `spec-reviewer` only when Spec is pending.
-Give every invoked identity only:
+When Spec is pending, invoke `spec-reviewer` with:
 
 ```text
 Repository: <repository path>
@@ -54,37 +50,56 @@ Task: <task path>
 Review the current HEAD according to your identity.
 ```
 
-The identities own source discovery, coverage, judgment, severity, and reporting.
-Do not add review policy, word limits, selected hunks, suspected findings, or abbreviated review instructions to their tasks.
+Interpret its status immediately:
 
-Completion criterion: every pending axis returns one complete report beginning with a valid status.
+- `BLOCKED`: keep Spec pending, keep Standards pending, and return for a complete correction batch.
+- `APPROVED WITH REQUIRED COMMENTS`: latch Spec, keep Standards pending, and return for a complete correction batch.
+- `APPROVED`: latch Spec and continue to Standards in this invocation.
+- `INVALID REVIEW REQUEST`: keep both axes pending, correct the request, and retry Spec.
+- Missing or unrecognized status: keep both axes pending and retry Spec with a valid request.
 
-## 3. Update latches
+When Spec was already latched before this invocation, continue to Standards.
+Never rerun a latched Spec axis.
 
-Interpret each report independently:
+Completion criterion: the Spec result either returns the invocation for a complete correction batch or permits Standards to run.
 
-- `BLOCKED`: keep the axis pending.
-- `APPROVED WITH REQUIRED COMMENTS`: latch the axis immediately.
-- `APPROVED`: latch the axis immediately.
-- `INVALID REVIEW REQUEST`: keep the axis pending and correct the missing input before retrying.
-- Missing or unrecognized status: treat the response as invalid, keep the axis pending, and retry the same identity with a valid request.
+## 3. Run Standards
 
-A latch is permanent for this review lifecycle.
-Corrections made after approval do not reopen that axis.
-Severity controls re-review, not whether the caller must apply a finding.
+Run Standards only after Spec is latched and every Spec finding returned by the preceding invocation has been corrected.
+When Standards is pending, invoke `standards-reviewer` with:
 
-Completion criterion: every report has updated exactly one axis state and every approval is latched.
+```text
+Repository: <repository path>
+Fixed point: <full commit SHA>
+Review the current HEAD according to your identity.
+```
+
+Interpret its status:
+
+- `BLOCKED`: keep Standards pending.
+- `APPROVED WITH REQUIRED COMMENTS`: latch Standards immediately.
+- `APPROVED`: latch Standards immediately.
+- `INVALID REVIEW REQUEST`: keep Standards pending, correct the request, and retry it.
+- Missing or unrecognized status: keep Standards pending and retry it with a valid request.
+
+Never rerun a latched Standards axis.
+Corrections made after approval do not reopen an axis.
+Severity controls re-review, not whether the caller applies a finding.
+
+Completion criterion: Standards is pending with one complete report returned for correction, or latched.
 
 ## 4. Report
 
-Present the complete reports under `## Standards` and `## Spec`.
+Present the complete reports in execution order under `## Spec` and `## Standards`.
 For a latched axis that was not run, report its saved approval status as `latched` without reconstructing its findings.
+For Standards that has not reached its gate, report it as `pending` and state that Spec corrections come first.
 Do not merge, dismiss, rerank, or soften reviewer findings.
 
 End with both axis states and the required next action:
 
-- Apply every reported finding.
-- Rerun only pending axes after their findings are corrected.
-- Finish when both axes are latched and required validation passes.
+- Apply every finding returned by this invocation.
+- Invoke review again only after that complete correction batch is implemented and required validation passes.
+- Rerun only pending axes.
+- Finish when both axes are latched, every reported finding is resolved, and required validation passes.
 
-Completion criterion: both reports or saved latch states are visible, every pending axis is identified, and the next action follows directly from the statuses.
+Completion criterion: both axis states are visible, every report from this invocation is preserved, and the next action follows directly from the statuses.
