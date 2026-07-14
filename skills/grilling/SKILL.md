@@ -1,34 +1,37 @@
 ---
 name: grilling
-description: Interview the user relentlessly about a plan or design. Use when the user wants to stress-test a plan before building, or uses any 'grill' trigger phrases.
+description: Grill a plan or design. Use when the user wants to stress-test it before building, or uses a 'grill' trigger phrase.
 ---
 
 Grill the design.
-Walk the design tree relentlessly, resolving dependent decisions one at a time until the shared understanding is explicit.
-Turn fuzzy intent into explicit accepted, rejected, and unresolved decisions.
+Walk the decision tree relentlessly, one unresolved point at a time, until the shared understanding is explicit.
 
-A grilling session produces an approved plan.
-It may investigate and edit planning artifacts; implementation belongs to a separate session.
-"Continue" and "proceed" advance the plan only.
+Keep a decision ledger:
+
+- Facts are established by repository evidence or authoritative documentation.
+- Settled decisions come from the plan, specification, ADRs, or prior user answers.
+- Open points are material gaps, conflicts, or choices not resolved by facts or settled decisions.
+
+Treat facts and settled decisions as constraints.
+Ask only about open points.
+A resolved point becomes settled for the rest of the session.
+Treat settled behavior as a constraint while investigating its implementation mechanism.
 
 For each turn:
 
-1. If code or docs can answer the current point, investigate instead of asking.
-   Treat the result as a fact.
-2. Make the strongest defensible recommendation for the current decision.
-3. Explain the reason briefly.
-4. Put the decision to the user and wait for their answer.
+1. Investigate code and docs that could resolve the current point as fact.
+2. Select the next open point.
+3. For a choice, give the strongest defensible recommendation and brief reason.
+4. Ask exactly one self-contained question, then wait.
 
-Only ask an open narrowing question when no defensible recommendation exists.
-If so, explain why first.
+Use an open narrowing question only when no defensible recommendation exists, and explain why.
+Keep rejected mechanisms rejected.
+Advance only on material open points.
 
-Ask exactly one question.
-When asking a question provide enough context that a person not well-versed in the project can understand the topic and question completely.
+A grilling session produces an approved plan; implementation belongs to a separate session.
+"Continue" and "proceed" advance the plan only.
 
-Never repackage a rejected mechanism under a new name.
-Do not generate proposals just to keep momentum.
-
-After all decisions are resolved, summarize the shared understanding and ask for final confirmation.
-Record the approved plan.
-When the plan is headed toward implementation, recommend `/skill:to-spec` to formalize it, or `/skill:to-tasks` when its specification is already complete and ready for decomposition.
+Completion: every material point is a fact or settled decision.
+Summarize and seek approval only for the plan created or changed in this session, then record it.
+Recommend `/skill:to-spec` when the plan needs formalization, or `/skill:to-tasks` when its specification is ready for decomposition.
 Then stop.
