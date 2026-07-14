@@ -40,17 +40,31 @@ Completion criterion: every acceptance criterion is implemented and directly dem
 ## 4. Verify and review strictly
 
 Run every required check recorded in step 2 and commit the completed task.
-Invoke `/code-review <baseline> <task-source>` with the recorded values.
-Resolve every finding by fixing confirmed in-scope problems or recording evidence that a judgement call does not apply.
-Route a confirmed finding that crosses the task boundary through the vertical slice rules.
-For each in-scope fix, rerun the required checks, commit, and invoke `/code-review` again with the same baseline and task source.
+Start one `/code-review <baseline> <task-source>` lifecycle with the recorded values.
+Treat every reviewer finding as binding.
+Fix every in-scope Critical, High, and Low finding rather than adjudicating it against the implementing agent's preferences.
+Route a finding that crosses the task boundary through the vertical slice rules.
+A routed finding pauses completion until the user approves its task owner and dependency relationship.
+When it is a prerequisite for the current task, wait for that prerequisite to complete before resuming.
 
-Completion criterion: every required check passes and every Standards and Spec finding for the task is resolved.
+Preserve each review axis latch:
+
+- `BLOCKED` remains pending after its findings are fixed.
+- `APPROVED WITH REQUIRED COMMENTS` latches before its findings are fixed.
+- `APPROVED` latches immediately.
+
+After each correction batch, rerun the required checks and commit.
+Invoke `/code-review` again with the same baseline and task source only while an axis remains pending.
+The review lifecycle reruns pending axes and never reruns a latched axis.
+
+Completion criterion: every in-scope finding is fixed, every routed finding has an approved task owner and dependency, every required check passes, and both Standards and Spec axes are latched.
 
 ## 5. Finish
 
 Mark the task done through the repository's workflow.
-If this changes tracked files, commit the update and run the verification and review loop again.
-Report the final commit, verification evidence, and completed task reference.
+The completion update may change only administrative status, completion evidence, and commit references.
+Commit that update and rerun the required checks without reopening either review latch.
+A substantive implementation or contract change returns to delivery and starts a new review lifecycle after it is complete.
+Report the final commit, verification evidence, completed task reference, and both latched review statuses.
 
-Completion criterion: the implementation is committed and reviewed, the task is marked done, and any tracked completion update is committed and reviewed.
+Completion criterion: the reviewed implementation is committed, the administrative completion update is committed, every required check passes, both review axes are latched, and the task is marked done.

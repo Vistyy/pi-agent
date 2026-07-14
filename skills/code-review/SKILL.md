@@ -1,110 +1,90 @@
 ---
 name: code-review
-description: Review the changes since a fixed point (commit, branch, tag, or merge-base) along two axes - Standards (does the code follow this repo's documented coding standards?) and Spec (does the code match what the originating issue/PRD asked for?). Runs both reviews in parallel reviewer subagents and reports them side by side. Use when the user wants to review a branch, a PR, work-in-progress changes, or asks to "review since X".
+description: Review a bounded change along Standards and Spec axes. Use when the user wants a branch, task, pull request, or work-in-progress change reviewed from a fixed point.
 ---
 
-Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
+# Code Review
 
-- **Standards** - does the code conform to this repo's documented coding standards?
-- **Spec** - does the code faithfully implement the originating issue / PRD / spec?
+Review one bounded diff through two independent axes:
 
-Both axes run as parallel `reviewer` subagents so they do not pollute each other's context.
-Then this skill aggregates their findings.
+- **Standards**: repository standards and long-term design health.
+- **Spec**: the approved task and its normative specification.
 
-For issue tracker references, use the repo's `docs/agents/issue-tracker.md` workflow if present.
-For GitHub issues or PRs, use `gh-axi` via `pnpx -y gh-axi ...`.
+Each axis has a dedicated reviewer identity.
+A review axis **latches** when it approves and remains latched for the rest of that review lifecycle.
 
-## Process
+## 1. Pin the review
 
-### 1. Pin the fixed point
+Record:
 
-Whatever the user said is the fixed point: a commit SHA, branch name, tag, `main`, `HEAD~5`, etc.
-If they did not specify one, ask for it.
+- The repository path.
+- The fixed point as a full commit SHA.
+- The task path.
 
-Capture the diff command once: `git diff <fixed-point>...HEAD`.
-Use three-dot comparison so the diff is against the merge-base.
-Also note the list of commits via `git log <fixed-point>..HEAD --oneline`.
+Use the fixed point the user supplied.
+If none was supplied, ask for it.
+Resolve it with `git rev-parse` and confirm `git diff <fixed-point>...HEAD` is non-empty.
 
-Before going further, confirm the fixed point resolves with `git rev-parse <fixed-point>` and the diff is non-empty.
-A bad ref or empty diff should fail here, not inside two parallel subagents.
+Use a task path supplied by the user or caller.
+Otherwise, identify it from commit messages or matching local task documents.
+If no task can be found, ask for it.
+For GitHub references, use `gh-axi` through `pnpx -y gh-axi ...`.
 
-### 2. Identify the spec source
+The repository, full fixed-point SHA, and task path identify one review lifecycle.
+On the first invocation, initialize both axes as pending.
+On later invocations with the same values, preserve their latch state from the conversation.
+Start a new lifecycle only when one of those values changes or the user explicitly requests a fresh review.
 
-Look for the originating spec, in this order:
+Completion criterion: the repository, fixed point, and task resolve, the diff is non-empty, and both axis states are known.
 
-1. Issue or PR references in the commit messages, such as `#123`, `Closes #45`, or GitLab `!67`.
-   Fetch these through `docs/agents/issue-tracker.md` if present, or through `gh-axi` for GitHub repos.
-2. A path the user passed as an argument.
-3. A PRD/spec file under `docs/`, `specs/`, or `.scratch/` matching the branch name or feature.
-4. If nothing is found, ask the user where the spec is.
-   If they say there is not one, the **Spec** subagent will skip and report "no spec available".
+## 2. Run pending axes
 
-### 3. Identify the standards sources
+Run all pending axes in one parallel `subagent` call with the repository as each child's working directory.
+Do not run a latched axis.
 
-Anything in the repo that documents how code should be written, such as `CODING_STANDARDS.md` or `CONTRIBUTING.md`.
+For each pending axis, invoke only its matching identity.
+Invoke `standards-reviewer` only when Standards is pending.
+Invoke `spec-reviewer` only when Spec is pending.
+Give every invoked identity only:
 
-On top of whatever the repo documents, the Standards axis always carries the **smell baseline** below.
-It is a fixed set of Fowler code smells from _Refactoring_, ch. 3, that applies even when a repo documents nothing.
-Two rules bind it:
+```text
+Repository: <repository path>
+Fixed point: <full commit SHA>
+Task: <task path>
+Review the current HEAD according to your identity.
+```
 
-- **The repo overrides.**
-  A documented repo standard always wins.
-  Where it endorses something the baseline would flag, suppress the smell.
-- **Always a judgement call.**
-  Each smell is a labelled heuristic, such as "possible Feature Envy", never a hard violation.
-  Like any standard here, skip anything tooling already enforces.
+The identities own source discovery, coverage, judgment, severity, and reporting.
+Do not add review policy, word limits, selected hunks, suspected findings, or abbreviated review instructions to their tasks.
 
-Each smell reads *what it is* -> *how to fix*.
-Match it against the diff:
+Completion criterion: every pending axis returns one complete report beginning with a valid status.
 
-- **Mysterious Name** - a function, variable, or type whose name does not reveal what it does or holds. -> rename it; if no honest name comes, the design is murky.
-- **Duplicated Code** - the same logic shape appears in more than one hunk or file in the change. -> extract the shared shape, call it from both.
-- **Feature Envy** - a method that reaches into another object's data more than its own. -> move the method onto the data it envies.
-- **Data Clumps** - the same few fields or params keep travelling together, like a type wanting to be born. -> bundle them into one type, pass that.
-- **Primitive Obsession** - a primitive or string standing in for a domain concept that deserves its own type. -> give the concept its own small type.
-- **Repeated Switches** - the same `switch`/`if` cascade on the same type recurs across the change. -> replace with polymorphism, or one map both sites share.
-- **Shotgun Surgery** - one logical change forces scattered edits across many files in the diff. -> gather what changes together into one module.
-- **Divergent Change** - one file or module is edited for several unrelated reasons. -> split so each module changes for one reason.
-- **Speculative Generality** - abstraction, parameters, or hooks added for needs the spec does not have. -> delete it; inline back until a real need shows.
-- **Message Chains** - long `a.b().c().d()` navigation the caller should not depend on. -> hide the walk behind one method on the first object.
-- **Middle Man** - a class or function that mostly just delegates onward. -> cut it, call the real target direct.
-- **Refused Bequest** - a subclass or implementer that ignores or overrides most of what it inherits. -> drop the inheritance, use composition.
+## 3. Update latches
 
-### 4. Spawn both subagents in parallel
+Interpret each report independently:
 
-Use the `subagent` tool in parallel mode with agent `reviewer` for both axes.
-The reviewer personality supplies the general review behavior.
-The parent prompt supplies the axis.
+- `BLOCKED`: keep the axis pending.
+- `APPROVED WITH REQUIRED COMMENTS`: latch the axis immediately.
+- `APPROVED`: latch the axis immediately.
+- `INVALID REVIEW REQUEST`: keep the axis pending and correct the missing input before retrying.
+- Missing or unrecognized status: treat the response as invalid, keep the axis pending, and retry the same identity with a valid request.
 
-**Standards subagent prompt** - include:
+A latch is permanent for this review lifecycle.
+Corrections made after approval do not reopen that axis.
+Severity controls re-review, not whether the caller must apply a finding.
 
-- The full diff command and commit list.
-- The list of standards-source files you found in step 3, plus the smell baseline from step 3 pasted in full.
-  The subagent has no other access to it.
-- The brief: "Report, per file/hunk where relevant: (a) every place the diff violates a documented standard: cite the standard (file + the rule); and (b) any baseline smell you spot: name it and quote the hunk. Distinguish hard violations from judgement calls - documented-standard breaches can be hard, but baseline smells are always judgement calls, and a documented repo standard overrides the baseline. Skip anything tooling enforces. Under 400 words."
+Completion criterion: every report has updated exactly one axis state and every approval is latched.
 
-**Spec subagent prompt** - include:
+## 4. Report
 
-- The diff command and commit list.
-- The path or fetched contents of the spec.
-- The brief: "Report: (a) requirements the spec asked for that are missing or partial; (b) behaviour in the diff that was not asked for (scope creep); (c) requirements that look implemented but where the implementation looks wrong. Quote the spec line for each finding. Under 400 words."
+Present the complete reports under `## Standards` and `## Spec`.
+For a latched axis that was not run, report its saved approval status as `latched` without reconstructing its findings.
+Do not merge, dismiss, rerank, or soften reviewer findings.
 
-If the spec is missing, skip the Spec subagent and note this in the final report.
+End with both axis states and the required next action:
 
-### 5. Aggregate
+- Apply every reported finding.
+- Rerun only pending axes after their findings are corrected.
+- Finish when both axes are latched and required validation passes.
 
-Present the two reports under `## Standards` and `## Spec` headings, verbatim or lightly cleaned.
-Do **not** merge or rerank findings.
-The two axes are deliberately separate.
-
-End with a one-line summary: total findings per axis, and the worst issue within each axis if any.
-Do not pick a single winner across axes.
-
-## Why two axes
-
-A change can pass one axis and fail the other:
-
-- Code that follows every standard but implements the wrong thing -> **Standards pass, Spec fail.**
-- Code that does exactly what the issue asked but breaks the project's conventions -> **Spec pass, Standards fail.**
-
-Reporting them separately stops one axis from masking the other.
+Completion criterion: both reports or saved latch states are visible, every pending axis is identified, and the next action follows directly from the statuses.
