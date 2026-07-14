@@ -49,12 +49,12 @@
       },
       "balanced": {
         "provider": "openai-codex",
-        "id": "gpt-5.6-luna",
-        "thinking": "high"
+        "id": "gpt-5.6-terra",
+        "thinking": "low"
       },
       "deep": {
         "provider": "openai-codex",
-        "id": "gpt-5.6-terra",
+        "id": "gpt-5.6-luna",
         "thinking": "high"
       }
     }
