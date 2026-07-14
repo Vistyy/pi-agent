@@ -10,11 +10,13 @@ disable-model-invocation: true
 
 Read the requested task, its linked specification and normative references, the repository instructions, and the `vertical-slices` skill.
 Implementation starts from one approved task rather than a bare specification.
-Confirm that the task is one tracer-bullet vertical slice or one independently green expand-contract stage, every blocker is complete, every acceptance criterion has a primary verification seam, and the required behavior is unambiguous and consistent with its normative references and repository evidence.
+Run a silent readiness audit across the task, its normative references, prior decisions, and repository evidence.
+Treat each supported behavior, scope boundary, and constraint as settled; collect only material gaps or conflicts as open points.
+Confirm that the task is one tracer-bullet vertical slice or one independently green expand-contract stage, every blocker is complete, and every acceptance criterion has a primary verification seam.
 If the task fails the vertical slice rules, stop before recording a baseline or editing and propose flat replacement tasks for user approval.
-If a material ambiguity or conflict cannot be resolved from authoritative context, stop before recording a baseline or editing, report the exact unresolved point, and wait for the user's decision.
+If an open point cannot be resolved from authoritative context, stop before recording a baseline or editing, report the exact unresolved point, and wait for the user's decision.
 
-Completion criterion: repository evidence confirms every vertical slice rule, every blocker is complete, every acceptance criterion has a primary verification seam, and no material ambiguity or conflict remains.
+Completion criterion: repository evidence confirms every vertical slice rule, every blocker is complete, every acceptance criterion has a primary verification seam, and every material behavior, scope boundary, and constraint is settled.
 
 ## 2. Record the scoped baseline
 
