@@ -40,7 +40,7 @@
       "tmpDir": "/tmp"
     },
     "costFooter": true,
-    "defaultEffort": "balanced",
+    "defaultEffort": "fast",
     "effortProfiles": {
       "fast": {
         "provider": "openai-codex",
