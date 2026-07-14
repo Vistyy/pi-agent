@@ -47,17 +47,24 @@ A concern that is not worth requiring is omitted rather than reported as an opti
 
 ## Simplicity and type baseline
 
-Use the named phrases as leading words for their reference traditions:
+Use these established leading phrases as review lenses:
 
-- *A Philosophy of Software Design*: **Deep modules** hide substantial behavior behind a small interface.
-- *A Philosophy of Software Design*: **Information leakage** exposes decisions that belong inside a module.
-- *A Philosophy of Software Design*: **Different layer, different abstraction** keeps adjacent interfaces from restating the same knowledge.
-- *A Philosophy of Software Design*: **Define errors out of existence** prefers an interface whose valid use cannot produce the error.
-- *Effective TypeScript*: **Types are sets of values** checks whether unions, intersections, and narrowing describe the runtime values honestly.
-- *Effective TypeScript*: **Prefer declarations to assertions** lets the checker verify relationships instead of overriding it.
-- *Domain Modeling Made Functional*: **Make illegal states unrepresentable** gives distinct domain states distinct valid shapes.
-- *Domain Modeling Made Functional*: **Parse at the boundary** converts untrusted input into domain values once at its trust seam.
-- *Domain Modeling Made Functional*: **Total functions** represent every valid input and failure explicitly.
+- **Deep modules** hide substantial behavior behind a small interface.
+- **Information leakage** exposes decisions that belong inside a module.
+- **Different layer, different abstraction** keeps adjacent interfaces from restating the same knowledge.
+- **Define errors out of existence** prefers an interface whose valid use cannot produce the error.
+- **Types are sets of values** checks whether unions, intersections, and narrowing describe the runtime values honestly.
+- **Prefer declarations to assertions** lets the checker verify relationships instead of overriding it.
+- **Make illegal states unrepresentable** gives distinct domain states distinct valid shapes.
+- **Parse at the boundary** converts untrusted input into domain values once at its trust seam.
+- **Total functions** represent every valid input and failure explicitly.
+- **High cohesion, low coupling** keeps behavior and state that change together under one owner with a narrow dependency surface.
+- **Functional core, imperative shell** separates deterministic policy from side effects and lifecycle wiring.
+- **Command-query separation** makes an operation either return information or change state.
+- **Minimize mutability** keeps state only where lifecycle behavior requires it.
+- **Dependency inversion** keeps stable policy from depending directly on volatile implementation details.
+- **Hyrum's Law** treats observable interface behavior as a potential caller dependency.
+- **Single source of truth** gives each policy or fact one authoritative representation.
 - **Escape hatch** identifies `any`, assertions, suppression directives, or placeholder `never` used to silence a type mismatch rather than model the domain.
 
 Types should reduce what callers must know.
@@ -66,7 +73,7 @@ Apply language-specific checks only where the changed language supports them.
 
 ## Smell baseline
 
-Use the established smells from *Refactoring* as leading words.
+Use these established smells as leading words.
 Repository standards override this baseline.
 Treat each smell as a judgment anchored in concrete impact rather than an automatic violation:
 
