@@ -7,6 +7,7 @@ export default function openaiFast(pi: ExtensionAPI) {
 	let enabled = process.env[ENV_KEY] === "1";
 
 	pi.on("session_start", (_event, ctx) => {
+		if (!ctx.hasUI) return;
 		ctx.ui.setStatus(STATUS_ID, enabled ? ctx.ui.theme.fg("accent", "⚡") : undefined);
 	});
 

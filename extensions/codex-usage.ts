@@ -45,6 +45,7 @@ let requestId = 0;
 
 export default function (pi: ExtensionAPI) {
 	async function refresh(ctx: ExtensionContext, force = false, model = ctx.model): Promise<void> {
+		if (!ctx.hasUI) return;
 		if (!isCodexModel(model)) {
 			clearStatus(ctx);
 			return;
@@ -113,6 +114,7 @@ function setStatus(ctx: ExtensionContext, report: Report, model: PiModel | undef
 }
 
 function clearStatus(ctx: ExtensionContext): void {
+	if (!ctx.hasUI) return;
 	requestId++;
 	if (refreshTimer) clearTimeout(refreshTimer);
 	refreshTimer = undefined;
