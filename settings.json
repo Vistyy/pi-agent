@@ -10,7 +10,6 @@
   "theme": "syzom-dark",
   "packages": [
     "../../projects/pi-extensions/pi-lavish",
-    "../../projects/pi-extensions/pi-fork",
     "../../projects/pi-extensions/pi-subagent"
   ],
   "extensions": [
@@ -19,58 +18,59 @@
   "terminal": {
     "clearOnShrink": false
   },
-  "pi-fork": {
-    "tools": "read,bash,grep,find,ls,web_search,web_fetch,web_content_get",
-    "extensions": [
-      "./extensions/openai-fast.ts",
-      "./extensions/web-search",
-      "./extensions/package-manager-policy",
-      "~/projects/pi-extensions/pi-fork/sandbox.ts"
-    ],
-    "offline": true,
-    "activation": {
-      "command": "direnv",
-      "args": [
-        "exec",
-        "{cwd}"
-      ]
-    },
-    "sandbox": {
-      "bashNetwork": true,
-      "tmpDir": "/tmp"
-    },
-    "costFooter": true,
-    "defaultEffort": "fast",
-    "effortProfiles": {
-      "fast": {
-        "provider": "openai-codex",
-        "id": "gpt-5.6-luna",
-        "thinking": "low"
-      },
-      "balanced": {
-        "provider": "openai-codex",
-        "id": "gpt-5.6-luna",
-        "thinking": "medium"
-      },
-      "deep": {
-        "provider": "openai-codex",
-        "id": "gpt-5.6-luna",
-        "thinking": "high"
-      }
-    }
-  },
   "enabledModels": [
     "openai-codex/gpt-5.6-sol",
     "openai-codex/gpt-5.6-terra",
     "openai-codex/gpt-5.6-luna"
   ],
   "pi-subagent": {
-    "extensions": [
-      "./extensions/openai-fast.ts",
-      "./extensions/web-search",
-      "./extensions/package-manager-policy"
-    ],
-    "offline": true
+    "fork": {
+      "tools": "read,bash,grep,find,ls,web_search,web_fetch,web_content_get",
+      "extensions": [
+        "./extensions/openai-fast.ts",
+        "./extensions/web-search",
+        "./extensions/package-manager-policy",
+        "~/projects/pi-extensions/pi-subagent/sandbox.ts"
+      ],
+      "offline": true,
+      "activation": {
+        "command": "direnv",
+        "args": [
+          "exec",
+          "{cwd}"
+        ]
+      },
+      "sandbox": {
+        "bashNetwork": true,
+        "tmpDir": "/tmp"
+      },
+      "defaultEffort": "fast",
+      "effortProfiles": {
+        "fast": {
+          "provider": "openai-codex",
+          "id": "gpt-5.6-luna",
+          "thinking": "low"
+        },
+        "balanced": {
+          "provider": "openai-codex",
+          "id": "gpt-5.6-luna",
+          "thinking": "medium"
+        },
+        "deep": {
+          "provider": "openai-codex",
+          "id": "gpt-5.6-luna",
+          "thinking": "high"
+        }
+      }
+    },
+    "subagent": {
+      "extensions": [
+        "./extensions/openai-fast.ts",
+        "./extensions/web-search",
+        "./extensions/package-manager-policy"
+      ],
+      "offline": true
+    }
   },
   "showCacheMissNotices": true
 }
