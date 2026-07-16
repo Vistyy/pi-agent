@@ -4,7 +4,8 @@ description: Grill a plan or design. Use when the user wants to stress-test it b
 ---
 
 Grill the design.
-Walk the decision tree relentlessly, one unresolved point at a time, until the shared understanding is explicit.
+Use progressive elaboration.
+Understand the whole plan at low resolution, then investigate and settle only the open points that require a shared decision before execution.
 
 Keep a decision ledger:
 
@@ -31,7 +32,7 @@ Advance only on material open points.
 A grilling session produces an approved plan; implementation belongs to a separate session.
 "Continue" and "proceed" advance the plan only.
 
-Completion: every material point is a fact or settled decision.
+Completion: the plan is coherent enough to specify or decompose, and every remaining choice can be made locally and reversibly during execution.
 Summarize and seek approval only for the plan created or changed in this session, then record it.
 Recommend `/skill:to-spec` when the plan needs formalization, or `/skill:to-tasks` when its specification is ready for decomposition.
 Then stop.

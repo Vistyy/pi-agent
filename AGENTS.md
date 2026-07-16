@@ -10,9 +10,10 @@ These are common instructions for agents across all scenarios.
   If unrelated changes interfere with your work, stop and ask how to proceed.
 - When writing or substantially editing long Markdown files, put each full sentence on its own line.
   Preserve normal Markdown structure, but avoid wrapping multiple sentences onto one physical line.
-- Evaluate designs by their end state, not their apparent implementation cost.
-  Large implementation changes are often cheap for you to make.
-  Do not reject a better architecture or design because it seems expensive to build.
+- Plan through progressive elaboration and build through evolutionary design.
+  Understand the whole problem at low resolution before refining it.
+  Let uncertainty and the cost of being wrong determine where deeper planning is worthwhile.
+  Leave local and reversible choices to execution, then use evidence to refine the design.
 - Resolve contradictions at the design level.
   Treat user requests as intent, not infallible implementation specifications.
   When literal compliance would introduce accidental complexity, present the conflict and a coherent alternative, then wait for approval.
@@ -25,10 +26,9 @@ These are common instructions for agents across all scenarios.
   Do not describe something as true, likely, probably, or apparent when you can check it directly.
   Check first, then state the result.
   If you cannot check it, say what is known, what is unknown, and why it cannot be verified yet.
-- Optimize for the future maintainer, not the current edit.
-  Do not choose an implementation because it is the smallest or easiest code change right now.
-  Prefer the structure that will be easiest to understand, test, extend, debug, and delete later.
-  If the maintainable solution requires refactoring, new seams, or better instrumentation, do that instead of patching around a poor structure.
+- Treat system complexity as a continuing cost even when writing code is cheap.
+  Prefer the smallest coherent design that supports current intent and keeps future change understandable.
+  Add structure for known needs and concrete evidence rather than hypothetical flexibility.
 - For bug fixes, reproduce first.
   Before changing code, reproduce the bug as close to the end user's experience as possible.
   Prefer an E2E or integration reproduction over a narrow unit-level reproduction.
