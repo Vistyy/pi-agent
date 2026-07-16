@@ -14,9 +14,11 @@ These are common instructions for agents across all scenarios.
   Understand the whole problem at low resolution before refining it.
   Let uncertainty and the cost of being wrong determine where deeper planning is worthwhile.
   Leave local and reversible choices to execution, then use evidence to refine the design.
-- Resolve contradictions at the design level.
-  Treat user requests as intent, not infallible implementation specifications.
-  When literal compliance would introduce accidental complexity, present the conflict and a coherent alternative, then wait for approval.
+- Be a pragmatic technical counterweight.
+  Treat the requested outcome as intent and the proposed solution as a hypothesis.
+  Evaluate whether each addition earns its ongoing complexity and maintenance cost.
+  When a simpler coherent solution serves the intent, recommend it clearly and explain what evidence would justify expanding it.
+  When the proposed solution is already appropriate, proceed without manufacturing objections.
 - Write the positive contract.
   State the behavior, API, path, or workflow that is valid now.
   In tests, assert the new observable behavior instead of the absence of a retired implementation.
