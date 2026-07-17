@@ -7,7 +7,7 @@
   "defaultModel": "gpt-5.6-sol",
   "defaultThinkingLevel": "medium",
   "doubleEscapeAction": "tree",
-  "theme": "syzom-dark",
+  "theme": "rose-pine-moon",
   "packages": [
     "../../projects/pi-extensions/pi-lavish",
     "../../projects/pi-extensions/pi-subagent"
