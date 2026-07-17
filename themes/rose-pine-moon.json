@@ -31,7 +31,7 @@
     "text": "text",
     "thinkingText": "muted",
     "selectedBg": "overlay",
-    "userMessageBg": "surface",
+    "userMessageBg": "overlay",
     "userMessageText": "text",
     "customMessageBg": "surface",
     "customMessageText": "text",
