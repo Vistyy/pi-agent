@@ -3,6 +3,7 @@ These are common instructions for agents across all scenarios.
 
 ## General guidelines
 
+- The user's GitHub username is `Vistyy`.
 - Never use the em dash "—". Use plain dash "-" instead.
 - Never manually modify files that are marked as auto-generated.
 - Do not revert user or external changes.
