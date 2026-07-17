@@ -19,13 +19,12 @@ Completion criterion: the current behavior, agreed product decisions, domain voc
 
 ## 2. Confirm testing seams
 
-Sketch the seams at which the feature will be tested.
-Prefer existing seams to new ones and use the highest seam possible.
-Propose any required new seam at the highest practical point.
-Prefer fewer seams, ideally one.
+Read and apply the canonical [layered seams](../../skills/tdd/SKILL.md#layered-seams) rule.
+Prefer existing public seams to new ones.
+Sketch the primary acceptance seam and the supporting seams needed for behavior variations and external contracts.
 Ask the user to confirm that these seams match their expectations.
 
-Completion criterion: the user has confirmed the testing seams.
+Completion criterion: the user has confirmed the primary acceptance seam and supporting test seams.
 
 ## 3. Write the specification
 

@@ -30,8 +30,17 @@ Tests live at seams, never against internals.
 
 **Test only at appropriate public seams.**
 Before writing any test, identify the seams under test and check that they are public boundaries for observable behavior.
-You cannot test everything.
-Choosing seams up front keeps testing effort on critical paths and complex logic instead of every edge case.
+Choosing seams up front keeps testing effort on material behaviors and risks.
+
+### Layered seams
+
+Layer tests by purpose:
+
+- Prove critical acceptance paths with a few tests at the highest practical public seam.
+- Cover behavior variations at the lowest public seam that reliably observes them.
+- Verify external contracts at their adapter seams.
+
+Expensive environment setup belongs only in tests where that integration is part of the behavior being proved.
 
 ## Anti-patterns
 

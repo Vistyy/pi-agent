@@ -13,12 +13,15 @@ Product coherence does not make several capabilities one implementation task.
 Identify:
 
 - The one observable capability the task delivers.
-- The highest practical verification seam through which that capability is demonstrated.
+- The primary public verification seam through which that capability is demonstrated end to end.
 - The required observable behaviors it owns and their source requirements.
 - Its explicit acceptance criteria.
 - Its prerequisites and blocking tasks.
 
-Completion criterion: the capability, verification seam, owned behaviors, acceptance criteria, and blockers are explicit.
+The primary seam is acceptance evidence, not the exclusive test location.
+Apply the canonical [layered seams](../tdd/SKILL.md#layered-seams) rule for behavior variations and external contracts.
+
+Completion criterion: the capability, primary verification seam, owned behaviors, acceptance criteria, and blockers are explicit.
 
 ## 2. Apply the vertical slice rules
 
