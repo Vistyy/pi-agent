@@ -42,6 +42,7 @@
       },
       "sandbox": {
         "bashNetwork": true,
+        "homeAccess": "overlay",
         "tmpDir": "/tmp"
       },
       "defaultEffort": "fast",
