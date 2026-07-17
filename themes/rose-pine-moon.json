@@ -29,7 +29,7 @@
     "muted": "subtle",
     "dim": "muted",
     "text": "text",
-    "thinkingText": "text",
+    "thinkingText": "muted",
     "selectedBg": "overlay",
     "userMessageBg": "surface",
     "userMessageText": "text",
