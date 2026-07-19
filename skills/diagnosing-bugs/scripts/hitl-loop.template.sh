@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Human-in-the-loop reproduction loop.
-# Copy this file, edit the steps below, and run it.
+# Copy this file.
+# Edit the steps below.
+# Run the copied file.
 # The agent runs the script; the user follows prompts in their terminal.
 #
 # Usage:
@@ -28,9 +30,11 @@ capture() {
 
 # --- edit below ---------------------------------------------------------
 
-step "Open the app at http://localhost:3000 and sign in."
+step "Open the app at http://localhost:3000."
+step "Sign in."
+step "Click the 'Export' button."
 
-capture ERRORED "Click the 'Export' button. Did it throw an error? (y/n)"
+capture ERRORED "Did the Export action show an error? (y/n)"
 
 capture ERROR_MSG "Paste the error message (or 'none'):"
 

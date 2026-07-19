@@ -147,7 +147,7 @@ Confirm all these statements:
 - Each metaphor in normative prose has a literal replacement.
 - Each sentence above the length threshold was reviewed deliberately.
 - Requirements, rationale, and examples are distinguishable.
-- Exact technical text remains unchanged.
+- Exact technical text outside the requested changes remains unchanged.
 - The rewrite preserves the original technical meaning.
 
 The prose is complete when every applicable statement is true and the document-specific completion criteria are also satisfied.

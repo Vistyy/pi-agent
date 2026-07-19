@@ -1,25 +1,23 @@
 # When to Mock
 
-Mock at **system boundaries** only:
+Use a mock only at a system seam where the test cannot use the production dependency safely or deterministically.
 
-- External APIs (payment, email, etc.)
-- Databases (sometimes - prefer test DB)
-- Time/randomness
-- File system (sometimes)
+Common mock seams include:
 
-Don't mock:
+- External payment or email APIs.
+- A database when a representative test database is unavailable or unsuitable for the test.
+- Time and randomness.
+- A filesystem when a representative temporary filesystem is unsuitable for the test.
 
-- Your own classes/modules
-- Internal collaborators
-- Anything you control
+Use real implementations for code that the project owns.
+Test internal collaborators together through their public interface.
 
-## Designing for Mockability
+## Design a mockable seam
 
-At system boundaries, design interfaces that are easy to mock:
+### Inject external dependencies
 
-**1. Use dependency injection**
-
-Pass external dependencies in rather than creating them internally:
+Pass an external dependency into the module.
+This lets the test supply a controlled adapter.
 
 ```typescript
 // Easy to mock
@@ -34,9 +32,10 @@ function processPayment(order) {
 }
 ```
 
-**2. Prefer SDK-style interfaces over generic fetchers**
+### Use operation-specific interfaces
 
-Create specific functions for each external operation instead of one generic function with conditional logic:
+Define one function for each external operation.
+Each mock can then return one known result without conditional request handling.
 
 ```typescript
 // GOOD: Each function is independently mockable
@@ -52,8 +51,9 @@ const api = {
 };
 ```
 
-The SDK approach means:
-- Each mock returns one specific shape
-- No conditional logic in test setup
-- Easier to see which endpoints a test exercises
-- Type safety per endpoint
+An operation-specific interface provides:
+
+- One result shape for each mock function.
+- No conditional request routing in test setup.
+- An explicit list of external operations used by the test.
+- A type contract for each operation.

@@ -4,90 +4,96 @@ description: "[M] Initialize a TypeScript project with the shared quality toolin
 disable-model-invocation: true
 ---
 
-# Initialize a TypeScript project
+# Initialize a TypeScript Project
 
-Set up a strict, project-adapted quality baseline.
-Use [`QUALITY-BASELINE.md`](QUALITY-BASELINE.md) for tool configuration.
+Create a strict quality baseline that matches the project's runtime, framework, paths, and approved architecture.
+Use [QUALITY-BASELINE.md](QUALITY-BASELINE.md) for the tool contracts.
 
 ## Request
 
 $ARGUMENTS
 
-## 1. Inspect
+## 1. Inspect the repository
 
-Read the repository instructions and determine:
+Read the repository instructions.
+Record:
 
-- runtime, module system, framework, and package manager
-- production, test, generated, build, fixture, and coverage paths
-- current TypeScript, formatting, linting, testing, CI, and packaging setup
-- existing architecture documentation and dependency rules
+- The runtime, module system, framework, and package manager.
+- Production, test, generated, build, fixture, and coverage paths.
+- Current TypeScript, formatting, linting, testing, CI, and packaging configuration.
+- Existing architecture documentation and dependency rules.
+- Every existing quality command and its caller.
 
-Preserve existing project choices unless the quality baseline requires an explicit change.
+Preserve current project choices unless an approved baseline change requires a replacement.
 
-**Complete when:** every relevant path and existing quality command is accounted for.
+This step is complete when every listed path, configuration, and command is accounted for.
 
 ## 2. Agree on architecture
 
-Summarize the architecture already documented or visible in the project.
-Discuss with the user:
+Summarize the architecture documented or visible in the repository.
+Ask the user to confirm:
 
-- the project's modules and vocabulary
-- allowed dependency directions
-- important seams around external effects
-- approved exceptions
-- which decisions should be enforced automatically
+- Module names and project vocabulary.
+- Allowed dependency directions.
+- Seams around external effects.
+- Approved exceptions.
+- Decisions that require automated enforcement.
 
-Record the agreed architecture in the repository before encoding it.
-Architecture enforcement may be deferred while the shared quality tooling is initialized.
+Record the approved architecture in the repository before encoding an architecture rule.
+The user can defer architecture enforcement while the shared quality tools are initialized.
 
-**Complete when:** the user has approved the architecture rules to encode now, or explicitly chosen to defer them.
+This step is complete when the user approves the rules to encode or explicitly defers them.
 
-## 3. Establish the Just command surface
+## 3. Establish the Just interface
 
-Pin the runtime, package manager, dependencies, and lockfile through the project's chosen mechanism.
-Expose recurring workflows through Just.
-Package-manager and tool commands remain recipe implementation details.
-Package lifecycle hooks delegate to Just where the ecosystem requires them.
+Pin the runtime, package manager, dependencies, and lockfile with the project's selected version mechanism.
+Expose recurring repository operations as Just recipes.
+Keep package-manager and tool commands inside the recipes.
+Make required package lifecycle hooks call the corresponding Just recipe.
 
-Provide the applicable standard recipes from the reference, including `just quality`.
+Provide each applicable standard recipe from the reference, including `just quality`.
 
-**Complete when:** `just` lists every recurring workflow used by humans, agents, documentation, and CI.
+This step is complete when `just` lists every recurring operation used by people, agents, documentation, and CI.
 
 ## 4. Configure shared quality checks
 
 Configure:
 
-- strict TypeScript with runtime-specific module settings
-- Biome formatting and linting
-- Vitest with explicit test and coverage settings
-- Fallow dead-code, dependency, cycle, duplication, suppression, and health checks
-- configuration-file validation
+- Strict TypeScript with runtime-specific module settings.
+- Biome formatting and linting.
+- Vitest test and coverage behavior.
+- Fallow dead-code, dependency, cycle, duplication, suppression, and health checks.
+- Configuration-file validation.
 
-Choose measured coverage and health thresholds.
-Align entrypoints and exclusions across all tools.
+Measure the repository before setting coverage and health thresholds.
+Align entrypoints and exclusions across the tools.
 
-**Complete when:** every shared quality recipe passes and all source, test, generated, and configuration paths are handled intentionally.
+This step is complete when every shared quality recipe passes.
+Each source, test, generated, and configuration path must have an explicit treatment.
 
 ## 5. Encode approved architecture checks
 
-When architecture rules were approved in step 2:
+When step 2 approves architecture rules:
 
-- use Fallow boundaries and policies for dependency-graph rules
-- use ast-grep for syntax patterns or bypasses that import rules cannot express
-- name the supported module or seam in diagnostics
-- add matcher fixtures for each ast-grep rule
+- Use Fallow boundaries and policies for dependency-graph rules.
+- Use ast-grep for syntax or bypass rules that import analysis cannot express.
+- Name the supported module or seam in each diagnostic.
+- Add valid and invalid fixtures for each ast-grep rule.
 
-Create `sgconfig.yml` only when the project has custom ast-grep rules or rule tests.
-If architecture enforcement was deferred, omit project-specific boundaries and structural rules.
+Create `sgconfig.yml` when the project has custom ast-grep rules or rule tests.
+When architecture enforcement is deferred, configure only the shared quality baseline.
 
-**Complete when:** every configured architecture rule maps to an approved decision and proves its diagnostic with a fixture or disposable violation.
+This step is complete when each configured architecture rule maps to an approved decision.
+Each custom rule must demonstrate its diagnostic through a fixture or disposable violation.
 
-## 6. Enforce and verify
+## 6. Verify the baseline
 
-Configure `AGENTS.md`, project documentation, and CI to use Just recipes.
-Run the complete gate in the pinned environment and from a clean checkout or disposable workspace.
+Configure `AGENTS.md`, project documentation, and CI to call Just recipes.
+Run the complete gate in the pinned environment.
+Run it from a clean checkout or disposable workspace.
 Inspect Git status after the gate.
 
 Resolve every formatting failure, lint finding, type error, test failure, configuration error, Fallow finding, and ast-grep finding.
 
-**Complete when:** bootstrap and quality recipes succeed from a clean state, CI invokes the same recipes, and the quality gate leaves tracked files unchanged.
+The baseline is complete when bootstrap and quality recipes pass from a clean state.
+CI must invoke the same recipes, and the gate must leave tracked files unchanged.

@@ -1,95 +1,111 @@
 # Logic Prototype
 
-A tiny interactive terminal app that lets the user drive a state model by hand. Use this when the question is about **business logic, state transitions, or data shape** - the kind of thing that looks reasonable on paper but only feels wrong once you push it through real cases.
+A logic prototype is a small interactive terminal application for evaluating a state model.
+Use it for business logic, state transitions, data shapes, or an interface that requires manual exploration.
 
-## When this is the right shape
+## Applicable questions
 
-- "I'm not sure if this state machine handles the edge case where X then Y."
-- "Does this data model actually let me represent the case where..."
-- "I want to feel out what the API should look like before writing it."
-- Anything where the user wants to **press buttons and watch state change**.
+Use this prototype for questions such as:
 
-If the question is "what should this look like" - wrong branch. Use [UI.md](UI.md).
+- Does the state machine handle a specified event sequence?
+- Can the data model represent a specified case?
+- Which interface makes the required state transitions clear?
+- Which actions are valid in each state?
+
+For a visual-design question, use [UI.md](UI.md).
 
 ## Process
 
 ### 1. State the question
 
-Before writing code, write down what state model and what question you're prototyping.
-One paragraph, in the prototype's README or a comment at the top of the file.
-A logic prototype that answers the wrong question is pure waste - make the question explicit so it can be checked later, whether the user is watching now or returning to it AFK.
-Complete when the state model, question, and initial action set are written down.
+Before you write code, record the state model and the one question that the prototype must answer.
+Put this information in the prototype README or at the top of the prototype file.
+Record the initial action set.
 
-### 2. Pick the language
+This step is complete when the state model, question, and initial actions are explicit.
 
-Use whatever the host project uses. If the project has no obvious runtime (e.g. a docs repo), ask.
+### 2. Select the language and tooling
 
-Match the project's existing conventions for tooling - don't add a new package manager or runtime just for the prototype.
+Use the host project's language and runtime.
+If the project has no runtime, ask the user which runtime to use.
+Use the project's package manager and task runner.
 
-### 3. Isolate the logic in a portable module
+### 3. Isolate portable logic
 
-Put the actual logic - the bit that's answering the question - behind a small, pure interface that could be lifted out and dropped into the real codebase later. The TUI around it is throwaway; the logic module shouldn't be.
+Put the state model and transition logic behind a small pure interface.
+Keep all terminal I/O in the TUI shell.
+The TUI imports and calls the logic module.
+The logic module must not call the TUI.
 
-The right shape depends on the question:
+Select the structure that matches the question:
 
-- **A pure reducer** - `(state, action) => state`. Good when actions are discrete events and state is a single value.
-- **A state machine** - explicit states and transitions. Good when "which actions are even legal right now" is part of the question.
-- **A small set of pure functions** over a plain data type. Good when there's no implicit current state - just transformations.
-- **A class or module with a clear method surface** when the logic genuinely owns ongoing internal state.
+- **Pure reducer**: Use `(state, action) => state` for discrete events and one state value.
+- **State machine**: Use explicit states and transitions when valid actions depend on the current state.
+- **Pure functions**: Use functions over a plain data type when no current state is implicit.
+- **Class or module**: Use a stateful interface when the logic owns persistent in-memory state.
 
-Pick whichever shape best fits the question being asked, *not* whichever is easiest to wire to a TUI. Keep it pure: no I/O, no terminal code, no `console.log` for control flow. The TUI imports it and calls into it; nothing flows the other direction.
+Select the structure for the domain behavior rather than for terminal convenience.
+Keep the logic free of I/O, terminal code, and `console.log` control flow.
 
-This is what makes the prototype useful past its own lifetime.
-When the prototype answers the question, lift the validated reducer, machine, or function set into the real module.
-Preserve the TUI shell with the complete prototype on the throwaway branch.
+When the prototype answers the question, commit the complete prototype to the throwaway branch.
+Then move the validated logic into the production module on the main branch.
 Remove the TUI shell from the main branch.
-Complete when the logic can be imported and exercised without terminal code.
 
-### 4. Build the smallest TUI that exposes the state
+This step is complete when callers can import and exercise the logic without terminal code.
 
-Build it as a **lightweight TUI** - on every tick, clear the screen (`console.clear()` / `print("\033[2J\033[H")` / equivalent) and re-render the whole frame. The user should always see one stable view, not an ever-growing scrollback.
+### 4. Build the TUI
 
-Each frame has two parts, in this order:
+On each update, clear the terminal and render one complete frame.
+Use `console.clear()`, `print("\033[2J\033[H")`, or the runtime equivalent.
+Keep the complete frame visible on one screen.
 
-1. **Current state**, pretty-printed and diff-friendly (one field per line, or formatted JSON). Use **bold** for field names or section headers and **dim** for less important context (timestamps, IDs, derived values). Native ANSI escape codes are fine - `\x1b[1m` bold, `\x1b[2m` dim, `\x1b[0m` reset. No need to pull in a styling library unless one is already in the project.
-2. **Keyboard shortcuts**, listed at the bottom: `[a] add user  [d] delete user  [t] tick clock  [q] quit`. Bold the key, dim the description, or vice-versa - whatever reads cleanly.
+Render these sections in order:
 
-Behaviour:
+1. **Current state**: Show one field per line or formatted JSON.
+   Use bold text for field names or section headings.
+   Use dim text for secondary context.
+   Native ANSI codes are sufficient: `\x1b[1m`, `\x1b[2m`, and `\x1b[0m`.
+2. **Keyboard shortcuts**: Show each key and action, such as `[a] add user  [d] delete user  [t] tick clock  [q] quit`.
 
-1. **Initialise state** - a single in-memory object/struct. Render the first frame on start.
-2. **Read one keystroke (or one line)** at a time, dispatch to a handler that mutates state.
-3. **Re-render** the full frame after every action - don't append, replace.
-4. **Loop until quit.**
+Implement the interaction loop:
 
-Complete when startup renders a full frame, every action re-renders in place, quit exits, and the whole frame fits on one screen.
+1. Initialize one in-memory state value.
+2. Render the initial frame.
+3. Read one keystroke or line.
+4. Dispatch the input to one action handler.
+5. Render the complete frame again.
+6. Repeat until the user selects quit.
 
-### 5. Make it runnable in one command
+This step is complete when every action replaces the frame, quit exits, and the frame fits on one screen.
 
-Add a script to the project's existing task runner (`package.json` scripts, `Makefile`, `justfile`, `pyproject.toml`).
-The user should run `pnpm run <prototype-name>` or equivalent - never need to remember a path.
-If the host project has no task runner, just put the command at the top of the prototype's README.
-Complete when the documented command starts the prototype from a clean checkout without the user remembering a file path.
+### 5. Provide one run command
 
-### 6. Hand it over
+Add a command to the existing task runner, such as `pnpm run <prototype-name>`.
+If no task runner exists, put the exact command at the top of the prototype README.
 
-Give the user the run command.
-They'll drive it themselves; the interesting moments are when they say "wait, that shouldn't be possible" or "huh, I assumed X would be different" - those are the bugs in the _idea_, which is the whole point.
-If they want new actions added, add them.
-Prototypes evolve.
-Hand-off is complete when the user has the command and the current action list.
+This step is complete when the documented command starts the prototype from a clean checkout.
+
+### 6. Hand off the prototype
+
+Give the user the run command and current action list.
+Let the user exercise the state model.
+Add actions when the user needs another case to answer the stated question.
+
+This step is complete when the user can run the prototype and exercise every current action.
 
 ### 7. Capture the answer and prototype
 
-When the prototype answers its question, ask the user what the prototype demonstrated.
-Capture the question and answer in a durable location.
-Commit the complete prototype to a throwaway branch before you remove the TUI shell from the main branch.
+Ask the user what the prototype demonstrated.
+Record the question and answer in a durable location.
+Commit the complete prototype to a throwaway branch before removing the TUI shell from the main branch.
 Record the branch name and prototype commit with the answer.
-Complete when the main branch contains the validated logic and the durable answer points to the preserved prototype.
 
-## Anti-patterns
+This process is complete when the main branch contains the validated logic and the durable answer points to the preserved prototype.
 
-- **Don't add tests.** A prototype that needs tests is no longer a prototype.
-- **Don't wire it to the real database.** Use an in-memory store unless the question is specifically about persistence.
-- **Don't generalise.** No "what if we wanted to support X later." The prototype answers one question.
-- **Don't blur the logic and the TUI together.** If the reducer / state machine references `console.log`, prompts, or terminal escape codes, it's no longer portable. Keep the TUI as a thin shell over a pure module.
-- **Don't ship the TUI shell into production.** The shell is optimised for being driven by hand from a terminal. The logic module behind it is the bit worth keeping.
+## Guardrails
+
+- Use the prototype for exploration without adding tests.
+- Use in-memory state unless persistence is the stated question.
+- Implement only behavior required to answer the stated question.
+- Keep domain logic in the portable logic module.
+- Keep the TUI shell on the throwaway branch and outside production code.

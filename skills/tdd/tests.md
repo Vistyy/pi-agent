@@ -1,8 +1,9 @@
 # Good and Bad Tests
 
-## Good Tests
+## Good tests
 
-**Integration-style**: Test through real interfaces, not mocks of internal parts.
+Test observable behavior through a public interface.
+Use real implementations for internal collaborators.
 
 ```typescript
 // GOOD: Tests observable behavior
@@ -14,17 +15,17 @@ test("user can checkout with valid cart", async () => {
 });
 ```
 
-Characteristics:
+A good test:
 
-- Tests behavior users/callers care about
-- Uses public API only
-- Survives internal refactors
-- Describes WHAT, not HOW
-- One logical assertion per test
+- Asserts behavior exposed by the public interface.
+- Uses only the public interface.
+- Continues to pass after an internal refactor.
+- Describes the observable behavior in its name.
+- Contains one logical assertion.
 
-## Bad Tests
+## Implementation-coupled tests
 
-**Implementation-detail tests**: Coupled to internal structure.
+An implementation-coupled test asserts internal structure or collaboration.
 
 ```typescript
 // BAD: Tests implementation details
@@ -35,14 +36,14 @@ test("checkout calls paymentService.process", async () => {
 });
 ```
 
-Red flags:
+A test is implementation-coupled when it:
 
-- Mocking internal collaborators
-- Testing private methods
-- Asserting on call counts/order
-- Test breaks when refactoring without behavior change
-- Test name describes HOW not WHAT
-- Verifying through external means instead of interface
+- Mocks an internal collaborator.
+- Tests a private method.
+- Asserts an internal call count or order.
+- Fails after an internal refactor that preserves behavior.
+- Describes implementation steps instead of observable behavior.
+- Verifies a result through a side channel instead of the public interface.
 
 ```typescript
 // BAD: Bypasses interface to verify
@@ -60,7 +61,10 @@ test("createUser makes user retrievable", async () => {
 });
 ```
 
-**Tautological tests**: Expected value restates the implementation, so the test passes by construction.
+## Tautological tests
+
+A tautological test calculates its expected value with the same logic as the implementation.
+It cannot detect an error shared by both calculations.
 
 ```typescript
 // BAD: Expected value is recomputed the way the code computes it

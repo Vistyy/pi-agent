@@ -1,15 +1,17 @@
 ---
 name: domain-modeling
-description: Build and sharpen a project's domain model. Use when the user wants to pin down domain terminology or a ubiquitous language, record an architectural decision, or when another skill needs to maintain the domain model.
+description: Use when defining domain terms, resolving inconsistent terminology, testing relationships between domain concepts, recording domain decisions, maintaining a project's domain model, or when another skill needs to maintain the domain model.
 ---
 
 # Domain Modeling
 
-Actively build and sharpen the project's domain model as you design. This is the *active* discipline — challenging terms, inventing edge-case scenarios, and writing the glossary and decisions down the moment they crystallise. (Merely *reading* `CONTEXT.md` for vocabulary is not this skill — that's a one-line habit any skill can do. This skill is for when you're changing the model, not just consuming it.)
+Use this skill when you change a project's domain model.
+Use it to define terms, test relationships, and record resolved decisions.
+Reading `CONTEXT.md` without changing the model does not require this skill.
 
-## File structure
+## Find the applicable context
 
-Most repos have a single context:
+Most repositories have one context:
 
 ```
 /
@@ -21,7 +23,8 @@ Most repos have a single context:
 └── src/
 ```
 
-If a `CONTEXT-MAP.md` exists at the root, the repo has multiple contexts. The map points to where each one lives:
+If `CONTEXT-MAP.md` exists at the repository root, the repository has multiple contexts.
+Use the map to find each context:
 
 ```
 /
@@ -37,38 +40,72 @@ If a `CONTEXT-MAP.md` exists at the root, the repo has multiple contexts. The ma
 │       └── docs/adr/
 ```
 
-Create files lazily — only when you have something to write. If no `CONTEXT.md` exists, create one when the first term is resolved. If no `docs/adr/` exists, create it when the first ADR is needed.
+Create files when you have content to record.
+Create the applicable `CONTEXT.md` when the user resolves the first term.
+Create the applicable `docs/adr/` when the first ADR is required.
+Use the root locations for system-wide decisions and a context's locations for context-specific decisions.
 
-## During the session
+## Maintain the model during the session
 
-### Challenge against the glossary
+### Resolve inconsistent terms
 
-When the user uses a term that conflicts with the existing language in `CONTEXT.md`, call it out immediately. "Your glossary defines 'cancellation' as X, but you seem to mean Y — which is it?"
+If the user uses a term that conflicts with the applicable `CONTEXT.md`:
 
-### Sharpen fuzzy language
+1. State the existing definition.
+2. State how the user's meaning differs.
+3. Ask which meaning is correct.
 
-When the user uses vague or overloaded terms, propose a precise canonical term. "You're saying 'account' — do you mean the Customer or the User? Those are different things."
+Example:
 
-### Discuss concrete scenarios
+> The applicable `CONTEXT.md` defines cancellation as X, but you appear to mean Y.
+> Which meaning is correct?
 
-When domain relationships are being discussed, stress-test them with specific scenarios. Invent scenarios that probe edge cases and force the user to be precise about the boundaries between concepts.
+### Clarify vague terms
 
-### Cross-reference with code
+If a term has multiple possible meanings, identify the possible concepts.
+Propose one canonical term for each concept.
 
-When the user states how something works, check whether the code agrees. If you find a contradiction, surface it: "Your code cancels entire Orders, but you just said partial cancellation is possible — which is right?"
+Example:
 
-### Update CONTEXT.md inline
+> Does `account` refer to the Customer or the User?
+> These terms identify different concepts.
 
-When a term is resolved, update `CONTEXT.md` right there. Don't batch these up — capture them as they happen. Use the format in [CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md).
+### Test domain relationships
 
-`CONTEXT.md` should be totally devoid of implementation details. Do not treat `CONTEXT.md` as a spec, a scratch pad, or a repository for implementation decisions. It is a glossary and nothing else.
+When the user describes a relationship between concepts, test it with specific scenarios.
+Include edge cases that clarify the boundary between each concept.
+Ask the user to resolve any ambiguous result.
 
-### Offer ADRs sparingly
+### Verify statements against the code
 
-Only offer to create an ADR when all three are true:
+When the user states how the system works, inspect the applicable code.
+If the code and the statement conflict:
 
-1. **Hard to reverse** — the cost of changing your mind later is meaningful
-2. **Surprising without context** — a future reader will wonder "why did they do it this way?"
-3. **The result of a real trade-off** — there were genuine alternatives and you picked one for specific reasons
+1. Describe the behavior in the code.
+2. Describe the conflicting statement.
+3. Ask which behavior defines the current domain model.
 
-If any of the three is missing, skip the ADR. Use the format in [ADR-FORMAT.md](./ADR-FORMAT.md).
+Example:
+
+> The code cancels an entire Order.
+> You stated that partial cancellation is possible.
+> Which behavior is correct?
+
+### Record resolved terms
+
+Update the applicable `CONTEXT.md` immediately after the user resolves a term.
+Use [CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md).
+
+Use each `CONTEXT.md` only for domain terms and definitions in its scope.
+Record specifications and implementation details in the applicable technical documentation.
+Record qualifying architectural decisions as ADRs.
+
+### Offer an ADR
+
+Offer to create an ADR only when all three conditions apply:
+
+1. **Hard to reverse**: Changing the decision later has a meaningful cost.
+2. **Surprising without context**: A future reader will need the reason for the decision.
+3. **Real trade-off**: The decision selected one option from multiple valid alternatives.
+
+If all conditions apply, use [ADR-FORMAT.md](./ADR-FORMAT.md).

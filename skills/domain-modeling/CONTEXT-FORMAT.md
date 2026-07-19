@@ -1,16 +1,16 @@
-# CONTEXT.md Format
+# `CONTEXT.md` Format
 
 ## Structure
 
 ```md
 # {Context Name}
 
-{One or two sentence description of what this context is and why it exists.}
+{Describe the context and its purpose in one or two sentences.}
 
 ## Language
 
 **Order**:
-{A one or two sentence description of the term}
+{Define the term in one or two sentences.}
 _Avoid_: Purchase, transaction
 
 **Invoice**:
@@ -22,27 +22,34 @@ A person or organization that places orders.
 _Avoid_: Client, buyer, account
 ```
 
-## Rules
+## Define the language
 
-- **Be opinionated.** When multiple words exist for the same concept, pick the best one and list the others under `_Avoid_`.
-- **Keep definitions tight.** One or two sentences max. Define what it IS, not what it does.
-- **Only include terms specific to this project's context.** General programming concepts (timeouts, error types, utility patterns) don't belong even if the project uses them extensively. Before adding a term, ask: is this a concept unique to this context, or a general programming concept? Only the former belongs.
-- **Group terms under subheadings** when natural clusters emerge. If all terms belong to a single cohesive area, a flat list is fine.
+- Select one canonical term for each concept.
+- List alternative terms under `_Avoid_`.
+- Define each term in one or two sentences.
+- Define what the term identifies.
+- Include only concepts that are specific to the project context.
+- Group terms under subheadings when natural groups appear.
+- Use a flat list when all terms belong to one group.
 
-## Single vs multi-context repos
+Before you add a term, confirm that it identifies a project-specific concept.
+Keep general programming concepts in the applicable technical documentation.
 
-**Single context (most repos):** One `CONTEXT.md` at the repo root.
+## Select the repository structure
 
-**Multiple contexts:** A `CONTEXT-MAP.md` at the repo root lists the contexts, where they live, and how they relate to each other:
+A repository with one context has one `CONTEXT.md` at its root.
+
+A repository with multiple contexts has a root `CONTEXT-MAP.md`.
+The map lists each context, its location, and its relationships:
 
 ```md
 # Context Map
 
 ## Contexts
 
-- [Ordering](./src/ordering/CONTEXT.md) — receives and tracks customer orders
-- [Billing](./src/billing/CONTEXT.md) — generates invoices and processes payments
-- [Fulfillment](./src/fulfillment/CONTEXT.md) — manages warehouse picking and shipping
+- [Ordering](./src/ordering/CONTEXT.md) - receives and tracks customer orders
+- [Billing](./src/billing/CONTEXT.md) - generates invoices and processes payments
+- [Fulfillment](./src/fulfillment/CONTEXT.md) - manages warehouse picking and shipping
 
 ## Relationships
 
@@ -51,10 +58,11 @@ _Avoid_: Client, buyer, account
 - **Ordering ↔ Billing**: Shared types for `CustomerId` and `Money`
 ```
 
-The skill infers which structure applies:
+Use these rules to select the structure:
 
-- If `CONTEXT-MAP.md` exists, read it to find contexts
-- If only a root `CONTEXT.md` exists, single context
-- If neither exists, create a root `CONTEXT.md` lazily when the first term is resolved
+- If `CONTEXT-MAP.md` exists, read it to find the applicable context.
+- If only a root `CONTEXT.md` exists, use the root context.
+- If neither file exists, create a root `CONTEXT.md` when the user resolves the first term.
 
-When multiple contexts exist, infer which one the current topic relates to. If unclear, ask.
+When multiple contexts exist, identify the context for the current topic.
+If the applicable context is unclear, ask the user.

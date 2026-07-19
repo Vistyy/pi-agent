@@ -1,34 +1,49 @@
 ---
 name: chrome-devtools-axi
-description: "Control a real Chrome browser through chrome-devtools-axi. Use for browser interaction, rendered page inspection, screenshots, console/network debugging, performance audits, or content extraction."
+description: "Use when interacting with a rendered web page, inspecting browser state, capturing screenshots, debugging console or network activity, auditing performance, or extracting page content."
 ---
 
 # chrome-devtools-axi
 
-Use this instead of ad hoc browser automation when a task needs a real rendered page.
+Use `chrome-devtools-axi` when a task requires a real rendered page.
 
-Invoke it with `pnpx -y chrome-devtools-axi <command>`.
-If chrome-devtools-axi output shows a follow-up command starting with `chrome-devtools-axi`, run it as `pnpx -y chrome-devtools-axi ...` instead.
+Run commands as `pnpx -y chrome-devtools-axi <command>`.
+When output suggests `chrome-devtools-axi ...`, add the `pnpx -y` prefix before running it.
 
 ## Procedure
 
-1. Navigate or inspect first.
-   Run `pnpx -y chrome-devtools-axi open <url>` when the task gives a URL; otherwise run `snapshot` or `pages` to find the current page.
-   Completion: you have the current page state and any needed `uid=` refs.
-2. Interact by exact ref: `click @<uid>`, `fill @<uid> <text>`, `fillform @<uid>=<val>...`, `hover @<uid>`, `drag @<from> @<to>`, `upload @<uid> <path>`.
-   Completion: every requested interaction has been attempted with refs copied exactly as printed, including the `g<N>:` generation prefix.
-3. Refresh stale refs.
-   If an action fails with `STALE_REF`, run `snapshot` and retry with fresh refs.
-   Completion: no action is blocked by a known stale ref.
-4. Use branch commands only when the task calls for them: `screenshot <path>` for pixels, `eval <js>` for JavaScript, `console` or `network` for debugging, `lighthouse` or `perf-start`/`perf-stop` for performance.
-   Completion: every requested browser branch has produced the needed observation or artifact.
-5. When output includes a next-step hint, prefer that command unless the task requires a different branch.
-   Completion: no relevant hinted follow-up remains unexplored.
+1. Open or select the page.
+   If the task provides a URL, run `open <url>`.
+   Otherwise, run `pages` and use `selectpage <id>` when more than one page is available.
+   Run `snapshot` to get the current page state and element references.
+   Completion: the selected page and required references are explicit.
+
+2. Interact with exact references.
+   Use `click @<uid>`, `fill @<uid> <text>`, `fillform @<uid>=<val>...`, `hover @<uid>`, `drag @<from> @<to>`, or `upload @<uid> <path>`.
+   Copy each complete reference from the snapshot, including its `g<N>:` generation prefix.
+   Completion: every requested interaction has been attempted with a current reference.
+
+3. Refresh stale references.
+   If an action returns `STALE_REF`, run `snapshot`.
+   Retry the action with the new reference.
+   Completion: no requested action remains blocked by a known stale reference.
+
+4. Run the optional command required by the task.
+   Use `screenshot <path>` for rendered pixels.
+   Use `eval <js>` for JavaScript evaluation.
+   Use `console` or `network` for debugging.
+   Use `lighthouse` or `perf-start` and `perf-stop` for performance analysis.
+   Completion: each requested observation or artifact exists.
+
+5. Follow relevant hints.
+   Run a hinted command when it produces evidence or an artifact for the requested browser task without expanding its scope.
+   Completion: no relevant hinted command remains.
 
 ## Session lifecycle
 
-The first command auto-starts a persistent bridge, so the browser session survives across invocations.
-Run `pnpx -y chrome-devtools-axi stop` when finished.
+The first command starts a persistent bridge.
+The browser session remains available across commands.
+After all requested browser observations and artifacts are complete, run `pnpx -y chrome-devtools-axi stop`.
 
 ## Commands
 
@@ -44,9 +59,10 @@ commands[35]:
   perf-insight <set> <name>, heap <path>, start, stop, setup hooks
 ```
 
-Run `pnpx -y chrome-devtools-axi --help` for flags and environment variables, or `pnpx -y chrome-devtools-axi <command> --help` for per-command usage.
+Run `pnpx -y chrome-devtools-axi --help` for global flags and environment variables.
+Run `pnpx -y chrome-devtools-axi <command> --help` for command-specific usage.
 
-## Tips
+## Output controls
 
-- Pipe output through grep/head to extract specific data from large pages.
-- Add `--full` to snapshot-producing commands to disable truncation.
+- Use grep or head to select specific data from a large page response.
+- Add `--full` to snapshot-producing commands when the complete untruncated snapshot is required.

@@ -5,12 +5,16 @@ argument-hint: "What will the next session be used for?"
 disable-model-invocation: true
 ---
 
-Write a handoff document summarising the current conversation so a fresh agent can continue the work. Save to the temporary directory of the user's OS - not the current workspace.
+Write a handoff document that lets a new agent continue the current work.
+Save the document in the operating system's temporary directory.
 
-Include a "suggested skills" section in the document, which suggests skills that the agent should invoke.
+Include a `Suggested skills` section.
+Recommend each skill that applies to the next session.
 
-Do not duplicate content already captured in other artifacts (PRDs, plans, ADRs, issues, commits, diffs). Reference them by path or URL instead.
+Reference existing specifications, plans, ADRs, issues, commits, and diffs by path or URL.
+Keep their existing content in the source artifact.
 
-Redact any sensitive information, such as API keys, passwords, or personally identifiable information.
+Redact all sensitive information from the handoff, including API keys, passwords, and personally identifiable information.
 
-If the user passed arguments, treat them as a description of what the next session will focus on and tailor the doc accordingly.
+If the user provides arguments, use them as the focus for the next session.
+Prioritize the handoff content for that focus.

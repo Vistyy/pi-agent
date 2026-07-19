@@ -1,66 +1,105 @@
 ---
 name: tdd
-description: Test-driven development. Use when the user wants to build features or fix bugs test-first, mentions "red-green-refactor", or wants integration tests.
+description: Use when implementing a feature or defect fix test-first, applying red-green-refactor, or writing integration tests.
 ---
 
 # Test-Driven Development
 
-TDD is the red -> green loop.
-This skill makes that loop produce tests worth keeping: what a good test is, where tests go, anti-patterns, and the rules of the loop.
-Every section applies on every cycle.
-Consult them before and during the loop, not after.
+Use a red -> green loop to produce tests that remain useful after implementation changes.
+Apply the test, seam, and loop rules during every cycle.
 
-When exploring the codebase, read `CONTEXT.md` if it exists, so test names and interface vocabulary match the project's domain language.
-Respect ADRs in the area you're touching.
+Before you write tests, read `CONTEXT-MAP.md` if it exists and select the applicable context.
+Otherwise, read the root `CONTEXT.md` if it exists.
+Use the applicable domain terms in test names and interface vocabulary.
+Read the ADRs for the applicable scope.
 
-## What a good test is
+## Test observable behavior
 
-Tests verify behavior through public interfaces, not implementation details.
-Code can change entirely; tests should not.
-A good test reads like a specification.
-"User can checkout with valid cart" tells you exactly what capability exists.
-It survives refactors because it does not care about internal structure.
+Test behavior through a public interface.
+A test must state a capability that a caller can observe.
+It must continue to pass when internal structure changes without changing the capability.
 
-See [tests.md](tests.md) for examples and [mocking.md](mocking.md) for mocking guidelines.
+Example test name:
 
-## Seams: where tests go
+> User can checkout with a valid cart.
 
-A **seam** is the public boundary you test at: the interface where you observe behavior without reaching inside.
-Tests live at seams, never against internals.
+For examples, read [tests.md](tests.md).
+For mocking rules, read [mocking.md](mocking.md).
 
-**Test only at appropriate public seams.**
-Before writing any test, identify the seams under test and check that they are public boundaries for observable behavior.
-Choosing seams up front keeps testing effort on material behaviors and risks.
+## Select public seams
+
+A **seam** is a public interface where a test can observe behavior without accessing internal state.
+Before you write a test:
+
+1. Identify the behavior that the test must prove.
+2. Identify the public interfaces that expose that behavior.
+3. Select the narrowest public interface that observes the complete behavior reliably.
 
 ### Layered seams
 
-Layer tests by purpose:
+Use different seams for different test purposes:
 
-- Prove critical acceptance paths with a few tests at the highest practical public seam.
-- Cover behavior variations at the lowest public seam that reliably observes them.
-- Verify external contracts at their adapter seams.
+- Prove critical acceptance paths with a small number of tests at the highest practical public seam.
+- Test behavior variations at the lowest public seam that observes them reliably.
+- Verify external contracts at adapter seams.
 
-Expensive environment setup belongs only in tests where that integration is part of the behavior being proved.
+Use expensive environment setup only when that integration is part of the behavior under test.
 
-## Anti-patterns
+## Reject test anti-patterns
 
-- **Implementation-coupled**: mocks internal collaborators, tests private methods, or verifies through a side channel such as querying the database instead of using the interface.
-  The tell: the test breaks when you refactor but behavior has not changed.
-- **Tautological**: the assertion recomputes the expected value the way the code does, so it passes by construction and can never disagree with the code.
-  Examples: `expect(add(a, b)).toBe(a + b)`, a snapshot derived by hand the same way as the code, or a constant asserted equal to itself.
-  Expected values must come from an independent source of truth: a known-good literal, a worked example, or the spec.
-- **Horizontal slicing**: writing all tests first, then all implementation.
-  Bulk tests verify imagined behavior.
-  You test the shape of things rather than user-facing behavior, the tests become insensitive to real changes, and you commit to test structure before understanding the implementation.
-  Work in **vertical slices** instead: one test -> one implementation -> repeat.
-  Each test is a **tracer bullet** that responds to what the last cycle taught you.
+### Implementation-coupled tests
 
-## Rules of the loop
+An implementation-coupled test accesses internal behavior.
+Examples include mocking internal collaborators, testing private methods, or querying a database instead of using the public interface.
 
-- **Red before green.**
-  Write the failing test first, then only enough code to pass it.
-  Do not anticipate future tests or add speculative features.
-- **One slice at a time.**
-  One seam, one test, one minimal implementation per cycle.
-- **Refactoring is not part of the loop.**
-  It belongs to the review stage using the `code-review` skill, not the red -> green implementation cycle.
+If an internal refactor changes the test while observable behavior remains unchanged, the test is implementation-coupled.
+
+### Tautological tests
+
+A tautological test calculates its expected value with the same logic as the implementation.
+It passes by construction.
+
+Examples include:
+
+- `expect(add(a, b)).toBe(a + b)`.
+- A snapshot created with the same algorithm as the implementation.
+- A constant asserted equal to itself.
+
+Take expected values from an independent source such as a known literal, worked example, or specification.
+
+### Horizontal slicing
+
+Horizontal slicing writes a batch of tests before any implementation and then implements the complete batch.
+These tests encode assumed behavior before implementation provides evidence.
+
+Use vertical cycles instead:
+
+1. Write one failing test.
+2. Write the minimum implementation that passes it.
+3. Use the result to select the next observable behavior.
+
+Each test is a **tracer bullet** through one public seam.
+
+## Run each cycle
+
+### Red before green
+
+Write one failing test first.
+Run it and confirm that it fails for the expected reason.
+
+### Implement one slice
+
+Write only the code required to pass the current test.
+Add no behavior for a future test.
+
+### Confirm green
+
+Run the current test and the relevant existing tests.
+Confirm that they pass.
+
+### Continue from evidence
+
+Select the next test from the remaining required behavior and what the completed cycle revealed.
+Repeat one test -> one implementation until the required behavior is complete.
+
+Perform structural refactoring during review with the `code-review` skill.

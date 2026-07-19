@@ -1,70 +1,92 @@
 ---
 name: improve-codebase-architecture
-description: "[M] Review codebase architecture, produce a visual deepening report, then grill one candidate."
+description: "[M] Review codebase architecture, present deepening candidates in a visual report, and develop one selected design."
 disable-model-invocation: true
 ---
 
 # Improve Codebase Architecture
 
-Surface architectural friction and propose **deepening opportunities** - refactors that turn shallow modules into deep ones. The aim is testability and AI-navigability.
+Identify shallow modules that reduce testability or require callers to understand distributed behavior.
+Propose deepening changes that move behavior behind smaller interfaces.
 
-This command is _informed_ by the project's domain model and built on a shared design vocabulary:
+Before you start, use the `codebase-design` skill.
+Use its architecture vocabulary and principles for every architectural claim.
+Use `CONTEXT-MAP.md` to select the applicable context when the map exists.
+Otherwise, use the root `CONTEXT.md` when it exists.
+Use the applicable domain terms and treat the applicable ADRs as current constraints.
 
-- Before starting, use the `codebase-design` skill for the architecture vocabulary (**module**, **interface**, **depth**, **seam**, **adapter**, **leverage**, **locality**) and its principles (the deletion test, "the interface is the test surface", "one adapter = hypothetical seam, two = real").
-  Use these terms for architectural claims.
-  Do not substitute "component," "service," "API," or "boundary" when you mean module, interface, or seam.
-- The domain language in `CONTEXT.md` gives names to good seams; ADRs in `docs/adr/` record decisions this command should not re-litigate.
+## 1. Explore the repository
 
-## Process
-
-### 1. Explore
-
-Select the target area before you scan the codebase.
-If the user names a module, subsystem, or pain point, use that target.
+Select the target area before scanning the codebase.
+If the user names a module, subsystem, or problem, use that target.
 Otherwise, inspect a representative range of recent commits with `git log --oneline`.
 Give priority to files and areas that change repeatedly.
-If recent changes have no clear concentration, widen the scan.
+If recent changes have no concentration, widen the scan.
 
-Read the project's domain glossary (`CONTEXT.md`) and any ADRs in the target area.
+Read the applicable `CONTEXT.md` and ADRs for the target area.
 
-Use `fork` when the target area spans multiple directories, unclear ownership, or more than one domain concept.
-Inspect directly when the user named a specific module, file, or seam.
-Explore for these signals:
+Use `fork` when the target spans multiple directories, ownership is unclear, or several domain concepts are involved.
+Inspect directly when the user names one module, file, or seam.
 
-- Where does understanding one concept require bouncing between many small modules?
-- Where are modules **shallow** - interface nearly as complex as the implementation?
-- Where have pure functions been extracted just for testability, but the real bugs hide in how they're called (no **locality**)?
-- Where do tightly-coupled modules leak across their seams?
-- Which parts of the codebase are untested, or hard to test through their current interface?
+Look for these observable signals:
 
-Apply the **deletion test** to each suspected shallow module: would deleting it concentrate complexity, or just move it?
-A "yes, concentrates" is the signal you want.
-Exploration is complete when you have either three credible deepening candidates or can explain why fewer exist.
-For each candidate, record the involved files, the shallow interface, the hidden implementation complexity, and the deletion-test result.
+- Understanding one domain concept requires reading many small modules.
+- A module's interface exposes nearly as much complexity as its implementation.
+- Tests target extracted functions while defects occur in caller coordination.
+- Coupled modules expose implementation knowledge across their seams.
+- Existing interfaces cannot support tests for important behavior.
 
-### 2. Present candidates as an HTML report
+Apply the **deletion test** to each suspected shallow module.
+Record whether deleting the module removes only pass-through structure or distributes hidden behavior among callers.
+A cluster is a deepening candidate when its pass-through modules can be replaced by one deeper interface.
+If deleting a module distributes its hidden behavior among callers, record that the module already provides locality.
+Do not select that module from the deletion-test result alone.
+
+Exploration is complete when you have three credible candidates or evidence that fewer exist.
+For each candidate, record:
+
+- Involved files.
+- The shallow interface.
+- The implementation complexity exposed to callers.
+- The deletion-test result.
+
+## 2. Present candidates
 
 Use the `lavish` skill before writing the report.
-Create `.lavish/reviews/architecture-review-<timestamp>.html` using [HTML-REPORT.md](HTML-REPORT.md).
-Include every credible candidate, before/after visuals, and a top recommendation.
-Run the Lavish review and do not hand off until the artifact has no layout warnings.
+Create `.lavish/reviews/architecture-review-<timestamp>.html` with [HTML-REPORT.md](HTML-REPORT.md).
+Include every credible candidate, its before and after diagrams, and one top recommendation.
+Run Lavish review until no layout warning remains.
 
-**Use CONTEXT.md vocabulary for the domain, and the `codebase-design` vocabulary for the architecture.** If `CONTEXT.md` defines "Order," talk about "the Order intake module" - not "the FooBarHandler," and not "the Order service."
+Use terms from the applicable `CONTEXT.md` for domain concepts.
+Use `codebase-design` terms for architecture.
+For example, use `Order intake module` instead of an implementation class name or `Order service`.
 
-**ADR conflicts**: if a candidate contradicts an existing ADR, only surface it when the friction is real enough to warrant revisiting the ADR. Mark it clearly in the card (e.g. a warning callout: _"contradicts ADR-0007 - but worth reopening because…"_). Don't list every theoretical refactor an ADR forbids.
+If a candidate conflicts with an ADR, include it only when observed friction justifies reconsidering the ADR.
+Mark the conflict in the candidate card and name the ADR.
 
-See [HTML-REPORT.md](HTML-REPORT.md) for the full HTML scaffold, diagram patterns, and styling guidance.
+Use [HTML-REPORT.md](HTML-REPORT.md) for report structure and diagram guidance.
+Present candidates before proposing interfaces.
+After the report is ready, ask which candidate the user wants to explore.
 
-Do NOT propose interfaces yet. After the file is written, ask the user: "Which of these would you like to explore?"
+## 3. Develop the selected candidate
 
-### 3. Grilling loop
+After the user selects a candidate, use the `grilling` skill.
+Resolve:
 
-Once the user picks a candidate, use the `grilling` skill to walk the design tree with them - constraints, dependencies, the shape of the deepened module, what sits behind the seam, what tests survive.
-The loop is done when the chosen candidate has a named deep module, proposed interface, hidden implementation, adapters if any, surviving tests, and domain or ADR updates completed or explicitly declined.
+- Constraints and dependencies.
+- The deepened module name.
+- Its interface.
+- Behavior hidden in its implementation.
+- Required adapters.
+- Tests that remain or change.
 
-Side effects happen inline as decisions crystallize - use the `domain-modeling` skill to keep the domain model current as you go:
+Use the `domain-modeling` skill when the discussion changes the domain model:
 
-- **Naming a deepened module after a concept not in `CONTEXT.md`?** Add the term to `CONTEXT.md`. Create the file lazily if it doesn't exist.
-- **Sharpening a fuzzy term during the conversation?** Update `CONTEXT.md` right there.
-- **User rejects the candidate with a load-bearing reason?** Offer an ADR, framed as: _"Want me to record this as an ADR so future architecture reviews don't re-suggest it?"_ Only offer when the reason would actually be needed by a future explorer to avoid re-suggesting the same thing - skip ephemeral reasons ("not worth it right now") and self-evident ones.
-- **Want to explore alternative interfaces for the deepened module?** Use the `codebase-design` skill and its design-it-twice parallel subagent pattern.
+- Add a resolved module term to the applicable `CONTEXT.md` when the term identifies a domain concept.
+- Update the applicable `CONTEXT.md` immediately after resolving an existing ambiguous term.
+- Offer an ADR when rejecting the candidate establishes a difficult, surprising, trade-off decision.
+- Use the design-it-twice process from `codebase-design` when the user requests alternative interfaces.
+
+The process is complete when the selected candidate has a named deep module and proposed interface.
+Its hidden implementation, adapters, and surviving tests must be explicit.
+Complete or explicitly decline each required domain and ADR update.

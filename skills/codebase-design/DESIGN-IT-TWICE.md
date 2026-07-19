@@ -1,65 +1,66 @@
 # Design It Twice
 
-Use this when the user wants alternative interfaces for a chosen deepening candidate.
-The goal is diversity: generate several independent interface designs before recommending one.
+Use this process when the user wants alternative interfaces for a selected deepening candidate.
+Generate independent designs before you recommend one.
 
-Uses the vocabulary in [SKILL.md](SKILL.md): **module**, **interface**, **seam**, **adapter**, **leverage**.
+Use the vocabulary in [SKILL.md](SKILL.md): **module**, **interface**, **seam**, **adapter**, and **leverage**.
 
-Mechanic: produce at least three independent alternatives.
-Prefer parallel child tasks with the `interface-designer` identity through `fork` or `subagent` when available.
-If child tasks are unavailable, do the passes directly in separate notes.
-Keep each design constrained and independent.
+Produce at least three independent alternatives.
+Prefer parallel child tasks with the `interface-designer` identity through `fork` or `subagent`.
+If child tasks are unavailable, create each alternative in a separate note.
+Give each alternative a different constraint.
 
-## Process
+## 1. Frame the problem
 
-### 1. Frame the problem space
+Describe the design problem without proposing a solution.
+Include:
 
-Write a user-facing frame, not a proposal:
+- The constraints that the interface must satisfy.
+- The dependencies, classified with [DEEPENING.md](DEEPENING.md).
+- A small code example that shows the problem.
 
-- Constraints the new interface must satisfy
-- Dependencies it would rely on, categorized using [DEEPENING.md](DEEPENING.md)
-- A rough illustrative code sketch to ground the constraints
+Show the frame to the user.
+Then continue while the user reads it.
 
-Completion: the user can see the design problem without seeing your preferred solution.
+This step is complete when the frame shows the design problem without showing a preferred solution.
 
-Show this to the user, then proceed while they read.
+## 2. Generate alternatives
 
-### 2. Generate alternatives
+Generate at least three independent `interface-designer` alternatives.
+Run them in parallel when the tooling supports parallel work.
 
-Generate at least 3 independent `interface-designer` alternatives.
-Run them in parallel when tooling is available.
+Include this information in each task:
 
-Each task brief includes:
+- Relevant file paths.
+- Coupling details.
+- The dependency category from [DEEPENING.md](DEEPENING.md).
+- The behavior behind the seam.
+- Applicable `CONTEXT.md` terms, when a context file exists.
+- One design constraint.
 
-- Relevant file paths
-- Coupling details
-- Dependency category from [DEEPENING.md](DEEPENING.md)
-- What sits behind the seam
-- Relevant CONTEXT.md vocabulary, if present
-- One design constraint
+Use these default constraints:
 
-Default constraints:
+1. Minimize the interface to one through three entry points.
+2. Maximize flexibility for multiple use cases and extensions.
+3. Make the common caller simple.
+4. Use ports and adapters for cross-seam dependencies when applicable.
 
-1. Minimize the interface: 1-3 entry points, maximum leverage per entry point.
-2. Maximize flexibility: support many use cases and extension.
-3. Optimize for the common caller: make the default case trivial.
-4. Use ports and adapters for cross-seam dependencies, if applicable.
+Require one concrete design from each task.
+If a task returns multiple options, rerun it with a more precise constraint.
 
-Completion: at least 3 returned alternatives, each optimized for a different explicit constraint, not derived from the previous alternative, and each with one concrete interface and all five sections:
+This step is complete when at least three independent alternatives satisfy different constraints.
+Each alternative must contain:
 
-1. Interface
-2. Usage example
-3. What hides behind the seam
-4. Dependency strategy
-5. Trade-offs
+1. An interface.
+2. A usage example.
+3. The behavior hidden behind the seam.
+4. A dependency strategy.
+5. Trade-offs.
 
-If an alternative returns a menu instead of one design, rerun it with a sharper constraint.
+## 3. Compare the alternatives
 
-### 3. Compare and recommend
+Present each design separately.
+Compare the designs by **depth**, **locality**, and **seam placement**.
+Recommend one design or one explicit hybrid.
 
-Present designs sequentially.
-Then compare them by **depth**, **locality**, and **seam placement**.
-
-Recommend one design or a hybrid.
-Be opinionated.
-Completion: the user has one preferred direction and the reason it beats the alternatives.
+This process is complete when the user has one recommended direction and the reason for that recommendation.

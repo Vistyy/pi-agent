@@ -6,47 +6,58 @@ disable-model-invocation: true
 
 # To Spec
 
-Synthesize the current conversation context and codebase understanding into a local specification without an exploratory interview.
-The only required user checkpoint is confirmation of the testing seams.
-Do not publish externally.
+Use the current conversation and repository evidence to write a local specification.
+Synthesize the available decisions without starting an exploratory interview.
+Use the testing-seam confirmation as the only required user checkpoint.
+Keep the specification local.
 
 ## 1. Gather context
 
-Explore the repository when its current state is not already understood.
-Use the project's domain glossary vocabulary and respect relevant architectural decisions.
+Identify the current behavior and agreed product decisions.
+Inspect the repository when the current implementation is not known.
+Use terms from the project's domain glossary.
+Apply relevant architectural decisions.
 
-Completion criterion: the current behavior, agreed product decisions, domain vocabulary, and relevant architectural constraints are known.
+This step is complete when the following information is known:
+
+- Current behavior.
+- Agreed product decisions.
+- Applicable domain terms.
+- Applicable architectural constraints.
 
 ## 2. Confirm testing seams
 
-Read and apply the canonical [layered seams](../../skills/tdd/SKILL.md#layered-seams) rule.
-Prefer existing public seams to new ones.
-Sketch the primary acceptance seam and the supporting seams needed for behavior variations and external contracts.
-Ask the user to confirm that these seams match their expectations.
+Read and apply [layered seams](../../skills/tdd/SKILL.md#layered-seams).
+Use existing public seams when they expose the required behavior.
 
-Completion criterion: the user has confirmed the primary acceptance seam and supporting test seams.
+Propose one primary acceptance seam.
+Propose supporting seams for behavior variations and external contracts.
+Ask the user to confirm the proposed seams.
+
+This step is complete when the user confirms the primary and supporting seams.
 
 ## 3. Write the specification
 
-Write the specification using the template below and save it as a local Markdown file.
-If no destination is clear, ask where to save it.
+Use the template below.
+Save the result as a local Markdown file.
+If the destination is unknown, ask the user where to save it.
 
-Completion criterion: the saved specification covers every agreed product decision and every template section.
+This step is complete when the file exists, every template section is present, and every agreed product decision is covered.
 
 <spec-template>
 
 ## Problem Statement
 
-The problem the user faces, from the user's perspective.
+Describe the user's problem from the user's perspective.
 
 ## Solution
 
-The solution, from the user's perspective.
+Describe the agreed solution from the user's perspective.
 
 ## User Stories
 
-An extensive numbered list covering every aspect of the feature.
-Write each user story in this form:
+Write one numbered user story for each agreed user-facing behavior.
+Use this form:
 
 1. As an <actor>, I want a <feature>, so that <benefit>.
 
@@ -56,33 +67,34 @@ Write each user story in this form:
 
 ## Implementation Decisions
 
-Record the implementation decisions already made, including relevant:
+Record the implementation decisions that are already settled.
+Include applicable decisions about:
 
-- Modules and interfaces that will change.
-- Technical clarifications.
-- Architectural decisions.
+- Modules and interfaces.
+- Technical behavior.
+- Architecture.
 - Schema and API contracts.
-- Specific interactions.
+- Interactions between parts of the system.
 
-Avoid specific file paths or code snippets because they become stale quickly.
-When a prototype encodes a decision more precisely than prose, inline only its decision-rich portion and identify it as prototype-derived.
-Examples include a state machine, reducer, schema, or type shape.
-Do not include a working demo.
+Describe stable decisions without specific file paths or implementation code.
+If a prototype expresses a settled decision more precisely than prose, include only the relevant state machine, reducer, schema, or type shape.
+Identify the included material as prototype-derived.
+Exclude the working prototype or demo.
 
 ## Testing Decisions
 
 Record:
 
-- What makes a good external-behavior test.
-- Which modules or seams will be tested.
-- Relevant testing precedent in the repository.
+- The required external behavior.
+- The primary and supporting test seams.
+- Applicable testing precedent in the repository.
 
 ## Out of Scope
 
-Describe behavior excluded from this specification.
+List behavior excluded from this specification.
 
 ## Further Notes
 
-Record any remaining relevant context.
+Record remaining context that affects implementation or verification.
 
 </spec-template>
