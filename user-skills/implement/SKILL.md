@@ -25,14 +25,17 @@ Record the task draft as the scoped Spec review source.
 Keep its linked specification as normative traceability context rather than expanding the review to unrelated tasks.
 Record every required validation command or direct verification method.
 Map every task acceptance criterion to an implementation target, public test seam, and verification target.
+Start a decision ledger for every behavior-affecting choice not dictated by authoritative context.
+Record its evidence and classify it as local, user-approved, or deferred to a named task.
 
-Completion criterion: the baseline resolves, the scoped task source and required checks are recorded, and every task behavior has an implementation and verification target.
+Completion criterion: the baseline resolves, the scoped task source and required checks are recorded, every task behavior has an implementation and verification target, and every known implementation decision is in the decision ledger.
 
 ## 3. Deliver the task
 
 Use `/tdd` at the task's public seams.
 Implement the task through independently green internal steps.
 After each step, run its focused tests and relevant typecheck.
+Update the decision ledger when discovery introduces or changes a behavior-affecting choice.
 
 Return to the `vertical-slices` skill whenever discovery expands the planned work and follow its scope-routing rules.
 When repository evidence reveals an undeclared prerequisite that must complete before the current task can succeed, stop before continuing.
@@ -69,6 +72,6 @@ Mark the task done through the repository's workflow.
 The completion update may change only administrative status, completion evidence, and commit references.
 Commit that update and rerun the required checks without reopening either review latch.
 A substantive implementation or contract change returns to delivery and starts a new review lifecycle after it is complete.
-Report the final commit, verification evidence, completed task reference, and both latched review statuses.
+Report the final commit, verification evidence, completed task reference, both latched review statuses, and the decision ledger with every confirmed deferred owner.
 
-Completion criterion: the reviewed implementation is committed, the administrative completion update is committed, every acceptance criterion remains demonstrated, every reviewer finding remains resolved, every required check passes, both review axes are latched, and the task is marked done.
+Completion criterion: the reviewed implementation is committed, the administrative completion update is committed, every acceptance criterion remains demonstrated, every reviewer finding remains resolved, every required check passes, both review axes are latched, the task is marked done, and every implementation decision is disclosed.
