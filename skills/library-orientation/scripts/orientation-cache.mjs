@@ -212,20 +212,6 @@ const writeAtomically = (path, content) => {
   }
 };
 
-const probeUpstreamRevision = (probe) => {
-  const result = execFileSync("git", ["ls-remote", "--exit-code", probe.url, probe.ref], {
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-    timeout: 10_000,
-    env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
-  }).trim();
-  const revision = result.split(/\s+/, 1)[0];
-  if (!/^[0-9a-f]{40,64}$/i.test(revision)) {
-    throw new Error("Upstream probe returned no commit revision");
-  }
-  return revision;
-};
-
 const status = (options) => {
   rejectUnknownOptions(
     options,
@@ -235,7 +221,7 @@ const status = (options) => {
   const library = requireOption(options, "library");
   const version = requireOption(options, "version");
   let currentUpstreamRevision = options["upstream-revision"];
-  const maxAgeDays = Number(options["max-age-days"] ?? "30");
+  const maxAgeDays = Number(options["max-age-days"] ?? "90");
   if (!Number.isFinite(maxAgeDays) || maxAgeDays <= 0) {
     throw new Error("--max-age-days must be a positive number");
   }
@@ -247,26 +233,14 @@ const status = (options) => {
       state: cache.state,
       reasons: [cache.state === "missing" ? "cache_missing" : cache.reason],
       cachePath: paths.directory,
+      cacheContentPath: paths.content,
       currentProjectRevision: context.revision,
-      worktreeFiles: context.worktreeFiles,
     });
     return;
   }
 
   const reasons = [];
   let state = "fresh";
-  if (cache.metadata.upstreamProbe !== undefined) {
-    const suppliedUpstreamRevision = currentUpstreamRevision;
-    try {
-      currentUpstreamRevision = probeUpstreamRevision(cache.metadata.upstreamProbe);
-    } catch {
-      state = "partial_refresh";
-      reasons.push("upstream_probe_failed");
-    }
-    if (suppliedUpstreamRevision !== undefined) {
-      throw new Error("--upstream-revision cannot override a cached upstreamProbe");
-    }
-  }
   if (cache.metadata.installedVersion !== version) {
     state = "full_refresh";
     reasons.push("installed_version_changed");
@@ -280,18 +254,6 @@ const status = (options) => {
     }
     reasons.push("upstream_revision_changed");
   }
-  if (cache.metadata.repositoryRevision !== context.revision) {
-    if (state === "fresh") {
-      state = "partial_refresh";
-    }
-    reasons.push("project_revision_changed");
-  }
-  if (context.worktreeFiles.length > 0) {
-    if (state === "fresh") {
-      state = "partial_refresh";
-    }
-    reasons.push("worktree_changed");
-  }
   const ageDays = (Date.now() - Date.parse(cache.metadata.verifiedAt)) / 86_400_000;
   if (ageDays > maxAgeDays) {
     if (state === "fresh") {
@@ -304,6 +266,7 @@ const status = (options) => {
     state,
     reasons,
     cachePath: paths.directory,
+    cacheContentPath: paths.content,
     cachedProjectRevision: cache.metadata.repositoryRevision,
     currentProjectRevision: context.revision,
     cachedInstalledVersion: cache.metadata.installedVersion,
@@ -314,7 +277,6 @@ const status = (options) => {
     cachedSources: cache.metadata.sources,
     verifiedAt: cache.metadata.verifiedAt,
     maxAgeDays,
-    worktreeFiles: context.worktreeFiles,
   });
 };
 
