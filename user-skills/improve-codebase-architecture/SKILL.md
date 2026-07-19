@@ -19,7 +19,13 @@ This command is _informed_ by the project's domain model and built on a shared d
 
 ### 1. Explore
 
-Read the project's domain glossary (`CONTEXT.md`) and any ADRs in the area you're touching first.
+Select the target area before you scan the codebase.
+If the user names a module, subsystem, or pain point, use that target.
+Otherwise, inspect a representative range of recent commits with `git log --oneline`.
+Give priority to files and areas that change repeatedly.
+If recent changes have no clear concentration, widen the scan.
+
+Read the project's domain glossary (`CONTEXT.md`) and any ADRs in the target area.
 
 Use `fork` when the target area spans multiple directories, unclear ownership, or more than one domain concept.
 Inspect directly when the user named a specific module, file, or seam.

@@ -109,16 +109,18 @@ If the app is not already running under the standard dev command, include the co
 The user will flip through whenever they get to it.
 The interesting feedback is usually **"I want the header from B with the sidebar from C"** - that's the actual design they want.
 
-### 6. Capture the answer and clean up
+### 6. Capture the answer and preserve the prototype
 
-Once a variant has won, write down which one and why (commit message, ADR, issue, or a `NOTES.md` next to the prototype if running AFK and the user hasn't responded yet). Then:
+When a variant wins, record which variant won and why.
+Commit the complete set of variants and the switcher to a throwaway branch.
+Record the branch name and prototype commit with the durable answer.
 
-- **Sub-shape A** - delete the losing variants and the switcher; fold the winner into the existing page.
-- **Sub-shape B** - promote the winning variant to a real route, delete the throwaway route and the switcher.
+Then update the main branch:
 
-Don't leave variant components or the switcher lying around.
-They rot fast and confuse the next reader.
-Cleanup is complete when only the winning production code and the durable answer remain.
+- **Sub-shape A** - fold the winner into the existing page. Remove the losing variants and the switcher.
+- **Sub-shape B** - promote the winner to a production route. Remove the throwaway route and the switcher.
+
+Completion requires the winning production code, the durable answer, and a pointer to the preserved prototype.
 
 ## Anti-patterns
 

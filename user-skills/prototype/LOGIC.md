@@ -40,7 +40,9 @@ The right shape depends on the question:
 Pick whichever shape best fits the question being asked, *not* whichever is easiest to wire to a TUI. Keep it pure: no I/O, no terminal code, no `console.log` for control flow. The TUI imports it and calls into it; nothing flows the other direction.
 
 This is what makes the prototype useful past its own lifetime.
-When the question's been answered, the validated reducer / machine / function set can be lifted into the real module - the TUI shell gets deleted.
+When the prototype answers the question, lift the validated reducer, machine, or function set into the real module.
+Preserve the TUI shell with the complete prototype on the throwaway branch.
+Remove the TUI shell from the main branch.
 Complete when the logic can be imported and exercised without terminal code.
 
 ### 4. Build the smallest TUI that exposes the state
@@ -76,12 +78,13 @@ If they want new actions added, add them.
 Prototypes evolve.
 Hand-off is complete when the user has the command and the current action list.
 
-### 7. Capture the answer
+### 7. Capture the answer and prototype
 
-When the prototype has done its job, the answer to the question is the only thing worth keeping.
-If the user is around, ask what it taught them.
-If not, leave a `NOTES.md` next to the prototype so the answer can be filled in, or fill it in yourself if you watched the session.
-Complete when the answer is captured or a `NOTES.md` placeholder exists before deletion.
+When the prototype answers its question, ask the user what the prototype demonstrated.
+Capture the question and answer in a durable location.
+Commit the complete prototype to a throwaway branch before you remove the TUI shell from the main branch.
+Record the branch name and prototype commit with the answer.
+Complete when the main branch contains the validated logic and the durable answer points to the preserved prototype.
 
 ## Anti-patterns
 
