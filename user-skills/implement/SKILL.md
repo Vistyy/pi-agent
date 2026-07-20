@@ -6,6 +6,10 @@ disable-model-invocation: true
 
 # Implement
 
+Continue each step until its completion criterion is satisfied.
+When authoritative context does not dictate a behavior-affecting decision, record the decision in the decision ledger and continue.
+Pause only when an authoritative conflict requires user approval.
+
 ## 1. Validate the vertical slice
 
 Read the approved task, its linked specification, its normative references, and the repository instructions.
