@@ -3,6 +3,9 @@ import { dirname } from "node:path";
 
 import {
 	CustomEditor,
+	getMarkdownTheme,
+	parseSkillBlock,
+	SkillInvocationMessageComponent,
 	stripFrontmatter,
 	type ExtensionAPI,
 	type ExtensionContext,
@@ -12,11 +15,14 @@ import type { AutocompleteProvider } from "@earendil-works/pi-tui";
 import {
 	applyInlineSlashCompletion,
 	enableInlineSlashAutocomplete,
-	expandInlineSkills,
+	formatSkillBlock,
 	getInlineSlashPrefix,
+	planInlineSkills,
 	type InlineAutocompleteEditor,
 	type InlineSkill,
 } from "./logic.js";
+
+const INLINE_SKILL_MESSAGE_TYPE = "inline-skill-invocation";
 
 type EditorFactory = NonNullable<ReturnType<ExtensionContext["ui"]["getEditorComponent"]>>;
 type InlineEditorFactory = EditorFactory & { __inlineSkillsBaseFactory?: EditorFactory | null };
@@ -75,6 +81,19 @@ function createInlineSkillProvider(current: AutocompleteProvider): AutocompleteP
 }
 
 export default function inlineSkills(pi: ExtensionAPI): void {
+	pi.registerMessageRenderer(INLINE_SKILL_MESSAGE_TYPE, (message, { expanded }) => {
+		if (typeof message.content !== "string") {
+			return undefined;
+		}
+		const skillBlock = parseSkillBlock(message.content);
+		if (!skillBlock) {
+			return undefined;
+		}
+		const component = new SkillInvocationMessageComponent(skillBlock, getMarkdownTheme());
+		component.setExpanded(expanded);
+		return component;
+	});
+
 	pi.on("session_start", async (_event, ctx) => {
 		ctx.ui.addAutocompleteProvider((current) => createInlineSkillProvider(current));
 		installInlineAutocompleteEditor(ctx);
@@ -93,7 +112,7 @@ export default function inlineSkills(pi: ExtensionAPI): void {
 		);
 		const loaded = new Map<string, InlineSkill | null>();
 
-		const transformed = expandInlineSkills(event.text, (name) => {
+		const plan = planInlineSkills(event.text, (name) => {
 			if (loaded.has(name)) {
 				return loaded.get(name) ?? undefined;
 			}
@@ -122,8 +141,25 @@ export default function inlineSkills(pi: ExtensionAPI): void {
 			}
 		});
 
-		return transformed === event.text
+		if (!plan) {
+			return { action: "continue" };
+		}
+
+		for (const skill of plan.skills) {
+			pi.sendMessage(
+				{
+					customType: INLINE_SKILL_MESSAGE_TYPE,
+					content: formatSkillBlock(skill),
+					display: true,
+				},
+				event.streamingBehavior
+					? { deliverAs: event.streamingBehavior }
+					: { triggerTurn: false },
+			);
+		}
+
+		return plan.prompt === event.text
 			? { action: "continue" }
-			: { action: "transform", text: transformed, images: event.images };
+			: { action: "transform", text: plan.prompt, images: event.images };
 	});
 }

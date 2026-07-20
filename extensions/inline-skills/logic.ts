@@ -57,32 +57,40 @@ export interface InlineSkill {
 	body: string;
 }
 
-function formatSkillBlock(skill: InlineSkill): string {
+export function formatSkillBlock(skill: InlineSkill): string {
 	return `<skill name="${skill.name}" location="${skill.location}">\nReferences are relative to ${skill.baseDir}.\n\n${skill.body.trim()}\n</skill>`;
 }
 
-export function expandInlineSkills(
+export interface InlineSkillPlan {
+	prompt: string;
+	skills: InlineSkill[];
+}
+
+export function planInlineSkills(
 	text: string,
 	resolveSkill: (name: string) => InlineSkill | undefined,
-): string {
-	const leadingMatch = text.match(/^\/skill:([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)(?= |$)/);
-	if (leadingMatch) {
-		const skill = resolveSkill(leadingMatch[1]);
+): InlineSkillPlan | undefined {
+	const skills: InlineSkill[] = [];
+	const pattern = /(^|\s)\/skill:([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)(?=$|[\s,.;:!?()[\]{}])/g;
+	for (const match of text.matchAll(pattern)) {
+		const skill = resolveSkill(match[2]);
 		if (skill) {
-			const args = text.slice(leadingMatch[0].length).trim();
-			return args
-				? `${formatSkillBlock(skill)}\n\n${expandInlineSkills(args, resolveSkill)}`
-				: formatSkillBlock(skill);
+			skills.push(skill);
 		}
 	}
+	if (skills.length === 0) {
+		return undefined;
+	}
 
-	return text.replace(
-		/(^|\s)\/skill:([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)(?=$|[\s,.;:!?()[\]{}])/g,
-		(original, leading: string, name: string) => {
-			const skill = resolveSkill(name);
-			return skill ? `${leading}${formatSkillBlock(skill)}` : original;
-		},
-	);
+	const leadingMatch = text.match(/^\/skill:([a-z0-9](?:[a-z0-9-]*[a-z0-9])?)(?= |$)/);
+	if (skills.length === 1 && leadingMatch?.[1] === skills[0].name) {
+		return undefined;
+	}
+
+	return {
+		prompt: leadingMatch ? ` ${text}` : text,
+		skills,
+	};
 }
 
 export function applyInlineSlashCompletion(

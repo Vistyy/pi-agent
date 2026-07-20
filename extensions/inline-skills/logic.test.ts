@@ -4,8 +4,8 @@ import test from "node:test";
 import {
 	applyInlineSlashCompletion,
 	enableInlineSlashAutocomplete,
-	expandInlineSkills,
 	getInlineSlashPrefix,
+	planInlineSkills,
 } from "./logic.ts";
 
 test("typing a later slash triggers the editor autocomplete request", () => {
@@ -52,68 +52,44 @@ test("inline completion replaces only the active slash token", () => {
 	);
 });
 
-test("a leading skill keeps native argument separation while later skills also expand", () => {
-	const skills = new Map([
-		[
-			"alpha",
-			{
-				name: "alpha",
-				location: "/skills/alpha/SKILL.md",
-				baseDir: "/skills/alpha",
-				body: "Alpha instructions.",
-			},
-		],
-		[
-			"beta",
-			{
-				name: "beta",
-				location: "/skills/beta/SKILL.md",
-				baseDir: "/skills/beta",
-				body: "Beta instructions.",
-			},
-		],
-	]);
+const skills = new Map([
+	[
+		"alpha",
+		{
+			name: "alpha",
+			location: "/skills/alpha/SKILL.md",
+			baseDir: "/skills/alpha",
+			body: "Alpha instructions.",
+		},
+	],
+	[
+		"beta",
+		{
+			name: "beta",
+			location: "/skills/beta/SKILL.md",
+			baseDir: "/skills/beta",
+			body: "Beta instructions.",
+		},
+	],
+]);
 
-	assert.equal(
-		expandInlineSkills("/skill:alpha use /skill:beta", (name) => skills.get(name)),
-		"<skill name=\"alpha\" location=\"/skills/alpha/SKILL.md\">\n" +
-			"References are relative to /skills/alpha.\n\n" +
-			"Alpha instructions.\n</skill>\n\nuse " +
-			"<skill name=\"beta\" location=\"/skills/beta/SKILL.md\">\n" +
-			"References are relative to /skills/beta.\n\n" +
-			"Beta instructions.\n</skill>",
+test("one leading skill stays on Pi's native invocation path", () => {
+	assert.equal(planInlineSkills("/skill:alpha review this", (name) => skills.get(name)), undefined);
+});
+
+test("inline skills keep references in the prompt and provide separate context blocks", () => {
+	assert.deepEqual(
+		planInlineSkills("Use /skill:alpha, then /skill:beta. Keep /skill:missing.", (name) => skills.get(name)),
+		{
+			prompt: "Use /skill:alpha, then /skill:beta. Keep /skill:missing.",
+			skills: [skills.get("alpha"), skills.get("beta")],
+		},
 	);
 });
 
-test("submission expands every known inline skill and preserves surrounding text", () => {
-	const skills = new Map([
-		[
-			"alpha",
-			{
-				name: "alpha",
-				location: "/skills/alpha/SKILL.md",
-				baseDir: "/skills/alpha",
-				body: "Alpha instructions.",
-			},
-		],
-		[
-			"beta",
-			{
-				name: "beta",
-				location: "/skills/beta/SKILL.md",
-				baseDir: "/skills/beta",
-				body: "Beta instructions.",
-			},
-		],
-	]);
-
-	assert.equal(
-		expandInlineSkills("Use /skill:alpha, then /skill:beta. Keep /skill:missing.", (name) => skills.get(name)),
-		"Use <skill name=\"alpha\" location=\"/skills/alpha/SKILL.md\">\n" +
-			"References are relative to /skills/alpha.\n\n" +
-			"Alpha instructions.\n</skill>, then " +
-			"<skill name=\"beta\" location=\"/skills/beta/SKILL.md\">\n" +
-			"References are relative to /skills/beta.\n\n" +
-			"Beta instructions.\n</skill>. Keep /skill:missing.",
-	);
+test("multiple skills beginning with a skill bypass native single-skill expansion", () => {
+	assert.deepEqual(planInlineSkills("/skill:alpha use /skill:beta", (name) => skills.get(name)), {
+		prompt: " /skill:alpha use /skill:beta",
+		skills: [skills.get("alpha"), skills.get("beta")],
+	});
 });
