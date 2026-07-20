@@ -43,6 +43,7 @@
       "sandbox": {
         "bashNetwork": true,
         "homeAccess": "overlay",
+        "workspaceAccess": "overlay",
         "tmpDir": "/tmp"
       },
       "defaultEffort": "fast",
