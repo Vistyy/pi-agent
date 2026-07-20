@@ -1,9 +1,6 @@
-# Good and Bad Tests
+# Test Examples
 
 ## Good tests
-
-Test observable behavior through a public interface.
-Use real implementations for internal collaborators.
 
 ```typescript
 // GOOD: Tests observable behavior
@@ -17,11 +14,11 @@ test("user can checkout with valid cart", async () => {
 
 A good test:
 
-- Asserts behavior exposed by the public interface.
+- Names observable behavior.
 - Uses only the public interface.
-- Continues to pass after an internal refactor.
-- Describes the observable behavior in its name.
+- Uses real implementations for internal collaborators.
 - Contains one logical assertion.
+- Survives a behavior-preserving refactor.
 
 ## Implementation-coupled tests
 
@@ -36,14 +33,14 @@ test("checkout calls paymentService.process", async () => {
 });
 ```
 
-A test is implementation-coupled when it:
+An implementation-coupled test:
 
 - Mocks an internal collaborator.
 - Tests a private method.
 - Asserts an internal call count or order.
-- Fails after an internal refactor that preserves behavior.
 - Describes implementation steps instead of observable behavior.
-- Verifies a result through a side channel instead of the public interface.
+- Verifies a result through a side channel.
+- Fails after a behavior-preserving internal refactor.
 
 ```typescript
 // BAD: Bypasses interface to verify
@@ -63,7 +60,7 @@ test("createUser makes user retrievable", async () => {
 
 ## Tautological tests
 
-A tautological test calculates its expected value with the same logic as the implementation.
+A tautological test computes its expected value with the implementation's logic.
 It cannot detect an error shared by both calculations.
 
 ```typescript
@@ -79,3 +76,5 @@ test("calculateTotal sums line items", () => {
   expect(calculateTotal([{ price: 10 }, { price: 5 }])).toBe(15);
 });
 ```
+
+Use an independent literal, worked example, or specification value as the expected result.

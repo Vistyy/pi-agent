@@ -120,10 +120,7 @@ _Avoid_: chunking, modularity.
 ## Information Hierarchy
 
 Information hierarchy ranks skill content by when the agent needs it.
-
-### Information Hierarchy
-
-The ordered placement of **Steps** and **Reference**:
+The hierarchy places **Steps** and **Reference** in this order:
 
 1. In-skill **Steps**.
 2. In-skill **Reference**.

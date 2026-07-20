@@ -1,8 +1,8 @@
 # TypeScript quality baseline
 
-Adapt this baseline to the project's runtime, framework, paths, and approved architecture.
+Adapt this reference to the project's runtime, framework, paths, and approved architecture.
 
-## Responsibilities
+## Tool responsibilities
 
 | Tool | Responsibility |
 | --- | --- |
@@ -11,14 +11,14 @@ Adapt this baseline to the project's runtime, framework, paths, and approved arc
 | Vitest | Behavior tests and coverage |
 | Fallow | Dead code, dependencies, cycles, duplication, suppressions, health, and optional import architecture |
 | ast-grep | Optional structural syntax rules and rule fixtures |
-| Just | The supported command surface |
+| Just | Supported command surface |
 | CI | Enforcement of the same Just gate |
 
 Put each check in the tool that models it most directly.
 
-## Files
+## Required files
 
-Common baseline files are:
+Use these files when applicable:
 
 ```text
 AGENTS.md
@@ -32,7 +32,7 @@ vitest.config.ts
 <CI workflow>
 ```
 
-Add these only when corresponding custom Fallow or ast-grep rules and tests exist:
+When corresponding custom Fallow or ast-grep rules and tests exist, add:
 
 ```text
 fallow-rules/*.json
@@ -41,14 +41,14 @@ ast-grep/rules/*.yml
 ast-grep/tests/*-test.yml
 ```
 
-Use additional build, workspace, or framework configuration when the project needs it.
+Add build, workspace, or framework configuration when the project needs it.
 
 ## Just contract
 
-Humans, agents, documentation, and CI invoke Just recipes.
-Recipes invoke the selected package manager and tool binaries internally.
+Humans, agents, documentation, and CI must invoke Just recipes.
+Recipes must invoke the selected package manager and tool binaries internally.
 
-Provide the applicable recipes:
+Provide each applicable recipe:
 
 ```text
 just
@@ -65,13 +65,15 @@ just fallow-check
 just build
 ```
 
-Add `just ast-grep-check` when custom ast-grep rules exist.
-Add named recipes for packaging, generation, databases, browser tests, audits, and releases when those workflows exist.
+When custom ast-grep rules exist, add `just ast-grep-check`.
+The recipe must run rule tests and a production scan.
+When packaging, generation, database, browser-test, audit, or release workflows exist, add named recipes.
 
-`just quality` composes every blocking check.
-It may write ignored build or coverage artifacts, but it leaves tracked files unchanged.
+`just quality` must compose every blocking check.
+It may write ignored build or coverage artifacts.
+It must leave tracked files unchanged.
 
-Package lifecycle scripts delegate to Just:
+Package lifecycle scripts must delegate to Just:
 
 ```json
 {
@@ -81,11 +83,12 @@ Package lifecycle scripts delegate to Just:
 }
 ```
 
-Pin the runtime and package-manager version.
-Commit the lockfile and make `just bootstrap` perform a frozen install.
-Verify tool flags against the pinned versions before finalizing recipes.
+Pin the runtime and package-manager versions.
+Commit the lockfile.
+Make `just bootstrap` perform a frozen install.
+Before finalizing recipes, verify tool flags against the pinned versions.
 
-## TypeScript
+## TypeScript contract
 
 Use this strictness baseline:
 
@@ -112,81 +115,69 @@ Use this strictness baseline:
 
 Choose `target`, `lib`, `module`, `moduleResolution`, and environment types from the deployed runtime and framework.
 Choose `skipLibCheck` deliberately.
-Use separate typecheck and build recipes when emission needs a narrower configuration.
+When emission needs a narrower configuration, use separate typecheck and build recipes.
 
-## Biome
+## Biome contract
 
 Enable formatting and the recommended linter preset.
 Define formatting conventions explicitly.
 
-Useful strict rules include:
+Use these strict rules when applicable:
 
-- explicit `any` is an error
-- non-null assertions are errors
-- barrel files are errors when direct imports improve dependency visibility
-- `console` is an error in production code when the project has a dedicated output mechanism
+- Explicit `any` is an error.
+- Non-null assertions are errors.
+- Barrel files are errors when direct imports improve dependency visibility.
+- `console` is an error in production code when the project has a dedicated output mechanism.
 
-Include supported source, tests, scripts, documentation, JSON, and JSONC files.
+Include supported source, test, script, documentation, JSON, and JSONC files.
 Exclude generated output, dependencies, caches, coverage, and framework-generated directories.
+Give every suppression the narrowest supported scope and a reason.
 
-Give each suppression the narrowest supported scope and a reason.
+## Vitest and coverage contract
 
-## Vitest and coverage
+Configure explicit values for test paths, environment, setup files, isolation, concurrency, timeouts, coverage provider, production file set, reporters, and measured thresholds.
 
-Create explicit Vitest configuration for:
-
-- test paths and environment
-- setup files
-- isolation, concurrency, and timeouts
-- coverage provider and production file set
-- reporters and measured thresholds
-
-Use Istanbul coverage when Fallow consumes `coverage-final.json` for CRAP analysis.
-Verify that an untested production file appears as zero-covered rather than disappearing from the report.
-
+When Fallow consumes `coverage-final.json` for CRAP analysis, use Istanbul.
+Verify that an untested production file appears as zero-covered instead of disappearing from the report.
 Test observable behavior through public module interfaces.
-Add integration or end-to-end coverage for the external contracts the project actually has.
+Add integration or end-to-end coverage for the project's actual external contracts.
 
-## Fallow
+## Fallow contract
 
 Configure real production, test, script, worker, executable, and package-export entrypoints.
 Align exclusions with TypeScript, Biome, Vitest, Git, packaging, and build tools.
 
 Enable applicable blocking checks for:
 
-- unused files, exports, types, members, and dependencies
-- unresolved or unlisted imports
-- dependency classification mistakes
-- duplicate exports
-- circular dependencies and re-export cycles
-- stale or unexplained suppressions
-- duplication
-- complexity and health
+- Unused files, exports, types, members, and dependencies.
+- Unresolved or unlisted imports.
+- Dependency classification mistakes.
+- Duplicate exports.
+- Circular dependencies and re-export cycles.
+- Stale or unexplained suppressions.
+- Duplication.
+- Complexity and health.
 
-Run normal and production graph analysis when their findings differ.
+When normal and production graph findings differ, run both analyses.
 Use coverage data for accurate CRAP scores.
-Measure the repository before setting health or complexity thresholds.
-Give accepted overrides an exact scope, current ceiling, and reason.
+Before setting health or complexity thresholds, measure the repository.
+Give every accepted override an exact scope, current ceiling, and reason.
 
 ### Architecture checks
 
-Fallow boundaries and custom policies encode dependency rules only after the user approves the project's architecture.
-Use the project's own modules, vocabulary, dependency directions, and exceptions.
+After the user approves the architecture, add Fallow boundaries or custom policies.
+Use the project's modules, vocabulary, dependency directions, and exceptions.
+Name the supported dependency path or seam in every Fallow diagnostic.
+Assign every production file covered by an approved boundary scheme to an intentional zone.
+Keep generic graph health in the shared baseline.
+Keep project-specific zones and policies in the project configuration.
 
-A Fallow rule diagnostic names the supported dependency path or seam.
-Every production file covered by an approved boundary scheme belongs to an intentional zone.
+## ast-grep contract
 
-Generic graph health is part of the shared baseline.
-Project-specific zones and policies are not.
+Use ast-grep only when TypeScript, Biome, and Fallow cannot express a syntax or import-shape invariant clearly.
+Before enforcing an architecture decision, obtain user approval.
 
-## ast-grep and `sgconfig.yml`
-
-ast-grep is optional.
-Use it when an invariant concerns syntax or an import shape that TypeScript, Biome, and Fallow cannot express clearly.
-Obtain user approval first when that invariant enforces an architecture decision.
-
-`sgconfig.yml` is ast-grep's project configuration file.
-It tells the CLI where custom rules and their tests live, allowing `ast-grep scan` and `ast-grep test` to discover them:
+Create `sgconfig.yml` only when custom ast-grep rules or rule tests exist:
 
 ```yaml
 ruleDirs:
@@ -195,38 +186,25 @@ testConfigs:
   - testDir: ast-grep/tests
 ```
 
-Create it only when the project has custom ast-grep rules or rule tests.
+Each rule must include:
 
-Each rule includes:
+- A stable ID.
+- A source scope.
+- A narrow structural matcher.
+- Approved path exceptions.
+- A diagnostic that names the supported path.
+- Representative valid and invalid fixtures.
+- Bypass and false-positive fixtures when relevant.
 
-- a stable ID and source scope
-- a narrow structural matcher
-- approved path exceptions
-- a diagnostic naming the supported path
-- representative valid and invalid fixtures
-- bypass and false-positive fixtures where relevant
+Put style rules in Biome.
+Put dependency direction in Fallow.
+Put runtime behavior in tests.
 
-`just ast-grep-check` runs rule tests and a production scan.
-Put style rules in Biome, dependency direction in Fallow, and runtime behavior in tests.
+## CI and agent contract
 
-## Architecture discussion
-
-Before adding Fallow boundaries, Fallow policies, or ast-grep rules, agree with the user on:
-
-- the project's modules and names
-- allowed dependencies
-- important external-effect seams
-- approved exceptions
-- imports or syntax that would bypass those decisions
-- the rules worth enforcing automatically
-
-Record the agreement in project architecture documentation.
-Encode only those approved rules.
-
-## CI and agent guidance
-
-CI provisions pinned tools, then calls the same Just bootstrap and quality recipes used locally.
-Workflow YAML contains environment setup and Just invocations rather than duplicated tool commands.
+CI must provision the pinned tools.
+CI must call the same Just bootstrap and quality recipes used locally.
+Workflow YAML must contain environment setup and Just invocations instead of duplicated tool commands.
 
 Add this command contract to `AGENTS.md`:
 
@@ -238,5 +216,3 @@ Run `just` to list available recipes.
 Use Just recipes for repository workflows.
 Use `just quality` as the complete local quality gate.
 ```
-
-The initialized baseline is complete when the clean-checkout bootstrap and quality recipes pass and Git reports no tracked changes afterward.
