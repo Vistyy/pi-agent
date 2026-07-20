@@ -9,64 +9,51 @@ Write technical and agent-facing prose in a controlled, explicit style inspired 
 
 ## Apply the correct level of control
 
-Apply these rules strictly to:
-
-- Instructions.
-- Requirements.
-- Definitions.
-- Warnings.
-- Conditions.
-- Completion criteria.
-
-Apply these rules less strictly to explanatory prose when connected reasoning improves understanding.
+Apply these rules strictly to instructions, requirements, definitions, warnings, conditions, and completion criteria.
+When connected explanatory prose improves understanding, apply these rules less strictly.
 Preserve exact code identifiers, commands, paths, errors, quotations, and required domain terms.
 
-## Use controlled vocabulary
+## Control vocabulary
 
-- Use one canonical term for each concept.
-- Use each term with one meaning in the same context.
-- Repeat the canonical term instead of introducing a synonym for variety.
-- Use project terminology when it is more precise than general English.
-- Define an unfamiliar project term before you depend on it.
-- Use literal words for requirements and instructions.
-- Use pronouns only when their referents are unambiguous.
-- Name the applicable file, module, command, actor, or result instead of using vague references.
+- Use one canonical term for each concept and meaning.
+- When precise project terminology is available, use it.
+- Define an unfamiliar term before depending on it.
+- Repeat the canonical term instead of using synonyms for variety.
+- Use literal words in instructions and requirements.
+- When a pronoun or general reference would be ambiguous, name the applicable file, module, command, actor, or result.
 
-Metaphors and idioms can help conceptual teaching.
-A requirement or instruction must remain complete when the metaphor or idiom is removed.
+Metaphors and idioms may support an explanation.
+Each instruction or requirement must remain complete without them.
 
 ## Construct explicit sentences
 
-- Use active voice when the actor is known and relevant.
-- Name the actor when responsibility could be unclear.
-- State a condition before the action that depends on it.
+- When the actor is known and relevant, use active voice.
+- When responsibility could be unclear, name the actor.
+- State each condition before the action that depends on it.
 - Put one requirement or one primary action in each sentence.
-- Keep the action and its object together.
-- Separate a requirement from its rationale and examples.
-- Use positive instructions that name the supported behavior.
-- Use a prohibition for a hard guardrail, and pair it with the supported alternative.
-- Preserve causal words such as `because`, `so`, `but`, and `if` when they carry technical meaning.
+- Keep each action with its object.
+- Separate requirements from rationale and examples.
+- State the supported behavior directly.
+- A prohibition must express a hard guardrail.
+- When you use a prohibition, state the supported alternative with it.
+- When `because`, `so`, `but`, or `if` expresses a necessary relationship, preserve the word.
 
-Treat an instruction longer than 20 words as a mandatory review point.
-Treat a descriptive sentence longer than 25 words as a mandatory review point.
-Split the sentence when the split preserves the relationship between its ideas.
-Keep a longer sentence when splitting it would hide an important condition, contrast, or cause.
+Review each instruction longer than 20 words and each descriptive sentence longer than 25 words.
+When a split preserves the conditions, contrasts, and causes, split the long sentence.
 
-## Write each type of prose
+## Apply the prose-type pattern
 
 ### Instructions
 
-Write instructions in the imperative form.
+Use the imperative form.
 Put prerequisites and conditions before the command.
-Give one primary action in each numbered step.
-State the expected result when the result is not obvious.
+Give each numbered step one primary action.
+When the expected result is not obvious, state the expected result.
 
 Use this pattern:
 
 > If or when condition, perform action.
 > Expected result.
-
-Example:
 
 Before:
 
@@ -79,15 +66,15 @@ After:
 
 ### Requirements
 
-Use these modal verbs consistently:
+Use modal verbs consistently:
 
 - `must` identifies a requirement.
 - `should` identifies a recommendation.
 - `may` gives permission.
 - `can` identifies a capability or possible result.
 
-Name the subject of the requirement.
-Make the required state or behavior observable when possible.
+Name the subject.
+Make the required state or behavior observable.
 
 Before:
 
@@ -102,52 +89,44 @@ After:
 
 Start with the canonical term.
 State what the term identifies.
-Add the minimum boundary needed to distinguish it from related terms.
-Keep a definition to one or two sentences when possible.
-
-Example:
-
-> A **Seam** is a location where a module exposes its interface.
-> A caller can replace behavior at this location without changing the caller.
+Add only the boundary needed to distinguish the term from related terms.
 
 ### Warnings
 
 State the hazard or invalid state first.
 State the consequence next.
 State the prevention or recovery action last.
-Use a warning only when the consequence justifies interruption.
+A warning must describe a consequence that justifies interruption.
 
 ### Explanations
 
 Give each paragraph one topic.
-Start with the fact or claim that controls the paragraph.
-Add causes, consequences, or exceptions in a logical order.
-Keep connected reasoning together when splitting it would make the relationship less clear.
+Start with the controlling fact or claim.
+Keep related causes, consequences, conditions, and exceptions together.
 
 ## Organize information
 
 - Use prose for connected reasoning.
 - Use numbered lists for ordered actions.
 - Use bullets for parallel facts or options.
-- Use headings that name the subject or action of the section.
-- Keep a rule beside its conditions and exceptions.
-- Keep examples immediately after the rule they demonstrate.
-- Keep normative language separate from background information.
+- Keep each rule beside its conditions, exceptions, and examples.
+- Separate normative language from background information.
 
 ## Review the result
 
 Review every changed passage before completion.
-Confirm all these statements:
+Confirm all applicable statements:
 
-- Each concept has one canonical term.
+- Each concept has one canonical term and meaning.
 - Each instruction has one primary action.
-- Each condition appears before the action that depends on it.
-- Each requirement identifies its subject and required state or behavior.
-- Each vague pronoun or reference has an unambiguous referent.
+- Each condition precedes its dependent action.
+- Each requirement names its subject and defines an observable state or behavior.
+- Each pronoun and reference has an unambiguous referent.
 - Each metaphor in normative prose has a literal replacement.
-- Each sentence above the length threshold was reviewed deliberately.
-- Requirements, rationale, and examples are distinguishable.
+- Each sentence above the length threshold received deliberate review.
+- Requirements, rationale, and examples are distinct.
 - Exact technical text outside the requested changes remains unchanged.
 - The rewrite preserves the original technical meaning.
+- The document-specific completion criteria are satisfied.
 
-The prose is complete when every applicable statement is true and the document-specific completion criteria are also satisfied.
+The prose is complete when every applicable statement is true.

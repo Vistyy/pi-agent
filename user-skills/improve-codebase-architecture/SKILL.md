@@ -6,65 +6,65 @@ disable-model-invocation: true
 
 # Improve Codebase Architecture
 
-Identify shallow modules that reduce testability or require callers to understand distributed behavior.
-Propose deepening changes that move behavior behind smaller interfaces.
+Identify shallow modules that reduce testability or expose distributed behavior to callers.
+Propose deeper interfaces that hide that behavior.
 
-Before you start, use the `codebase-design` skill.
+Before starting, use the `codebase-design` skill.
 Use its architecture vocabulary and principles for every architectural claim.
-Use `CONTEXT-MAP.md` to select the applicable context when the map exists.
-Otherwise, use the root `CONTEXT.md` when it exists.
-Use the applicable domain terms and treat the applicable ADRs as current constraints.
+If `CONTEXT-MAP.md` exists, use it to select the applicable context.
+Otherwise, if the root `CONTEXT.md` exists, use the root context.
+Use applicable domain terms.
+Treat applicable ADRs as current constraints.
 
 ## 1. Explore the repository
 
-Select the target area before scanning the codebase.
+Select the target area before scanning.
 If the user names a module, subsystem, or problem, use that target.
-Otherwise, inspect a representative range of recent commits with `git log --oneline`.
-Give priority to files and areas that change repeatedly.
-If recent changes have no concentration, widen the scan.
+Otherwise, inspect representative recent commits with `git log --oneline`.
+Prioritize repeatedly changed files and areas.
+If recent changes show no concentration, widen the scan.
 
-Read the applicable `CONTEXT.md` and ADRs for the target area.
+Read the target area's applicable `CONTEXT.md` and ADRs.
 
-Use `fork` when the target spans multiple directories, ownership is unclear, or several domain concepts are involved.
-Inspect directly when the user names one module, file, or seam.
+If the target spans multiple directories, use `fork`.
+If ownership is unclear, use `fork`.
+If several domain concepts are involved, use `fork`.
+If the user names one module, file, or seam, inspect it directly.
 
 Look for these observable signals:
 
-- Understanding one domain concept requires reading many small modules.
-- A module's interface exposes nearly as much complexity as its implementation.
-- Tests target extracted functions while defects occur in caller coordination.
+- One domain concept spans many small modules.
+- An interface exposes nearly as much complexity as its implementation.
+- Tests target extracted functions, while defects occur in caller coordination.
 - Coupled modules expose implementation knowledge across their seams.
-- Existing interfaces cannot support tests for important behavior.
+- Interfaces cannot support tests for important behavior.
 
 Apply the **deletion test** to each suspected shallow module.
-Record whether deleting the module removes only pass-through structure or distributes hidden behavior among callers.
-A cluster is a deepening candidate when its pass-through modules can be replaced by one deeper interface.
-If deleting a module distributes its hidden behavior among callers, record that the module already provides locality.
-Do not select that module from the deletion-test result alone.
+Record whether deletion removes pass-through structure or distributes hidden behavior among callers.
+If pass-through modules can be replaced by one deeper interface, treat the cluster as a candidate.
+If deletion distributes hidden behavior, record that the module provides locality.
+Use more than the deletion-test result to select a module.
 
 Exploration is complete when you have three credible candidates or evidence that fewer exist.
-For each candidate, record:
-
-- Involved files.
-- The shallow interface.
-- The implementation complexity exposed to callers.
-- The deletion-test result.
+For each candidate, record its files, shallow interface, exposed implementation complexity, and deletion-test result.
 
 ## 2. Present candidates
 
-Use the `lavish` skill before writing the report.
-Create `.lavish/reviews/architecture-review-<timestamp>.html` with [HTML-REPORT.md](HTML-REPORT.md).
-Include every credible candidate, its before and after diagrams, and one top recommendation.
+Before writing the report, use the `lavish` skill.
+Create `.lavish/reviews/architecture-review-<timestamp>.html` according to [HTML-REPORT.md](HTML-REPORT.md).
+Include every credible candidate.
+Include before and after diagrams.
+Identify one top recommendation.
 Run Lavish review until no layout warning remains.
 
-Use terms from the applicable `CONTEXT.md` for domain concepts.
+Use applicable `CONTEXT.md` terms for domain concepts.
 Use `codebase-design` terms for architecture.
 For example, use `Order intake module` instead of an implementation class name or `Order service`.
 
-If a candidate conflicts with an ADR, include it only when observed friction justifies reconsidering the ADR.
-Mark the conflict in the candidate card and name the ADR.
+If a candidate conflicts with an ADR, require observed friction before including the candidate.
+Mark the conflict in the candidate card.
+Name the ADR.
 
-Use [HTML-REPORT.md](HTML-REPORT.md) for report structure and diagram guidance.
 Present candidates before proposing interfaces.
 After the report is ready, ask which candidate the user wants to explore.
 
@@ -74,18 +74,16 @@ After the user selects a candidate, use the `grilling` skill.
 Resolve:
 
 - Constraints and dependencies.
-- The deepened module name.
-- Its interface.
-- Behavior hidden in its implementation.
+- The deepened module name and interface.
+- Hidden implementation behavior.
 - Required adapters.
-- Tests that remain or change.
+- Surviving or changed tests.
 
-Use the `domain-modeling` skill when the discussion changes the domain model:
-
-- Add a resolved module term to the applicable `CONTEXT.md` when the term identifies a domain concept.
-- Update the applicable `CONTEXT.md` immediately after resolving an existing ambiguous term.
-- Offer an ADR when rejecting the candidate establishes a difficult, surprising, trade-off decision.
-- Use the design-it-twice process from `codebase-design` when the user requests alternative interfaces.
+If the discussion changes the domain model, use the `domain-modeling` skill.
+If a resolved module term identifies a domain concept, add it to the applicable `CONTEXT.md`.
+After resolving an ambiguous term, update the applicable `CONTEXT.md` immediately.
+If rejecting the candidate establishes a difficult or surprising trade-off decision, offer an ADR.
+If the user requests alternative interfaces, use the design-it-twice process from `codebase-design`.
 
 The process is complete when the selected candidate has a named deep module and proposed interface.
 Its hidden implementation, adapters, and surviving tests must be explicit.

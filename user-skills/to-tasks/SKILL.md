@@ -6,15 +6,15 @@ disable-model-invocation: true
 
 # To Tasks
 
-Break a plan into local **tracer-bullet** task drafts.
+Break a plan or specification into local **tracer-bullet** task drafts.
 Each task must deliver one independently verifiable vertical slice.
-Keep the drafts local.
+Keep drafts local.
 
 ## 1. Gather context
 
-Use the current conversation as context.
-If the user provides a local path, read that file.
-Retrieve an external tracker reference only when the user requests it.
+Use the conversation as context.
+When the user provides a local path, read that file.
+When the user requests an external tracker reference, retrieve it.
 
 This step is complete when the source specification and its normative references are available locally.
 
@@ -23,12 +23,12 @@ This step is complete when the source specification and its normative references
 Identify:
 
 - The current implementation.
-- The relevant public seams.
-- The applicable domain terms.
-- The applicable architectural decisions.
-- Existing changes that can make later slices independently pass.
+- Relevant public seams.
+- Applicable domain terms.
+- Applicable architectural decisions.
+- Existing changes that can make later slices pass independently.
 
-Include a preparatory change only when it reduces the later slice without adding independent behavior.
+A preparatory change is valid only if it reduces a later slice without adding independent behavior.
 
 This step is complete when the implementation, verification seams, and prerequisite boundaries are explicit.
 
@@ -42,10 +42,10 @@ Link each task directly to the source specification.
 
 This step is complete when:
 
-- Every required behavior has one task owner.
-- Every feature task is one end-to-end vertical slice.
-- Every wide-refactor stage states its passing condition.
-- Every prerequisite has a task and dependency relationship.
+- Each required behavior has one task owner.
+- Each feature task is one end-to-end vertical slice.
+- Each wide-refactor stage states its passing condition.
+- Each prerequisite has a task and dependency relationship.
 
 ## 4. Confirm the breakdown
 
@@ -53,25 +53,23 @@ Present the proposed tasks as a numbered list.
 For each task, show:
 
 - **Title**: Name the observable capability or migration stage.
-- **Capability**: State the one result that the task delivers.
+- **Capability**: State the single result the task delivers.
 - **Primary verification seam**: Name the public seam that demonstrates completion.
 - **Behaviors owned**: List each owned behavior and its source requirement.
-- **Blocked by**: List each task that must complete first.
+- **Blocked by**: List each prerequisite task.
 
 Ask the user to confirm task boundaries, behavior ownership, verification seams, and dependencies.
-Revise the breakdown until the user approves it.
-
-This step is complete when the user approves every task and dependency.
+Revise the breakdown until the user approves every task and dependency.
 
 ## 5. Write task drafts
 
 Write each approved task with the template below.
 Order drafts by dependency, with blockers first.
-If the destination is unknown, ask the user where to save the drafts.
+When the destination is unknown, ask where to save the drafts.
 Keep the source specification unchanged.
 
 This step is complete when every approved task has a saved draft.
-Each draft must link to the specification and to every blocking task.
+Each draft must link to the specification and every blocking task.
 
 ## Task template
 
@@ -89,8 +87,8 @@ For each behavior, identify its source requirement, specification section, or us
 
 ## What to build
 
-Describe the one vertical slice or expand-contract stage.
-Describe observable behavior rather than work organized by technical layer.
+Describe one vertical slice or expand-contract stage.
+Describe observable behavior, not work organized by technical layer.
 
 Reference stable decisions without specific file paths or implementation code.
 When a prototype contains required design evidence, link to the preserved prototype instead of copying it.
@@ -109,5 +107,5 @@ Name the caller-visible interface that demonstrates the task's behavior.
 
 - Link to each blocking task.
 
-Use `None - can start immediately.` when the task has no blocker.
+When the task has no blocker, use `None - can start immediately.`
 </task-template>

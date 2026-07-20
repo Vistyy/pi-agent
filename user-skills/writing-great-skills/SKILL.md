@@ -6,105 +6,77 @@ disable-model-invocation: true
 
 # Writing Great Skills
 
-A skill makes an agent use a predictable process.
-Predictability means that the agent follows the same process on each run.
-The process can produce different outputs.
+A skill makes an agent follow a predictable process while allowing different outputs.
+Bold terms use the authoritative definitions in [GLOSSARY.md](GLOSSARY.md).
 
-Bold terms are defined in [GLOSSARY.md](GLOSSARY.md).
-Use the glossary definitions when you apply these concepts.
+## 1. Select the invocation mode
 
-## Select the invocation mode
+Before selecting or changing the invocation mode, read the glossary section [Invocation](GLOSSARY.md#invocation).
 
-A skill can be **model-invoked** or **user-invoked**.
-Each mode has a different cost.
-
-### Model-invoked
-
-A model-invoked skill keeps its **description** in the agent context.
-The agent can invoke the skill when a task matches the description.
-Other skills can also reach it.
-The description adds permanent **context load**.
-
-To make a skill model-invoked:
+When the agent or another skill must find a skill without user action, make the skill **model-invoked**:
 
 - Omit `disable-model-invocation`.
-- Describe the situations that must invoke the skill.
-- Include each distinct trigger branch once.
+- Describe each distinct trigger branch once.
+- Remove synonyms that describe the same trigger.
+- When a **leading word** improves invocation, start the description with it.
+- Keep behavior and background information in the skill body.
 
-Choose this mode when the agent or another skill must find the skill without user action.
+A model-invoked **description** adds permanent **context load**.
+The description is complete when every required trigger branch appears once.
 
-### User-invoked
-
-A user-invoked skill is available only when the user invokes it by name.
-Its description is human-facing and adds no context load.
-The user must remember when to invoke it, which adds **cognitive load**.
-
-To make a skill user-invoked:
+When explicit user choice is part of the behavior, make the skill **user-invoked**:
 
 - Set `disable-model-invocation: true`.
 - Write a short human-facing description.
 
-Choose this mode when the skill should run only after an explicit user decision.
-
+A user-invoked skill adds **cognitive load** because the user must remember it.
 If many user-invoked skills become difficult to remember, create a **router skill**.
-The router names each skill and explains when the user should invoke it.
+The router must name each relevant skill and state its invocation condition.
 
-## Write a model-invoked description
+This step is complete when the frontmatter, description, and invocation behavior match the selected mode.
 
-A model-invoked **description** determines when the agent loads the skill.
-Every word in the description adds context load.
+## 2. Build the information hierarchy
 
-- Start with the skill's **leading word** when it improves invocation.
-- State each distinct trigger branch once.
-- Remove synonyms that describe the same trigger.
-- Keep behavior and background information in the skill body.
+Before placing or moving content, read the glossary section [Information Hierarchy](GLOSSARY.md#information-hierarchy).
+Place content according to when the agent needs it:
 
-The description is complete when every required invocation branch is present once.
+1. Put ordered actions in in-skill **steps**.
+2. Put universally required rules and facts in in-skill **reference**.
+3. Put branch-specific skill material in **disclosed reference** behind a precise **context pointer**.
+4. Put shared material that needs no independent invocation in **external reference** behind a precise context pointer.
 
-## Build the information hierarchy
-
-A skill contains **steps**, **reference**, or both.
-Place information according to when the agent needs it.
-
-1. **In-skill step**: An ordered action in `SKILL.md`.
-   End each step with a checkable **completion criterion**.
-2. **In-skill reference**: A definition, rule, or fact that every applicable branch needs.
-3. **Disclosed reference**: Skill-specific material in a sibling file behind a **context pointer**.
-4. **External reference**: Shared material outside the skill system behind a context pointer.
-
-A completion criterion must let the agent distinguish complete work from incomplete work.
-Make the criterion exhaustive when incomplete coverage would matter.
+End each step with a checkable **completion criterion**.
+When incomplete coverage matters, make the criterion exhaustive.
 A demanding criterion produces the required **legwork**.
 
-Use **progressive disclosure** when only some branches need detailed reference material.
-Move skill-specific material to a named Markdown file in the skill directory.
-Use an external reference when several skills need shared material that does not require independent invocation.
-Write each context pointer so the agent knows exactly when to read the target.
-Keep required material in `SKILL.md` when a pointer does not load reliably.
+When only some branches need detailed material, use **progressive disclosure**.
+When a precise pointer does not load reliably, keep required material in `SKILL.md`.
+Use **co-location** within each file.
+Keep each concept's definition, rules, and exceptions under one heading.
 
-Use **co-location** inside each file.
-Keep a concept's definition, rules, and exceptions under one heading.
+This step is complete when every action and reference is at the lowest reliable level and every step has a sufficient completion criterion.
 
-## Split a skill only at a useful seam
+## 3. Split only at a useful seam
 
-**Granularity** controls how many skills represent one capability.
-Each additional skill adds context load or cognitive load.
+Before splitting a skill, read the glossary entries for [Granularity](GLOSSARY.md#granularity) and [Premature Completion](GLOSSARY.md#premature-completion).
 
-Split by invocation when a distinct leading word must trigger the new skill independently or another skill must reach it.
-This creates another model-invoked description and increases context load.
-
-Split by sequence when visible **post-completion steps** cause observed **premature completion**.
-First, make the current completion criterion precise.
+When a distinct **leading word** must trigger independently, split by invocation.
+When another skill must reach the capability, split by invocation.
+If visible **post-completion steps** cause observed **premature completion**, consider a sequence split.
+Before a sequence split, make the current completion criterion precise.
 Use a sequence split only when the criterion cannot prevent the observed behavior.
+A sequence split must create a real context boundary.
 
-## Prune the skill
+This step is complete when each split has an independent invocation need or an observed sequence failure.
 
+## 4. Prune the skill
+
+Before pruning, read the glossary section [Pruning](GLOSSARY.md#pruning).
 Keep each meaning in one **single source of truth**.
-A behavioral change must require one authoritative edit.
+Make each behavioral change through one authoritative edit.
 
 Review each line for **relevance**.
-Remove content that does not affect the skill's current behavior.
-
+Remove obsolete content.
 Apply the **no-op** test to each sentence:
 
 > Does this sentence change agent behavior from the default behavior?
@@ -112,55 +84,32 @@ Apply the **no-op** test to each sentence:
 Delete a sentence that fails the test.
 A shorter no-op remains a no-op.
 
-## Use leading words
+This step is complete when each retained line changes or supports the skill's current behavior and each meaning has one authority.
 
-A **leading word** is a compact concept that already has a strong meaning for the model.
-It anchors related behavior with fewer tokens.
-Examples include _lesson_, _fog of war_, and _tracer bullet_.
+## 5. Use leading words
 
-Use a leading word in the body to anchor execution.
-Use it in the description when the same word should trigger invocation.
-Repeat the term when repetition strengthens the intended behavior.
+Before selecting a leading word, read the glossary entry [Leading Word](GLOSSARY.md#leading-word).
+When an established compact concept anchors behavior more reliably than a longer explanation, use it.
+Use the leading word in the body.
+When the leading word should trigger invocation, use it in the description.
 Keep its meaning consistent.
+Repeat the term when repetition strengthens behavior.
+Do not repeat its complete definition.
 
-Look for repeated explanations that one strong term can replace.
-For example:
+This step is complete when each leading word changes behavior more reliably than the wording it replaces.
 
-- Replace repeated descriptions of a fast, deterministic feedback cycle with a _tight loop_.
-- Use _red_ for a feedback loop that reproduces the specified defect.
+## 6. Diagnose failure modes
 
-A leading word earns its place when it changes behavior more reliably than the longer explanation.
+During review, classify each observed failure with the glossary definition:
 
-## Diagnose failure modes
+- For **premature completion**, strengthen the current completion criterion before splitting the sequence.
+- For **duplication**, choose one authoritative location.
+- For **sediment**, remove stale or irrelevant content.
+- For **sprawl**, disclose conditional material or split a genuine branch or sequence.
+- For a **no-op**, remove the instruction or replace it with an effective control.
+- For **negation**, state the supported behavior directly.
 
-### Premature completion
+A prohibition must express a hard guardrail.
+When using a prohibition, pair it with the supported behavior.
 
-The agent ends a step before it satisfies the completion criterion.
-Make the criterion precise first.
-If the criterion cannot become precise and the failure is observed, hide later steps behind a real context split.
-
-### Duplication
-
-The same meaning has multiple authoritative locations.
-Choose one source and remove the other definitions.
-
-### Sediment
-
-Stale content remains because additions are easier than removals.
-Review relevance and remove obsolete content.
-
-### Sprawl
-
-The skill contains too much active, unique material.
-Use progressive disclosure or split a genuine branch or sequence.
-
-### No-op
-
-An instruction restates behavior that the model already performs.
-Delete it or replace it with a stronger behavioral control.
-
-### Negation
-
-A prohibition can make the prohibited behavior more salient.
-State the supported behavior directly.
-Use a prohibition only for a hard guardrail, and pair it with the supported behavior.
+The skill is complete when its invocation, hierarchy, completion criteria, splits, terminology, and failure controls satisfy every applicable rule above.

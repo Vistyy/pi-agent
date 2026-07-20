@@ -5,146 +5,107 @@ description: Use when designing or improving a module's interface, finding deepe
 
 # Codebase Design
 
-Design deep modules.
-A deep module provides substantial behavior through a small interface.
-Place its interface at a clear seam and test the module through that interface.
+Design deep modules: substantial behavior behind a small interface.
+Place the interface at a clear seam.
+Test the module through that interface.
 
-Use this vocabulary for architectural claims.
-Use each term with the meaning defined here.
+Use the following terms only with these meanings.
 
-## Vocabulary
+## Canonical vocabulary
 
-**Module**: Anything that has an interface and an implementation.
-A module can be a function, class, package, or tier-spanning slice.
-_Avoid_: unit, component, service.
+**Module**: Anything with an interface and an implementation, including a function, class, package, or tier-spanning slice.
+Use **Module** instead of *unit*, *component*, or *service*.
 
 **Interface**: Everything a caller must know to use a module correctly.
 The interface includes type signatures, invariants, ordering constraints, error modes, configuration, and performance characteristics.
-_Avoid_: API, signature.
+Use **Interface** instead of *API* or *signature*.
 
-**Implementation**: The code inside a module.
-Use **Adapter** when the role at a seam is the subject.
-Use **Implementation** when the code inside the module is the subject.
+**Implementation**: Code inside a module.
+When describing a role at a seam, use **Adapter**.
+When describing code inside the module, use **Implementation**.
 
-**Depth**: The amount of behavior that a caller or test can exercise for each part of the interface it must learn.
+**Depth**: The behavior a caller or test can exercise for each part of the interface it must learn.
 A deep module provides substantial behavior through a small interface.
-A shallow module has an interface that is nearly as complex as its implementation.
+A shallow module's interface is nearly as complex as its implementation.
 
 **Seam**: A location where behavior can change without editing that location.
-A seam is the location where a module exposes its interface.
-_Avoid_: boundary.
+A module exposes its interface at a seam.
+Use **Seam** instead of *boundary*.
 
 **Adapter**: A concrete implementation that satisfies an interface at a seam.
-Adapter describes the role that the implementation performs, not its code shape.
+The term describes the role, not the code shape.
 
-**Leverage**: The capability that callers receive for each part of an interface that they must learn.
+**Leverage**: The capability callers receive for each part of the interface they must learn.
 One implementation can provide leverage to many callers and tests.
 
 **Locality**: The concentration of behavior, knowledge, defects, and verification in one module.
 Locality lets maintainers make and verify a change in one place.
 
-## Compare deep and shallow modules
-
-A deep module has a small interface and a substantial implementation:
-
-```
-┌─────────────────────┐
-│   Small Interface   │  <- Few methods, simple params
-├─────────────────────┤
-│                     │
-│  Deep Implementation│  <- Complex logic hidden
-│                     │
-└─────────────────────┘
-```
-
-A shallow module has a large interface and a small implementation:
-
-```
-┌─────────────────────────────────┐
-│       Large Interface           │  <- Many methods, complex params
-├─────────────────────────────────┤
-│  Thin Implementation            │  <- Just passes through
-└─────────────────────────────────┘
-```
-
-When you design an interface, ask:
-
-- Can the interface have fewer methods?
-- Can the parameters be simpler?
-- Can the implementation hide more complexity?
-
-## Apply the design principles
+## Apply the design rules
 
 ### Measure depth at the interface
 
-Depth is a property of the module's interface.
-A deep module can contain small internal parts without exposing them.
-Its implementation can have internal seams for tests of those private modules.
-Tests of the deep module's external behavior use its external interface.
+Judge depth by the module's interface rather than implementation size.
+Internal parts may be small.
+The implementation may have internal seams for private-module tests.
+Test the deep module's external behavior through its external interface.
 
 ### Apply the deletion test
 
-Imagine that you delete the module.
+Imagine deleting the module.
 If complexity disappears, the module was a pass-through.
-If complexity moves into multiple callers, the module was providing locality.
+If complexity moves into multiple callers, the module provided locality.
 
 ### Test through the interface
 
-Callers and tests use the same interface.
-If a test must bypass the interface, reconsider the module shape.
+Callers and tests must use the same interface.
+If a test bypasses the interface, reconsider the module shape.
 
 ### Require a real seam
 
 One adapter makes a seam hypothetical.
 Two adapters make a seam real.
-Introduce a seam when behavior actually varies at that location.
+When behavior varies at a location, introduce a seam there.
 
-## Design for testability
+### Design for testability
 
-### Accept dependencies
+Accept dependencies instead of constructing them inside the module:
 
 ```typescript
-// Testable
 function processOrder(order, paymentGateway) {}
-
-// Hard to test
-function processOrder(order) {
-  const gateway = new StripeGateway();
-}
 ```
 
-### Return results instead of producing side effects
+Return results instead of producing side effects:
 
 ```typescript
-// Testable
 function calculateDiscount(cart): Discount {}
-
-// Hard to test
-function applyDiscount(cart): void {
-  cart.total -= discount;
-}
 ```
 
-### Keep the interface small
-
-Fewer methods reduce the interface that callers and tests must learn.
+Keep the interface small.
+Fewer methods reduce what callers and tests must learn.
 Simpler parameters reduce test setup.
+
+When reviewing an interface, ask:
+
+- Can the interface have fewer methods?
+- Can the parameters be simpler?
+- Can the implementation hide more complexity?
 
 ## Preserve these relationships
 
 - A **Module** has one **Interface**.
 - **Depth** is a property of a module, measured through its interface.
-- A **Seam** is the location where a module exposes its interface.
+- A **Seam** is where a module exposes its interface.
 - An **Adapter** satisfies an interface at a seam.
 - **Depth** provides **Leverage** for callers and **Locality** for maintainers.
 
-## Rejected definitions
+## Reject invalid definitions
 
-- Measuring **Depth** as implementation lines divided by interface lines rewards unnecessary implementation.
-- Defining **Interface** as only a TypeScript `interface` or public method list omits required behavior and constraints.
-- Using **Boundary** for **Seam** conflicts with the DDD term bounded context.
+- **Depth** is not implementation lines divided by interface lines because that measure rewards unnecessary implementation.
+- **Interface** includes required behavior and constraints, not only a TypeScript `interface` or public method list.
+- Use **Seam** for a changeable behavior location because *boundary* conflicts with the DDD term bounded context.
 
-## Apply the supporting guidance
+## Apply supporting guidance
 
-- For dependency categories, seam discipline, and test replacement, read [DEEPENING.md](DEEPENING.md).
-- For independent alternative interfaces, read [DESIGN-IT-TWICE.md](DESIGN-IT-TWICE.md).
+When designing dependency categories, seams, or test replacement, read [DEEPENING.md](DEEPENING.md).
+When the user requests independent alternative interfaces, read [DESIGN-IT-TWICE.md](DESIGN-IT-TWICE.md).

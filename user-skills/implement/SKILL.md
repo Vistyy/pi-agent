@@ -8,43 +8,33 @@ disable-model-invocation: true
 
 ## 1. Validate the vertical slice
 
-Read:
+Read the approved task, its linked specification, its normative references, and the repository instructions.
+Read the `vertical-slices` skill.
+Implement one approved task rather than the complete specification.
 
-- The approved task.
-- Its linked specification and normative references.
-- The repository instructions.
-- The `vertical-slices` skill.
-
-Implement one approved task rather than a complete specification.
-
-Before you record a baseline or edit code, verify:
+Before recording a baseline or editing code, verify:
 
 - The task is one tracer-bullet vertical slice or one independently passing expand-contract stage.
 - Every blocking task is complete.
 - Every acceptance criterion has a primary verification seam.
-- Authoritative context settles each required behavior, scope boundary, and constraint.
+- Authoritative context resolves each required behavior, scope boundary, and constraint.
 
 If the task fails the vertical-slice rules, stop before editing.
-Propose flat replacement tasks and wait for user approval.
+Propose flat replacement tasks.
+Wait for user approval.
 
-If authoritative context does not resolve a material conflict, stop before editing.
-Report the conflicting sources and the decision required from the user.
+If authoritative context leaves a material conflict unresolved, stop before editing.
+Report the conflicting sources and the required user decision.
 
-This step is complete when repository evidence satisfies every listed check.
+This step is complete when repository evidence satisfies every check above.
 
 ## 2. Record the scoped baseline
 
 Record the current `HEAD` as a full commit SHA.
 Record the task draft as the Spec review source.
-Keep its linked specification as normative traceability context for the task.
-
+Keep its linked specification as normative traceability context.
+For every acceptance criterion, record its implementation target, public test seam, and verification target.
 Record every required validation command or direct verification method.
-For each acceptance criterion, record:
-
-- The implementation target.
-- The public test seam.
-- The verification target.
-
 Start a decision ledger for behavior-affecting choices that authoritative context does not dictate.
 For each entry, record the evidence and one classification:
 
@@ -52,31 +42,35 @@ For each entry, record the evidence and one classification:
 - `user-approved`.
 - `deferred to <task>`.
 
-This step is complete when the baseline and task source resolve.
-Every required validation command or direct verification method must be recorded.
-Every acceptance criterion must have implementation and verification targets.
-Every known behavior-affecting choice must be in the decision ledger.
+This step is complete when:
+
+- The baseline and task source resolve.
+- Every acceptance criterion has an implementation target, public test seam, and verification target.
+- Every required validation command or direct verification method is recorded.
+- The ledger contains every known behavior-affecting choice.
 
 ## 3. Deliver the task
 
 Use `/tdd` at the task's public seams.
-Implement the task in independently passing internal steps.
-After each step, run its focused tests and relevant type check.
-Update the decision ledger when evidence introduces or changes a behavior-affecting choice.
+Implement independently passing internal steps.
+After each step, run focused tests and the relevant type check.
+When evidence changes a behavior-affecting choice, update the decision ledger.
 
-If discovered work expands the planned task, reapply the `vertical-slices` skill.
-If repository evidence reveals an undeclared prerequisite that must complete before the current task can succeed:
+When discovered work expands the planned task, reapply the `vertical-slices` skill.
+When repository evidence reveals an undeclared prerequisite that blocks the task:
 
 1. Stop before implementing the prerequisite.
 2. Report the evidence.
-3. Explain its independent observable behavior.
+3. Explain the prerequisite's independent observable behavior.
 4. Propose a flat task.
-5. Explain why it blocks the current task.
+5. Explain why the prerequisite blocks the current task.
 6. Wait for user approval.
 
-This step is complete when every acceptance criterion is implemented and demonstrated.
-Every prerequisite must be declared and complete.
-Every change must belong to the approved slice or expand-contract stage.
+This step is complete when:
+
+- Every acceptance criterion is implemented and demonstrated.
+- Every prerequisite is declared and complete.
+- Every change belongs to the approved slice or expand-contract stage.
 
 ## 4. Verify and review
 
@@ -84,21 +78,21 @@ Run every check recorded in step 2.
 Commit the completed task.
 Start one `/code-review <baseline> <task-source>` lifecycle with the recorded values.
 
-Apply every reviewer finding.
-Fix every in-scope finding, including Critical, High, and Low findings.
-Route a finding across the task boundary through the vertical-slice rules.
-A routed finding pauses completion until the user approves its owner and dependency relationship.
-If the routed task blocks the current task, wait for it to complete before resuming.
+Fix every in-scope reviewer finding, including Critical, High, and Low findings.
+Route findings across the task boundary through the vertical-slice rules.
+Until the user approves each routed finding's owner and dependency, pause completion.
+If the routed task blocks the current task, wait for its completion before resuming.
 
 Preserve each review-axis latch:
 
-- After `BLOCKED`, the axis remains `pending` when its findings are fixed.
-- After `APPROVED WITH REQUIRED COMMENTS`, the axis becomes `latched` before its findings are fixed.
-- After `APPROVED`, the axis becomes `latched` immediately.
+- After `BLOCKED`, keep the axis `pending` while its findings are fixed.
+- After `APPROVED WITH REQUIRED COMMENTS`, set the axis to `latched` before fixing its findings.
+- After `APPROVED`, set the axis to `latched` immediately.
 
-A correction batch resolves every finding from the preceding review invocation.
-After the correction batch, rerun the required checks and commit the corrections.
-Invoke `/code-review` with the same baseline and task source while an axis remains `pending`.
+Each correction batch must resolve every finding from the preceding review invocation.
+After each batch, rerun the required checks.
+Commit the corrections.
+While an axis remains `pending`, invoke `/code-review` with the same baseline and task source.
 Rerun only pending axes.
 
 This step is complete when:
@@ -111,7 +105,7 @@ This step is complete when:
 ## 5. Finish the task
 
 Mark the task complete through the repository's workflow.
-The administrative completion update can change only status, completion evidence, and commit references.
+Limit the administrative completion update to status, completion evidence, and commit references.
 Commit the administrative update.
 Rerun the required checks without reopening either review latch.
 
@@ -127,5 +121,8 @@ Report:
 - The decision ledger with every confirmed deferred owner.
 
 The workflow is complete when the implementation and administrative update are committed and the task is marked complete.
-Every acceptance criterion must remain demonstrated, and every required check must pass.
-Every reviewer finding must remain resolved, both axes must remain latched, and every implementation decision must be disclosed.
+Every acceptance criterion must remain demonstrated.
+Every required check must pass.
+Every reviewer finding must remain resolved.
+Both axes must remain latched.
+Every implementation decision must be disclosed.
