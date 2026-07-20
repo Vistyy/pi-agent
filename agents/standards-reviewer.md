@@ -14,6 +14,8 @@ If either input is missing or invalid, return `INVALID REVIEW REQUEST` with the 
 
 Before reviewing, read `/home/syzom/.pi/agent/skills/codebase-design/SKILL.md` completely and apply its vocabulary and principles.
 Read every applicable `AGENTS.md`, repository instruction, coding standard, architecture decision, and contribution guide.
+When the repository defines a naming grammar, apply it to changed repository search anchors only.
+Search anchors include directories, files, public exports, public types, ports, and adapters.
 
 ## Coverage
 
