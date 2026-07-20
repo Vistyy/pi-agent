@@ -1,65 +1,64 @@
 # Deepening
 
-Use this guidance to deepen a cluster of shallow modules safely.
-Use the vocabulary in [SKILL.md](SKILL.md): **module**, **interface**, **seam**, and **adapter**.
+Use this guidance after the parent skill selects deepening as the simplest credible structure.
+Use the parent skill's definitions of **module**, **interface**, **seam**, and **adapter**.
 
-## Classify each dependency
+**Depth**: The behavior a caller or test can exercise for each part of the interface it must learn.
+A deep module provides substantial behavior through a small interface.
 
-Classify each dependency before you design the deepened module.
-The dependency category determines how tests cross its seam.
+**Leverage**: The capability callers receive for each part of the interface they must learn.
+One implementation can provide leverage to many callers and tests.
 
-### 1. In-process
+## 1. Confirm the deepening hypothesis
 
-An in-process dependency performs pure computation or uses in-memory state without I/O.
-Merge the shallow modules and test the new interface directly.
-This category does not require an adapter.
+Name the behavior, rules, invariants, or ordering currently distributed among callers.
+Define the smaller interface that can replace that caller knowledge.
+Compare the proposal with deletion, merging, moving behavior, and keeping direct code.
 
-### 2. Local-substitutable
+This step is complete when deepening reduces caller knowledge and verification cost enough to offset the new module and migration work.
 
-A local-substitutable dependency has a local test implementation, such as PGLite or an in-memory filesystem.
-Deepen the module when the test implementation is available.
-Run the test implementation in the test suite.
-Keep this seam inside the deepened module.
+## 2. Absorb the distributed behavior
 
-### 3. Remote but owned
+Move the distributed rules, coordination, and invariants into the module.
+Let callers provide required inputs and consume observable results.
+Keep implementation ordering and dependency details inside the module.
+Do not expose internal entry points only to preserve old callers or tests.
+Use the supported interface and remove the replaced entry points after migration.
 
-A remote but owned dependency is an internal service across a network seam.
-Define a port at the seam.
-Inject the transport as an adapter.
-Use an HTTP, gRPC, or queue adapter in production.
-Use an in-memory adapter in tests.
+This step is complete when callers no longer coordinate the absorbed behavior.
 
-Use this recommendation pattern:
+## 3. Place dependency seams
 
-> Define a port at the seam.
-> Use an HTTP adapter in production and an in-memory adapter in tests.
-> Keep the domain behavior in one deep module.
+Classify each dependency before creating a seam.
 
-### 4. True external
+### In-process dependency
 
-A true external dependency is a third-party system that the project does not control.
-Examples include Stripe and Twilio.
-Inject the external dependency through a port.
-Use a mock adapter in tests.
+Keep pure computation and in-memory implementation inside the module.
+Create no adapter unless the behavior has a concrete reason to vary.
 
-## Keep each seam justified
+### Local dependency with a test implementation
 
-- One adapter makes a seam hypothetical.
-- Two adapters make a seam real.
-- Introduce a port when at least two adapters are justified.
-- Keep internal seams inside the implementation.
-- Keep the external seam at the module's interface.
-- Do not expose an internal seam through the interface only because tests use it.
+Use the production implementation in production and the faithful local implementation in tests.
+Keep the seam private unless callers must select the implementation.
 
-## Replace shallow tests
+### Remote owned dependency
 
-1. Write tests through the deepened module's interface.
-2. Assert observable results through that interface.
-3. Delete tests that target the replaced shallow modules.
-4. Record the reason for each shallow-module test that must remain.
+Place a seam at the transport when protocol, lifecycle, isolation, or replacement must vary independently.
+Keep domain behavior in the module.
+Use production and test adapters that satisfy the same interface.
 
-A test should survive an internal refactor.
-If an internal refactor requires a test change, the test is probably bypassing the interface.
+### External dependency
 
-Deepening is complete when the new tests exercise the deepened module through its interface.
-Every old shallow-module test must be deleted or retained with a recorded reason.
+Expose the project's required behavior instead of copying the vendor interface when isolation or replacement justifies a seam.
+Keep direct use when one contained integration is simpler and sufficiently testable.
+
+This step is complete when every seam has a named need and every adapter has a named environment or caller.
+
+## 4. Migrate verification
+
+Test externally observable behavior through the deepened module's interface.
+Use focused implementation tests only when complex private behavior benefits from direct verification.
+Delete or retarget tests for replaced modules and entry points.
+A behavior-preserving internal refactor should not require changes to interface tests.
+
+Deepening is complete when the interface tests cover the absorbed behavior and every replaced test is deleted or retargeted.

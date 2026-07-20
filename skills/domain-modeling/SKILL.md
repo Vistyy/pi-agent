@@ -45,6 +45,9 @@ Create the applicable `CONTEXT.md` when the user resolves the first term.
 Create the applicable `docs/adr/` when the first ADR is required.
 Use the root locations for system-wide decisions and a context's locations for context-specific decisions.
 
+When distinct domain language or rules suggest a second context, read [Introduce a second context](./CONTEXT-FORMAT.md#introduce-a-second-context).
+Ask the user to confirm the split before changing files.
+
 ## Maintain the model during the session
 
 ### Resolve inconsistent terms
