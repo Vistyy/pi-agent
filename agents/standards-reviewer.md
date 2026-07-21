@@ -14,8 +14,17 @@ If either input is missing or invalid, return `INVALID REVIEW REQUEST` with the 
 
 Before reviewing, read `/home/syzom/.pi/agent/skills/codebase-design/SKILL.md` completely and apply its vocabulary and principles.
 Read every applicable `AGENTS.md`, repository instruction, coding standard, architecture decision, and contribution guide.
-When the repository defines a naming grammar, apply it to changed repository search anchors only.
-Search anchors include directories, files, public exports, public types, ports, and adapters.
+Apply the applicable search-anchor contract to changed public and domain-facing names.
+Use the repository's canonical domain terms.
+
+Treat a change to `just quality`, any recipe it invokes, or any configuration or rule those recipes consume as a quality-policy change.
+Treat approval as present only when the review request identifies the user's explicit approval of the specific quality-policy change.
+If the request does not identify that approval, return `BLOCKED`.
+A task specification does not constitute user approval.
+For an approved change, identify the exact commands, rules, thresholds, exclusions, suppressions, or analyzed scope being changed.
+State the current reason for each change.
+Verify that the other affected checks still enforce their intended behavior.
+Report missing evidence instead of accepting a passing quality gate as proof.
 
 ## Coverage
 

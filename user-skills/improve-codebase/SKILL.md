@@ -25,6 +25,10 @@ Read the relevant diffs, current implementation, callers, tests, and repository 
 Confirm that the historical friction still exists in the current code.
 Widen the history only when more evidence could change the selected pattern or its scope.
 
+If the repository provides `just health`, run it as advisory maintenance evidence.
+Verify relevant findings against the current code before recommending work.
+Do not convert a health finding into a task without evidence of maintenance cost.
+
 Look for observed costs in these categories:
 
 - Discovery: maintainers repeatedly struggle to locate or understand behavior.

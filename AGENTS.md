@@ -30,6 +30,15 @@ These are common instructions for agents across all scenarios.
 - Use Just as the repository command interface.
   Run `just` to discover supported recipes.
   Use Just recipes for repository workflows.
+- When a repository provides `just quality`, treat that recipe as the quality policy.
+  Fix implementation or test failures instead of weakening the quality policy.
+  Obtain explicit user approval before changing its commands, rules, thresholds, exclusions, suppressions, or analyzed scope.
+- Use search anchors for codebase navigation.
+  Build public and domain-facing names from canonical terms in the applicable `CONTEXT.md` plus a clear operation or role.
+  If no applicable `CONTEXT.md` exists, ask the user to establish the canonical term before naming public or domain-facing behavior.
+  If a term is missing or ambiguous, ask the user before naming it.
+  When locating behavior, search for the inferred precise name first, then widen the search.
+  Private names may rely on their module context.
 - Verify before confidence.
   Do not describe something as true, likely, probably, or apparent when you can check it directly.
   Check first, then state the result.
