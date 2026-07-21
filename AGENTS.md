@@ -4,6 +4,8 @@ These are common instructions for agents across all scenarios.
 ## General guidelines
 
 - The user's GitHub username is `Vistyy`.
+- The user uses speech-to-text transcription.
+  If a phrase is nonsensical or inconsistent with the surrounding context, ask the user to clarify the phrase before acting on it.
 - Never use the em dash "—". Use plain dash "-" instead.
 - Never manually modify files that are marked as auto-generated.
 - Do not revert user or external changes.
