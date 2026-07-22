@@ -219,6 +219,44 @@ describe("remote compaction extension lifecycle", () => {
     );
   });
 
+  it("preserves the branch after retry exhaustion", async () => {
+    const fetch = vi.fn(
+      async () => new Response("overloaded", { status: 503, headers: { "Retry-After": "0" } }),
+    );
+    vi.stubGlobal("fetch", fetch);
+    const { api, handlers } = apiHarness();
+    remoteCompactionExtension(api as any);
+    const entries = branch();
+    const original = structuredClone(entries);
+    const ctx = context(entries);
+
+    await handlers.get("before_provider_request")?.(
+      { payload: { model: "gpt-test", input: [] } },
+      ctx,
+    );
+    await handlers.get("turn_end")?.(
+      { message: entries[1].type === "message" ? entries[1].message : undefined },
+      ctx,
+    );
+    const result = await handlers.get("session_before_compact")?.(
+      {
+        branchEntries: entries,
+        preparation: { firstKeptEntryId: "assistant-1", tokensBefore: 14 },
+        reason: "manual",
+        signal: new AbortController().signal,
+      },
+      ctx,
+    );
+
+    expect(fetch).toHaveBeenCalledTimes(3);
+    expect(result).toEqual({ cancel: true });
+    expect(entries).toEqual(original);
+    expect(ctx.ui.notify).toHaveBeenCalledWith(
+      expect.stringContaining("Remote compaction failed"),
+      "error",
+    );
+  });
+
   it("does not compact manually from an uncompleted or different-branch request", async () => {
     const { api, handlers } = apiHarness();
     remoteCompactionExtension(api as any);

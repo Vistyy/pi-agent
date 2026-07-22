@@ -136,7 +136,10 @@ describe("Codex remote compaction transport", () => {
     [401, "authentication failed"],
     [400, "invalid request"],
     [429, '{"error":{"code":"usage_limit_reached"}}'],
-  ])("does not retry terminal HTTP %s responses", async (status, body) => {
+    [429, "No available balance remains"],
+    [429, "Account is out of budget"],
+    [429, "Billing quota exceeded"],
+  ])("does not retry terminal HTTP %s responses: %s", async (status, body) => {
     const fetch = vi.fn(async () => new Response(body, { status }));
 
     await expect(

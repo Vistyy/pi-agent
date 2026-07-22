@@ -146,7 +146,7 @@ function retryDelay(headers: Headers, attempt: number): number {
 function retryableResponse(status: number, body: string): boolean {
   if (
     status === 429 &&
-    /usage_limit_reached|GoUsageLimitError|FreeUsageLimitError|Monthly usage limit|insufficient_quota|quota exceeded/i.test(
+    /usage_limit_reached|GoUsageLimitError|FreeUsageLimitError|Monthly usage limit|available balance|insufficient_quota|out of budget|quota exceeded|billing/i.test(
       body,
     )
   ) {
