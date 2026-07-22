@@ -1,5 +1,14 @@
 # Compatible models reuse remote checkpoints safely
 
+Status: Complete
+
+Completion evidence:
+
+- Implementation commits: `2a101f4` through `a95dc20`
+- Blocking escape-hatch task completed at `5e5058e`
+- Verification: `pnpm test` and `pnpm typecheck`
+- Review: Spec approved and Standards approved
+
 ## Specification
 
 [OpenAI Remote Compaction Specification](../SPEC.md)
