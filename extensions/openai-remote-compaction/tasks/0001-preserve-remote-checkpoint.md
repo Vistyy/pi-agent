@@ -1,5 +1,13 @@
 # Codex sessions preserve a remote checkpoint
 
+Status: Complete
+
+Completion evidence:
+
+- Implementation commits: `f088095`, `9dd8ddc`, `8004c7c`
+- Verification: `pnpm test` and `pnpm typecheck`
+- Review: Spec approved and Standards approved
+
 ## Specification
 
 [OpenAI Remote Compaction Specification](../SPEC.md)
