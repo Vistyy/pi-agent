@@ -1,5 +1,13 @@
 # Users can explicitly choose compaction behavior
 
+Status: Complete
+
+Completion evidence:
+
+- Implementation commits: `d409699`, `82e3204`, `1fe98aa`
+- Verification: `pnpm test` and `pnpm typecheck`
+- Review: Spec approved and Standards approved
+
 ## Specification
 
 [OpenAI Remote Compaction Specification](../SPEC.md)
