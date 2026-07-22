@@ -29,6 +29,13 @@ A Pi extension lifecycle with a persisted `SessionManager`, provider-shaped requ
 - [ ] Reload and branch reconstruction select the active branch's remote checkpoint.
 - [ ] A fresh non-Codex branch retains normal Pi behavior.
 
+## Deferred specification behavior
+
+- Retry and final-failure variations are owned by task 0002.
+- Catalog and cross-model compatibility behavior are owned by task 0003.
+- Slash-command behavior is owned by task 0004.
+- Shared `/cost` usage records are owned by task 0005.
+
 ## Blocked by
 
 None - can start immediately.

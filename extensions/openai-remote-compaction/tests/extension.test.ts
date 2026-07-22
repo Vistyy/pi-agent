@@ -77,6 +77,7 @@ function context(entries: SessionEntry[]) {
     sessionManager: {
       getBranch: vi.fn(() => entries),
       getSessionId: vi.fn(() => "session-1"),
+      getLeafId: vi.fn(() => entries.at(-1)?.id ?? null),
     },
     ui: { notify: vi.fn() },
     getSystemPrompt: vi.fn(() => "You are helpful."),
@@ -120,6 +121,11 @@ describe("remote compaction extension lifecycle", () => {
           stream: true,
         },
       },
+      ctx,
+    );
+
+    await handlers.get("turn_end")?.(
+      { message: entries[1].type === "message" ? entries[1].message : undefined },
       ctx,
     );
 
@@ -177,6 +183,34 @@ describe("remote compaction extension lifecycle", () => {
       { type: "compaction", encrypted_content: "opaque" },
       { role: "user", content: [{ type: "input_text", text: "continue" }] },
     ]);
+  });
+
+  it("does not compact manually from an uncompleted or different-branch request", async () => {
+    const { api, handlers } = apiHarness();
+    remoteCompactionExtension(api as any);
+    const entries = branch();
+    const ctx = context(entries);
+
+    await handlers.get("before_provider_request")?.(
+      { payload: { model: "gpt-test", input: [] } },
+      ctx,
+    );
+
+    const result = await handlers.get("session_before_compact")?.(
+      {
+        branchEntries: entries.slice(0, 1),
+        preparation: { firstKeptEntryId: "user-1", tokensBefore: 1 },
+        reason: "manual",
+        signal: new AbortController().signal,
+      },
+      ctx,
+    );
+
+    expect(result).toEqual({ cancel: true });
+    expect(ctx.ui.notify).toHaveBeenCalledWith(
+      expect.stringContaining("completed Codex request on this branch"),
+      "error",
+    );
   });
 
   it("does not replace Pi behavior for a fresh non-Codex branch", async () => {

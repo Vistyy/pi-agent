@@ -28,8 +28,23 @@ function currentCodexModel(ctx: { model?: { provider: string; id: string } }):
   return ctx.model?.provider === CODEX_PROVIDER ? ctx.model : undefined;
 }
 
+interface ScopedTemplate {
+  template: CodexRequestTemplate;
+  modelId: string;
+  branchAnchorId: string | null;
+}
+
+function sessionKey(ctx: { sessionManager: { getSessionId(): string } }): string {
+  return ctx.sessionManager.getSessionId();
+}
+
+function belongsToBranch(scoped: ScopedTemplate, branch: readonly SessionEntry[]): boolean {
+  return scoped.branchAnchorId === null || branch.some((entry) => entry.id === scoped.branchAnchorId);
+}
+
 export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
-  let latestTemplate: CodexRequestTemplate | undefined;
+  const pendingTemplates = new Map<string, ScopedTemplate>();
+  const completedTemplates = new Map<string, ScopedTemplate>();
 
   pi.on("before_provider_request", (event, ctx) => {
     const model = currentCodexModel(ctx);
@@ -40,21 +55,45 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
       checkpoint && checkpoint.creatingModelId === model.id
         ? replaceMarkerWithRemoteCheckpoint(event.payload.input ?? [], checkpoint)
         : [...(event.payload.input ?? [])];
-    latestTemplate = { ...event.payload, input };
-    return latestTemplate;
+    const template = { ...event.payload, input };
+    pendingTemplates.set(sessionKey(ctx), {
+      template,
+      modelId: model.id,
+      branchAnchorId: ctx.sessionManager.getLeafId(),
+    });
+    return template;
+  });
+
+  pi.on("turn_end", (event, ctx) => {
+    if (event.message.role !== "assistant") return;
+    if (event.message.stopReason === "error" || event.message.stopReason === "aborted") return;
+    const key = sessionKey(ctx);
+    const pending = pendingTemplates.get(key);
+    if (!pending || !belongsToBranch(pending, ctx.sessionManager.getBranch())) return;
+    completedTemplates.set(key, pending);
+    pendingTemplates.delete(key);
   });
 
   pi.on("session_before_compact", async (event, ctx) => {
     const model = currentCodexModel(ctx);
     if (!model) return;
 
-    if (!latestTemplate || latestTemplate.model !== model.id) {
+    const branch = event.branchEntries as SessionEntry[];
+    const key = sessionKey(ctx);
+    const scopedTemplate =
+      event.reason === "overflow" ? pendingTemplates.get(key) ?? completedTemplates.get(key) : completedTemplates.get(key);
+    if (
+      !scopedTemplate ||
+      scopedTemplate.modelId !== model.id ||
+      !belongsToBranch(scopedTemplate, branch)
+    ) {
       ctx.ui.notify(
-        "Remote compaction needs one completed Codex request before it can run.",
+        "Remote compaction needs one completed Codex request on this branch before it can run.",
         "error",
       );
       return { cancel: true };
     }
+    const latestTemplate = scopedTemplate.template;
 
     const auth = await ctx.modelRegistry.getProviderAuth(CODEX_PROVIDER);
     const token = auth?.auth.apiKey;
