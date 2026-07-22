@@ -175,6 +175,49 @@ describe("Codex remote compaction transport", () => {
     expect(fetch).toHaveBeenCalledOnce();
   });
 
+  it("gives structured codes and terminal HTTP status precedence over messages", async () => {
+    const internal = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            error: { code: "internal_error", message: "invalid upstream response" },
+          }),
+          { status: 500 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        sse([
+          {
+            type: "response.completed",
+            response: {
+              output: [{ type: "compaction", encrypted_content: "opaque" }],
+            },
+          },
+        ]),
+      );
+    await requestRemoteCompaction({
+      fetch: internal,
+      sleep: vi.fn(async () => undefined),
+      token: token("account-1"),
+      body: { model: "gpt-test" },
+    });
+    expect(internal).toHaveBeenCalledTimes(2);
+
+    const unauthorized = vi.fn(async () =>
+      new Response("temporarily unavailable", { status: 401 }),
+    );
+    await expect(
+      requestRemoteCompaction({
+        fetch: unauthorized,
+        sleep: vi.fn(async () => undefined),
+        token: token("account-1"),
+        body: { model: "gpt-test" },
+      }),
+    ).rejects.toThrow("401");
+    expect(unauthorized).toHaveBeenCalledOnce();
+  });
+
   it("retries the HTTP 5xx server-error range", async () => {
     const fetch = vi
       .fn()

@@ -85,17 +85,33 @@ type FailureDisposition = "terminal" | "retryable" | "unknown";
 
 function classifyFailure(identifiers: unknown, message: string): FailureDisposition {
   const values = Array.isArray(identifiers) ? identifiers : [identifiers];
-  const text = `${values.filter((value): value is string => typeof value === "string").join(" ")} ${message}`;
+  const identifierText = values
+    .filter((value): value is string => typeof value === "string")
+    .join(" ");
   if (
-    /auth|unauthorized|forbidden|access.?denied|permission.?denied|invalid|token.?expired|usage_limit|usage_not_included|GoUsageLimitError|FreeUsageLimitError|Monthly usage limit|available balance|insufficient_quota|out of budget|billing|quota exceeded/i.test(
-      text,
+    /auth|unauthorized|forbidden|access.?denied|permission.?denied|invalid|token.?expired|usage_limit|usage_not_included|insufficient_quota/i.test(
+      identifierText,
     )
   ) {
     return "terminal";
   }
   if (
     /rate.?limit|overloaded|server|internal.?error|service.?unavailable|upstream|temporar|connection.?refused/i.test(
-      text,
+      identifierText,
+    )
+  ) {
+    return "retryable";
+  }
+  if (
+    /unauthorized|forbidden|access denied|permission denied|invalid request|token expired|GoUsageLimitError|FreeUsageLimitError|Monthly usage limit|available balance|out of budget|billing|quota exceeded/i.test(
+      message,
+    )
+  ) {
+    return "terminal";
+  }
+  if (
+    /rate.?limit|overloaded|server error|internal error|service.?unavailable|upstream connect|temporar|connection.?refused/i.test(
+      message,
     )
   ) {
     return "retryable";
@@ -196,6 +212,7 @@ function responseFailure(body: string): { identifiers: unknown[]; message: strin
 }
 
 function retryableResponse(status: number, body: string): boolean {
+  if (status >= 400 && status <= 499 && status !== 429) return false;
   const failure = responseFailure(body);
   const disposition = classifyFailure(failure.identifiers, failure.message);
   if (disposition === "terminal") return false;
