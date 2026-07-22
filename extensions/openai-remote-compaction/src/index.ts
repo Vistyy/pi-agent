@@ -159,14 +159,14 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
   pi.on("session_before_compact", async (event, ctx) => {
     const key = sessionKey(ctx);
     if (piCompactionBypasses.delete(key)) return;
-    if (event.customInstructions?.trim()) {
-      ctx.ui.notify("Custom instructions are not supported by OpenAI remote compaction.", "error");
-      return { cancel: true };
-    }
 
     const branch = event.branchEntries as SessionEntry[];
     const activeCheckpoint = findActiveRemoteCheckpoint(branch);
     const model = currentCodexModel(ctx);
+    if (event.customInstructions?.trim() && (model || activeCheckpoint)) {
+      ctx.ui.notify("Custom instructions are not supported by OpenAI remote compaction.", "error");
+      return { cancel: true };
+    }
     if (!model) {
       if (!activeCheckpoint) return;
       ctx.ui.notify(

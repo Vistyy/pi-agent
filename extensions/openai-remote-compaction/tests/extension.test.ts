@@ -710,6 +710,7 @@ describe("remote compaction extension lifecycle", () => {
         {
           branchEntries: branch(),
           preparation: { firstKeptEntryId: "assistant-1", tokensBefore: 14 },
+          customInstructions: "focus on tests",
           signal: new AbortController().signal,
         },
         ctx,
