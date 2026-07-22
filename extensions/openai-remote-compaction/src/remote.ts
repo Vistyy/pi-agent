@@ -81,8 +81,9 @@ class RemoteApplicationError extends Error {
   }
 }
 
-function applicationError(code: unknown, message: string): RemoteApplicationError {
-  const text = `${typeof code === "string" ? code : ""} ${message}`;
+function applicationError(identifiers: unknown, message: string): RemoteApplicationError {
+  const values = Array.isArray(identifiers) ? identifiers : [identifiers];
+  const text = `${values.filter((value): value is string => typeof value === "string").join(" ")} ${message}`;
   const terminal =
     /auth|unauthorized|forbidden|access.?denied|permission.?denied|invalid|token.?expired|usage_limit|available balance|out of budget|billing|quota exceeded/i.test(
       text,
@@ -106,14 +107,14 @@ function parseRemoteResponse(text: string): RemoteCompactionResult {
           : typeof nested?.message === "string"
             ? nested.message
             : "OpenAI remote compaction failed";
-      throw applicationError(event.code ?? nested?.code, message);
+      throw applicationError([event.code, nested?.code, nested?.type], message);
     }
     if (event.type === "response.failed") {
       const response = asRecord(event.response);
       const error = asRecord(response?.error);
       const message =
         typeof error?.message === "string" ? error.message : "OpenAI remote compaction failed";
-      throw applicationError(error?.code, message);
+      throw applicationError([error?.code, error?.type], message);
     }
     if (event.type === "response.output_item.done") {
       streamedItem = compactionItem(event.item) ?? streamedItem;

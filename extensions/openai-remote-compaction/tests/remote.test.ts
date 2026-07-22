@@ -206,6 +206,54 @@ describe("Codex remote compaction transport", () => {
     expect(fetch).toHaveBeenCalledOnce();
   });
 
+  it("classifies type-only SSE failures", async () => {
+    const transient = vi
+      .fn()
+      .mockResolvedValueOnce(
+        sse([
+          {
+            type: "response.failed",
+            response: { error: { type: "server_error", message: "failed" } },
+          },
+        ]),
+      )
+      .mockResolvedValueOnce(
+        sse([
+          {
+            type: "response.completed",
+            response: {
+              output: [{ type: "compaction", encrypted_content: "opaque" }],
+            },
+          },
+        ]),
+      );
+    await requestRemoteCompaction({
+      fetch: transient,
+      sleep: vi.fn(async () => undefined),
+      token: token("account-1"),
+      body: { model: "gpt-test" },
+    });
+    expect(transient).toHaveBeenCalledTimes(2);
+
+    const terminal = vi.fn(async () =>
+      sse([
+        {
+          type: "error",
+          error: { type: "access_denied", message: "failed" },
+        },
+      ]),
+    );
+    await expect(
+      requestRemoteCompaction({
+        fetch: terminal,
+        sleep: vi.fn(async () => undefined),
+        token: token("account-1"),
+        body: { model: "gpt-test" },
+      }),
+    ).rejects.toThrow("failed");
+    expect(terminal).toHaveBeenCalledOnce();
+  });
+
   it("stops after three retryable failures", async () => {
     const fetch = vi.fn(async () => new Response("overloaded", { status: 503 }));
 
