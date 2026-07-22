@@ -162,9 +162,11 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
       | Partial<OpenAIRemoteCompactionEntryDetails>
       | undefined;
     const details = container?.openaiRemoteCompaction;
-    const usage = event.compactionEntry.usage;
-    if (!isRemoteCompactionDetails(details) || !usage) return;
-    pi.appendEntry("pi.usage.recorded", createUsageRecord(details.creatingModelId, usage));
+    if (!isRemoteCompactionDetails(details)) return;
+    pi.appendEntry(
+      "pi.usage.recorded",
+      createUsageRecord(details.creatingModelId, event.compactionEntry.usage),
+    );
   });
 
   pi.on("session_before_compact", async (event, ctx) => {

@@ -28,4 +28,38 @@ describe("shared remote compaction usage", () => {
       },
     });
   });
+
+  it("normalizes unavailable and invalid values", () => {
+    expect(createUsageRecord("gpt-test").usage).toEqual({
+      input: 0,
+      output: 0,
+      cacheRead: 0,
+      cacheWrite: 0,
+      totalTokens: 0,
+      cost: 0,
+    });
+    expect(
+      createUsageRecord("gpt-test", {
+        input: 2,
+        output: 3,
+        cacheRead: Number.NaN,
+        cacheWrite: -1,
+        totalTokens: Number.POSITIVE_INFINITY,
+        cost: {
+          input: 0,
+          output: 0,
+          cacheRead: 0,
+          cacheWrite: 0,
+          total: Number.NaN,
+        },
+      }).usage,
+    ).toEqual({
+      input: 2,
+      output: 3,
+      cacheRead: 0,
+      cacheWrite: 0,
+      totalTokens: 5,
+      cost: 0,
+    });
+  });
 });

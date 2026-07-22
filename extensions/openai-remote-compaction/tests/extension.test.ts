@@ -212,6 +212,29 @@ describe("remote compaction extension lifecycle", () => {
     );
     expect(api.appendEntry).toHaveBeenCalledOnce();
 
+    await handlers.get("session_compact")?.(
+      {
+        compactionEntry: {
+          type: "compaction",
+          id: "remote-without-usage",
+          parentId: "assistant-1",
+          timestamp: "2026-01-01T00:00:02.000Z",
+          summary: COMPACTION_MARKER,
+          firstKeptEntryId: "assistant-1",
+          tokensBefore: 14,
+          details: result.compaction.details,
+        },
+        fromExtension: true,
+      },
+      ctx,
+    );
+    expect(api.appendEntry).toHaveBeenLastCalledWith(
+      "pi.usage.recorded",
+      expect.objectContaining({
+        usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: 0 },
+      }),
+    );
+
     const compactedBranch = [
       ...entries,
       {

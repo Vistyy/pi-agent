@@ -17,7 +17,18 @@ export interface UsageRecordedData {
   };
 }
 
-export function createUsageRecord(modelId: string, usage: Usage): UsageRecordedData {
+function nonNegative(value: unknown): number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : 0;
+}
+
+export function createUsageRecord(modelId: string, usage?: Usage): UsageRecordedData {
+  const input = nonNegative(usage?.input);
+  const output = nonNegative(usage?.output);
+  const cacheRead = nonNegative(usage?.cacheRead);
+  const cacheWrite = nonNegative(usage?.cacheWrite);
+  const componentTotal = input + output + cacheRead + cacheWrite;
+  const reportedTotal = nonNegative(usage?.totalTokens);
+  const cost = nonNegative(usage?.cost?.total);
   return {
     schemaVersion: 1,
     source: "extension",
@@ -25,12 +36,12 @@ export function createUsageRecord(modelId: string, usage: Usage): UsageRecordedD
     operation: "remote-compaction",
     model: { provider: CODEX_PROVIDER, id: modelId },
     usage: {
-      input: usage.input,
-      output: usage.output,
-      cacheRead: usage.cacheRead,
-      cacheWrite: usage.cacheWrite,
-      totalTokens: usage.totalTokens,
-      cost: usage.cost.total,
+      input,
+      output,
+      cacheRead,
+      cacheWrite,
+      totalTokens: reportedTotal > 0 ? reportedTotal : componentTotal,
+      cost,
     },
   };
 }
