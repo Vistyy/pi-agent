@@ -2,7 +2,7 @@
 
 ## Baseline
 
-Full repository `HEAD`: `a95dc20f718163890c363379a97eb1e23ca17d54`
+Full repository `HEAD`: `a95dc20ed513de12e181fc4af6a7fb87556cf0d5`
 
 Task source: [`tasks/0004-choose-compaction-behavior-explicitly.md`](../../tasks/0004-choose-compaction-behavior-explicitly.md)
 
