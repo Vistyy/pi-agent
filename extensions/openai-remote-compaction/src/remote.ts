@@ -52,6 +52,13 @@ function normalizeUsage(value: unknown): Usage | undefined {
   };
 }
 
+class RemoteProtocolError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "RemoteProtocolError";
+  }
+}
+
 function parseSSE(text: string): Array<Record<string, unknown>> {
   const events: Array<Record<string, unknown>> = [];
   for (const block of text.split(/\r?\n\r?\n/)) {
@@ -65,7 +72,7 @@ function parseSSE(text: string): Array<Record<string, unknown>> {
       const parsed = JSON.parse(data);
       if (parsed && typeof parsed === "object") events.push(parsed as Record<string, unknown>);
     } catch {
-      throw new Error("OpenAI returned invalid remote compaction SSE JSON");
+      throw new RemoteProtocolError("OpenAI returned invalid remote compaction SSE JSON");
     }
   }
   return events;
@@ -160,14 +167,16 @@ function parseRemoteResponse(text: string): RemoteCompactionResult {
       const response = asRecord(event.response);
       const output = Array.isArray(response?.output) ? response.output : [];
       const items = output.map(compactionItem).filter((item): item is ResponseItem => item !== undefined);
-      if (items.length > 1) throw new Error("OpenAI returned multiple remote checkpoints");
+      if (items.length > 1) {
+        throw new RemoteProtocolError("OpenAI returned multiple remote checkpoints");
+      }
       completedItem = items[0];
       usage = normalizeUsage(response?.usage);
     }
   }
 
   const item = completedItem ?? streamedItem;
-  if (!item) throw new Error("OpenAI did not return a remote checkpoint");
+  if (!item) throw new RemoteProtocolError("OpenAI did not return a remote checkpoint");
   return { replacementHistory: [item], ...(usage ? { usage } : {}) };
 }
 
@@ -275,6 +284,7 @@ export async function requestRemoteCompaction(
       if (options.signal?.aborted) throw new Error("Remote compaction was aborted");
       if (error === lastError) throw error;
       lastError = error instanceof Error ? error : new Error(String(error));
+      if (lastError instanceof RemoteProtocolError) throw lastError;
       if (lastError instanceof RemoteApplicationError && !lastError.retryable) throw lastError;
       if (attempt === 2) throw lastError;
       await sleep(1000 * 2 ** attempt, options.signal);

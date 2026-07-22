@@ -363,6 +363,41 @@ describe("Codex remote compaction transport", () => {
     expect(terminal).toHaveBeenCalledOnce();
   });
 
+  it.each([
+    ["malformed SSE", () => new Response("data: {bad json}\n\n", { status: 200 })],
+    [
+      "missing checkpoint",
+      () => sse([{ type: "response.completed", response: { output: [] } }]),
+    ],
+    [
+      "multiple checkpoints",
+      () =>
+        sse([
+          {
+            type: "response.completed",
+            response: {
+              output: [
+                { type: "compaction", encrypted_content: "one" },
+                { type: "compaction", encrypted_content: "two" },
+              ],
+            },
+          },
+        ]),
+    ],
+  ])("does not retry protocol failure %s", async (_name, response) => {
+    const fetch = vi.fn(async () => response());
+
+    await expect(
+      requestRemoteCompaction({
+        fetch,
+        sleep: vi.fn(async () => undefined),
+        token: token("account-1"),
+        body: { model: "gpt-test" },
+      }),
+    ).rejects.toThrow();
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+
   it("stops after three retryable failures", async () => {
     const fetch = vi.fn(async () => new Response("overloaded", { status: 503 }));
 
