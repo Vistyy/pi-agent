@@ -153,6 +153,53 @@ describe("Codex remote compaction transport", () => {
     expect(fetch).toHaveBeenCalledOnce();
   });
 
+  it("retries the HTTP 5xx server-error range", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(new Response("not implemented", { status: 501 }))
+      .mockResolvedValueOnce(
+        sse([
+          {
+            type: "response.completed",
+            response: {
+              output: [{ type: "compaction", encrypted_content: "opaque" }],
+            },
+          },
+        ]),
+      );
+
+    await expect(
+      requestRemoteCompaction({
+        fetch,
+        sleep: vi.fn(async () => undefined),
+        token: token("account-1"),
+        body: { model: "gpt-test" },
+      }),
+    ).resolves.toBeDefined();
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retry authentication or invalid-request SSE failures", async () => {
+    const fetch = vi.fn(async () =>
+      sse([
+        {
+          type: "response.failed",
+          response: { error: { code: "invalid_request_error", message: "Invalid request" } },
+        },
+      ]),
+    );
+
+    await expect(
+      requestRemoteCompaction({
+        fetch,
+        sleep: vi.fn(async () => undefined),
+        token: token("account-1"),
+        body: { model: "gpt-test" },
+      }),
+    ).rejects.toThrow("Invalid request");
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+
   it("stops after three retryable failures", async () => {
     const fetch = vi.fn(async () => new Response("overloaded", { status: 503 }));
 

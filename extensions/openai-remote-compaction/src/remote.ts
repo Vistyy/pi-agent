@@ -71,6 +71,27 @@ function parseSSE(text: string): Array<Record<string, unknown>> {
   return events;
 }
 
+class RemoteApplicationError extends Error {
+  constructor(
+    message: string,
+    readonly retryable: boolean,
+  ) {
+    super(message);
+    this.name = "RemoteApplicationError";
+  }
+}
+
+function applicationError(code: unknown, message: string): RemoteApplicationError {
+  const text = `${typeof code === "string" ? code : ""} ${message}`;
+  const terminal =
+    /auth|unauthorized|forbidden|invalid|usage_limit|available balance|out of budget|billing|quota exceeded/i.test(
+      text,
+    );
+  const retryable =
+    !terminal && /rate.?limit|overloaded|server|service.?unavailable|upstream|temporar/i.test(text);
+  return new RemoteApplicationError(message, retryable);
+}
+
 function parseRemoteResponse(text: string): RemoteCompactionResult {
   let streamedItem: ResponseItem | undefined;
   let completedItem: ResponseItem | undefined;
@@ -79,20 +100,20 @@ function parseRemoteResponse(text: string): RemoteCompactionResult {
   for (const event of parseSSE(text)) {
     if (event.type === "error") {
       const nested = asRecord(event.error);
-      throw new Error(
+      const message =
         typeof event.message === "string"
           ? event.message
           : typeof nested?.message === "string"
             ? nested.message
-            : "OpenAI remote compaction failed",
-      );
+            : "OpenAI remote compaction failed";
+      throw applicationError(event.code ?? nested?.code, message);
     }
     if (event.type === "response.failed") {
       const response = asRecord(event.response);
       const error = asRecord(response?.error);
-      throw new Error(
-        typeof error?.message === "string" ? error.message : "OpenAI remote compaction failed",
-      );
+      const message =
+        typeof error?.message === "string" ? error.message : "OpenAI remote compaction failed";
+      throw applicationError(error?.code, message);
     }
     if (event.type === "response.output_item.done") {
       streamedItem = compactionItem(event.item) ?? streamedItem;
@@ -152,7 +173,7 @@ function retryableResponse(status: number, body: string): boolean {
   ) {
     return false;
   }
-  return status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
+  return status === 429 || (status >= 500 && status <= 599);
 }
 
 export interface RemoteCompactionRequestOptions {
@@ -211,6 +232,7 @@ export async function requestRemoteCompaction(
       if (options.signal?.aborted) throw new Error("Remote compaction was aborted");
       if (error === lastError) throw error;
       lastError = error instanceof Error ? error : new Error(String(error));
+      if (lastError instanceof RemoteApplicationError && !lastError.retryable) throw lastError;
       if (attempt === 2) throw lastError;
       await sleep(1000 * 2 ** attempt, options.signal);
     }

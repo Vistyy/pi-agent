@@ -238,4 +238,71 @@ describe("persisted Pi acceptance lifecycle", () => {
       await rm(root, { recursive: true, force: true });
     }
   });
+
+  it("keeps the persisted branch unchanged after retry exhaustion", async () => {
+    const root = await mkdtemp(join(tmpdir(), "pi-remote-failure-"));
+    const cwd = join(root, "project");
+    const agentDir = join(root, "agent");
+    const sessionDir = join(root, "sessions");
+    let remoteAttempts = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+        const headers = new Headers(init?.headers);
+        if (headers.get("x-codex-beta-features") === "remote_compaction_v2") {
+          remoteAttempts += 1;
+          return new Response("overloaded", {
+            status: 503,
+            headers: { "Retry-After": "0" },
+          });
+        }
+        return normalResponse("answer");
+      }),
+    );
+
+    try {
+      const credentials = new MemoryCredentials(
+        new Map([
+          [
+            "openai-codex",
+            {
+              type: "oauth" as const,
+              access: jwt(),
+              refresh: "refresh-token",
+              expires: Date.now() + 60 * 60 * 1000,
+            },
+          ],
+        ]),
+      );
+      const modelRuntime = await ModelRuntime.create({ credentials, modelsPath: null });
+      const model = getModel("openai-codex", "gpt-5.4-mini");
+      const settingsManager = SettingsManager.inMemory({
+        transport: "sse",
+        compaction: { enabled: true, reserveTokens: 100, keepRecentTokens: 1 },
+      });
+      const manager = SessionManager.create(cwd, sessionDir);
+      const created = await createAgentSession({
+        cwd,
+        agentDir,
+        model: model!,
+        modelRuntime,
+        settingsManager,
+        sessionManager: manager,
+        resourceLoader: await loader(cwd, agentDir, settingsManager, []),
+        noTools: "all",
+      });
+
+      await created.session.prompt("hello");
+      const before = structuredClone(created.session.sessionManager.getBranch());
+      const sessionFile = created.session.sessionFile;
+      await expect(created.session.compact()).rejects.toThrow();
+      expect(remoteAttempts).toBe(3);
+      expect(created.session.sessionManager.getBranch()).toEqual(before);
+      created.session.dispose();
+
+      expect(SessionManager.open(sessionFile!).getBranch()).toEqual(before);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
 });
