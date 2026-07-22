@@ -56,6 +56,10 @@ function sessionKey(ctx: { sessionManager: { getSessionId(): string } }): string
   return ctx.sessionManager.getSessionId();
 }
 
+function modelTemplateKey(sessionId: string, modelId: string): string {
+  return `${sessionId}\u0000${modelId}`;
+}
+
 function belongsToBranch(scoped: ScopedTemplate, branch: readonly SessionEntry[]): boolean {
   return scoped.branchAnchorId === null || branch.some((entry) => entry.id === scoped.branchAnchorId);
 }
@@ -126,7 +130,7 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
     const key = sessionKey(ctx);
     const pending = pendingTemplates.get(key);
     if (!pending || !belongsToBranch(pending, ctx.sessionManager.getBranch())) return;
-    completedTemplates.set(key, pending);
+    completedTemplates.set(modelTemplateKey(key, pending.modelId), pending);
     pendingTemplates.delete(key);
   });
 
@@ -154,8 +158,9 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
     }
 
     const key = sessionKey(ctx);
+    const completedTemplate = completedTemplates.get(modelTemplateKey(key, model.id));
     const scopedTemplate =
-      event.reason === "overflow" ? pendingTemplates.get(key) ?? completedTemplates.get(key) : completedTemplates.get(key);
+      event.reason === "overflow" ? pendingTemplates.get(key) ?? completedTemplate : completedTemplate;
     if (
       !scopedTemplate ||
       scopedTemplate.modelId !== model.id ||

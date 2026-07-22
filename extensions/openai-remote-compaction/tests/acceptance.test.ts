@@ -248,6 +248,7 @@ describe("persisted Pi acceptance lifecycle", () => {
     let now = actualNow;
     let catalogAvailable = true;
     let normalCount = 0;
+    const compactionBodies: Array<Record<string, unknown>> = [];
     vi.spyOn(Date, "now").mockImplementation(() => now);
     vi.stubGlobal(
       "fetch",
@@ -269,6 +270,7 @@ describe("persisted Pi acceptance lifecycle", () => {
         }
         const headers = new Headers(init?.headers);
         if (headers.get("x-codex-beta-features") === "remote_compaction_v2") {
+          compactionBodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
           return compactionResponse("opaque-models");
         }
         normalCount += 1;
@@ -347,6 +349,15 @@ describe("persisted Pi acceptance lifecycle", () => {
       expect(created.session.sessionManager.getBranch()).toEqual(beforeBlockedCompaction);
 
       await created.session.setModel(original);
+      await created.session.compact();
+      expect(compactionBodies).toHaveLength(2);
+      expect(compactionBodies[1].input).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: "compaction", encrypted_content: "opaque-models" }),
+        ]),
+      );
+      expect(JSON.stringify(compactionBodies[1])).toContain("answer-3");
+
       await created.session.prompt("switch back");
       const restoredPayloads = observed.filter(
         (payload) => (payload as { model?: string }).model === original.id,
