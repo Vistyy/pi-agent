@@ -3,8 +3,11 @@ import {
   buildSessionContext,
   convertToLlm,
   type ExtensionAPI,
+  type ExtensionContext,
   type SessionEntry,
 } from "@earendil-works/pi-coding-agent";
+import { extractAccountId, type CodexAuth } from "./auth.js";
+import { CodexModelCatalog, checkpointIsCompatible } from "./catalog.js";
 import { CODEX_PROVIDER, COMPACTION_MARKER } from "./constants.js";
 import {
   buildRemoteCompactionRequest,
@@ -28,6 +31,21 @@ function currentCodexModel(ctx: { model?: { provider: string; id: string } }):
   return ctx.model?.provider === CODEX_PROVIDER ? ctx.model : undefined;
 }
 
+async function resolveCodexAuth(ctx: Pick<ExtensionContext, "modelRegistry">): Promise<CodexAuth | undefined> {
+  const result = await ctx.modelRegistry.getProviderAuth(CODEX_PROVIDER);
+  const token = result?.auth.apiKey;
+  if (!token) return undefined;
+  try {
+    return {
+      token,
+      accountId: extractAccountId(token),
+      headers: result.auth.headers,
+    };
+  } catch {
+    return undefined;
+  }
+}
+
 interface ScopedTemplate {
   template: CodexRequestTemplate;
   modelId: string;
@@ -43,16 +61,23 @@ function belongsToBranch(scoped: ScopedTemplate, branch: readonly SessionEntry[]
 }
 
 export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
+  const catalog = new CodexModelCatalog();
   const pendingTemplates = new Map<string, ScopedTemplate>();
   const completedTemplates = new Map<string, ScopedTemplate>();
 
-  pi.on("before_provider_request", (event, ctx) => {
+  pi.on("before_provider_request", async (event, ctx) => {
     const model = currentCodexModel(ctx);
     if (!model || !isCodexRequestTemplate(event.payload)) return;
 
     const checkpoint = findActiveRemoteCheckpoint(ctx.sessionManager.getBranch());
+    let compatible = false;
+    if (checkpoint) {
+      const auth = await resolveCodexAuth(ctx);
+      const currentHash = auth ? await catalog.getHash(model.id, auth) : undefined;
+      compatible = checkpointIsCompatible(checkpoint, model.id, currentHash);
+    }
     const input =
-      checkpoint && checkpoint.creatingModelId === model.id
+      checkpoint && compatible
         ? replaceMarkerWithRemoteCheckpoint(event.payload.input ?? [], checkpoint)
         : [...(event.payload.input ?? [])];
     const template = { ...event.payload, input };
@@ -62,6 +87,26 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
       branchAnchorId: ctx.sessionManager.getLeafId(),
     });
     return template;
+  });
+
+  pi.on("model_select", async (event, ctx) => {
+    const checkpoint = findActiveRemoteCheckpoint(ctx.sessionManager.getBranch());
+    if (!checkpoint) return;
+    if (event.model.provider !== CODEX_PROVIDER) {
+      ctx.ui.notify(
+        "The selected model cannot read the active OpenAI remote checkpoint. Only the visible tail is available.",
+        "warning",
+      );
+      return;
+    }
+    const auth = await resolveCodexAuth(ctx);
+    const currentHash = auth ? await catalog.getHash(event.model.id, auth) : undefined;
+    if (!checkpointIsCompatible(checkpoint, event.model.id, currentHash)) {
+      ctx.ui.notify(
+        "The selected Codex model is not compatible with the active remote checkpoint. Only the visible tail is available.",
+        "warning",
+      );
+    }
   });
 
   pi.on("turn_end", (event, ctx) => {
@@ -75,10 +120,28 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
   });
 
   pi.on("session_before_compact", async (event, ctx) => {
-    const model = currentCodexModel(ctx);
-    if (!model) return;
-
     const branch = event.branchEntries as SessionEntry[];
+    const activeCheckpoint = findActiveRemoteCheckpoint(branch);
+    const model = currentCodexModel(ctx);
+    if (!model) {
+      if (!activeCheckpoint) return;
+      ctx.ui.notify(
+        "Compaction is blocked because this model cannot read the active OpenAI remote checkpoint. Select a compatible Codex model or run /compact-pi.",
+        "error",
+      );
+      return { cancel: true };
+    }
+
+    let auth = await resolveCodexAuth(ctx);
+    const currentHash = auth ? await catalog.getHash(model.id, auth) : undefined;
+    if (activeCheckpoint && !checkpointIsCompatible(activeCheckpoint, model.id, currentHash)) {
+      ctx.ui.notify(
+        "Compaction is blocked because this Codex model is not compatible with the active remote checkpoint. Select a compatible model or run /compact-pi.",
+        "error",
+      );
+      return { cancel: true };
+    }
+
     const key = sessionKey(ctx);
     const scopedTemplate =
       event.reason === "overflow" ? pendingTemplates.get(key) ?? completedTemplates.get(key) : completedTemplates.get(key);
@@ -95,9 +158,7 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
     }
     const latestTemplate = scopedTemplate.template;
 
-    const auth = await ctx.modelRegistry.getProviderAuth(CODEX_PROVIDER);
-    const token = auth?.auth.apiKey;
-    if (!token) {
+    if (!auth) {
       ctx.ui.notify("Remote compaction could not resolve Codex OAuth.", "error");
       return { cancel: true };
     }
@@ -111,15 +172,13 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
         CODEX_TOOL_CALL_PROVIDERS,
         { includeSystemPrompt: false },
       ) as unknown as ResponseItem[];
-      const activeCheckpoint = findActiveRemoteCheckpoint(event.branchEntries);
-      const input =
-        activeCheckpoint && activeCheckpoint.creatingModelId === model.id
-          ? replaceMarkerWithRemoteCheckpoint(converted, activeCheckpoint)
-          : converted;
+      const input = activeCheckpoint
+        ? replaceMarkerWithRemoteCheckpoint(converted, activeCheckpoint)
+        : converted;
       const body = buildRemoteCompactionRequest(latestTemplate, input);
       const remote = await requestRemoteCompaction({
-        token,
-        authHeaders: auth.auth.headers,
+        token: auth.token,
+        authHeaders: auth.headers,
         body,
         signal: event.signal,
         sessionId: ctx.sessionManager.getSessionId(),
@@ -129,6 +188,7 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
           version: 1,
           replacementHistory: remote.replacementHistory,
           creatingModelId: model.id,
+          ...(currentHash ? { compactionCompatibilityHash: currentHash } : {}),
           continuationSettings: captureContinuationSettings(latestTemplate),
         },
       };

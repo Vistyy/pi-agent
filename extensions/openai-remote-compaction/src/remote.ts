@@ -1,24 +1,9 @@
 import type { Usage } from "@earendil-works/pi-ai";
+import { buildCodexHeaders, extractAccountId } from "./auth.js";
 import { RESPONSES_URL } from "./constants.js";
 import type { RemoteCompactionResult, ResponseItem } from "./types.js";
 
-const AUTH_CLAIM = "https://api.openai.com/auth";
-
-export function extractAccountId(token: string): string {
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) throw new Error("invalid token");
-    const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8")) as Record<
-      string,
-      unknown
-    >;
-    const auth = payload[AUTH_CLAIM] as Record<string, unknown> | undefined;
-    if (typeof auth?.chatgpt_account_id !== "string") throw new Error("missing account ID");
-    return auth.chatgpt_account_id;
-  } catch {
-    throw new Error("Failed to extract the ChatGPT account ID from Codex OAuth");
-  }
-}
+export { extractAccountId } from "./auth.js";
 
 function asRecord(value: unknown): Record<string, unknown> | undefined {
   return value !== null && typeof value === "object"
@@ -242,18 +227,16 @@ export async function requestRemoteCompaction(
   options: RemoteCompactionRequestOptions,
 ): Promise<RemoteCompactionResult> {
   const headers: Record<string, string> = {
+    ...buildCodexHeaders({
+      token: options.token,
+      accountId: extractAccountId(options.token),
+      headers: options.authHeaders,
+    }),
     Accept: "text/event-stream",
     "Content-Type": "application/json",
-    Authorization: `Bearer ${options.token}`,
-    "chatgpt-account-id": extractAccountId(options.token),
-    originator: "pi",
     "OpenAI-Beta": "responses=experimental",
     "x-codex-beta-features": "remote_compaction_v2",
   };
-  for (const [key, value] of Object.entries(options.authHeaders ?? {})) {
-    if (value === null) delete headers[key];
-    else headers[key] = value;
-  }
   if (options.sessionId) {
     headers["session-id"] = options.sessionId;
     headers["x-client-request-id"] = options.sessionId;
