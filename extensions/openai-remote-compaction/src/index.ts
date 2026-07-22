@@ -89,7 +89,7 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
     return template;
   });
 
-  pi.on("model_select", async (event, ctx) => {
+  pi.on("model_select", (event, ctx) => {
     const checkpoint = findActiveRemoteCheckpoint(ctx.sessionManager.getBranch());
     if (!checkpoint) return;
     if (event.model.provider !== CODEX_PROVIDER) {
@@ -99,14 +99,25 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
       );
       return;
     }
-    const auth = await resolveCodexAuth(ctx);
-    const currentHash = auth ? await catalog.getHash(event.model.id, auth) : undefined;
-    if (!checkpointIsCompatible(checkpoint, event.model.id, currentHash)) {
-      ctx.ui.notify(
-        "The selected Codex model is not compatible with the active remote checkpoint. Only the visible tail is available.",
-        "warning",
-      );
+
+    const notifyIfIncompatible = (currentHash: string | undefined) => {
+      if (!checkpointIsCompatible(checkpoint, event.model.id, currentHash)) {
+        ctx.ui.notify(
+          "The selected Codex model is not compatible with the active remote checkpoint. Only the visible tail is available.",
+          "warning",
+        );
+      }
+    };
+    const cachedHash = catalog.peekHash(event.model.id);
+    if (cachedHash !== undefined) {
+      notifyIfIncompatible(cachedHash);
+      return;
     }
+
+    void resolveCodexAuth(ctx)
+      .then((auth) => (auth ? catalog.getHash(event.model.id, auth) : undefined))
+      .then(notifyIfIncompatible)
+      .catch(() => notifyIfIncompatible(undefined));
   });
 
   pi.on("turn_end", (event, ctx) => {

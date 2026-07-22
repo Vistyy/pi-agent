@@ -12,12 +12,14 @@ export interface CodexModelCatalogOptions {
   fetch?: typeof globalThis.fetch;
   now?: () => number;
   ttlMs?: number;
+  timeoutMs?: number;
 }
 
 export class CodexModelCatalog {
   private readonly fetch: typeof globalThis.fetch;
   private readonly now: () => number;
   private readonly ttlMs: number;
+  private readonly timeoutMs: number;
   private cache?: CatalogCache;
   private pending?: Promise<void>;
 
@@ -25,6 +27,11 @@ export class CodexModelCatalog {
     this.fetch = options.fetch ?? globalThis.fetch;
     this.now = options.now ?? Date.now;
     this.ttlMs = options.ttlMs ?? 5 * 60 * 1000;
+    this.timeoutMs = options.timeoutMs ?? 5000;
+  }
+
+  peekHash(modelId: string): string | undefined {
+    return this.cache?.hashes.get(modelId);
   }
 
   async getHash(modelId: string, auth: CodexAuth): Promise<string | undefined> {
@@ -43,7 +50,11 @@ export class CodexModelCatalog {
     if (this.cache?.etag) headers["If-None-Match"] = this.cache.etag;
 
     try {
-      const response = await this.fetch(MODELS_URL, { method: "GET", headers });
+      const response = await this.fetch(MODELS_URL, {
+        method: "GET",
+        headers,
+        signal: this.timeoutMs > 0 ? AbortSignal.timeout(this.timeoutMs) : undefined,
+      });
       if (response.status === 304 && this.cache) {
         this.cache.fetchedAt = this.now();
         return;

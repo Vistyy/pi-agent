@@ -381,6 +381,55 @@ describe("remote compaction extension lifecycle", () => {
     );
   });
 
+  it("does not wait for catalog refresh during model selection", async () => {
+    let finishFetch: ((response: Response) => void) | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Promise<Response>((resolve) => {
+            finishFetch = resolve;
+          }),
+      ),
+    );
+    const entries = [
+      {
+        type: "compaction",
+        id: "compaction-1",
+        parentId: null,
+        timestamp: "2026-01-01T00:00:02.000Z",
+        summary: COMPACTION_MARKER,
+        firstKeptEntryId: "compaction-1",
+        tokensBefore: 14,
+        details: {
+          openaiRemoteCompaction: {
+            version: 1,
+            replacementHistory: [{ type: "compaction", encrypted_content: "opaque" }],
+            creatingModelId: "gpt-original",
+            compactionCompatibilityHash: "family-1",
+            continuationSettings: {},
+          },
+        },
+      },
+    ] as SessionEntry[];
+    const { api, handlers } = apiHarness();
+    remoteCompactionExtension(api as any);
+    const ctx = { ...context(entries), model: { ...context(entries).model, id: "gpt-other" } };
+
+    const result = handlers.get("model_select")?.({ model: ctx.model }, ctx);
+    expect(result).toBeUndefined();
+    await vi.waitFor(() => expect(finishFetch).toBeTypeOf("function"));
+    finishFetch?.(
+      new Response(
+        JSON.stringify({ models: [{ slug: "gpt-other", comp_hash: "family-2" }] }),
+        { status: 200 },
+      ),
+    );
+    await vi.waitFor(() =>
+      expect(ctx.ui.notify).toHaveBeenCalledWith(expect.stringContaining("not compatible"), "warning"),
+    );
+  });
+
   it("blocks compaction while an incompatible model is active", async () => {
     vi.stubGlobal(
       "fetch",
