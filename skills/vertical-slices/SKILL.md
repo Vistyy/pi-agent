@@ -1,90 +1,72 @@
 ---
 name: vertical-slices
-description: Use when decomposing a specification into tasks, checking whether a task is a tracer-bullet vertical slice, or routing discovered work into a shared contract, lifecycle change, or independent capability.
+description: Use when decomposing a specification into tasks, checking a vertical slice, or routing work discovered during implementation.
 ---
 
 # Vertical Slices
 
-A **tracer bullet** is one narrow end-to-end path that delivers one observable capability across every required integration layer.
-Give each related capability a separate implementation task.
+A **tracer bullet** is one end-to-end path that delivers one observable capability across every required integration layer.
+A tracer bullet is narrow by outcome, not by file count or implementation effort.
 
-## 1. Define the behavior
+## 1. Define and verify the slice
 
 Record:
 
-- The one observable capability delivered by the task.
+- One observable capability.
 - The primary public seam that demonstrates the capability end to end.
 - Each owned behavior and its source requirement.
-- The acceptance criteria.
-- The prerequisite and blocking tasks.
+- Observable acceptance criteria.
+- Each prerequisite and blocking task.
 
+The slice must start from a passing repository state and return the repository to a passing state.
+The slice must contain no independent capability beyond its named capability.
 Use the primary seam for acceptance evidence.
 Use additional public seams for other tests.
 For behavior variations and external contracts, apply [layered seams](../tdd/SKILL.md#layered-seams).
 
-This step is complete when every item has an explicit value.
+This step is complete when repository evidence demonstrates every recorded behavior through the applicable public seam.
 
-## 2. Verify the vertical slice
+## 2. Set task boundaries
 
-A vertical slice must:
-
-- Deliver one narrow, complete capability across every required layer.
-- Produce an observable result through its primary seam.
-- Start from a passing repository state.
-- Return the repository to a passing state before dependent work starts.
-- Contain no independent capability beyond the named capability.
-- Route each required shared contract, lifecycle change, migration stage, or independent capability to a declared task.
-
-When work has independent behavior, route it to a declared task.
-A slice may contain multiple commits and local implementation details.
-File count does not determine slice size.
+Prefer the fewest independently verifiable tasks that preserve clear ownership and dependencies.
+Split work only when it has an independently verifiable result and a distinct capability, shared contract, lifecycle, owner, or blocker.
+Create a shared-contract task when multiple slices depend on the same independently verifiable contract.
+Keep multiple implementation stages in one task when they serve one outcome and share ownership and dependencies.
+Different files, modules, commands, test categories, or implementation hotspots do not establish independent capabilities.
 A shared verification seam does not combine independent capabilities into one slice.
+A preparatory task must deliver an independent contract or lifecycle change.
+Keep other preparation inside the task that uses it.
 
-This step is complete when repository evidence demonstrates every requirement.
-Record the command or observation that proves the result through the primary seam.
+When work contains multiple slices:
 
-## 3. Create flat tasks
-
-When work contains several vertical slices:
-
-1. Create one flat task for each vertical slice.
+1. Create one flat task for each slice.
 2. Link each task directly to the source specification.
 3. Express ordering through `Blocked by` relationships.
-4. Assign each required behavior to exactly one owning task.
-5. When one user story contains several behaviors, let the story span multiple tasks.
-6. When the integration has its own observable behavior, create a shared integration task.
+4. Assign each required behavior to one owning task.
+5. Create an integration task only when the integration has independent observable behavior.
 
-This step is complete when every required behavior has one owner, every dependency is explicit, and every task satisfies the vertical-slice requirements.
+This step is complete when each task split has an independently verifiable result and a distinct reason.
+Every behavior must have one owner, and every dependency must be explicit.
 
-## 4. Sequence a wide refactor
+## 3. Sequence a broad refactor
 
-A **wide refactor** is a mechanical change whose affected callers cannot migrate in one independently passing slice.
-Use **expand-contract**:
+When old and new forms must coexist during migration, read and apply [Expand-Contract](EXPAND-CONTRACT.md).
+When temporary coexistence is unnecessary, keep the refactor in one task.
+Use ordered passing stages unless the task-boundary rules require a split.
 
-1. **Expand**: Add the new form beside the old form while existing callers continue to pass.
-2. **Migrate**: Move callers in independently passing batches.
-   Make each batch a flat task blocked by the expand task.
-3. **Contract**: Remove the old form after every caller uses the new form.
+This step is complete when every stage has a passing condition and every separate task satisfies the task-boundary rules.
 
-If a migration batch cannot pass independently, use an integration branch.
-Make each affected batch block one final integrate-and-verify task.
+## 4. Route discovered work
 
-This step is complete when every stage states its passing condition, every migration blocks contraction, and contraction removes the replaced path.
+When implementation reveals work, classify it before changing scope:
 
-## 5. Guard the slice during implementation
+- Keep a local implementation detail inside the current task when it serves the approved capability.
+- When required work changes the approved behavior ownership or task boundary, stop and report the evidence.
+- When required work is an independent prerequisite or capability, propose its task and dependency.
+- Keep unrelated work outside the current task.
 
-When implementation reveals work, reapply these rules.
-When a local implementation detail serves only the current capability, keep it in the current task.
+Wait for user approval before changing an approved task boundary.
+After approval, create or update each affected task draft and the canonical task graph before implementation continues.
 
-When repository evidence reveals a separate prerequisite:
-
-1. Stop before implementing the prerequisite.
-2. Report the evidence.
-3. Explain the prerequisite's independent observable behavior.
-4. Propose a flat task for the prerequisite.
-5. Explain why it blocks the current task.
-6. Wait for user approval.
-
-Keep unrelated work outside the current task.
-When all required prerequisites are declared and complete, continue implementation.
-Every planned change must contribute to the current vertical slice.
+This step is complete when all required work belongs to an approved task.
+The recorded task graph must match the approved boundaries.
