@@ -21,7 +21,7 @@ export class CodexModelCatalog {
   private readonly ttlMs: number;
   private readonly timeoutMs: number;
   private cache?: CatalogCache;
-  private pending?: Promise<void>;
+  private pending?: Promise<boolean>;
 
   constructor(options: CodexModelCatalogOptions = {}) {
     this.fetch = options.fetch ?? globalThis.fetch;
@@ -40,12 +40,12 @@ export class CodexModelCatalog {
       this.pending ??= this.refresh(auth).finally(() => {
         this.pending = undefined;
       });
-      await this.pending;
+      if (!(await this.pending)) return undefined;
     }
     return this.cache?.hashes.get(modelId);
   }
 
-  private async refresh(auth: CodexAuth): Promise<void> {
+  private async refresh(auth: CodexAuth): Promise<boolean> {
     const headers = buildCodexHeaders(auth);
     headers.Accept = "application/json";
     if (this.cache?.etag) headers["If-None-Match"] = this.cache.etag;
@@ -58,11 +58,11 @@ export class CodexModelCatalog {
       });
       if (response.status === 304 && this.cache) {
         this.cache.fetchedAt = this.now();
-        return;
+        return true;
       }
-      if (!response.ok) return;
+      if (!response.ok) return false;
       const body = (await response.json()) as { models?: unknown };
-      if (!Array.isArray(body.models)) return;
+      if (!Array.isArray(body.models)) return false;
       const hashes = new Map<string, string>();
       for (const value of body.models) {
         if (!value || typeof value !== "object") continue;
@@ -76,8 +76,9 @@ export class CodexModelCatalog {
         ...(response.headers.get("etag") ? { etag: response.headers.get("etag")! } : {}),
         fetchedAt: this.now(),
       };
+      return true;
     } catch {
-      // A prior valid catalog remains usable as stale compatibility evidence.
+      return false;
     }
   }
 }

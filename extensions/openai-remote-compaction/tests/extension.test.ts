@@ -431,7 +431,17 @@ describe("remote compaction extension lifecycle", () => {
     );
   });
 
-  it("refreshes expired compatibility evidence before warning", async () => {
+  it.each([
+    [
+      "changed hash",
+      () =>
+        new Response(
+          JSON.stringify({ models: [{ slug: "gpt-other", comp_hash: "family-2" }] }),
+          { status: 200 },
+        ),
+    ],
+    ["failed refresh", () => new Response("unavailable", { status: 503 })],
+  ])("warns after expired compatibility evidence has a %s", async (_case, refreshedResponse) => {
     let now = 0;
     vi.spyOn(Date, "now").mockImplementation(() => now);
     const fetch = vi
@@ -442,12 +452,7 @@ describe("remote compaction extension lifecycle", () => {
           { status: 200 },
         ),
       )
-      .mockResolvedValueOnce(
-        new Response(
-          JSON.stringify({ models: [{ slug: "gpt-other", comp_hash: "family-2" }] }),
-          { status: 200 },
-        ),
-      );
+      .mockResolvedValueOnce(refreshedResponse());
     vi.stubGlobal("fetch", fetch);
     const entries = [
       {
@@ -491,6 +496,18 @@ describe("remote compaction extension lifecycle", () => {
     await vi.waitFor(() =>
       expect(ctx.ui.notify).toHaveBeenCalledWith(expect.stringContaining("not compatible"), "warning"),
     );
+    const payload = await handlers.get("before_provider_request")?.(
+      {
+        payload: {
+          model: "gpt-other",
+          input: [{ role: "user", content: [{ type: "input_text", text: markerText }] }],
+        },
+      },
+      ctx,
+    );
+    expect(payload.input).toEqual([
+      { role: "user", content: [{ type: "input_text", text: markerText }] },
+    ]);
   });
 
   it("blocks compaction while an incompatible model is active", async () => {

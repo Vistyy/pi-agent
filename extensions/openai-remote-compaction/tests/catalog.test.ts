@@ -39,7 +39,7 @@ describe("Codex model catalog", () => {
     expect(fetch).toHaveBeenCalledOnce();
   });
 
-  it("keeps stale catalog evidence when refresh fails", async () => {
+  it("treats expired catalog evidence as unavailable when refresh fails", async () => {
     let now = 0;
     const fetch = vi
       .fn()
@@ -57,7 +57,7 @@ describe("Codex model catalog", () => {
     expect(catalog.peekHash("gpt-a")).toBe("family-1");
     now = 20;
     expect(catalog.peekHash("gpt-a")).toBeUndefined();
-    expect(await catalog.getHash("gpt-a", auth)).toBe("family-1");
+    expect(await catalog.getHash("gpt-a", auth)).toBeUndefined();
     expect(fetch).toHaveBeenLastCalledWith(
       "https://chatgpt.com/backend-api/codex/models",
       expect.objectContaining({ headers: expect.objectContaining({ "If-None-Match": '"catalog-1"' }) }),

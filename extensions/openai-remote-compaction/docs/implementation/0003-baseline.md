@@ -27,5 +27,5 @@ Run `pnpm typecheck` in the extension directory.
 - `user-approved`: Use the official model catalog's `comp_hash` as the compatibility identity.
 - `user-approved`: Catalog failure permits only the creating model to continue.
 - `local`: Cache catalog responses for five minutes and use `ETag` revalidation.
-- `local`: Keep the last valid catalog as stale evidence when refresh fails.
+- `user-approved`: When an expired catalog cannot refresh, treat compatibility as unknown and permit only the creating model.
 - `local`: Centralize Codex OAuth header construction for catalog and compaction requests.
