@@ -1,5 +1,13 @@
 # Remote compaction usage is visible
 
+Status: Complete
+
+Completion evidence:
+
+- Implementation commits: `e82b568`, `094d2b2`
+- Verification: extension tests, extension typecheck, pi-cost tests, and pi-cost typecheck
+- Review: Spec approved and Standards approved
+
 ## Specification
 
 [OpenAI Remote Compaction Specification](../SPEC.md)
