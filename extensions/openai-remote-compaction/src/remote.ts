@@ -116,8 +116,48 @@ function parseRemoteResponse(text: string): RemoteCompactionResult {
   return { replacementHistory: [item], ...(usage ? { usage } : {}) };
 }
 
+async function abortableSleep(ms: number, signal?: AbortSignal): Promise<void> {
+  if (signal?.aborted) throw new Error("Remote compaction was aborted");
+  await new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(resolve, ms);
+    const abort = () => {
+      clearTimeout(timeout);
+      reject(new Error("Remote compaction was aborted"));
+    };
+    signal?.addEventListener("abort", abort, { once: true });
+  });
+}
+
+function retryDelay(headers: Headers, attempt: number): number {
+  const milliseconds = headers.get("retry-after-ms");
+  if (milliseconds !== null && Number.isFinite(Number(milliseconds))) {
+    return Math.max(0, Number(milliseconds));
+  }
+  const retryAfter = headers.get("retry-after");
+  if (retryAfter) {
+    const seconds = Number(retryAfter);
+    if (Number.isFinite(seconds)) return Math.max(0, seconds * 1000);
+    const date = Date.parse(retryAfter);
+    if (!Number.isNaN(date)) return Math.max(0, date - Date.now());
+  }
+  return 1000 * 2 ** attempt;
+}
+
+function retryableResponse(status: number, body: string): boolean {
+  if (
+    status === 429 &&
+    /usage_limit_reached|GoUsageLimitError|FreeUsageLimitError|Monthly usage limit|insufficient_quota|quota exceeded/i.test(
+      body,
+    )
+  ) {
+    return false;
+  }
+  return status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
+}
+
 export interface RemoteCompactionRequestOptions {
   fetch?: typeof globalThis.fetch;
+  sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
   token: string;
   authHeaders?: Record<string, string | null>;
   body: Record<string, unknown>;
@@ -146,15 +186,35 @@ export async function requestRemoteCompaction(
     headers["x-client-request-id"] = options.sessionId;
   }
 
-  const response = await (options.fetch ?? globalThis.fetch)(RESPONSES_URL, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(options.body),
-    signal: options.signal,
-  });
-  const text = await response.text();
-  if (!response.ok) {
-    throw new Error(`OpenAI remote compaction failed (${response.status}): ${text || response.statusText}`);
+  const fetch = options.fetch ?? globalThis.fetch;
+  const sleep = options.sleep ?? abortableSleep;
+  let lastError: Error | undefined;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    if (options.signal?.aborted) throw new Error("Remote compaction was aborted");
+    try {
+      const response = await fetch(RESPONSES_URL, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(options.body),
+        signal: options.signal,
+      });
+      const text = await response.text();
+      if (response.ok) return parseRemoteResponse(text);
+
+      lastError = new Error(
+        `OpenAI remote compaction failed (${response.status}): ${text || response.statusText}`,
+      );
+      if (attempt === 2 || !retryableResponse(response.status, text)) throw lastError;
+      await sleep(retryDelay(response.headers, attempt), options.signal);
+    } catch (error) {
+      if (options.signal?.aborted) throw new Error("Remote compaction was aborted");
+      if (error === lastError) throw error;
+      lastError = error instanceof Error ? error : new Error(String(error));
+      if (attempt === 2) throw lastError;
+      await sleep(1000 * 2 ** attempt, options.signal);
+    }
   }
-  return parseRemoteResponse(text);
+
+  throw lastError ?? new Error("OpenAI remote compaction failed");
 }

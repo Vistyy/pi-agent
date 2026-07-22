@@ -72,4 +72,112 @@ describe("Codex remote compaction transport", () => {
       }),
     );
   });
+
+  it("retries transient HTTP and network failures up to three total attempts", async () => {
+    const fetch = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError("connection refused"))
+      .mockResolvedValueOnce(new Response("overloaded", { status: 503 }))
+      .mockResolvedValueOnce(
+        sse([
+          {
+            type: "response.completed",
+            response: {
+              output: [{ type: "compaction", encrypted_content: "opaque" }],
+            },
+          },
+        ]),
+      );
+    const sleep = vi.fn(async (_delay: number, _signal?: AbortSignal) => undefined);
+
+    await expect(
+      requestRemoteCompaction({
+        fetch,
+        sleep,
+        token: token("account-1"),
+        body: { model: "gpt-test" },
+      }),
+    ).resolves.toMatchObject({
+      replacementHistory: [{ type: "compaction", encrypted_content: "opaque" }],
+    });
+    expect(fetch).toHaveBeenCalledTimes(3);
+    expect(sleep.mock.calls.map(([delay]) => delay)).toEqual([1000, 2000]);
+  });
+
+  it("respects Retry-After for rate limits", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response("rate limited", { status: 429, headers: { "Retry-After": "2" } }),
+      )
+      .mockResolvedValueOnce(
+        sse([
+          {
+            type: "response.completed",
+            response: {
+              output: [{ type: "compaction", encrypted_content: "opaque" }],
+            },
+          },
+        ]),
+      );
+    const sleep = vi.fn(async (_delay: number, _signal?: AbortSignal) => undefined);
+
+    await requestRemoteCompaction({
+      fetch,
+      sleep,
+      token: token("account-1"),
+      body: { model: "gpt-test" },
+    });
+
+    expect(sleep).toHaveBeenCalledWith(2000, undefined);
+  });
+
+  it.each([
+    [401, "authentication failed"],
+    [400, "invalid request"],
+    [429, '{"error":{"code":"usage_limit_reached"}}'],
+  ])("does not retry terminal HTTP %s responses", async (status, body) => {
+    const fetch = vi.fn(async () => new Response(body, { status }));
+
+    await expect(
+      requestRemoteCompaction({
+        fetch,
+        sleep: vi.fn(async () => undefined),
+        token: token("account-1"),
+        body: { model: "gpt-test" },
+      }),
+    ).rejects.toThrow("OpenAI remote compaction failed");
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it("stops after three retryable failures", async () => {
+    const fetch = vi.fn(async () => new Response("overloaded", { status: 503 }));
+
+    await expect(
+      requestRemoteCompaction({
+        fetch,
+        sleep: vi.fn(async () => undefined),
+        token: token("account-1"),
+        body: { model: "gpt-test" },
+      }),
+    ).rejects.toThrow("OpenAI remote compaction failed (503)");
+    expect(fetch).toHaveBeenCalledTimes(3);
+  });
+
+  it("does not start or retry when aborted", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const fetch = vi.fn();
+
+    await expect(
+      requestRemoteCompaction({
+        fetch,
+        sleep: vi.fn(async () => undefined),
+        token: token("account-1"),
+        body: { model: "gpt-test" },
+        signal: controller.signal,
+      }),
+    ).rejects.toThrow("aborted");
+    expect(fetch).not.toHaveBeenCalled();
+  });
 });
