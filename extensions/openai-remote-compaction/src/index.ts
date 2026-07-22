@@ -68,6 +68,28 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
   const catalog = new CodexModelCatalog();
   const pendingTemplates = new Map<string, ScopedTemplate>();
   const completedTemplates = new Map<string, ScopedTemplate>();
+  const piCompactionBypasses = new Set<string>();
+
+  pi.registerCommand("compact-pi", {
+    description: "End the remote checkpoint chain with ordinary Pi compaction",
+    handler: async (_args, ctx) => {
+      await ctx.waitForIdle();
+      const checkpoint = findActiveRemoteCheckpoint(ctx.sessionManager.getBranch());
+      const confirmed = await ctx.ui.confirm(
+        "End the OpenAI remote checkpoint chain?",
+        checkpoint
+          ? "Ordinary Pi compaction cannot include history stored only in the remote checkpoint. Older remote history will become unavailable."
+          : "Run ordinary Pi compaction for the current visible context?",
+      );
+      if (!confirmed) return;
+
+      const key = sessionKey(ctx);
+      piCompactionBypasses.add(key);
+      ctx.compact({
+        onError: () => piCompactionBypasses.delete(key),
+      });
+    },
+  });
 
   pi.on("before_provider_request", async (event, ctx) => {
     const model = currentCodexModel(ctx);
@@ -135,6 +157,13 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
   });
 
   pi.on("session_before_compact", async (event, ctx) => {
+    const key = sessionKey(ctx);
+    if (piCompactionBypasses.delete(key)) return;
+    if (event.customInstructions?.trim()) {
+      ctx.ui.notify("Custom instructions are not supported by OpenAI remote compaction.", "error");
+      return { cancel: true };
+    }
+
     const branch = event.branchEntries as SessionEntry[];
     const activeCheckpoint = findActiveRemoteCheckpoint(branch);
     const model = currentCodexModel(ctx);
@@ -157,7 +186,6 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
       return { cancel: true };
     }
 
-    const key = sessionKey(ctx);
     const completedTemplate = completedTemplates.get(modelTemplateKey(key, model.id));
     const scopedTemplate =
       event.reason === "overflow" ? pendingTemplates.get(key) ?? completedTemplate : completedTemplate;

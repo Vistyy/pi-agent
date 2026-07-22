@@ -12,13 +12,18 @@ function jwt(): string {
 
 function apiHarness() {
   const handlers = new Map<string, (event: any, ctx: any) => any>();
+  const commands = new Map<string, { handler: (args: string, ctx: any) => Promise<void> }>();
   return {
     api: {
       on: vi.fn((name: string, handler: (event: any, ctx: any) => any) => handlers.set(name, handler)),
-      registerCommand: vi.fn(),
+      registerCommand: vi.fn(
+        (name: string, command: { handler: (args: string, ctx: any) => Promise<void> }) =>
+          commands.set(name, command),
+      ),
       appendEntry: vi.fn(),
     },
     handlers,
+    commands,
   };
 }
 
@@ -297,6 +302,78 @@ describe("remote compaction extension lifecycle", () => {
       expect.stringContaining("completed Codex request on this branch"),
       "error",
     );
+  });
+
+  it("rejects custom remote-compaction instructions", async () => {
+    const { api, handlers } = apiHarness();
+    remoteCompactionExtension(api as any);
+    const entries = branch();
+    const ctx = context(entries);
+
+    const result = await handlers.get("session_before_compact")?.(
+      {
+        branchEntries: entries,
+        preparation: { firstKeptEntryId: "assistant-1", tokensBefore: 14 },
+        customInstructions: "focus on tests",
+        reason: "manual",
+        signal: new AbortController().signal,
+      },
+      ctx,
+    );
+
+    expect(result).toEqual({ cancel: true });
+    expect(ctx.ui.notify).toHaveBeenCalledWith(expect.stringContaining("not supported"), "error");
+  });
+
+  it("runs one ordinary Pi compaction only after /compact-pi confirmation", async () => {
+    const entries = [
+      ...branch(),
+      {
+        type: "compaction",
+        id: "compaction-1",
+        parentId: "assistant-1",
+        timestamp: "2026-01-01T00:00:02.000Z",
+        summary: COMPACTION_MARKER,
+        firstKeptEntryId: "assistant-1",
+        tokensBefore: 14,
+        details: {
+          openaiRemoteCompaction: {
+            version: 1,
+            replacementHistory: [{ type: "compaction", encrypted_content: "opaque" }],
+            creatingModelId: "gpt-test",
+            continuationSettings: {},
+          },
+        },
+      },
+    ] as SessionEntry[];
+    const { api, handlers, commands } = apiHarness();
+    remoteCompactionExtension(api as any);
+    const base = context(entries);
+    const compact = vi.fn();
+    const commandContext = {
+      ...base,
+      waitForIdle: vi.fn(async () => undefined),
+      compact,
+      ui: { ...base.ui, confirm: vi.fn(async () => false) },
+    };
+
+    await commands.get("compact-pi")?.handler("", commandContext);
+    expect(compact).not.toHaveBeenCalled();
+
+    commandContext.ui.confirm.mockResolvedValueOnce(true);
+    await commands.get("compact-pi")?.handler("", commandContext);
+    expect(compact).toHaveBeenCalledOnce();
+
+    const event = {
+      branchEntries: entries,
+      preparation: { firstKeptEntryId: "assistant-1", tokensBefore: 14 },
+      reason: "manual",
+      signal: new AbortController().signal,
+    };
+    expect(await handlers.get("session_before_compact")?.(event, commandContext)).toBeUndefined();
+    expect(await handlers.get("session_before_compact")?.(event, commandContext)).toEqual({
+      cancel: true,
+    });
   });
 
   it("reuses a checkpoint across model IDs only when comp_hash matches", async () => {
