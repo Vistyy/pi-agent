@@ -54,7 +54,9 @@ describe("Codex model catalog", () => {
     const auth = { token: "token", accountId: "account" };
 
     expect(await catalog.getHash("gpt-a", auth)).toBe("family-1");
+    expect(catalog.peekHash("gpt-a")).toBe("family-1");
     now = 20;
+    expect(catalog.peekHash("gpt-a")).toBeUndefined();
     expect(await catalog.getHash("gpt-a", auth)).toBe("family-1");
     expect(fetch).toHaveBeenLastCalledWith(
       "https://chatgpt.com/backend-api/codex/models",

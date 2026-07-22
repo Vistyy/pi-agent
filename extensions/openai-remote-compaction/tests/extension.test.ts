@@ -98,6 +98,7 @@ function successfulSSE(): Response {
 }
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
 });
 
@@ -425,6 +426,68 @@ describe("remote compaction extension lifecycle", () => {
         { status: 200 },
       ),
     );
+    await vi.waitFor(() =>
+      expect(ctx.ui.notify).toHaveBeenCalledWith(expect.stringContaining("not compatible"), "warning"),
+    );
+  });
+
+  it("refreshes expired compatibility evidence before warning", async () => {
+    let now = 0;
+    vi.spyOn(Date, "now").mockImplementation(() => now);
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ models: [{ slug: "gpt-other", comp_hash: "family-1" }] }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ models: [{ slug: "gpt-other", comp_hash: "family-2" }] }),
+          { status: 200 },
+        ),
+      );
+    vi.stubGlobal("fetch", fetch);
+    const entries = [
+      {
+        type: "compaction",
+        id: "compaction-1",
+        parentId: null,
+        timestamp: "2026-01-01T00:00:02.000Z",
+        summary: COMPACTION_MARKER,
+        firstKeptEntryId: "compaction-1",
+        tokensBefore: 14,
+        details: {
+          openaiRemoteCompaction: {
+            version: 1,
+            replacementHistory: [{ type: "compaction", encrypted_content: "opaque" }],
+            creatingModelId: "gpt-original",
+            compactionCompatibilityHash: "family-1",
+            continuationSettings: {},
+          },
+        },
+      },
+    ] as SessionEntry[];
+    const { api, handlers } = apiHarness();
+    remoteCompactionExtension(api as any);
+    const ctx = { ...context(entries), model: { ...context(entries).model, id: "gpt-other" } };
+    const markerText = `The conversation history before this point was compacted into the following summary:\n\n<summary>\n${COMPACTION_MARKER}\n</summary>`;
+
+    await handlers.get("before_provider_request")?.(
+      {
+        payload: {
+          model: "gpt-other",
+          input: [{ role: "user", content: [{ type: "input_text", text: markerText }] }],
+        },
+      },
+      ctx,
+    );
+    expect(fetch).toHaveBeenCalledOnce();
+
+    now = 5 * 60 * 1000 + 1;
+    expect(handlers.get("model_select")?.({ model: ctx.model }, ctx)).toBeUndefined();
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
     await vi.waitFor(() =>
       expect(ctx.ui.notify).toHaveBeenCalledWith(expect.stringContaining("not compatible"), "warning"),
     );

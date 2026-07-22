@@ -31,7 +31,8 @@ export class CodexModelCatalog {
   }
 
   peekHash(modelId: string): string | undefined {
-    return this.cache?.hashes.get(modelId);
+    if (!this.cache || this.now() - this.cache.fetchedAt >= this.ttlMs) return undefined;
+    return this.cache.hashes.get(modelId);
   }
 
   async getHash(modelId: string, auth: CodexAuth): Promise<string | undefined> {
