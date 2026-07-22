@@ -136,6 +136,7 @@ describe("Codex remote compaction transport", () => {
     [401, "authentication failed"],
     [400, "invalid request"],
     [429, '{"error":{"code":"usage_limit_reached"}}'],
+    [429, '{"error":{"code":"usage_not_included"}}'],
     [429, "No available balance remains"],
     [429, "Account is out of budget"],
     [429, "Billing quota exceeded"],
