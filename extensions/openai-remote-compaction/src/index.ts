@@ -16,12 +16,13 @@ import {
   replaceMarkerWithRemoteCheckpoint,
 } from "./request.js";
 import { requestRemoteCompaction } from "./remote.js";
-import { findActiveRemoteCheckpoint } from "./session-state.js";
+import { findActiveRemoteCheckpoint, isRemoteCompactionDetails } from "./session-state.js";
 import type {
   CodexRequestTemplate,
   OpenAIRemoteCompactionEntryDetails,
   ResponseItem,
 } from "./types.js";
+import { createUsageRecord } from "./usage.js";
 
 const CODEX_TOOL_CALL_PROVIDERS = new Set(["openai", "openai-codex", "opencode"]);
 
@@ -154,6 +155,16 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
     if (!pending || !belongsToBranch(pending, ctx.sessionManager.getBranch())) return;
     completedTemplates.set(modelTemplateKey(key, pending.modelId), pending);
     pendingTemplates.delete(key);
+  });
+
+  pi.on("session_compact", (event) => {
+    const container = event.compactionEntry.details as
+      | Partial<OpenAIRemoteCompactionEntryDetails>
+      | undefined;
+    const details = container?.openaiRemoteCompaction;
+    const usage = event.compactionEntry.usage;
+    if (!isRemoteCompactionDetails(details) || !usage) return;
+    pi.appendEntry("pi.usage.recorded", createUsageRecord(details.creatingModelId, usage));
   });
 
   pi.on("session_before_compact", async (event, ctx) => {

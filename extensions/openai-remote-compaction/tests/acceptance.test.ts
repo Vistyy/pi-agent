@@ -197,6 +197,22 @@ describe("persisted Pi acceptance lifecycle", () => {
           },
         },
       });
+      expect(
+        first.session.sessionManager
+          .getBranch()
+          .find((entry) => entry.type === "custom" && entry.customType === "pi.usage.recorded"),
+      ).toMatchObject({
+        type: "custom",
+        customType: "pi.usage.recorded",
+        data: {
+          schemaVersion: 1,
+          source: "extension",
+          extension: "openai-remote-compaction",
+          operation: "remote-compaction",
+          model: { provider: "openai-codex", id: "gpt-5.4-mini" },
+          usage: { input: 20, output: 1, cacheRead: 0, cacheWrite: 0, totalTokens: 21, cost: 0 },
+        },
+      });
       first.session.dispose();
 
       const observedSecond: unknown[] = [];

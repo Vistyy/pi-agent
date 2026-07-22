@@ -170,6 +170,48 @@ describe("remote compaction extension lifecycle", () => {
       usage: { input: 12, output: 2, totalTokens: 14 },
     });
 
+    await handlers.get("session_compact")?.(
+      {
+        compactionEntry: {
+          type: "compaction",
+          id: "compaction-1",
+          parentId: "assistant-1",
+          timestamp: "2026-01-01T00:00:02.000Z",
+          ...result.compaction,
+        },
+        fromExtension: true,
+      },
+      ctx,
+    );
+    expect(api.appendEntry).toHaveBeenCalledWith(
+      "pi.usage.recorded",
+      expect.objectContaining({
+        schemaVersion: 1,
+        extension: "openai-remote-compaction",
+        operation: "remote-compaction",
+        model: { provider: "openai-codex", id: "gpt-test" },
+        usage: expect.objectContaining({ input: 12, output: 2, totalTokens: 14, cost: 0 }),
+      }),
+    );
+
+    await handlers.get("session_compact")?.(
+      {
+        compactionEntry: {
+          type: "compaction",
+          id: "ordinary",
+          parentId: "assistant-1",
+          timestamp: "2026-01-01T00:00:02.000Z",
+          summary: "ordinary",
+          firstKeptEntryId: "assistant-1",
+          tokensBefore: 14,
+          usage: result.compaction.usage,
+        },
+        fromExtension: false,
+      },
+      ctx,
+    );
+    expect(api.appendEntry).toHaveBeenCalledOnce();
+
     const compactedBranch = [
       ...entries,
       {
