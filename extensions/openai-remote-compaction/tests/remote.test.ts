@@ -154,6 +154,27 @@ describe("Codex remote compaction transport", () => {
     expect(fetch).toHaveBeenCalledOnce();
   });
 
+  it("does not retry a terminal error envelope returned with HTTP 5xx", async () => {
+    const fetch = vi.fn(async () =>
+      new Response(
+        JSON.stringify({
+          error: { type: "invalid_request_error", message: "Invalid request" },
+        }),
+        { status: 500 },
+      ),
+    );
+
+    await expect(
+      requestRemoteCompaction({
+        fetch,
+        sleep: vi.fn(async () => undefined),
+        token: token("account-1"),
+        body: { model: "gpt-test" },
+      }),
+    ).rejects.toThrow("OpenAI remote compaction failed (500)");
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+
   it("retries the HTTP 5xx server-error range", async () => {
     const fetch = vi
       .fn()
@@ -204,6 +225,37 @@ describe("Codex remote compaction transport", () => {
       }),
     ).rejects.toThrow(message);
     expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it("retries SSE internal_error failures", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        sse([
+          {
+            type: "response.failed",
+            response: { error: { code: "internal_error", message: "failed" } },
+          },
+        ]),
+      )
+      .mockResolvedValueOnce(
+        sse([
+          {
+            type: "response.completed",
+            response: {
+              output: [{ type: "compaction", encrypted_content: "opaque" }],
+            },
+          },
+        ]),
+      );
+
+    await requestRemoteCompaction({
+      fetch,
+      sleep: vi.fn(async () => undefined),
+      token: token("account-1"),
+      body: { model: "gpt-test" },
+    });
+    expect(fetch).toHaveBeenCalledTimes(2);
   });
 
   it("classifies type-only SSE failures", async () => {

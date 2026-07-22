@@ -81,16 +81,33 @@ class RemoteApplicationError extends Error {
   }
 }
 
-function applicationError(identifiers: unknown, message: string): RemoteApplicationError {
+type FailureDisposition = "terminal" | "retryable" | "unknown";
+
+function classifyFailure(identifiers: unknown, message: string): FailureDisposition {
   const values = Array.isArray(identifiers) ? identifiers : [identifiers];
   const text = `${values.filter((value): value is string => typeof value === "string").join(" ")} ${message}`;
-  const terminal =
-    /auth|unauthorized|forbidden|access.?denied|permission.?denied|invalid|token.?expired|usage_limit|available balance|out of budget|billing|quota exceeded/i.test(
+  if (
+    /auth|unauthorized|forbidden|access.?denied|permission.?denied|invalid|token.?expired|usage_limit|usage_not_included|GoUsageLimitError|FreeUsageLimitError|Monthly usage limit|available balance|insufficient_quota|out of budget|billing|quota exceeded/i.test(
       text,
-    );
-  const retryable =
-    !terminal && /rate.?limit|overloaded|server|service.?unavailable|upstream|temporar/i.test(text);
-  return new RemoteApplicationError(message, retryable);
+    )
+  ) {
+    return "terminal";
+  }
+  if (
+    /rate.?limit|overloaded|server|internal.?error|service.?unavailable|upstream|temporar|connection.?refused/i.test(
+      text,
+    )
+  ) {
+    return "retryable";
+  }
+  return "unknown";
+}
+
+function applicationError(identifiers: unknown, message: string): RemoteApplicationError {
+  return new RemoteApplicationError(
+    message,
+    classifyFailure(identifiers, message) === "retryable",
+  );
 }
 
 function parseRemoteResponse(text: string): RemoteCompactionResult {
@@ -165,15 +182,24 @@ function retryDelay(headers: Headers, attempt: number): number {
   return 1000 * 2 ** attempt;
 }
 
-function retryableResponse(status: number, body: string): boolean {
-  if (
-    status === 429 &&
-    /usage_limit_reached|usage_not_included|GoUsageLimitError|FreeUsageLimitError|Monthly usage limit|available balance|insufficient_quota|out of budget|quota exceeded|billing/i.test(
-      body,
-    )
-  ) {
-    return false;
+function responseFailure(body: string): { identifiers: unknown[]; message: string } {
+  try {
+    const parsed = JSON.parse(body) as Record<string, unknown>;
+    const error = asRecord(parsed.error);
+    return {
+      identifiers: [error?.code, error?.type],
+      message: typeof error?.message === "string" ? error.message : body,
+    };
+  } catch {
+    return { identifiers: [], message: body };
   }
+}
+
+function retryableResponse(status: number, body: string): boolean {
+  const failure = responseFailure(body);
+  const disposition = classifyFailure(failure.identifiers, failure.message);
+  if (disposition === "terminal") return false;
+  if (disposition === "retryable") return true;
   return status === 429 || (status >= 500 && status <= 599);
 }
 
