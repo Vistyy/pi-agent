@@ -1,5 +1,13 @@
 # Remote failures preserve the session
 
+Status: Complete
+
+Completion evidence:
+
+- Implementation commits: `a95cb75` through `c15d52f`
+- Verification: `pnpm test` and `pnpm typecheck`
+- Review: Spec approved and Standards approved with required comments resolved
+
 ## Specification
 
 [OpenAI Remote Compaction Specification](../SPEC.md)
