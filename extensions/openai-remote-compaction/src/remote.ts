@@ -1,0 +1,160 @@
+import type { Usage } from "@earendil-works/pi-ai";
+import { RESPONSES_URL } from "./constants.js";
+import type { RemoteCompactionResult, ResponseItem } from "./types.js";
+
+const AUTH_CLAIM = "https://api.openai.com/auth";
+
+export function extractAccountId(token: string): string {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) throw new Error("invalid token");
+    const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8")) as Record<
+      string,
+      unknown
+    >;
+    const auth = payload[AUTH_CLAIM] as Record<string, unknown> | undefined;
+    if (typeof auth?.chatgpt_account_id !== "string") throw new Error("missing account ID");
+    return auth.chatgpt_account_id;
+  } catch {
+    throw new Error("Failed to extract the ChatGPT account ID from Codex OAuth");
+  }
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return value !== null && typeof value === "object"
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
+function compactionItem(value: unknown): ResponseItem | undefined {
+  const item = asRecord(value);
+  return item?.type === "compaction" && typeof item.encrypted_content === "string"
+    ? item
+    : undefined;
+}
+
+function normalizeUsage(value: unknown): Usage | undefined {
+  const usage = asRecord(value);
+  if (!usage) return undefined;
+  const inputTotal = typeof usage.input_tokens === "number" ? usage.input_tokens : 0;
+  const inputDetails = asRecord(usage.input_tokens_details);
+  const cacheRead = typeof inputDetails?.cached_tokens === "number" ? inputDetails.cached_tokens : 0;
+  const output = typeof usage.output_tokens === "number" ? usage.output_tokens : 0;
+  const totalTokens =
+    typeof usage.total_tokens === "number" ? usage.total_tokens : inputTotal + output;
+  return {
+    input: Math.max(0, inputTotal - cacheRead),
+    output,
+    cacheRead,
+    cacheWrite: 0,
+    totalTokens,
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+  };
+}
+
+function parseSSE(text: string): Array<Record<string, unknown>> {
+  const events: Array<Record<string, unknown>> = [];
+  for (const block of text.split(/\r?\n\r?\n/)) {
+    const data = block
+      .split(/\r?\n/)
+      .filter((line) => line.startsWith("data:"))
+      .map((line) => line.slice(5).trim())
+      .join("\n");
+    if (!data || data === "[DONE]") continue;
+    try {
+      const parsed = JSON.parse(data);
+      if (parsed && typeof parsed === "object") events.push(parsed as Record<string, unknown>);
+    } catch {
+      throw new Error("OpenAI returned invalid remote compaction SSE JSON");
+    }
+  }
+  return events;
+}
+
+function parseRemoteResponse(text: string): RemoteCompactionResult {
+  let streamedItem: ResponseItem | undefined;
+  let completedItem: ResponseItem | undefined;
+  let usage: Usage | undefined;
+
+  for (const event of parseSSE(text)) {
+    if (event.type === "error") {
+      const nested = asRecord(event.error);
+      throw new Error(
+        typeof event.message === "string"
+          ? event.message
+          : typeof nested?.message === "string"
+            ? nested.message
+            : "OpenAI remote compaction failed",
+      );
+    }
+    if (event.type === "response.failed") {
+      const response = asRecord(event.response);
+      const error = asRecord(response?.error);
+      throw new Error(
+        typeof error?.message === "string" ? error.message : "OpenAI remote compaction failed",
+      );
+    }
+    if (event.type === "response.output_item.done") {
+      streamedItem = compactionItem(event.item) ?? streamedItem;
+    }
+    if (
+      event.type === "response.completed" ||
+      event.type === "response.done" ||
+      event.type === "response.incomplete"
+    ) {
+      const response = asRecord(event.response);
+      const output = Array.isArray(response?.output) ? response.output : [];
+      const items = output.map(compactionItem).filter((item): item is ResponseItem => item !== undefined);
+      if (items.length > 1) throw new Error("OpenAI returned multiple remote checkpoints");
+      completedItem = items[0];
+      usage = normalizeUsage(response?.usage);
+    }
+  }
+
+  const item = completedItem ?? streamedItem;
+  if (!item) throw new Error("OpenAI did not return a remote checkpoint");
+  return { replacementHistory: [item], ...(usage ? { usage } : {}) };
+}
+
+export interface RemoteCompactionRequestOptions {
+  fetch?: typeof globalThis.fetch;
+  token: string;
+  authHeaders?: Record<string, string | null>;
+  body: Record<string, unknown>;
+  signal?: AbortSignal;
+  sessionId?: string;
+}
+
+export async function requestRemoteCompaction(
+  options: RemoteCompactionRequestOptions,
+): Promise<RemoteCompactionResult> {
+  const headers: Record<string, string> = {
+    Accept: "text/event-stream",
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${options.token}`,
+    "chatgpt-account-id": extractAccountId(options.token),
+    originator: "pi",
+    "OpenAI-Beta": "responses=experimental",
+    "x-codex-beta-features": "remote_compaction_v2",
+  };
+  for (const [key, value] of Object.entries(options.authHeaders ?? {})) {
+    if (value === null) delete headers[key];
+    else headers[key] = value;
+  }
+  if (options.sessionId) {
+    headers["session-id"] = options.sessionId;
+    headers["x-client-request-id"] = options.sessionId;
+  }
+
+  const response = await (options.fetch ?? globalThis.fetch)(RESPONSES_URL, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(options.body),
+    signal: options.signal,
+  });
+  const text = await response.text();
+  if (!response.ok) {
+    throw new Error(`OpenAI remote compaction failed (${response.status}): ${text || response.statusText}`);
+  }
+  return parseRemoteResponse(text);
+}

@@ -1,0 +1,75 @@
+import { describe, expect, it, vi } from "vitest";
+import { extractAccountId, requestRemoteCompaction } from "../src/remote.js";
+
+function token(accountId: string): string {
+  const encode = (value: unknown) =>
+    Buffer.from(JSON.stringify(value)).toString("base64url");
+  return `${encode({ alg: "none" })}.${encode({
+    "https://api.openai.com/auth": { chatgpt_account_id: accountId },
+  })}.signature`;
+}
+
+function sse(events: unknown[]): Response {
+  return new Response(
+    events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join(""),
+    { status: 200, headers: { "content-type": "text/event-stream" } },
+  );
+}
+
+describe("Codex remote compaction transport", () => {
+  it("extracts the ChatGPT account ID from Codex OAuth", () => {
+    expect(extractAccountId(token("account-1"))).toBe("account-1");
+  });
+
+  it("returns the opaque compaction item and normalized usage", async () => {
+    const fetch = vi.fn(async () =>
+      sse([
+        {
+          type: "response.output_item.done",
+          item: { type: "compaction", id: "cmp_1", encrypted_content: "opaque" },
+        },
+        {
+          type: "response.completed",
+          response: {
+            output: [{ type: "compaction", id: "cmp_1", encrypted_content: "opaque" }],
+            usage: {
+              input_tokens: 100,
+              input_tokens_details: { cached_tokens: 80 },
+              output_tokens: 4,
+              total_tokens: 104,
+            },
+          },
+        },
+      ]),
+    );
+
+    const result = await requestRemoteCompaction({
+      fetch,
+      token: token("account-1"),
+      body: { model: "gpt-test", store: false, stream: true },
+    });
+
+    expect(result.replacementHistory).toEqual([
+      { type: "compaction", id: "cmp_1", encrypted_content: "opaque" },
+    ]);
+    expect(result.usage).toEqual({
+      input: 20,
+      output: 4,
+      cacheRead: 80,
+      cacheWrite: 0,
+      totalTokens: 104,
+      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+    });
+    expect(fetch).toHaveBeenCalledWith(
+      "https://chatgpt.com/backend-api/codex/responses",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          Authorization: expect.stringContaining("Bearer "),
+          "chatgpt-account-id": "account-1",
+          "x-codex-beta-features": "remote_compaction_v2",
+        }),
+      }),
+    );
+  });
+});
