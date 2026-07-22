@@ -10,7 +10,7 @@ import {
   SessionManager,
   SettingsManager,
 } from "@earendil-works/pi-coding-agent";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import remoteCompactionExtension from "../../src/index.js";
 import { extractAccountId } from "../../src/auth.js";
 import { CodexModelCatalog } from "../../src/catalog.js";
@@ -25,6 +25,22 @@ live("live Codex remote compaction", () => {
     const agentDir = join(root, "agent");
     const sessionDir = join(root, "sessions");
     const actualAgentDir = getAgentDir();
+    const realFetch = globalThis.fetch.bind(globalThis);
+    const remoteBodies: Array<Record<string, unknown>> = [];
+    let failRemoteCompaction = false;
+    vi.stubGlobal("fetch", async (input: string | URL | Request, init?: RequestInit) => {
+      const headers = new Headers(init?.headers);
+      if (headers.get("x-codex-beta-features") === "remote_compaction_v2") {
+        remoteBodies.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+        if (failRemoteCompaction) {
+          return new Response("live injected server failure", {
+            status: 503,
+            headers: { "Retry-After": "0" },
+          });
+        }
+      }
+      return realFetch(input, init);
+    });
     const modelRuntime = await ModelRuntime.create({
       authPath: join(actualAgentDir, "auth.json"),
       modelsPath: join(actualAgentDir, "models.json"),
@@ -132,8 +148,16 @@ live("live Codex remote compaction", () => {
         await resumed.session.prompt("Reply with exactly LIVE-RESTORED-OK.");
         expect(findActiveRemoteCheckpoint(resumed.session.sessionManager.getBranch())).toBeDefined();
       }
+
+      const beforeFailure = structuredClone(resumed.session.sessionManager.getBranch());
+      failRemoteCompaction = true;
+      await expect(resumed.session.compact()).rejects.toThrow();
+      expect(resumed.session.sessionManager.getBranch()).toEqual(beforeFailure);
+      expect(remoteBodies.length).toBeGreaterThan(0);
+      expect(remoteBodies.every((body) => body.store === false)).toBe(true);
       resumed.session.dispose();
     } finally {
+      vi.unstubAllGlobals();
       await rm(root, { recursive: true, force: true });
     }
   });

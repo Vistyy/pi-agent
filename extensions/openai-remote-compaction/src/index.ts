@@ -1,4 +1,3 @@
-import { convertResponsesMessages } from "@earendil-works/pi-ai/api/openai-responses-shared";
 import {
   buildSessionContext,
   convertToLlm,
@@ -15,16 +14,14 @@ import {
   isCodexRequestTemplate,
   replaceMarkerWithRemoteCheckpoint,
 } from "./request.js";
+import { convertCodexMessages } from "./messages.js";
 import { requestRemoteCompaction } from "./remote.js";
 import { findActiveRemoteCheckpoint, isRemoteCompactionDetails } from "./session-state.js";
 import type {
   CodexRequestTemplate,
   OpenAIRemoteCompactionEntryDetails,
-  ResponseItem,
 } from "./types.js";
 import { createUsageRecord } from "./usage.js";
-
-const CODEX_TOOL_CALL_PROVIDERS = new Set(["openai", "openai-codex", "opencode"]);
 
 function currentCodexModel(ctx: { model?: { provider: string; id: string } }):
   | { provider: string; id: string }
@@ -223,12 +220,7 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
     try {
       const sessionContext = buildSessionContext(event.branchEntries as SessionEntry[]);
       const messages = convertToLlm(sessionContext.messages);
-      const converted = convertResponsesMessages(
-        ctx.model as Parameters<typeof convertResponsesMessages>[0],
-        { systemPrompt: ctx.getSystemPrompt(), messages },
-        CODEX_TOOL_CALL_PROVIDERS,
-        { includeSystemPrompt: false },
-      ) as unknown as ResponseItem[];
+      const converted = convertCodexMessages(model.id, messages);
       const input = activeCheckpoint
         ? replaceMarkerWithRemoteCheckpoint(converted, activeCheckpoint)
         : converted;
