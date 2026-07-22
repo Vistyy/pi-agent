@@ -179,12 +179,17 @@ describe("Codex remote compaction transport", () => {
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
-  it("does not retry authentication or invalid-request SSE failures", async () => {
+  it.each([
+    ["invalid_request_error", "Invalid request"],
+    ["access_denied", "Access denied"],
+    ["permission_denied", "Permission denied"],
+    ["invalid_api_key", "Invalid API key"],
+  ])("does not retry terminal SSE failure %s", async (code, message) => {
     const fetch = vi.fn(async () =>
       sse([
         {
           type: "response.failed",
-          response: { error: { code: "invalid_request_error", message: "Invalid request" } },
+          response: { error: { code, message } },
         },
       ]),
     );
@@ -196,7 +201,7 @@ describe("Codex remote compaction transport", () => {
         token: token("account-1"),
         body: { model: "gpt-test" },
       }),
-    ).rejects.toThrow("Invalid request");
+    ).rejects.toThrow(message);
     expect(fetch).toHaveBeenCalledOnce();
   });
 

@@ -84,7 +84,7 @@ class RemoteApplicationError extends Error {
 function applicationError(code: unknown, message: string): RemoteApplicationError {
   const text = `${typeof code === "string" ? code : ""} ${message}`;
   const terminal =
-    /auth|unauthorized|forbidden|invalid|usage_limit|available balance|out of budget|billing|quota exceeded/i.test(
+    /auth|unauthorized|forbidden|access.?denied|permission.?denied|invalid|token.?expired|usage_limit|available balance|out of budget|billing|quota exceeded/i.test(
       text,
     );
   const retryable =
