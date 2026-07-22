@@ -50,7 +50,7 @@ describe("Codex remote compaction transport", () => {
     });
 
     expect(result.replacementHistory).toEqual([
-      { type: "compaction", id: "cmp_1", encrypted_content: "opaque" },
+      { type: "compaction", encrypted_content: "opaque" },
     ]);
     expect(result.usage).toEqual({
       input: 20,

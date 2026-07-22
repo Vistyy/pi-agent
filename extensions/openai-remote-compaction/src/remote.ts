@@ -14,7 +14,7 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
 function compactionItem(value: unknown): ResponseItem | undefined {
   const item = asRecord(value);
   return item?.type === "compaction" && typeof item.encrypted_content === "string"
-    ? item
+    ? { type: "compaction", encrypted_content: item.encrypted_content }
     : undefined;
 }
 
