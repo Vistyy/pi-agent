@@ -218,10 +218,10 @@ describe("Codex remote compaction transport", () => {
     expect(unauthorized).toHaveBeenCalledOnce();
   });
 
-  it("retries the HTTP 5xx server-error range", async () => {
+  it("retries Pi's canonical transient HTTP statuses", async () => {
     const fetch = vi
       .fn()
-      .mockResolvedValueOnce(new Response("not implemented", { status: 501 }))
+      .mockResolvedValueOnce(new Response("bad gateway", { status: 502 }))
       .mockResolvedValueOnce(
         sse([
           {
@@ -242,6 +242,20 @@ describe("Codex remote compaction transport", () => {
       }),
     ).resolves.toBeDefined();
     expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retry HTTP statuses outside Pi's transient allowlist", async () => {
+    const fetch = vi.fn(async () => new Response("not implemented", { status: 501 }));
+
+    await expect(
+      requestRemoteCompaction({
+        fetch,
+        sleep: vi.fn(async () => undefined),
+        token: token("account-1"),
+        body: { model: "gpt-test" },
+      }),
+    ).rejects.toThrow("501");
+    expect(fetch).toHaveBeenCalledOnce();
   });
 
   it.each([

@@ -212,12 +212,11 @@ function responseFailure(body: string): { identifiers: unknown[]; message: strin
 }
 
 function retryableResponse(status: number, body: string): boolean {
-  if (status >= 400 && status <= 499 && status !== 429) return false;
+  if (![429, 500, 502, 503, 504].includes(status)) return false;
   const failure = responseFailure(body);
   const disposition = classifyFailure(failure.identifiers, failure.message);
   if (disposition === "terminal") return false;
-  if (disposition === "retryable") return true;
-  return status === 429 || (status >= 500 && status <= 599);
+  return true;
 }
 
 export interface RemoteCompactionRequestOptions {

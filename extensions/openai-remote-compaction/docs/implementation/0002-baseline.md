@@ -25,5 +25,5 @@ Run `pnpm typecheck` in the extension directory.
 
 - `user-approved`: Retry network, rate-limit, and server failures with three total attempts.
 - `user-approved`: Respect `Retry-After` and do not retry authentication or invalid requests.
-- `local`: Match Pi's retryable HTTP statuses and terminal subscription-limit detection.
+- `local`: Match Pi's retryable HTTP allowlist of `429`, `500`, `502`, `503`, and `504`, plus terminal subscription-limit detection.
 - `local`: Inject sleep only at the remote transport seam so tests remain deterministic.
