@@ -23,8 +23,8 @@ import type {
 } from "./types.js";
 import { createUsageRecord } from "./usage.js";
 
-function currentCodexModel(ctx: { model?: { provider: string; id: string } }):
-  | { provider: string; id: string }
+function currentCodexModel(ctx: { model?: { provider: string; id: string; input?: readonly string[] } }):
+  | { provider: string; id: string; input?: readonly string[] }
   | undefined {
   return ctx.model?.provider === CODEX_PROVIDER ? ctx.model : undefined;
 }
@@ -220,7 +220,7 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
     try {
       const sessionContext = buildSessionContext(event.branchEntries as SessionEntry[]);
       const messages = convertToLlm(sessionContext.messages);
-      const converted = convertCodexMessages(model.id, messages);
+      const converted = convertCodexMessages(model, messages);
       const input = activeCheckpoint
         ? replaceMarkerWithRemoteCheckpoint(converted, activeCheckpoint)
         : converted;
