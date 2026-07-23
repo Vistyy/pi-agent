@@ -29,12 +29,13 @@ function textIdentity(signature: unknown): { id?: string; phase?: string } {
 
 function userItem(message: Message, supportsImages: boolean): ResponseItem | undefined {
   if (message.role !== "user") return undefined;
-  if (typeof message.content === "string") {
-    return { role: "user", content: [{ type: "input_text", text: message.content }] };
+  const sourceContent = message.content ?? [];
+  if (typeof sourceContent === "string") {
+    return { role: "user", content: [{ type: "input_text", text: sourceContent }] };
   }
   const content: ResponseItem[] = [];
   let omittedImage = false;
-  for (const part of message.content) {
+  for (const part of sourceContent) {
     if (part.type === "text") {
       content.push({ type: "input_text", text: part.text });
     } else if (supportsImages) {
@@ -82,7 +83,7 @@ function assistantItems(
     return id;
   };
 
-  for (const block of message.content) {
+  for (const block of message.content ?? []) {
     if (block.type === "thinking") {
       if (sameModel && typeof block.thinkingSignature === "string") {
         try {
@@ -120,12 +121,13 @@ function assistantItems(
 function toolResultItem(message: Message, supportsImages: boolean): ResponseItem | undefined {
   if (message.role !== "toolResult") return undefined;
   const [callId] = message.toolCallId.split("|");
-  const text = message.content
+  const content = message.content ?? [];
+  const text = content
     .filter((part) => part.type === "text")
     .map((part) => part.text)
     .join("\n");
   const markedText = message.isError ? `[Tool error]\n${text || "(no tool output)"}` : text;
-  const images = message.content.filter((part) => part.type === "image");
+  const images = content.filter((part) => part.type === "image");
   let output: unknown;
   if (images.length > 0 && supportsImages) {
     output = [

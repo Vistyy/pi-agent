@@ -112,6 +112,33 @@ describe("Codex input conversion", () => {
     });
   });
 
+  it("normalizes legacy null message content", () => {
+    const messages = [
+      { role: "user", content: null, timestamp: 1 },
+      {
+        role: "assistant",
+        api: "openai-codex-responses",
+        provider: "openai-codex",
+        model: "gpt-test",
+        content: null,
+        stopReason: "stop",
+        timestamp: 2,
+      },
+      {
+        role: "toolResult",
+        toolCallId: "call_1",
+        toolName: "read",
+        content: null,
+        isError: false,
+        timestamp: 3,
+      },
+    ];
+
+    expect(convertCodexMessages({ id: "gpt-test", input: ["text"] }, messages as any)).toEqual([
+      { type: "function_call_output", call_id: "call_1", output: "(no tool output)" },
+    ]);
+  });
+
   it("does not replay encrypted reasoning from another model", () => {
     const messages = [
       {
