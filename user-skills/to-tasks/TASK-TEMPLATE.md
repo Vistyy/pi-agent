@@ -9,10 +9,10 @@ Use this template for each approved task.
 
 Link directly to the specification that this task implements.
 
-## Behaviors owned
+## Source requirements owned
 
-List each required observable behavior.
-Identify the source requirement, specification section, or user story for each behavior.
+List each specification requirement owned by this task.
+Identify the source section for each requirement, including applicable decisions, testing requirements, and quantitative targets.
 
 ## What to build
 

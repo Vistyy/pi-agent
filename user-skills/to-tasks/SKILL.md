@@ -25,25 +25,26 @@ Inspect:
 - The current implementation and public verification seams.
 - Applicable domain terms and architectural decisions.
 - The canonical task graph and relevant active task drafts.
-- The current owner and dependencies of each required behavior.
+- The current owner and dependencies of each specification requirement.
 
-Map each required behavior to active task ownership.
-Expand an active task when it already owns the outcome.
-Record an ownership gap only when no active task owns the outcome.
+Identify every specification requirement, including user stories, the solution, implementation decisions, testing requirements, and quantitative targets.
+Map each requirement to exactly one active task owner, or record an ownership gap when no active task owns it.
+Expand an active task when it already owns the requirement.
 
-This step is complete when every required behavior has an existing owner or a stated ownership gap.
+This step is complete when every specification requirement has exactly one existing owner or a stated ownership gap.
 
 ## 3. Apply vertical slices
 
 Read and apply the `vertical-slices` skill.
 Use that skill as the authority for task boundaries and migration sequences.
 Fill each ownership gap with an independently justified vertical slice.
+Preserve each specification requirement when choosing verification seams and task boundaries.
 Integrate all tasks into one flat dependency graph.
 Link each task directly to the source specification.
 
 This step is complete when:
 
-- Each required behavior has one task owner.
+- Each specification requirement has exactly one task owner.
 - Existing tasks own every applicable existing outcome.
 - Each new task satisfies the `vertical-slices` completion criteria.
 - Each migration stage has a passing condition.
@@ -57,7 +58,7 @@ For each task, show:
 - **Title**: Name the observable capability or migration stage.
 - **Capability**: State the single result that the task delivers.
 - **Primary verification seam**: Name the public seam that demonstrates completion.
-- **Behaviors owned**: List each behavior and its source requirement.
+- **Source requirements owned**: List each specification requirement and its source section.
 - **Blocked by**: List each prerequisite task.
 
 Ask the user to confirm the boundaries, ownership, verification seams, and dependencies.
