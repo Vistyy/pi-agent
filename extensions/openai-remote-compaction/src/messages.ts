@@ -75,7 +75,9 @@ function assistantItems(message: Message, targetModelId: string, index: number):
       const [callId, itemId] = block.id.split("|");
       items.push({
         type: "function_call",
-        ...(itemId ? { id: safeId(itemId.startsWith("fc_") ? itemId : `fc_${itemId}`) } : {}),
+        ...(sameModel && itemId
+          ? { id: safeId(itemId.startsWith("fc_") ? itemId : `fc_${itemId}`) }
+          : {}),
         call_id: safeId(callId),
         name: block.name,
         arguments: JSON.stringify(block.arguments),

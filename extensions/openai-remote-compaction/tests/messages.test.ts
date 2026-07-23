@@ -69,6 +69,7 @@ describe("Codex input conversion", () => {
             thinkingSignature: JSON.stringify({ type: "reasoning", encrypted_content: "secret" }),
           },
           { type: "text", text: "visible" },
+          { type: "toolCall", id: "call_foreign|fc_foreign", name: "read", arguments: {} },
         ],
         stopReason: "stop",
         timestamp: 1,
@@ -82,6 +83,12 @@ describe("Codex input conversion", () => {
         content: [{ type: "output_text", text: "visible", annotations: [] }],
         status: "completed",
         id: "msg_pi_0",
+      },
+      {
+        type: "function_call",
+        call_id: "call_foreign",
+        name: "read",
+        arguments: "{}",
       },
     ]);
   });
