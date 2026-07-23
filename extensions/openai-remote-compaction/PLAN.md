@@ -1,6 +1,13 @@
 # OpenAI Remote Compaction Plan
 
-Status: Approved
+Status: Implemented
+
+Completion evidence:
+
+- Final implementation commit: `698f48d44824078cb221c66c012e8cd2f4468da5`
+- Offline tests and type checking pass.
+- Opt-in live Codex validation passes.
+- Spec and Standards reviews are approved.
 
 ## Scope
 
