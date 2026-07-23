@@ -10,7 +10,9 @@ It authenticates with the Codex OAuth credential managed by Pi.
 It stores OpenAI's opaque remote checkpoint in the Pi session instead of generating a second plaintext summary.
 
 Compatible Codex models can continue the remote checkpoint chain.
-Compatibility requires a matching `comp_hash` from the official Codex model catalog.
+The extension follows Codex model metadata and alias resolution for `comp_hash` compatibility.
+A missing hash is unknown compatibility and does not block checkpoint reuse.
+Only known differing hashes establish incompatibility.
 An incompatible model receives the plaintext marker and visible tail after a warning.
 Switching back to a compatible model restores access to the remote checkpoint if no later compaction ended the chain.
 

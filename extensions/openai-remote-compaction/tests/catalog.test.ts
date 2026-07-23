@@ -17,7 +17,7 @@ function checkpoint(
 
 describe("Codex model catalog", () => {
   it("reads comp_hash and caches the catalog", async () => {
-    const fetch = vi.fn(async () =>
+    const fetch = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) =>
       new Response(
         JSON.stringify({
           models: [
@@ -37,9 +37,57 @@ describe("Codex model catalog", () => {
       "family-1",
     );
     expect(fetch).toHaveBeenCalledOnce();
+    expect(fetch).toHaveBeenCalledWith(
+      "https://chatgpt.com/backend-api/codex/models?client_version=0.145.0",
+      expect.objectContaining({
+        headers: expect.objectContaining({ originator: "pi" }),
+      }),
+    );
+    expect(fetch.mock.calls[0]?.[1]?.headers).not.toEqual(
+      expect.objectContaining({ version: expect.anything() }),
+    );
   });
 
-  it("treats expired catalog evidence as unavailable when refresh fails", async () => {
+  it("uses Codex bundled compatibility metadata when refresh is unavailable", async () => {
+    const catalog = new CodexModelCatalog({
+      fetch: vi.fn(async () => new Response("unavailable", { status: 503 })),
+    });
+    const auth = { token: "token", accountId: "account" };
+
+    await expect(catalog.getHash("gpt-5.6-luna", auth)).resolves.toBe("3000");
+    await expect(catalog.getHash("gpt-5.6-sol", auth)).resolves.toBe("3000");
+    await expect(catalog.getHash("gpt-5.6-terra", auth)).resolves.toBe("3000");
+  });
+
+  it("resolves Codex model aliases from the longest prefix and namespaced suffix", async () => {
+    const catalog = new CodexModelCatalog({
+      fetch: vi.fn(async () => new Response("unavailable", { status: 503 })),
+    });
+    const auth = { token: "token", accountId: "account" };
+
+    await expect(catalog.getHash("gpt-5.6-sol-fast", auth)).resolves.toBe("3000");
+    await expect(catalog.getHash("custom/gpt-5.6-luna", auth)).resolves.toBe("3000");
+    await expect(catalog.getHash("bad!/gpt-5.6-luna", auth)).resolves.toBeUndefined();
+    await expect(catalog.getHash("one/two/gpt-5.6-luna", auth)).resolves.toBeUndefined();
+  });
+
+  it("uses a listed remote catalog as the source of truth", async () => {
+    const catalog = new CodexModelCatalog({
+      fetch: vi.fn(async () =>
+        new Response(
+          JSON.stringify({
+            models: [{ slug: "gpt-remote", comp_hash: "remote-1", visibility: "list" }],
+          }),
+        ),
+      ),
+    });
+    const auth = { token: "token", accountId: "account" };
+
+    await expect(catalog.getHash("gpt-remote", auth)).resolves.toBe("remote-1");
+    await expect(catalog.getHash("gpt-5.6-luna", auth)).resolves.toBeUndefined();
+  });
+
+  it("keeps the last merged catalog stale when an update fails", async () => {
     let now = 0;
     const fetch = vi
       .fn()
@@ -57,10 +105,12 @@ describe("Codex model catalog", () => {
     expect(catalog.peekHash("gpt-a")).toBe("family-1");
     now = 20;
     expect(catalog.peekHash("gpt-a")).toBeUndefined();
-    expect(await catalog.getHash("gpt-a", auth)).toBeUndefined();
+    expect(await catalog.getHash("gpt-a", auth)).toBe("family-1");
+    expect(await catalog.getHash("gpt-a", auth)).toBe("family-1");
+    expect(fetch).toHaveBeenCalledTimes(3);
     expect(fetch).toHaveBeenLastCalledWith(
-      "https://chatgpt.com/backend-api/codex/models",
-      expect.objectContaining({ headers: expect.objectContaining({ "If-None-Match": '"catalog-1"' }) }),
+      "https://chatgpt.com/backend-api/codex/models?client_version=0.145.0",
+      expect.objectContaining({ headers: expect.not.objectContaining({ "If-None-Match": expect.anything() }) }),
     );
   });
 
@@ -79,15 +129,12 @@ describe("Codex model catalog", () => {
 
 describe("remote checkpoint compatibility", () => {
   it("allows matching hashes across Codex model IDs", () => {
-    expect(checkpointIsCompatible(checkpoint("gpt-a", "family-1"), "gpt-b", "family-1")).toBe(true);
+    expect(checkpointIsCompatible(checkpoint("gpt-a", "family-1"), "family-1")).toBe(true);
   });
 
-  it("allows the creating model when catalog evidence is unavailable", () => {
-    expect(checkpointIsCompatible(checkpoint("gpt-a", "family-1"), "gpt-a", undefined)).toBe(true);
-  });
-
-  it("rejects a different model with an unknown or different hash", () => {
-    expect(checkpointIsCompatible(checkpoint("gpt-a", "family-1"), "gpt-b", undefined)).toBe(false);
-    expect(checkpointIsCompatible(checkpoint("gpt-a", "family-1"), "gpt-b", "family-2")).toBe(false);
+  it("treats missing hashes as unknown and rejects only known hash changes", () => {
+    expect(checkpointIsCompatible(checkpoint("gpt-a", "family-1"), undefined)).toBe(true);
+    expect(checkpointIsCompatible(checkpoint("gpt-a"), "family-2")).toBe(true);
+    expect(checkpointIsCompatible(checkpoint("gpt-a", "family-1"), "family-2")).toBe(false);
   });
 });

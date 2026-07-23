@@ -270,7 +270,7 @@ describe("persisted Pi acceptance lifecycle", () => {
       "fetch",
       vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
         const target = String(url);
-        if (target.endsWith("/models")) {
+        if (target.includes("/models?")) {
           return catalogAvailable
             ? new Response(
                 JSON.stringify({

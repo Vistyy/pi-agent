@@ -98,7 +98,7 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
     if (checkpoint) {
       const auth = await resolveCodexAuth(ctx);
       const currentHash = auth ? await catalog.getHash(model.id, auth) : undefined;
-      compatible = checkpointIsCompatible(checkpoint, model.id, currentHash);
+      compatible = checkpointIsCompatible(checkpoint, currentHash);
     }
     const input =
       checkpoint && compatible
@@ -125,7 +125,7 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
     }
 
     const notifyIfIncompatible = (currentHash: string | undefined) => {
-      if (!checkpointIsCompatible(checkpoint, event.model.id, currentHash)) {
+      if (!checkpointIsCompatible(checkpoint, currentHash)) {
         ctx.ui.notify(
           "The selected Codex model is not compatible with the active remote checkpoint. Only the visible tail is available.",
           "warning",
@@ -188,7 +188,7 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
 
     let auth = await resolveCodexAuth(ctx);
     const currentHash = auth ? await catalog.getHash(model.id, auth) : undefined;
-    if (activeCheckpoint && !checkpointIsCompatible(activeCheckpoint, model.id, currentHash)) {
+    if (activeCheckpoint && !checkpointIsCompatible(activeCheckpoint, currentHash)) {
       ctx.ui.notify(
         "Compaction is blocked because this Codex model is not compatible with the active remote checkpoint. Select a compatible model or run /compact-pi.",
         "error",

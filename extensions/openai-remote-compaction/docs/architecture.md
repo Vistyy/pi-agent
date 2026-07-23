@@ -36,9 +36,17 @@ This reconstruction supports resume, reload, tree navigation, native Pi session 
 
 ## Model compatibility
 
-The extension reads each Codex model's `comp_hash` from the official Codex model catalog.
-A Codex model can reuse a remote checkpoint when its `comp_hash` matches the stored compaction compatibility hash.
-If the catalog is unavailable, only the model that created the checkpoint can continue it.
+The extension ships the `comp_hash` metadata bundled with Codex 0.145.0 and refreshes it from the official Codex model catalog.
+The catalog request includes the Codex client version.
+The request keeps Pi's normal Codex authentication headers because Pi, rather than the Codex binary, is the calling client.
+A remote catalog containing a listed model becomes the source of truth.
+Otherwise, remote metadata overlays the bundled snapshot.
+Model lookup follows Codex longest-prefix matching and its single-namespace suffix fallback.
+
+Two known matching hashes establish compatibility.
+Two known differing hashes establish incompatibility.
+If either hash is missing, compatibility is unknown and checkpoint reuse remains enabled, matching Codex behavior.
+A later successful compaction stores any newly resolved hash.
 
 Selecting an incompatible model does not cancel or revert the selection.
 The extension warns the user and sends that model the plaintext marker and visible tail.
@@ -77,6 +85,12 @@ They cover persistence, resume, request construction, compatibility, retries, co
 Live validation is opt-in because it uses the configured Codex subscription.
 It covers initial and repeated compaction, resume, tree navigation, available compatibility paths, failure preservation, and `store: false`.
 Run live validation after material protocol changes or major Pi upgrades.
+
+## Updating Codex metadata
+
+The bundled compatibility snapshot and `CODEX_CATALOG_CLIENT_VERSION` come from OpenAI Codex release 0.145.0 at revision `808d3c2702ce8eae007c457aa930e7c3b68dd5f6`.
+When adopting a newer stable Codex release, compare `codex-rs/models-manager/models.json` and update the version, source revision, model slugs, and `comp_hash` values together.
+Run offline and live validation after each snapshot update.
 
 ## Non-goals
 

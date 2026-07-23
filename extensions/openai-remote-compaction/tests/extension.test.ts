@@ -112,7 +112,7 @@ describe("remote compaction extension lifecycle", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) =>
-        url.endsWith("/models")
+        url.includes("/models?")
           ? new Response(
               JSON.stringify({ models: [{ slug: "gpt-test", comp_hash: "family-1" }] }),
               { status: 200 },
@@ -303,7 +303,7 @@ describe("remote compaction extension lifecycle", () => {
 
   it("preserves the branch after retry exhaustion", async () => {
     const fetch = vi.fn(async (url: string) =>
-      url.endsWith("/models")
+      url.includes("/models?")
         ? new Response(JSON.stringify({ models: [] }), { status: 200 })
         : new Response("overloaded", { status: 503, headers: { "Retry-After": "0" } }),
     );
@@ -524,6 +524,73 @@ describe("remote compaction extension lifecycle", () => {
     );
   });
 
+  it("continues and recompacts a hashless checkpoint after a 5.6 model switch", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) =>
+        url.includes("/models?")
+          ? new Response("unavailable", { status: 503 })
+          : successfulSSE(),
+      ),
+    );
+    const entries = [
+      ...branch(),
+      {
+        type: "compaction",
+        id: "compaction-1",
+        parentId: "assistant-1",
+        timestamp: "2026-01-01T00:00:02.000Z",
+        summary: COMPACTION_MARKER,
+        firstKeptEntryId: "assistant-1",
+        tokensBefore: 14,
+        details: {
+          openaiRemoteCompaction: {
+            version: 1,
+            replacementHistory: [{ type: "compaction", encrypted_content: "opaque-old" }],
+            creatingModelId: "gpt-5.6-luna",
+            continuationSettings: {},
+          },
+        },
+      },
+    ] as SessionEntry[];
+    const { api, handlers } = apiHarness();
+    remoteCompactionExtension(api as any);
+    const ctx = {
+      ...context(entries),
+      model: { ...context(entries).model, id: "gpt-5.6-sol" },
+    };
+    const markerText = `The conversation history before this point was compacted into the following summary:\n\n<summary>\n${COMPACTION_MARKER}\n</summary>`;
+
+    const request = await handlers.get("before_provider_request")?.(
+      {
+        payload: {
+          model: "gpt-5.6-sol",
+          input: [{ role: "user", content: [{ type: "input_text", text: markerText }] }],
+        },
+      },
+      ctx,
+    );
+    expect(request.input).toEqual([
+      { type: "compaction", encrypted_content: "opaque-old" },
+    ]);
+    const assistantEntry = branch()[1] as Extract<SessionEntry, { type: "message" }>;
+    handlers.get("turn_end")?.({ message: assistantEntry.message }, ctx);
+
+    const result = await handlers.get("session_before_compact")?.(
+      {
+        branchEntries: entries,
+        preparation: { firstKeptEntryId: "assistant-1", tokensBefore: 14 },
+        reason: "manual",
+        signal: new AbortController().signal,
+      },
+      ctx,
+    );
+    expect(result.compaction.details.openaiRemoteCompaction).toMatchObject({
+      creatingModelId: "gpt-5.6-sol",
+      compactionCompatibilityHash: "3000",
+    });
+  });
+
   it("does not wait for catalog refresh during model selection", async () => {
     let finishFetch: ((response: Response) => void) | undefined;
     vi.stubGlobal(
@@ -581,9 +648,12 @@ describe("remote compaction extension lifecycle", () => {
           JSON.stringify({ models: [{ slug: "gpt-other", comp_hash: "family-2" }] }),
           { status: 200 },
         ),
+      false,
     ],
-    ["failed refresh", () => new Response("unavailable", { status: 503 })],
-  ])("warns after expired compatibility evidence has a %s", async (_case, refreshedResponse) => {
+    ["failed refresh", () => new Response("unavailable", { status: 503 }), true],
+  ])(
+    "handles expired compatibility evidence after a %s",
+    async (_case, refreshedResponse, expectedCompatible) => {
     let now = 0;
     vi.spyOn(Date, "now").mockImplementation(() => now);
     const fetch = vi
@@ -635,9 +705,14 @@ describe("remote compaction extension lifecycle", () => {
     now = 5 * 60 * 1000 + 1;
     expect(handlers.get("model_select")?.({ model: ctx.model }, ctx)).toBeUndefined();
     await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
-    await vi.waitFor(() =>
-      expect(ctx.ui.notify).toHaveBeenCalledWith(expect.stringContaining("not compatible"), "warning"),
-    );
+    if (!expectedCompatible) {
+      await vi.waitFor(() =>
+        expect(ctx.ui.notify).toHaveBeenCalledWith(
+          expect.stringContaining("not compatible"),
+          "warning",
+        ),
+      );
+    }
     const payload = await handlers.get("before_provider_request")?.(
       {
         payload: {
@@ -647,10 +722,13 @@ describe("remote compaction extension lifecycle", () => {
       },
       ctx,
     );
-    expect(payload.input).toEqual([
-      { role: "user", content: [{ type: "input_text", text: markerText }] },
-    ]);
-  });
+    expect(payload.input).toEqual(
+      expectedCompatible
+        ? [{ type: "compaction", encrypted_content: "opaque" }]
+        : [{ role: "user", content: [{ type: "input_text", text: markerText }] }],
+    );
+    },
+  );
 
   it("blocks compaction while an incompatible model is active", async () => {
     vi.stubGlobal(
