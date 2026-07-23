@@ -11,6 +11,9 @@
 !settings.json
 !models.json
 !keybindings.json
+!session-recall.json
+!pi-auto-permissions/
+!pi-auto-permissions/config.json
 
 # Track resource directories
 !agents/

@@ -1,0 +1,103 @@
+{
+  "enabled": true,
+  "reviewer": {
+    "provider": "openai-codex",
+    "model": "gpt-5.6-luna",
+    "reasoningEffort": "low",
+    "timeoutMs": 30000
+  },
+  "reviewEvidence": {
+    "projectInstructions": true
+  },
+  "ui": {
+    "enabled": true,
+    "resultDisplayMs": 2500,
+    "placement": "widget"
+  },
+  "rules": [
+    {
+      "pattern": "\\bgit\\s+push\\b",
+      "flags": "i",
+      "level": "guarded",
+      "group": "git-remote",
+      "label": "Git push"
+    },
+    {
+      "pattern": "\\bgit\\s+(?:reset|clean|restore)\\b",
+      "flags": "i",
+      "level": "guarded",
+      "group": "git-destructive",
+      "label": "Destructive Git operation"
+    },
+    {
+      "pattern": "\\bgit\\s+checkout\\b[^\\n;&|]*\\s--(?:\\s|$)",
+      "flags": "i",
+      "level": "guarded",
+      "group": "git-destructive",
+      "label": "Git worktree restore"
+    },
+    {
+      "pattern": "\\bgit\\s+branch\\b[^\\n;&|]*(?:\\s-D\\b|--delete\\b)",
+      "flags": "i",
+      "level": "guarded",
+      "group": "git-destructive",
+      "label": "Git branch deletion"
+    },
+    {
+      "pattern": "\\brm\\b(?=[^\\n;&|]*(?:\\s-[A-Za-z]*[rR][A-Za-z]*\\b|\\s--recursive\\b))",
+      "flags": "i",
+      "level": "guarded",
+      "group": "filesystem-destructive",
+      "label": "Recursive deletion"
+    },
+    {
+      "pattern": "\\bfind\\b[^\\n;&|]*\\s-delete\\b",
+      "flags": "i",
+      "level": "guarded",
+      "group": "filesystem-destructive",
+      "label": "Find deletion"
+    },
+    {
+      "pattern": "\\b(?:npm|pnpm|yarn|bun)\\s+publish\\b",
+      "flags": "i",
+      "level": "guarded",
+      "group": "package-publish",
+      "label": "Package publication"
+    },
+    {
+      "pattern": "\\bsudo\\b",
+      "flags": "i",
+      "level": "guarded",
+      "group": "privileged",
+      "label": "Privileged command"
+    },
+    {
+      "pattern": "\\bcurl\\b",
+      "flags": "i",
+      "level": "guarded",
+      "group": "network",
+      "label": "External curl request"
+    },
+    {
+      "pattern": "\\beval(?:\\s|$)|\\b(?:bash|sh|zsh|dash|ksh)\\s+-[A-Za-z]*c[A-Za-z]*\\b",
+      "flags": "i",
+      "level": "guarded",
+      "group": "shell-indirection",
+      "label": "Dynamic shell execution"
+    },
+    {
+      "pattern": "\\|\\s*(?:sudo\\s+)?(?:bash|sh|zsh|dash|ksh)\\b",
+      "flags": "i",
+      "level": "guarded",
+      "group": "shell-indirection",
+      "label": "Pipeline into shell"
+    },
+    {
+      "pattern": "\\b(?:bash|sh|zsh|dash|ksh)\\b[^\\n;&|]*<<-?",
+      "flags": "i",
+      "level": "guarded",
+      "group": "shell-indirection",
+      "label": "Inline shell heredoc"
+    }
+  ]
+}
