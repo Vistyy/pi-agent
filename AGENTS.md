@@ -36,6 +36,8 @@
 
 ## Design and implementation
 
+- Base coding estimates on coding-agent execution rather than unaided human implementation.
+  Estimate planning, review, validation, and external waits separately.
 - Before refining local details, identify the requested observable behavior, owning domain or module, integration points, and verification path.
 - Resolve uncertainty that could change those boundaries before implementation.
   Leave local and reversible choices to execution.
