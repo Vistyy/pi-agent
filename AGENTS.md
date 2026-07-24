@@ -1,71 +1,67 @@
 # Agent instructions
-These are common instructions for agents across all scenarios.
 
-## General guidelines
+## User and communication
 
 - The user's GitHub username is `Vistyy`.
-- When operating as the user-facing parent and a subagent mechanism is available, delegate bounded context gathering, verification, review, and experiments to configured worker roles.
-  Retain problem framing, hypotheses, overall decisions, persistent edits, final validation, and user communication in the parent.
-  Give each worker a self-contained task that gathers evidence or tests a hypothesis.
-  Evaluate each worker result against the relevant evidence before acting on it or presenting it to the user.
-  Before delegating, inspect the loaded skills and identify the skills that match the worker's task.
-  When the delegation mechanism exposes a `skills` input, pass those skill names through that input.
 - The user uses speech-to-text transcription.
-  If a phrase is nonsensical or inconsistent with the surrounding context, ask the user to clarify the phrase before acting on it.
-- Never use the em dash "—". Use plain dash "-" instead.
-- Never manually modify files that are marked as auto-generated.
-- Do not revert user or external changes.
-  Never reset, discard, overwrite, or revert changes you did not make unless the user explicitly asks you to.
-  If unrelated changes interfere with your work, stop and ask how to proceed.
-- When writing or substantially editing long Markdown files, put each full sentence on its own line.
-  Preserve normal Markdown structure, but avoid wrapping multiple sentences onto one physical line.
-- Plan through progressive elaboration and build through evolutionary design.
-  Understand the whole problem at low resolution before refining it.
-  Let uncertainty and the cost of being wrong determine where deeper planning is worthwhile.
-  Leave local and reversible choices to execution, then use evidence to refine the design.
-- Be a pragmatic technical counterweight.
-  Treat the requested outcome as intent and the proposed solution as a hypothesis.
-  Evaluate whether each addition earns its ongoing complexity and maintenance cost.
-  When a simpler coherent solution serves the intent, recommend it clearly and explain what evidence would justify expanding it.
-  When the proposed solution is already appropriate, proceed without manufacturing objections.
-- Write the positive contract.
-  State the behavior, API, path, or workflow that is valid now.
-  In tests, assert the new observable behavior instead of the absence of a retired implementation.
-  In instructions, comments, and docs, direct readers to the supported path instead of warning them away from the old one.
-  Name retired or forbidden paths only when they are likely hazards, and pair the warning with the supported replacement.
+  Ask for clarification when a phrase is nonsensical or conflicts with its context.
+- Use the plain hyphen `-` instead of an em dash.
+- When writing or substantially editing long Markdown files, put each complete sentence on its own physical line.
+
+## Delegation
+
+- As the user-facing parent, delegate bounded context gathering, verification, review, and experiments to configured workers.
+- Keep problem framing, hypotheses, decisions, persistent edits, final validation, and user communication in the parent.
+- Give each worker a self-contained evidence-gathering task or hypothesis to test.
+  Before delegating, select the loaded skills that match the task.
+  Pass those skills when the delegation mechanism supports a `skills` input.
+- While a worker is active, continue only with non-overlapping parent responsibilities.
+- After the worker responds, investigate only consequential evidence gaps, ambiguities, or conflicts before making the parent decision.
+
+## Repository safety and validation
+
+- Change the generator source and regenerate its output.
+  Do not manually edit generated files.
+- Preserve user and external changes.
+  Do not reset, discard, overwrite, or revert changes that you did not make without explicit user approval.
+  If unrelated changes block the task, stop and ask the user how to proceed.
 - Use Just as the repository command interface.
-  Run `just` to discover supported recipes.
-  Use Just recipes for repository workflows.
-- Preserve repository-defined quality gates.
-  Run the supported blocking gate before completion.
-  Fix implementation or test failures instead of changing what the gate enforces.
-  Ask the user before changing the enforced policy.
-- Use search anchors for codebase navigation.
-  Build public and domain-facing names from canonical project terms plus a precise operation or role.
-  Use the applicable `CONTEXT.md` as the source of canonical terms.
-  If a canonical term is missing or ambiguous, ask the user before naming the behavior.
-  Search for the inferred precise anchor first, then widen the search.
+  Run `just` to discover the supported recipes.
+  Use those recipes for repository workflows.
+- Run the repository's supported blocking gate before completion.
+  Fix known test, lint, type, check, and flaky-test failures.
+  Get explicit user approval before deferring a failure or changing an enforced policy.
+
+## Design and implementation
+
+- Before refining local details, identify the requested observable behavior, owning domain or module, integration points, and verification path.
+- Resolve uncertainty that could change those boundaries before implementation.
+  Leave local and reversible choices to execution.
+- Choose the smallest coherent design that satisfies the current requirement end to end.
+  A coherent design follows established ownership and module boundaries.
+- Implement edge cases required by authoritative context or concrete repository evidence.
+  Add abstractions, generality, and future flexibility only for a known current need.
+- Before confirming a proposed solution for implementation, compare it with the smallest coherent solution that satisfies the requested outcome.
+  Confirm additional complexity only when concrete evidence justifies it.
+- Use canonical project terms for public and domain-facing names.
+  Read the applicable `CONTEXT.md` before naming behavior.
+  Ask the user when a required canonical term is missing or ambiguous.
   Private names may rely on their module context.
-- Verify before confidence.
-  Do not describe something as true, likely, probably, or apparent when you can check it directly.
-  Check first, then state the result.
-  If you cannot check it, say what is known, what is unknown, and why it cannot be verified yet.
-- Treat system complexity as a continuing cost even when writing code is cheap.
-  Prefer the smallest coherent design that supports current intent and keeps future change understandable.
-  Add structure for known needs and concrete evidence rather than hypothetical flexibility.
-- For bug fixes, reproduce first.
-  Before changing code, reproduce the bug as close to the end user's experience as possible.
-  Prefer an E2E or integration reproduction over a narrow unit-level reproduction.
-  Do not proceed without reproduction unless you explain why reproduction is impossible and get explicit user approval.
-- Treat UI quality as correctness.
-  During E2E testing, inspect the UI for pixel-level polish: spacing, alignment, typography, overflow, clipping, responsiveness, loading states, error states, focus states, and interaction feedback.
-  If the UI is not polished, fix it.
-  Do not dismiss visible UI problems as unrelated unless the user explicitly limits the scope.
-- Keep the engineering baseline clean.
-  Do not leave known lint failures, test failures, type errors, broken checks, or flaky tests unresolved.
-  If you encounter one, either fix it before finishing or get explicit user approval to defer it.
-  Do not call the task complete while known engineering failures remain.
-- Refactors must remove the old path.
-  Do not leave duplicate implementations, compatibility branches, feature-flagged legacy paths, unused abstractions, or old callers behind.
-  A refactor is not complete until the new structure is the only structure in use and the replaced code is removed.
-  Keep legacy code only with explicit user approval.
+- Navigate with precise search anchors built from canonical terms and the applicable operation or role.
+  Search for the precise anchor before widening the search.
+- State the supported behavior, API, path, or workflow directly.
+  Tests must assert observable behavior.
+  Comments, documentation, and instructions must direct readers to the supported path.
+  When a retired path remains a likely hazard, name it and pair it with the supported replacement.
+- A refactor must remove the replaced implementation, compatibility paths, feature flags, unused abstractions, and old callers.
+  Keep legacy behavior only with explicit user approval.
+
+## Verification
+
+- Verify checkable claims before stating them.
+  When verification is unavailable, state what is known, what remains unknown, and why.
+- Before fixing a bug, reproduce it as close to the user-facing seam as practical.
+  Prefer an integration or E2E reproduction over a unit reproduction.
+  If reproduction is impossible, explain why and get explicit user approval before changing code.
+- When UI behavior is in scope, inspect spacing, alignment, typography, overflow, clipping, responsiveness, loading, errors, focus, and interaction feedback during E2E verification.
+  Fix visible defects unless the user explicitly excludes them.
