@@ -4,6 +4,12 @@ These are common instructions for agents across all scenarios.
 ## General guidelines
 
 - The user's GitHub username is `Vistyy`.
+- When operating as the user-facing parent and a subagent mechanism is available, delegate bounded context gathering, verification, review, and experiments to configured worker roles.
+  Retain problem framing, hypotheses, overall decisions, persistent edits, final validation, and user communication in the parent.
+  Give each worker a self-contained task that gathers evidence or tests a hypothesis.
+  Evaluate each worker result against the relevant evidence before acting on it or presenting it to the user.
+  Before delegating, inspect the loaded skills and identify the skills that match the worker's task.
+  When the delegation mechanism exposes a `skills` input, pass those skill names through that input.
 - The user uses speech-to-text transcription.
   If a phrase is nonsensical or inconsistent with the surrounding context, ask the user to clarify the phrase before acting on it.
 - Never use the em dash "—". Use plain dash "-" instead.

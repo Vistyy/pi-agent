@@ -1,0 +1,14 @@
+{
+  "storageDir": "~/.local/state/pi-codex-subagents/runs",
+  "retentionDays": 7,
+  "defaults": {
+    "extensions": [
+      "~/.pi/agent/extensions/named-subagent-policy/index.ts",
+      "@ogulcancelik/pi-auto-permissions",
+      "~/.pi/agent/extensions/openai-fast.ts",
+      "~/.pi/agent/extensions/web-search",
+      "~/.pi/agent/extensions/package-manager-policy",
+      "~/.pi/agent/pi-codex-subagents/extensions/subagent-sandbox/index.ts"
+    ]
+  }
+}

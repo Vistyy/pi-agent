@@ -19,7 +19,8 @@ This step is complete when the request states the concern and names every select
 
 ## 2. Delegate the coverage check
 
-Invoke the `library-orienter` subagent once.
+Spawn one named `library-orienter` agent.
+Wait for its final report.
 Provide:
 
 - The absolute repository path.

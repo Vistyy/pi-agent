@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.81.1",
+  "lastChangelogVersion": "0.82.0",
   "skills": [
     "user-skills"
   ],
@@ -10,12 +10,13 @@
   "theme": "rose-pine-moon",
   "packages": [
     "../../projects/pi-extensions/pi-lavish",
-    "../../projects/pi-extensions/pi-subagent",
     "npm:@ogulcancelik/pi-session-recall@1.0.6",
-    "npm:@ogulcancelik/pi-auto-permissions@0.1.2"
+    "npm:@ogulcancelik/pi-auto-permissions@0.1.2",
+    "npm:@ogulcancelik/pi-codex-subagents@0.3.2"
   ],
   "extensions": [
-    "-extensions/pi-swop/index.ts"
+    "-extensions/pi-swop/index.ts",
+    "extensions/named-subagent-policy/index.ts"
   ],
   "terminal": {
     "clearOnShrink": false
@@ -25,56 +26,5 @@
     "openai-codex/gpt-5.6-terra",
     "openai-codex/gpt-5.6-luna"
   ],
-  "pi-subagent": {
-    "fork": {
-      "tools": "read,bash,grep,find,ls,web_search,web_fetch,web_content_get",
-      "extensions": [
-        "./extensions/openai-fast.ts",
-        "./extensions/web-search",
-        "./extensions/package-manager-policy",
-        "~/projects/pi-extensions/pi-subagent/sandbox.ts"
-      ],
-      "offline": true,
-      "activation": {
-        "command": "direnv",
-        "args": [
-          "exec",
-          "{cwd}"
-        ]
-      },
-      "sandbox": {
-        "bashNetwork": true,
-        "homeAccess": "overlay",
-        "workspaceAccess": "overlay",
-        "tmpDir": "/tmp"
-      },
-      "defaultEffort": "fast",
-      "effortProfiles": {
-        "fast": {
-          "provider": "openai-codex",
-          "id": "gpt-5.6-luna",
-          "thinking": "low"
-        },
-        "balanced": {
-          "provider": "openai-codex",
-          "id": "gpt-5.6-luna",
-          "thinking": "medium"
-        },
-        "deep": {
-          "provider": "openai-codex",
-          "id": "gpt-5.6-luna",
-          "thinking": "high"
-        }
-      }
-    },
-    "subagent": {
-      "extensions": [
-        "./extensions/openai-fast.ts",
-        "./extensions/web-search",
-        "./extensions/package-manager-policy"
-      ],
-      "offline": true
-    }
-  },
   "showCacheMissNotices": true
 }

@@ -6,9 +6,6 @@ The extension handles remote compaction only for the `openai-codex` provider.
 It uses Pi's Codex subscription authentication and the official Codex model catalog.
 It does not support direct OpenAI API models, Azure OpenAI, custom WebSocket transport, or `previous_response_id`.
 
-The extension does not change `pi-subagent` or Fork snapshot behavior.
-Fork callers must place essential delegated context in the Fork task.
-
 ## Compaction lifecycle
 
 The extension observes completed Codex provider requests and retains the stable request settings required for compaction.

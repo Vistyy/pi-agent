@@ -5,41 +5,58 @@ description: Use when reviewing a bounded branch, task, pull request, or work-in
 
 # Code Review
 
-Review one bounded diff through two sequential axes:
+Review one bounded diff in two stages:
 
-- **Spec**: The approved task and normative specification.
-- **Standards**: Repository standards and long-term design health.
+1. The Spec reviewer checks the approved task and normative specification.
+2. The Standards reviewer checks repository standards and long-term design health.
 
-Each axis has a dedicated reviewer identity.
-An axis **latches** when it approves and remains latched for the lifecycle.
-The latch controls invocation only.
-Every finding remains required implementation work.
+Each stage is either `pending` or `approved`.
+An approved stage stays approved for the current review lifecycle.
+Every finding still requires a correction or an approved routing decision.
 
-## 1. Pin the review
+## 1. Set the review scope
 
 Record the repository path, fixed point, and task path.
 
-- Use a supplied fixed point.
-- When the fixed point is not supplied, ask for it.
-- Resolve the fixed point with `git rev-parse`.
-- Record the full commit SHA.
-- Confirm that `git diff <fixed-point>...HEAD` is non-empty.
-- Use a supplied task path.
+- Use the fixed point supplied by the user.
+- If the user did not supply a fixed point, ask for it.
+- Resolve the fixed point with `git rev-parse` and record the full commit SHA.
+- Confirm that `git diff <fixed-point>...HEAD` is not empty.
+- Use the task path supplied by the user.
 - Otherwise, inspect commit messages and local task documents for a matching task.
-- When no task matches the diff, ask for the task path.
+- If no task matches the diff, ask for the task path.
 - For GitHub references, use `gh-axi` through `pnpx -y gh-axi ...`.
 
-The repository path, full fixed-point SHA, and task path identify one lifecycle.
-On the first invocation, set both axes to `pending`.
-On later invocations with the same identity, preserve both axis states.
-When the repository, fixed point, or task path changes, start a new lifecycle.
-When the user requests a new lifecycle, start one.
+The repository path, fixed-point SHA, and task path identify one review lifecycle.
+Set both stages to `pending` when any of these values changes.
+Also start a new lifecycle when the user requests one.
 
-This step is complete when all three identifiers resolve, the diff is non-empty, and each axis is `pending` or `latched`.
+This step is complete when the review scope is valid and each stage has a recorded state.
 
-## 2. Run the Spec gate
+## 2. Keep one reviewer session for each stage
 
-When Spec is `pending`, invoke `spec-reviewer` with:
+Assign one unique agent task name to the Spec stage and one to the Standards stage.
+Keep each task name for the complete review lifecycle.
+
+For the first review in a stage:
+
+1. Call `spawn_agent` with the stage task name and the matching reviewer `agent_type`.
+2. Call `wait_agent` with the same task name.
+
+If a stage remains `pending` after corrections:
+
+1. Call `send_message` for the existing reviewer task.
+2. Include the current review request, correction summary, and validation evidence.
+3. Call `wait_agent` with the same task name.
+
+A continued reviewer reuses repository orientation, but it makes a new judgment over the current `HEAD`.
+Do not replace a pending reviewer with a fresh agent.
+
+This step is complete when the reviewer returns one complete report for the current `HEAD`.
+
+## 3. Run the Spec review
+
+If the Spec stage is `pending`, send this request to `spec-reviewer`:
 
 ```text
 Repository: <repository path>
@@ -48,29 +65,26 @@ Task: <task path>
 Review the current HEAD according to your identity.
 ```
 
-Apply the returned status:
+For a continued Spec review, append the correction summary and validation evidence.
 
-- `BLOCKED`: Keep both axes `pending`.
-  Return the complete report for correction.
-- `APPROVED WITH REQUIRED COMMENTS`: Latch Spec.
-  Keep Standards `pending`.
-  Return the complete report for correction.
-- `APPROVED`: Latch Spec.
-  Continue to Standards during this invocation.
-- `INVALID REVIEW REQUEST`: Keep both axes `pending`.
-  Correct and retry the request.
-- Missing or unrecognized status: Keep both axes `pending`.
-  Retry with the required fields.
+Handle the returned status:
 
-When Spec is `latched`, continue to Standards.
-Do not rerun a latched Spec axis.
+- `BLOCKED`: Keep both stages `pending` and return the complete report for correction.
+- `APPROVED WITH REQUIRED COMMENTS`: Mark Spec as `approved`, keep Standards `pending`, and return the complete report for correction.
+- `APPROVED`: Mark Spec as `approved` and continue to Standards.
+- `INVALID REVIEW REQUEST`: Keep both stages `pending`, correct the request, and retry.
+- Missing or unknown status: Keep both stages `pending` and retry with the required fields.
 
-This step is complete when Spec returns a complete correction report or permits Standards to run.
+Apply and validate every Spec finding before running Standards.
+Do not run Spec again after it is approved in the current lifecycle.
 
-## 3. Run Standards
+This step is complete when Spec needs corrections or Standards may begin.
 
-Run Standards after Spec is `latched` and all findings from the preceding Spec invocation are corrected and validated.
-When Standards is `pending`, invoke `standards-reviewer` with:
+## 4. Run the Standards review
+
+Run Standards only when Spec is approved and every Spec finding is corrected and validated.
+
+If the Standards stage is `pending`, send this request to `standards-reviewer`:
 
 ```text
 Repository: <repository path>
@@ -78,37 +92,29 @@ Fixed point: <full commit SHA>
 Review the current HEAD according to your identity.
 ```
 
-Apply the returned status:
+If the diff changes quality policy, include the user's explicit approval of that specific change.
+For a continued Standards review, append the correction summary and validation evidence.
 
-- `BLOCKED`: Keep Standards `pending`.
-  Return the complete report for correction.
-- `APPROVED WITH REQUIRED COMMENTS`: Latch Standards immediately.
-- `APPROVED`: Latch Standards immediately.
-- `INVALID REVIEW REQUEST`: Keep Standards `pending`.
-  Correct and retry the request.
-- Missing or unrecognized status: Keep Standards `pending`.
-  Retry with the required fields.
+Handle the returned status:
 
-Do not rerun a latched Standards axis.
-Corrections after approval do not reopen an axis.
-Severity determines whether an axis requires another review.
-Every finding requires a correction or an approved routing decision.
+- `BLOCKED`: Keep Standards `pending` and return the complete report for correction.
+- `APPROVED WITH REQUIRED COMMENTS`: Mark Standards as `approved` and return every required correction.
+- `APPROVED`: Mark Standards as `approved`.
+- `INVALID REVIEW REQUEST`: Keep Standards `pending`, correct the request, and retry.
+- Missing or unknown status: Keep Standards `pending` and retry with the required fields.
 
-This step is complete when Standards is `pending` with one complete report or is `latched`.
+Do not run Standards again after it is approved in the current lifecycle.
+Apply every finding, including findings returned with an approval status.
 
-## 4. Report the review state
+This step is complete when Standards needs corrections or is approved.
 
-Present complete reports in execution order under `## Spec` and `## Standards`.
-When a latched axis did not run, report its saved status as `latched`.
-Until Standards reaches its gate, report it as `pending` and state that Spec corrections come first.
-Preserve every finding without merging, dismissing, reranking, or softening it.
+## 5. Report the result
 
-End with both axis states and the required next action:
+Present each report produced in the current invocation under `## Spec` or `## Standards`.
+If an approved stage did not run, report its saved state as `approved`.
+If Standards has not run, report it as `pending` and state what must happen first.
+Preserve every reviewer finding without merging, dismissing, reranking, or softening it.
 
-- Apply every finding returned by this invocation.
-- Complete the correction batch and required validation before invoking review again.
-- Rerun only `pending` axes.
-- Finish when both axes are `latched`, every finding is resolved, and required validation passes.
-
-Reporting is complete when both states and every report from this invocation are visible.
-The next action must follow from the returned statuses.
+End with both stage states and the required next action.
+Rerun only a `pending` stage.
+Finish the lifecycle when both stages are `approved`, every finding is resolved, and required validation passes.
