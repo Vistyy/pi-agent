@@ -15,7 +15,9 @@
 - Give each worker a self-contained evidence-gathering task or hypothesis to test.
   Before delegating, select the loaded skills that match the task.
   Pass those skills when the delegation mechanism supports a `skills` input.
-- While a worker is active, continue only with non-overlapping parent responsibilities.
+- After spawning a worker, wait for its response before continuing parent work.
+  Continue in parallel only when an independent parent task was identified before the worker was spawned.
+  The independent task must not use or reproduce delegated evidence.
 - After the worker responds, investigate only consequential evidence gaps, ambiguities, or conflicts before making the parent decision.
 
 ## Repository safety and validation
