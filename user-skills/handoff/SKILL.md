@@ -11,10 +11,14 @@ Save the document in the operating system's temporary directory.
 Include a `Suggested skills` section.
 Recommend each skill that applies to the next session.
 
-Reference existing specifications, plans, ADRs, issues, commits, and diffs by path or URL.
-Keep their existing content in the source artifact.
+Reference each specification, plan, ADR, issue, commit, and diff that is relevant to continuing the current work.
+Use an exact path, complete URL, commit SHA, or diff range that uniquely identifies each source artifact.
+Verify that each reference resolves.
+Link to each source artifact without copying or modifying its content.
 
 Redact all sensitive information from the handoff, including API keys, passwords, and personally identifiable information.
 
 If the user provides arguments, use them as the focus for the next session.
 Prioritize the handoff content for that focus.
+
+The handoff is complete when the temporary file exists, includes the requested focus when the user provided one, contains a `Suggested skills` section, contains a resolving reference for every relevant source artifact, keeps source content external, and contains no sensitive information.

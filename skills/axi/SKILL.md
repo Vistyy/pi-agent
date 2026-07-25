@@ -27,6 +27,9 @@ An AXI pass is complete when every modified or reviewed command accounts for:
 When the change includes hooks, plugins, setup commands, or installable skills, also review session integration.
 Verify opt-in setup, idempotence, directory scoping, lifecycle capture, and token budget.
 
+For implemented changes, validate each affected behavior through the supported CLI interface.
+Record the observed stdout, stderr, and exit code for each applicable success, empty, error, mutation, no-argument, and help case.
+
 ## Before changing TOON output
 
 Before changing TOON output syntax, read the [TOON specification](https://toonformat.dev/reference/spec.html).

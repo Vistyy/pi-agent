@@ -8,14 +8,17 @@ disable-model-invocation: true
 
 Use the current conversation and repository evidence to write a local specification.
 Synthesize the available decisions without starting an exploratory interview.
-Use the testing-seam confirmation as the only required user checkpoint.
+Use the testing-seam confirmation as the only planned design checkpoint.
 Keep the specification local.
 
 ## 1. Gather context
 
 Identify the current behavior and agreed product decisions.
 Inspect the repository when the current implementation is not known.
-Use terms from the project's domain glossary.
+If `CONTEXT-MAP.md` exists at the repository root, read it and each `CONTEXT.md` that applies to the specification.
+If the map does not identify the applicable contexts unambiguously, ask the user to resolve the scope before continuing.
+Otherwise, read the root `CONTEXT.md` when it exists.
+Use the applicable context's canonical terms.
 Apply relevant architectural decisions.
 
 This step is complete when the following information is known:

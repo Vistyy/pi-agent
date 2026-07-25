@@ -14,3 +14,4 @@ Focus on the information that the user must understand or decide.
 Keep the explanation short.
 
 Continue to simplify ideas and language during this conversation until the user requests more detail.
+Each response is complete when it preserves the required behavior, explains each necessary complexity in one sentence, gives the reader the context needed to understand or decide, uses plain language, and remains short.

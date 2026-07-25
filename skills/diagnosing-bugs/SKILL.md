@@ -7,9 +7,11 @@ description: Use when a failure's cause is unknown, reproduction is unreliable, 
 
 Use controlled experiments to distinguish a cause from a plausible correlation.
 
-If `CONTEXT-MAP.md` exists, use it to select the applicable context.
-Otherwise, if the root `CONTEXT.md` exists, use the root context.
-Use applicable domain terms and treat applicable ADRs as current constraints.
+If `CONTEXT-MAP.md` exists, use it to identify every context affected by the failure and read each affected context's `CONTEXT.md`.
+Otherwise, if the root `CONTEXT.md` exists, read the root context.
+Inspect the root `docs/adr/` and each affected context's `docs/adr/` when those directories exist.
+Read the ADRs that govern the failure and treat them as current constraints.
+Use the applicable domain terms.
 
 **Diagnostic loop**: A repeatable command or procedure that produces evidence of the reported symptom.
 
@@ -25,6 +27,8 @@ When a manual action remains, record the action and why automation is impractica
 
 For an intermittent failure, define the attempt count and failure threshold before experimenting.
 Use the same attempt count and threshold when comparing results.
+For a performance regression, fix the workload and measurement method before recording the baseline.
+Use the same workload and measurement method for every experiment.
 
 Run the diagnostic loop and record its command or procedure, baseline observation, and output.
 If no loop can produce evidence, report the attempted methods, missing evidence, and stopping reason.
@@ -44,19 +48,21 @@ Before each experiment, record:
 Hypothesis:
 Predicted observation:
 Changed variable:
-Actual observation:
-Conclusion: supported | rejected | inconclusive
+Pre-experiment observation:
 ```
 
 Change one relevant variable per experiment.
+After running the experiment, record:
+
+```text
+Post-experiment observation:
+Conclusion: supported | rejected | inconclusive
+```
 Prefer an experiment that distinguishes between competing explanations.
 Use an inconclusive result to refine the next experiment instead of treating the result as support.
 
 When existing evidence cannot distinguish the explanations, add targeted temporary instrumentation.
 Prefix temporary instrumentation with a unique searchable marker such as `[DEBUG-a4f2]`.
-
-For a performance regression, fix the workload and measurement method before recording the baseline.
-Use the same workload and measurement method for every experiment.
 
 Confirm a cause only when it predicts the failing observation and controlling the cause changes the diagnostic result.
 When causal confirmation is impractical, classify the explanation as unconfirmed and state the missing evidence.

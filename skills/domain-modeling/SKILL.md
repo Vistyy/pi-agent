@@ -40,6 +40,10 @@ Use the map to find each context:
 │       └── docs/adr/
 ```
 
+Before changing the domain model, inspect existing ADRs in the applicable directories.
+If `CONTEXT-MAP.md` exists, inspect the root `docs/adr/` and the selected context's `docs/adr/`.
+Otherwise, inspect the root `docs/adr/` when it exists.
+
 Create files when you have content to record.
 Create the applicable `CONTEXT.md` when the user resolves the first term.
 Create the applicable `docs/adr/` when the first ADR is required.
@@ -79,6 +83,9 @@ When the user describes a relationship between concepts, test it with specific s
 Include edge cases that clarify the boundary between each concept.
 Ask the user to resolve any ambiguous result.
 
+Relationship testing is complete when normal and boundary scenarios produce an unambiguous relationship.
+If ambiguity remains, keep the affected model change incomplete until the user resolves it.
+
 ### Verify statements against the code
 
 When the user states how the system works, inspect the applicable code.
@@ -93,6 +100,8 @@ Example:
 > The code cancels an entire Order.
 > You stated that partial cancellation is possible.
 > Which behavior is correct?
+
+Code verification is complete when the applicable implementation agrees with the domain statement or the user resolves each identified conflict.
 
 ### Record resolved terms
 

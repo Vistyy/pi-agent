@@ -14,19 +14,22 @@ When output suggests `chrome-devtools-axi ...`, add the `pnpx -y` prefix before 
 
 1. Open or select the page.
    If the task provides a URL, run `open <url>`.
-   Otherwise, run `pages` and use `selectpage <id>` when more than one page is available.
+   Run `pages` and use `selectpage <id>` to select the page that matches the task target.
+   If no page matches, run `pnpx -y chrome-devtools-axi stop`, report the missing target, and stop.
+   If several pages match, ask the user to select one before interacting.
    Run `snapshot` to get the current page state and element references.
-   Completion: the selected page and required references are explicit.
+   Completion: the target page is explicitly selected and the required references are current.
 
 2. Interact with exact references.
    Use `click @<uid>`, `fill @<uid> <text>`, `fillform @<uid>=<val>...`, `hover @<uid>`, `drag @<from> @<to>`, or `upload @<uid> <path>`.
    Copy each complete reference from the snapshot, including its `g<N>:` generation prefix.
-   Completion: every requested interaction has been attempted with a current reference.
+   Verify the resulting page state after each interaction.
+   Completion: every requested interaction succeeded with a current reference and produced its expected observable result.
 
-3. Refresh stale references.
-   If an action returns `STALE_REF`, run `snapshot`.
-   Retry the action with the new reference.
-   Completion: no requested action remains blocked by a known stale reference.
+3. Handle interaction failures.
+   If an action returns `STALE_REF`, run `snapshot` and retry the action with the new reference.
+   For another action failure, capture the command output and current snapshot, run `pnpx -y chrome-devtools-axi stop`, report the blocked interaction, and stop.
+   Completion: no requested action remains blocked, or the exact blocking failure and current page state are reported.
 
 4. Run the optional command required by the task.
    Use `screenshot <path>` for rendered pixels.

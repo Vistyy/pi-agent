@@ -87,31 +87,33 @@ Route findings across the task boundary through the vertical-slice rules.
 Until the user approves each routed finding's owner and dependency, pause completion.
 If the routed task blocks the current task, wait for its completion before resuming.
 
-Preserve each review-axis latch:
+Preserve each review stage's state:
 
-- After `BLOCKED`, keep the axis `pending` while its findings are fixed.
-- After `APPROVED WITH REQUIRED COMMENTS`, set the axis to `latched` before fixing its findings.
-- After `APPROVED`, set the axis to `latched` immediately.
+- After `BLOCKED`, keep the stage `pending` while its findings are fixed.
+- After `APPROVED WITH REQUIRED COMMENTS`, set the stage to `approved` before fixing its findings.
+- After `APPROVED`, set the stage to `approved` immediately.
 
 Each correction batch must resolve every finding from the preceding review invocation.
 After each batch, rerun the required checks.
 Commit the corrections.
-While an axis remains `pending`, invoke `/code-review` with the same baseline and task source.
-Rerun only pending axes.
+While a stage remains `pending`, invoke `/code-review` with the same baseline and task source.
+Rerun only pending stages.
 
 This step is complete when:
 
 - Every in-scope finding is fixed.
 - Every routed finding has an approved task owner and dependency.
 - Every required check passes.
-- Spec and Standards are both `latched`.
+- Spec and Standards are both `approved`.
 
 ## 5. Finish the task
 
-Mark the task complete through the repository's workflow.
+Read the approved task and repository instructions to identify the authoritative task-completion interface and expected terminal state.
+Use that interface and verify that the task reports the expected terminal state.
+If the completion interface or expected terminal state is not defined, report the missing information and stop before the administrative update.
 Limit the administrative completion update to status, completion evidence, and commit references.
 Commit the administrative update.
-Rerun the required checks without reopening either review latch.
+Rerun the required checks without returning either review stage to `pending`.
 
 If this stage requires a substantive implementation or contract change, return to delivery.
 After that change is complete, start a new review lifecycle.
@@ -121,12 +123,12 @@ Report:
 - The final commit.
 - Verification evidence.
 - The completed task reference.
-- Both latched review statuses.
+- Both review stage states.
 - The decision ledger with every confirmed deferred owner.
 
-The workflow is complete when the implementation and administrative update are committed and the task is marked complete.
+The workflow is complete when the implementation and administrative update are committed and the authoritative task interface reports its expected terminal state.
 Every acceptance criterion must remain demonstrated.
 Every required check must pass.
 Every reviewer finding must remain resolved.
-Both axes must remain latched.
+Both review stages must remain `approved`.
 Every implementation decision must be disclosed.

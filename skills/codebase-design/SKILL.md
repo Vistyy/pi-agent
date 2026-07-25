@@ -40,7 +40,7 @@ Name its current owner and every caller that must understand or coordinate it.
 Record the interface knowledge that each caller needs, including invariants, ordering, errors, configuration, and performance constraints.
 Use observed changes, defects, or test friction when available.
 
-This step is complete when the exact ownership, caller knowledge, or coordination cost is explicit.
+This step is complete when the behavior, current owner, every caller that must understand or coordinate it, each caller's required interface knowledge, and the coordination cost are explicit.
 If no structural problem remains, keep the current structure.
 
 ## 2. Compare the credible structures

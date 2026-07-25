@@ -12,7 +12,8 @@ Review one bounded diff in two stages:
 
 Each stage is either `pending` or `approved`.
 An approved stage stays approved for the current review lifecycle.
-Every finding still requires a correction or an approved routing decision.
+Every finding still requires a validated correction or an approved routing decision.
+An approved routing decision must record the user's explicit approval, receiving task, owner, and dependency.
 
 ## 1. Set the review scope
 
@@ -104,7 +105,8 @@ Handle the returned status:
 - Missing or unknown status: Keep Standards `pending` and retry with the required fields.
 
 Do not run Standards again after it is approved in the current lifecycle.
-Apply every finding, including findings returned with an approval status.
+Apply every finding that is not routed to an approved receiving task.
+Record each routed finding with the user's explicit approval, receiving task, owner, and dependency.
 
 This step is complete when Standards needs corrections or is approved.
 
@@ -117,4 +119,4 @@ Preserve every reviewer finding without merging, dismissing, reranking, or softe
 
 End with both stage states and the required next action.
 Rerun only a `pending` stage.
-Finish the lifecycle when both stages are `approved`, every finding is resolved, and required validation passes.
+Finish the lifecycle when both stages are `approved`, every finding has a validated correction or approved routing decision, and required validation passes.

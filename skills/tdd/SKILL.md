@@ -84,6 +84,8 @@ Each test is a **tracer bullet** through one public seam.
 
 ## Run each cycle
 
+Before changing ownership, interfaces, seams, adapters, or test surfaces during any cycle, apply the `codebase-design` skill.
+
 ### Red before green
 
 Write one failing test first.
@@ -101,9 +103,17 @@ Run the current test.
 Run the relevant existing tests.
 Confirm that both pass.
 
+### Refactor from evidence
+
+Inspect the completed slice for unclear names, duplication, and unnecessary complexity.
+Refactor only when the completed slice provides evidence for the improvement.
+Run the current and relevant existing tests after refactoring.
+
+The cycle is complete when the current test first fails for the expected reason, the minimum implementation makes it pass, the refactoring decision is explicit, and the current and relevant existing tests pass.
+
 ### Continue from evidence
 
 Select the next test from the remaining required behavior and the completed cycle's evidence.
-Repeat one test -> one implementation until the required behavior is complete.
+Repeat one test -> one implementation until every required behavior has a passing test at the applicable public seam.
 
-During review, perform structural refactoring with the `code-review` skill.
+Use the `code-review` skill to review the completed diff.
