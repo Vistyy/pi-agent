@@ -40,17 +40,18 @@ Use the map to find each context:
 │       └── docs/adr/
 ```
 
-Before changing the domain model, inspect existing ADRs in the applicable directories.
+Before changing the domain model, inspect the applicable repository instructions, `CONTEXT.md`, and existing ADRs.
 If `CONTEXT-MAP.md` exists, inspect the root `docs/adr/` and the selected context's `docs/adr/`.
 Otherwise, inspect the root `docs/adr/` when it exists.
 
-Create files when you have content to record.
-Create the applicable `CONTEXT.md` when the user resolves the first term.
-Create the applicable `docs/adr/` when the first ADR is required.
+Create the applicable `CONTEXT.md` when the user resolves the first domain term.
+Create an ADR only after the user accepts a decision that qualifies under [ADR-FORMAT.md](./ADR-FORMAT.md).
 Use the root locations for system-wide decisions and a context's locations for context-specific decisions.
 
 When distinct domain language or rules suggest a second context, read [Introduce a second context](./CONTEXT-FORMAT.md#introduce-a-second-context).
 Ask the user to confirm the split before changing files.
+
+Context discovery is complete when each affected term and decision has one owning context and applicable instruction set.
 
 ## Maintain the model during the session
 
@@ -112,12 +113,11 @@ Use each `CONTEXT.md` only for domain terms and definitions in its scope.
 Record specifications and implementation details in the applicable technical documentation.
 Record qualifying architectural decisions as ADRs.
 
+Term recording is complete when each resolved term has one canonical definition in its owning `CONTEXT.md`.
+
 ### Offer an ADR
 
-Offer to create an ADR only when all three conditions apply:
+When a decision may require an ADR, load [ADR-FORMAT.md](./ADR-FORMAT.md).
+Apply its qualification and lifecycle rules before creating or changing an ADR.
 
-1. **Hard to reverse**: Changing the decision later has a meaningful cost.
-2. **Surprising without context**: A future reader will need the reason for the decision.
-3. **Real trade-off**: The decision selected one option from multiple valid alternatives.
-
-If all conditions apply, use [ADR-FORMAT.md](./ADR-FORMAT.md).
+ADR evaluation is complete when the accepted decision is recorded in the smallest qualifying artifact without duplicating an existing authority.

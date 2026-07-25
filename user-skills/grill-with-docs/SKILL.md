@@ -6,6 +6,8 @@ disable-model-invocation: true
 
 Run a `grilling` session.
 Use the `domain-modeling` skill to record each resolved domain term immediately in the applicable `CONTEXT.md`.
-Record each qualifying architectural decision in an ADR under the applicable `docs/adr/` directory.
+Keep provisional and implementation-level decisions in the plan while the user evaluates it.
+After the user explicitly approves the plan, apply the ADR qualification and lifecycle rules from the `domain-modeling` skill.
+Record only accepted architectural decisions that pass the ADR gate.
 
-The session is complete when the plan is ready, the user explicitly approves it, and every resolved domain term and qualifying architectural decision is recorded in its applicable artifact.
+The session is complete when the user approves the plan, each resolved domain term is recorded, and each accepted decision is in the smallest applicable artifact.
