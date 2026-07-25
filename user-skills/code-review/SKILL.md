@@ -1,6 +1,7 @@
 ---
 name: code-review
-description: Use when reviewing a bounded branch, task, pull request, or work-in-progress change against its specification and repository standards.
+description: "[M] Use when reviewing a bounded branch, task, pull request, or work-in-progress change against its specification and repository standards."
+disable-model-invocation: true
 ---
 
 # Code Review
