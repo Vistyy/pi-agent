@@ -22,6 +22,7 @@ Make the skill user-invoked when explicit user choice is part of its behavior:
 
 - Set `disable-model-invocation: true`.
 - Write a short human-facing description.
+- Prefix the description with `[M] `.
 
 A user-invoked skill adds cognitive load because the user must remember it.
 The agent and other skills cannot discover or invoke a user-invoked skill.
