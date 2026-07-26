@@ -51,22 +51,19 @@
   Read the applicable `CONTEXT.md` before naming behavior.
   Ask the user when a required canonical term is missing or ambiguous.
   Private names may rely on their module context.
-- Write durable artifacts from the final system's point of view.
-  Name code and maintained documentation after supported behavior and domain concepts, not work-tracking or delivery context.
-  Keep traceability in operational or historical artifacts unless it is supported domain data or a compatibility contract.
-  A durable artifact must remain accurate when the work is replanned, split, merged, or renumbered.
-- Keep documentation roles distinct.
-  Current documentation describes supported behavior.
-  Active specifications describe intended behavior that is not yet current.
-  Open questions record unresolved decisions and the conditions for revisiting them.
-  Keep one canonical current source for each claim.
-  Before completing work, update the current source and resolve, supersede, or retain related artifacts according to repository conventions.
-- Navigate with precise search anchors built from canonical terms and the applicable operation or role.
-  Search for the precise anchor before widening the search.
-- State the supported behavior, API, path, or workflow directly.
+- Write durable artifacts from the current system's point of view.
+  State the supported behavior, API, path, or workflow directly.
+  Name code and current documentation after supported behavior and domain concepts.
   Tests must assert observable behavior.
   Comments, documentation, and instructions must direct readers to the supported path.
-  When a retired path remains a likely hazard, name it and pair it with the supported replacement.
+  Do not preserve replaced behavior, work-tracking context, or implementation history in current artifacts.
+  Retain historical context only when it explains a current constraint, compatibility contract, likely hazard, or decision rationale.
+  When readers can still encounter a retired path, name it and pair it with the supported replacement.
+- Make the authority of specifications, open questions, operational records, and historical records explicit.
+  Keep one canonical current source for each claim.
+  Before completing work, update the current source and reconcile related artifacts according to repository conventions.
+- Navigate with precise search anchors built from canonical terms and the applicable operation or role.
+  Search for the precise anchor before widening the search.
 - A refactor must remove the replaced implementation, compatibility paths, feature flags, unused abstractions, and old callers.
   Keep legacy behavior only with explicit user approval.
 
