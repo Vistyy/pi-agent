@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Use when implementing a feature or defect fix test-first, applying red-green-refactor, or writing integration tests.
+description: Use when implementing a feature or defect fix test-first, applying red-green-refactor, or adding or changing tests.
 ---
 
 # Test-Driven Development
@@ -29,6 +29,17 @@ The test must remain valid when internal structure changes without changing that
 Example test name:
 
 > User can checkout with a valid cart.
+
+## Keep only durable tests
+
+A committed test must protect supported behavior, an interface, or an invariant.
+Do not retain a test only to prove that an edit occurred.
+Do not retain a test only to prove that retired text, symbols, files, or implementation structure are absent.
+Use search, diff review, type checking, or a one-time script to verify the change itself.
+A negative assertion must prove a prohibition that a caller can observe.
+Assert exact document content only when a consumer depends on that content or the assertion verifies synchronization with an executable source.
+Before retaining a test, ask whether its removal would reduce confidence in supported behavior.
+If removal would not reduce confidence, do not commit the test.
 
 ## Select public seams
 
