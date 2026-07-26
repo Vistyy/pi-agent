@@ -51,6 +51,10 @@
   Read the applicable `CONTEXT.md` before naming behavior.
   Ask the user when a required canonical term is missing or ambiguous.
   Private names may rely on their module context.
+- Write durable artifacts from the final system's point of view.
+  Name code and maintained documentation after supported behavior and domain concepts, not work-tracking or delivery context.
+  Keep traceability in operational or historical artifacts unless it is supported domain data or a compatibility contract.
+  A durable artifact must remain accurate when the work is replanned, split, merged, or renumbered.
 - Navigate with precise search anchors built from canonical terms and the applicable operation or role.
   Search for the precise anchor before widening the search.
 - State the supported behavior, API, path, or workflow directly.
