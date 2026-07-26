@@ -55,6 +55,12 @@
   Name code and maintained documentation after supported behavior and domain concepts, not work-tracking or delivery context.
   Keep traceability in operational or historical artifacts unless it is supported domain data or a compatibility contract.
   A durable artifact must remain accurate when the work is replanned, split, merged, or renumbered.
+- Keep documentation roles distinct.
+  Current documentation describes supported behavior.
+  Active specifications describe intended behavior that is not yet current.
+  Open questions record unresolved decisions and the conditions for revisiting them.
+  Keep one canonical current source for each claim.
+  Before completing work, update the current source and resolve, supersede, or retain related artifacts according to repository conventions.
 - Navigate with precise search anchors built from canonical terms and the applicable operation or role.
   Search for the precise anchor before widening the search.
 - State the supported behavior, API, path, or workflow directly.
