@@ -10,7 +10,7 @@
     "projectInstructions": true
   },
   "ui": {
-    "enabled": true,
+    "enabled": false,
     "resultDisplayMs": 2500,
     "placement": "widget"
   },
