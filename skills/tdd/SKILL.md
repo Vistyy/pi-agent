@@ -104,7 +104,9 @@ Use vertical cycles instead:
 2. Write the minimum implementation that passes it.
 3. Use the result to select the next observable behavior.
 
-Each test is a **tracer bullet** through one public seam.
+Each red-green cycle is a **test-level tracer bullet** through one public seam.
+A test-level tracer bullet does not define a Task boundary.
+Use the [vertical-slices skill](../vertical-slices/SKILL.md) for task-level tracer bullets and Task boundaries.
 
 ## Run each cycle
 

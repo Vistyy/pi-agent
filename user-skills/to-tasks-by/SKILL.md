@@ -1,72 +1,83 @@
 ---
 name: to-tasks-by
-description: "[M] Break approved requirements into approved But Why Tasks."
+description: "[M] Record approved requirements as approved But Why Tasks."
 disable-model-invocation: true
 ---
 
 # To Tasks for But Why
 
-Create approved But Why Tasks from user-approved requirements.
-Use `to-tasks` when the required result is local task draft files.
-Read and apply the installed `but-why`, `vertical-slices`, and `tdd` skills.
-This skill creates or updates Tasks and their dependencies.
-It does not start Changes.
+Record user-approved requirements as approved But Why Tasks.
+Use `to-tasks` when the required result is local Task draft files.
+This skill creates or updates Tasks and Task Dependencies.
+This skill does not start Changes.
+An existing Change handoff remains governed by the `but-why` Change implementation workflow.
+This skill may record approved discovered work without altering or replacing that Change.
 
-## 1. Establish requirement ownership
+Before running But Why commands, read and apply the installed `but-why` skill.
+Before designing the Task graph, read and apply the installed `vertical-slices` skill.
 
-Read the user-approved requirement input and the references required to interpret it.
-Use the repository's documentation authority map when one exists.
-Do not infer authority from a file name, directory name, or a label such as specification.
-Treat historical material only as evidence unless the user explicitly approves it as a current requirement source.
+## 1. Gather the approved input
+
+Read the user-approved requirements and every reference required to interpret them.
+Use the repository documentation authority map when one exists.
+Do not infer authority from a file name, directory name, or document label.
+Treat historical material only as evidence unless the user approves it as a current requirement source.
+
 Inspect the relevant implementation, decisions, and current Tasks.
-Assign each requirement to one existing Task or one ownership gap.
-Expand an unstarted Task when it already owns the same observable capability.
+Identify the current Task owner for each requirement.
+Identify an ownership gap when no current Task owns the requirement.
 
-This step is complete when every requirement has one Task owner or one stated ownership gap.
+This step is complete when every approved requirement and applicable decision is available.
+Each requirement must have one current Task owner or one stated ownership gap.
 
-## 2. Design tracer-bullet Tasks
+## 2. Build the proposed Task graph
 
-Fill each ownership gap with one independently verifiable vertical slice.
-For each new or updated Task, define:
+Apply `vertical-slices` to the approved requirements and current ownership.
+Expand an unstarted Task when that Task already owns the same observable capability.
+Create a proposed Task for each remaining ownership gap.
 
+For each proposed Task, present:
+
+- The title.
 - The observable capability.
 - The primary verification seam.
-- The authoritative requirement source, when one exists, and the requirements owned.
+- The authoritative requirements owned.
 - The acceptance criteria.
-- The prerequisites.
 
-Apply the TDD skill when selecting each verification seam.
-Keep Task Context focused on information that a reader needs to understand the approved intent.
-Do not duplicate metadata that But Why stores and displays separately, such as Task state, Task Dependencies, linked Changes, or timestamps.
-Record Task Dependencies through the dependency graph instead of adding a prerequisite list to Task Context.
+Present proposed Task Dependencies as graph edges outside Task Context.
+Keep Task Context limited to approved intent that an implementer needs.
+Do not copy Task state, Task Dependencies, linked Changes, identifiers, or timestamps into Task Context.
 Include dependency rationale in Task Context only when the rationale is necessary to understand the approved intent.
-Acceptance criteria must describe behavior and constraints instead of test counts, test categories, coverage targets, or repository-wide verification commands.
-Use dependencies only for real prerequisites.
-Do not encode implementation priority as a Task Dependency or infer priority from Task age or ID.
-Choose the next Task through explicit impact triage when the user asks to start work.
 
-This step is complete when each requirement has one owner and each Task has one capability.
-Each dependency is necessary.
-
-## 3. Confirm the breakdown
-
-Present the complete proposed Task graph.
-For each Task, show the title, capability, verification seam, requirement ownership, acceptance criteria, and prerequisites.
-Ask the user to approve every Task boundary, recording order, and dependency.
+Do not select implementation priority unless the user requests impact triage.
+Recording order must place prerequisite Tasks before dependent Tasks.
 Recording order does not establish implementation priority.
+
+This step is complete when every requirement has one proposed Task owner.
+The proposed graph must satisfy the applicable Task-design criteria from `vertical-slices`.
+
+## 3. Confirm the proposed graph
+
+Present the complete proposed Task graph before any mutation.
+Ask the user to approve each Task boundary, Task Context, recording order, and Task Dependency.
 Revise the complete graph until the user approves it.
 
 This step is complete when the user explicitly approves the complete Task graph.
 
-## 4. Record the approved Tasks
+## 4. Record the approved graph
 
-Create new Tasks in approved dependency order.
-Set each Task's approved dependencies and approve the Task.
+Create new Tasks in the approved recording order.
 Update an existing unstarted Task through the Task Context draft and apply commands.
+Set each Task's complete approved dependency set through the But Why dependency graph.
+Record an empty dependency set when the approved Task has no prerequisite.
+Approve each created or updated Task after its Task Context and Task Dependencies match the approved graph.
+
+After each mutation, apply the `but-why` mutation-verification rules.
 If a command fails after an earlier mutation succeeds, stop and report the exact partial state.
 
-Verify every created or updated Task and its dependencies.
-Report the final Task IDs and the startable Tasks.
-Do not select the next Task unless the user asks for impact triage.
+Verify that every created or updated Task matches the approved graph and has no Change.
+Report the final Task identifiers and every startable Task.
+Do not select the next Task unless the user requests impact triage.
 
-This skill is complete when each recorded Task matches the approved Task graph and has no Change.
+This skill is complete when every approved Task and Task Dependency is persisted.
+Every recorded Task must be approved and have no Change.

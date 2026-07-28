@@ -5,70 +5,93 @@ description: Use when decomposing approved requirements into tasks, checking a v
 
 # Vertical Slices
 
-A **tracer bullet** is one end-to-end path that delivers one observable capability across every required integration layer.
-A tracer bullet is narrow by outcome, not by file count or implementation effort.
+A **task-level tracer bullet** is one end-to-end path that delivers one observable capability across every required integration layer.
+A task-level tracer bullet is narrow by outcome, not by file count or implementation effort.
+Apply each section required by the current invocation.
+Task decomposition uses sections 1 and 2.
+When task decomposition includes a broad migration, also use section 3.
+Implementation checks use section 4.
+Scope routing uses sections 2 and 5.
 
-## 1. Define and verify the slice
+## 1. Define each slice
 
-Record:
+For each slice, record:
 
 - One observable capability.
-- The primary public seam that demonstrates the capability end to end.
 - Each owned behavior and its authoritative requirement source.
+- One primary public seam that demonstrates the complete capability.
 - Observable acceptance criteria.
-- Each prerequisite and blocking task.
 
-The slice must start from a passing repository state and return the repository to a passing state.
-The slice must contain no independent capability beyond its named capability.
-Acceptance criteria describe required behavior and constraints.
-Acceptance criteria do not prescribe test counts, test categories, coverage targets, or repository-wide verification commands unless the capability itself owns testing or repository verification.
+Acceptance criteria must describe required behavior and constraints.
+Acceptance criteria must not prescribe test counts, test categories, or coverage targets.
+Acceptance criteria must not prescribe repository-wide verification commands unless the capability owns repository verification.
+
+When selecting verification seams, read and apply the [TDD seam policy](../tdd/SKILL.md#select-public-seams).
 Use the primary seam for one complete acceptance path.
-Use additional public seams for other tests.
-For behavior variations and external contracts, apply [layered seams](../tdd/SKILL.md#layered-seams) and its test-cost rules.
+Use cheaper public seams for behavior variations when they prove the behavior reliably.
 
-This step is complete when repository evidence demonstrates every recorded behavior through the applicable public seam.
+This step is complete when the proposed slices cover every approved requirement exactly once.
+Each proposed slice must have one capability, one primary public seam, and observable acceptance criteria.
 
 ## 2. Set task boundaries
 
-Prefer the fewest independently verifiable tasks that preserve clear ownership and dependencies.
-Split work only when it has an independently verifiable result and a distinct capability, shared contract, lifecycle, owner, or blocker.
-Create a shared-contract task when multiple slices depend on the same independently verifiable contract.
-Keep multiple implementation stages in one task when they serve one outcome and share ownership and dependencies.
-Different files, modules, commands, test categories, or implementation hotspots do not establish independent capabilities.
-A shared verification seam does not combine independent capabilities into one slice.
-A preparatory task must deliver an independent contract or lifecycle change.
-Keep other preparation inside the task that uses it.
+Prefer the fewest independently verifiable Tasks that preserve clear ownership and necessary dependencies.
+Split work only when each resulting Task has an independently verifiable result.
+Each split must also have a distinct capability, shared contract, lifecycle, owner, or blocker.
+Create a shared-contract Task only when the shared contract is independently verifiable and multiple slices require it.
+Keep implementation stages in one Task when they serve one capability and share ownership and dependencies.
 
-When work contains multiple slices:
+Files, modules, commands, test categories, implementation hotspots, and shared verification seams do not establish separate capabilities.
+A preparatory Task must deliver an independently usable contract or lifecycle change.
+Keep other preparation inside the Task that uses it.
+Create an integration Task only when the integration has independent observable behavior.
 
-1. Create one flat task for each slice.
-2. Link each task to its authoritative requirement source when one exists.
-3. Express ordering through `Blocked by` relationships.
-4. Assign each required behavior to one owning task.
-5. Create an integration task only when the integration has independent observable behavior.
+Add a Task Dependency only when the dependent Task cannot be implemented or verified until the prerequisite Task is Done.
+Related work, shared files, likely conflicts, preferred sequence, age, identifiers, and relative importance do not establish a Task Dependency.
+Do not encode implementation priority as a Task Dependency.
 
-This step is complete when each task split has an independently verifiable result and a distinct reason.
-Every behavior must have one owner, and every dependency must be explicit.
+This step is complete when every requirement has one Task owner.
+Every Task must have one capability.
+Every Task Dependency must be necessary.
 
-## 3. Sequence a broad refactor
+## 3. Sequence a broad migration
 
-When old and new forms must coexist during migration, read and apply [Expand-Contract](EXPAND-CONTRACT.md).
-When temporary coexistence is unnecessary, keep the refactor in one task.
-Use ordered passing stages unless the task-boundary rules require a split.
+When old and new forms must coexist, read and apply [Expand-Contract](EXPAND-CONTRACT.md).
+When temporary coexistence is unnecessary, keep the migration in one Task.
+Create separate migration Tasks only when each stage has an independently verifiable result and a passing condition.
 
-This step is complete when every stage has a passing condition and every separate task satisfies the task-boundary rules.
+This step is complete when each migration stage can finish in a supported state.
+Every separate stage must satisfy the Task-boundary rules.
 
-## 4. Route discovered work
+## 4. Verify an implemented slice
 
-When implementation reveals work, classify it before changing scope:
+Use this section for task-level acceptance verification.
+Use TDD to construct tests and run red-green cycles.
+Use this section to evaluate the resulting implementation evidence against the approved Task.
 
-- Keep a local implementation detail inside the current task when it serves the approved capability.
-- When required work changes the approved behavior ownership or task boundary, stop and report the evidence.
-- When required work is an independent prerequisite or capability, propose its task and dependency.
-- Keep unrelated work outside the current task.
+When checking an implemented slice, trace every owned behavior through its applicable public seam.
+Confirm one complete acceptance path through the primary seam.
+Confirm behavior variations and external contracts through the cheapest reliable seams.
 
-Wait for user approval before changing an approved task boundary.
-After approval, create or update each affected task draft and the canonical task graph before implementation continues.
+Read the repository development instructions to identify the supported gate.
+The repository must pass that gate before the slice is complete.
+If the Task owns an existing gate failure, record that failure as part of the approved starting condition.
+A recorded starting failure does not change the final passing requirement.
 
-This step is complete when all required work belongs to an approved task.
-The recorded task graph must match the approved boundaries.
+This step is complete when repository evidence demonstrates every owned behavior and the supported repository gate passes.
+
+## 5. Route discovered work
+
+When implementation reveals work, classify the work before changing scope:
+
+- Keep a local implementation detail inside the current Task when it serves the approved capability.
+- Stop and report evidence when required work changes approved behavior ownership or a Task boundary.
+- Propose a separate Task and necessary dependency when required work has an independent capability or prerequisite.
+- Keep unrelated work outside the current Task.
+
+Wait for user approval before changing an approved Task boundary.
+After approval, create or update every affected Task artifact.
+Update the canonical Task graph before implementation continues.
+
+This step is complete when all required work belongs to an approved Task.
+The recorded Task graph must match the approved boundaries.
