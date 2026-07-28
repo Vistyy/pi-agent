@@ -42,7 +42,8 @@ Record Task Dependencies through the dependency graph instead of adding a prereq
 Include dependency rationale in Task Context only when the rationale is necessary to understand the approved intent.
 Acceptance criteria must describe behavior and constraints instead of test counts, test categories, coverage targets, or repository-wide verification commands.
 Use dependencies only for real prerequisites.
-Use creation order to prioritize independent Tasks.
+Do not encode implementation priority as a Task Dependency or infer priority from Task age or ID.
+Choose the next Task through explicit impact triage when the user asks to start work.
 
 This step is complete when each requirement has one owner and each Task has one capability.
 Each dependency is necessary.
@@ -51,7 +52,8 @@ Each dependency is necessary.
 
 Present the complete proposed Task graph.
 For each Task, show the title, capability, verification seam, requirement ownership, acceptance criteria, and prerequisites.
-Ask the user to approve every Task boundary, update, creation order, and dependency.
+Ask the user to approve every Task boundary, recording order, and dependency.
+Recording order does not establish implementation priority.
 Revise the complete graph until the user approves it.
 
 This step is complete when the user explicitly approves the complete Task graph.
@@ -64,6 +66,7 @@ Update an existing unstarted Task through the Task Context draft and apply comma
 If a command fails after an earlier mutation succeeds, stop and report the exact partial state.
 
 Verify every created or updated Task and its dependencies.
-Report the final Task IDs and the next oldest startable Task.
+Report the final Task IDs and the startable Tasks.
+Do not select the next Task unless the user asks for impact triage.
 
 This skill is complete when each recorded Task matches the approved Task graph and has no Change.
