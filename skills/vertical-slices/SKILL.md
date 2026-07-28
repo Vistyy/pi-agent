@@ -7,11 +7,10 @@ description: Use when decomposing approved requirements into tasks, checking a v
 
 A **task-level tracer bullet** is one end-to-end path that delivers one observable capability across every required integration layer.
 A task-level tracer bullet is narrow by outcome, not by file count or implementation effort.
-Apply each section required by the current invocation.
-Task decomposition uses sections 1 and 2.
-When task decomposition includes a broad migration, also use section 3.
-Implementation checks use section 4.
-Scope routing uses sections 2 and 5.
+
+Use this file to design a Task graph.
+When checking an implemented slice, read and apply [Verify an Implemented Slice](VERIFY.md).
+When implementation reveals work that may change scope, read and apply [Route Discovered Work](ROUTE-DISCOVERED-WORK.md).
 
 ## 1. Define each slice
 
@@ -33,7 +32,7 @@ Use cheaper public seams for behavior variations when they prove the behavior re
 This step is complete when the proposed slices cover every approved requirement exactly once.
 Each proposed slice must have one capability, one primary public seam, and observable acceptance criteria.
 
-## 2. Set task boundaries
+## 2. Set Task boundaries
 
 Prefer the fewest independently verifiable Tasks that preserve clear ownership and necessary dependencies.
 Split work only when each resulting Task has an independently verifiable result.
@@ -62,36 +61,3 @@ Create separate migration Tasks only when each stage has an independently verifi
 
 This step is complete when each migration stage can finish in a supported state.
 Every separate stage must satisfy the Task-boundary rules.
-
-## 4. Verify an implemented slice
-
-Use this section for task-level acceptance verification.
-Use TDD to construct tests and run red-green cycles.
-Use this section to evaluate the resulting implementation evidence against the approved Task.
-
-When checking an implemented slice, trace every owned behavior through its applicable public seam.
-Confirm one complete acceptance path through the primary seam.
-Confirm behavior variations and external contracts through the cheapest reliable seams.
-
-Read the repository development instructions to identify the supported gate.
-The repository must pass that gate before the slice is complete.
-If the Task owns an existing gate failure, record that failure as part of the approved starting condition.
-A recorded starting failure does not change the final passing requirement.
-
-This step is complete when repository evidence demonstrates every owned behavior and the supported repository gate passes.
-
-## 5. Route discovered work
-
-When implementation reveals work, classify the work before changing scope:
-
-- Keep a local implementation detail inside the current Task when it serves the approved capability.
-- Stop and report evidence when required work changes approved behavior ownership or a Task boundary.
-- Propose a separate Task and necessary dependency when required work has an independent capability or prerequisite.
-- Keep unrelated work outside the current Task.
-
-Wait for user approval before changing an approved Task boundary.
-After approval, create or update every affected Task artifact.
-Update the canonical Task graph before implementation continues.
-
-This step is complete when all required work belongs to an approved Task.
-The recorded Task graph must match the approved boundaries.
