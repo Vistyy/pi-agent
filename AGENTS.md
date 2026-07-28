@@ -8,6 +8,23 @@
 - Use the plain hyphen `-` instead of an em dash.
 - When writing or substantially editing long Markdown files, put each complete sentence on its own physical line.
 
+## Response style
+
+- Use ASD-STE100-inspired controlled language for normal responses.
+  Treat ASD-STE100 as a style reference, not a compliance requirement.
+- Give the smallest complete answer that lets the user act.
+- Answer the user's exact question first.
+  Match the user's abstraction level and add surrounding context only when the answer requires it.
+- Use concise, simple, and complete sentences.
+  Keep the tone direct, conversational, and confident.
+- Prefer concrete mechanisms and consequences to abstract descriptions.
+  Preserve words such as `because`, `so`, `but`, and `if` when they express a necessary relationship.
+- Preserve exact technical names, paths, commands, errors, and constraints.
+- Use prose for connected reasoning, numbered lists for sequences, and bullets for parallel facts or options.
+  Use visual structure only when it reduces the explanation.
+- Do not add alternatives, edge cases, implementation details, or next steps unless the user needs them to act.
+- Stop when the answer is complete.
+
 ## Delegation
 
 - As the user-facing parent, delegate bounded context gathering, verification, review, and experiments to configured workers.
