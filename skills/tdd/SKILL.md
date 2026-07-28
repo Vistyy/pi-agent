@@ -59,6 +59,19 @@ Before writing a test:
 
 Use expensive environment setup only when that integration is part of the behavior under test.
 
+### Control test cost
+
+Optimize for confidence gained per execution cost.
+Retain the fewest expensive tests that prove each distinct external contract or reproduced regression class.
+Test policy, input, and result variations at the cheapest public seam that proves them reliably.
+Do not repeat process, Git, database, package, browser, or other external setup for variations that an in-process seam can prove.
+Test count and coverage percentage are not measures of test value.
+Before adding a test to a slow suite, measure its focused runtime and its effect on the maintained suite runtime.
+Do not increase a shared or global timeout to accommodate one slow test.
+Optimize the test or apply a justified local timeout to the irreducible external operation.
+
+Test selection is complete when each retained test protects distinct behavior or a distinct failure class at the cheapest reliable seam.
+
 ## Reject test anti-patterns
 
 ### Implementation-coupled tests

@@ -1,6 +1,6 @@
 ---
 name: vertical-slices
-description: Use when decomposing a specification into tasks, checking a vertical slice, or routing work discovered during implementation.
+description: Use when decomposing approved requirements into tasks, checking a vertical slice, or routing work discovered during implementation.
 ---
 
 # Vertical Slices
@@ -14,15 +14,17 @@ Record:
 
 - One observable capability.
 - The primary public seam that demonstrates the capability end to end.
-- Each owned behavior and its source requirement.
+- Each owned behavior and its authoritative requirement source.
 - Observable acceptance criteria.
 - Each prerequisite and blocking task.
 
 The slice must start from a passing repository state and return the repository to a passing state.
 The slice must contain no independent capability beyond its named capability.
-Use the primary seam for acceptance evidence.
+Acceptance criteria describe required behavior and constraints.
+Acceptance criteria do not prescribe test counts, test categories, coverage targets, or repository-wide verification commands unless the capability itself owns testing or repository verification.
+Use the primary seam for one complete acceptance path.
 Use additional public seams for other tests.
-For behavior variations and external contracts, apply [layered seams](../tdd/SKILL.md#layered-seams).
+For behavior variations and external contracts, apply [layered seams](../tdd/SKILL.md#layered-seams) and its test-cost rules.
 
 This step is complete when repository evidence demonstrates every recorded behavior through the applicable public seam.
 
@@ -40,7 +42,7 @@ Keep other preparation inside the task that uses it.
 When work contains multiple slices:
 
 1. Create one flat task for each slice.
-2. Link each task directly to the source specification.
+2. Link each task to its authoritative requirement source when one exists.
 3. Express ordering through `Blocked by` relationships.
 4. Assign each required behavior to one owning task.
 5. Create an integration task only when the integration has independent observable behavior.

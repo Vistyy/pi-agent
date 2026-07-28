@@ -1,20 +1,23 @@
 ---
 name: to-tasks-by
-description: "[M] Break a plan or specification into approved But Why Tasks."
+description: "[M] Break approved requirements into approved But Why Tasks."
 disable-model-invocation: true
 ---
 
 # To Tasks for But Why
 
-Create approved But Why Tasks from a plan or specification.
+Create approved But Why Tasks from user-approved requirements.
 Use `to-tasks` when the required result is local task draft files.
-Read and apply the installed `but-why` and `vertical-slices` skills.
+Read and apply the installed `but-why`, `vertical-slices`, and `tdd` skills.
 This skill creates or updates Tasks and their dependencies.
 It does not start Changes.
 
 ## 1. Establish requirement ownership
 
-Read the specification and the references required to interpret it.
+Read the user-approved requirement input and the references required to interpret it.
+Use the repository's documentation authority map when one exists.
+Do not infer authority from a file name, directory name, or a label such as specification.
+Treat historical material only as evidence unless the user explicitly approves it as a current requirement source.
 Inspect the relevant implementation, decisions, and current Tasks.
 Assign each requirement to one existing Task or one ownership gap.
 Expand an unstarted Task when it already owns the same observable capability.
@@ -28,10 +31,16 @@ For each new or updated Task, define:
 
 - The observable capability.
 - The primary verification seam.
-- The source specification links and requirements owned.
+- The authoritative requirement source, when one exists, and the requirements owned.
 - The acceptance criteria.
 - The prerequisites.
 
+Apply the TDD skill when selecting each verification seam.
+Keep Task Context focused on information that a reader needs to understand the approved intent.
+Do not duplicate metadata that But Why stores and displays separately, such as Task state, Task Dependencies, linked Changes, or timestamps.
+Record Task Dependencies through the dependency graph instead of adding a prerequisite list to Task Context.
+Include dependency rationale in Task Context only when the rationale is necessary to understand the approved intent.
+Acceptance criteria must describe behavior and constraints instead of test counts, test categories, coverage targets, or repository-wide verification commands.
 Use dependencies only for real prerequisites.
 Use creation order to prioritize independent Tasks.
 
