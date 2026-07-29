@@ -1,32 +1,36 @@
 # Separate-Session Handoff
 
 Read this reference after selecting a separate-session handoff.
+A separate session owns an independent outcome or an explicitly transferred current outcome.
 
-## 1. Confirm the handoff
+## 1. Confirm ownership
 
 Propose the handoff before launching it unless the user already requested the handoff.
-Confirm whether the separate session will own the current outcome or independent work.
+Confirm whether the separate session will own independent work or the current outcome.
 
 This step is complete when the user has approved or requested the handoff and the transferred outcome is explicit.
 
 ## 2. Create the handoff file
 
-Create a compact handoff file that contains only:
+Create a compact handoff file with all context required to own the outcome.
+Include the applicable information:
 
-- the owned outcome;
-- accepted decisions and constraints;
+- the owned outcome and success criteria;
+- accepted decisions, constraints, and authority;
 - exact Task, Change, session, or repository identifiers;
 - authoritative paths and evidence locations;
+- required output or user communication;
 - unresolved questions;
-- the verification state.
+- the current verification state.
 
-Do not copy exploratory dialogue, superseded options, or full file contents into the handoff.
-Choose a concise kebab-case session name that identifies the owned outcome.
-Do not use generic names such as `agent`, `session`, or `handoff`.
+Exclude exploratory dialogue, superseded options, irrelevant context, and full file contents.
+Choose a concise descriptive kebab-case session name.
+Do not use a generic name such as `agent-session` or `new-handoff`.
 
-This step is complete when the handoff file identifies one outcome and contains only context needed by the new owner.
+This step is complete when the handoff gives the new session sufficient context to own one outcome.
+The handoff must not reproduce irrelevant exploration.
 
-## 3. Launch the session
+## 3. Launch and verify the session
 
 Run the session launcher:
 
@@ -38,14 +42,11 @@ node "${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/skills/session-routing/scripts/sta
 ```
 
 When the handoff transfers the current outcome, add `--focus` and stop work on that outcome in the current session.
-When the handoff transfers independent work, keep the current session focused on its outcome.
+When the handoff transfers independent work, keep the current session focused on its own outcome.
 
-The launcher creates a new Herdr workspace.
-The launcher uses the session name as the workspace label and Pi session name.
-The new workspace contains the launched Pi session instead of adding a pane to the current workspace.
-The launcher uses the default Pi configuration and starts a new session without continuing, resuming, or forking an existing session.
+Inspect the structured launcher result.
+If the launcher fails or does not verify the Pi session, report the failure.
+Do not claim that the handoff succeeded.
 
-Inspect the structured result.
-If the launcher fails, report the failure instead of claiming that the handoff succeeded.
-
-This step is complete when the launcher reports a verified Pi session and the current session follows the confirmed ownership boundary.
+This step is complete when the launcher reports a verified Pi session.
+The current session must also respect the confirmed ownership transfer.

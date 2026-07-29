@@ -1,75 +1,94 @@
 ---
 name: session-routing
-description: Use at the start of work when spawn_agent is available. Also use when the user requests a separate Pi session or when delegated work, ownership, evidence needs, or concurrency changes.
+description: Use when subagents are available, delegated context changes, or the user requests a separate Pi session.
 ---
 
 # Session Routing
 
-Route work by outcome ownership and context relevance.
-Do not use an arbitrary turn count as a routing boundary.
+Keep the main session responsible for holistic reasoning.
+Keep detailed working context local to the agent performing the work.
+Route by reasoning responsibility, working-context cost, and outcome ownership.
+Do not route by an arbitrary turn count.
 
-## Definitions
+## Roles
 
-**Current outcome** identifies the observable result that the current session owns.
+**Main session**: Owns the user outcome, problem framing, accepted constraints, and cross-cutting decisions.
+It performs synthesis and user communication.
+It uses compact reports instead of accumulating each worker's raw working context.
 
-**Subagent delegation** assigns bounded evidence gathering to a worker and returns the result to the session owner.
-The session owner retains the current outcome and its decisions.
+**Subagent**: Owns one bounded question or deliverable and the detailed working context needed to complete it.
+A subagent may explore, analyze, implement, verify, experiment, or review within that scope.
+It returns a compact report to the main session but does not own the holistic judgment.
 
-**Separate-session handoff** assigns an outcome to another Pi session.
-The separate session owns the handed-off outcome and does not return its working context to the current session.
-A handoff can transfer independent work or the current outcome.
+**Separate session**: Owns an independent outcome or an explicitly transferred current outcome.
+It has its own user dialogue and does not return its working context to the current session.
 
-**Delegated scope** identifies the evidence gathering, verification, experiments, coverage sweep, or review assigned to another session.
-The current session retains problem framing, decisions, and user communication.
+## Invariants
 
-## Delegation invariant
+Delegate working context, not holistic judgment.
+The main session must frame the overall problem and integrate worker reports.
+It must resolve cross-cutting trade-offs and make the final decision.
 
-After delegation, do not repeat delegated scope.
-For subagent delegation, use the delegated report for the current-session decision.
-After a subagent returns, inspect only an exact source needed to apply a reported claim or resolve a consequential conflict.
+Give each bounded question or deliverable one owner.
+While a subagent owns it, the main session must not independently gather evidence or perform the same work.
+When the user explicitly requests independent corroboration, assign the same question to a separate subagent.
+Use a separate session instead only when the user requests one.
+Conflicting evidence can also require independent corroboration.
+State the reason and the independent scope before assigning the additional owner.
 
-Repeat delegated scope only when the user explicitly requests independent corroboration or conflicting evidence requires it.
-Before repeating delegated scope, state the reason and the exact independent scope.
+Keep detailed context with the agent that already has it.
+Send context-local follow-up work to the same subagent instead of importing its working set into the main session.
 
-## 1. Identify the current outcome
+## 1. Frame the current outcome
 
-State the current outcome before routing work.
-If the outcome is unclear or has materially changed, confirm the outcome with the user.
+State the observable outcome that the main session owns.
+Identify the holistic decisions that must remain in the main session.
+Do not search the repository or read multiple sources before making the routing decision.
 
-This step is complete when one observable result defines the current session's ownership.
+If the outcome is unclear or requires a consequential user decision, ask the user before routing work.
 
-## 2. Select the route
+This step is complete when the owned outcome, accepted constraints, and main-session decisions are explicit.
 
-Before the current session performs broad evidence gathering, determine whether an owning area, an exact source, or a precise search anchor is known.
-When none is known and a worker can interpret the assignment without most of the current session's relevant context, use subagent delegation for bounded orientation.
-Treat investigation across multiple plausible sources as context gathering even when that investigation directly supports the current outcome.
+## 2. Route the work
 
-Keep work in the current session when an owning area, an exact source, or a precise search anchor is known and the work directly produces the current outcome.
-Keep work in the current session when a worker would need most of the current session's relevant context to interpret the evidence.
-Keep persistent edits, problem framing, hypotheses, decisions, and user communication with the session owner unless the assignment explicitly transfers them.
+Keep work in the main session when it uses context already present.
+Also keep holistic framing, synthesis, and user communication in the main session.
 
-Use subagent delegation for other bounded context gathering, verification, review, or experiments that the session owner needs before making a decision.
+Use a subagent when a bounded question or deliverable can be stated compactly.
+For a broad question, keep the holistic question in the main session and delegate its bounded evidence needs.
+Delegate work that requires repository exploration, multiple source reads, or command-output analysis.
+Also delegate bounded experiments, implementation, verification, and review.
+Delegate before gathering that detailed context in the main session.
 
-Use a separate-session handoff when the work has an independent outcome, needs its own user dialogue, or would add mostly irrelevant context to the current session.
-A separate-session handoff may transfer the current outcome when a compact handoff can discard a substantial part of the accumulated context.
-Continue the current session when the new session would need to reread most of the same evidence.
-Do not use a returning subagent for work whose full lifecycle belongs in a separate session.
+Use a separate-session handoff when work has an independent outcome or requires its own user dialogue.
+Also use a handoff when the user explicitly transfers the current outcome.
+Before investigating a newly discovered independent outcome, obtain the approval required by the handoff reference.
+Outcome ownership takes precedence over source location or known search anchors.
 
-This step is complete when one route has a stated outcome owner and a context-relevance reason.
-When no owning area, exact source, or precise search anchor was initially known, completion also requires delegated orientation or a stated reason that the worker would need most of the current session's relevant context.
+This step is complete when the main session retains holistic reasoning.
+Each context-heavy or independently owned scope must also have one explicit owner.
 
-## 3. Execute the route
+## 3. Execute the selected route
 
-When the selected route is subagent delegation, read [Subagent delegation](references/subagent-delegation.md) before spawning a worker.
-When the selected route is a separate-session handoff, read [Separate-session handoff](references/separate-session-handoff.md) before creating or launching the handoff.
-When the selected route is the current session, continue work on the current outcome.
+For delegated work, read [Subagent delegation](references/subagent-delegation.md) before assigning the worker.
 
-This step is complete when the selected route's referenced completion criteria are satisfied or current-session work has continued.
+For a separate-session handoff, read [Separate-session handoff](references/separate-session-handoff.md).
+Read it before creating or launching the handoff.
 
-## 4. Recheck scope changes
+For current-session work, continue without loading a branch reference.
 
-When new work appears, compare its outcome with the current outcome.
-If the new work is only loosely related, tell the user and recommend a separate-session handoff before investigating it.
-If the new work blocks the current outcome, route only the blocking evidence or experiment back to the current session.
+This step is complete when the selected route satisfies its branch-specific completion criteria.
 
-This step is complete when discovered work either remains within the current outcome or has an explicit owner outside it.
+## 4. Integrate results and route follow-up work
+
+Use subagent reports as the main session's evidence source.
+Perform the holistic reasoning that combines those reports with the user outcome and accepted constraints.
+
+When a report needs more source-local investigation, continue the same subagent with the exact unresolved question.
+Inspect an exact source in the main session only when the holistic decision requires it.
+Inspection is also permitted to resolve consequential conflicting evidence or apply the reported result.
+
+When new work introduces a different outcome or working set, return to the routing decision before investigating it.
+
+This step is complete when the main session has made the required integrated decision.
+Every unresolved scope must also have an explicit owner.

@@ -1,30 +1,59 @@
 # Subagent Delegation
 
-Read this reference after selecting subagent delegation.
+Read this reference after selecting delegated work.
+The main session remains the holistic reasoning owner.
+The subagent owns one bounded question or deliverable and its detailed working context.
 
 ## 1. Prepare the assignment
 
-Give each worker one self-contained task or falsifiable hypothesis.
-Give concurrent workers disjoint scopes.
-Select the skills that match each assignment.
-Pass those skills when the delegation interface supports them.
+Assign one self-contained question or deliverable.
+State the user outcome, accepted constraints, relevant decisions, and known starting anchors.
+State the result that the main session needs.
+Do not explore sources merely to prepare the assignment.
 
-Require an orientation worker to return exact sources, relevant identifiers, concise evidence, and unresolved gaps.
-For repository orientation, require exact paths and relevant symbols.
+When the subagent may edit files, identify the owned deliverable and any known path constraints.
+Give concurrent subagents disjoint scopes.
+Pass the skills that match each assignment when the delegation interface supports skills.
 
-This step is complete when each worker has one bounded assignment and an explicit response contract.
+Require a compact report containing the applicable information:
+
+- the result or recommendation;
+- exact source paths and relevant identifiers;
+- material evidence and reasoning;
+- files changed;
+- verification performed and its result;
+- unresolved questions, conflicts, or risks.
+
+Require an orientation report to identify exact sources, relevant symbols, concise evidence, and unresolved gaps.
+Do not request full file contents, exhaustive command output, or exploratory history.
+Request them only when the main-session decision requires them.
+
+This step is complete when the subagent has one bounded scope and a decision-ready response contract.
 
 ## 2. Coordinate the work
 
-If the next owner action depends on delegated evidence, wait for the worker.
-If an orthogonal owner action is available, continue that action while the worker runs.
-Do not duplicate delegated investigation while the worker runs.
+Let the subagent retain the detailed working context for its assigned scope.
+Do not independently investigate or verify that scope while the subagent owns it.
 
-This step is complete when dependent work is waiting and concurrent owner work does not overlap the delegated scope.
+Continue main-session reasoning or work with a disjoint working set when it does not depend on the delegated result.
+When the next main-session action depends on the result, wait for the subagent.
 
-## 3. Apply the result
+Send follow-up work to the same subagent when it requires that subagent's existing working context.
+Use a new subagent only when the new assignment has a separate working set.
+An explicitly independent corroboration assignment can also use a new subagent.
 
-After the worker responds, consult only the exact sources needed for the owner's decision, edit, or consequential verification.
-Investigate only consequential gaps, ambiguities, or conflicts.
+This step is complete when each active scope has one owner.
+The main session must not have imported a delegated working set.
 
-This step is complete when the session owner can decide or act without repeating the delegated investigation.
+## 3. Apply the report
+
+Use the returned report as the evidence source for holistic reasoning.
+Check that the report satisfies the requested response contract.
+
+When a source-local gap can affect the requested result or main-session decision, ask the same subagent to resolve it.
+Inspect an exact source in the main session only when the holistic decision requires it.
+Inspection is also permitted to resolve conflicting evidence or apply the result.
+Do not repeat the delegated exploration.
+
+This step is complete when the main session can integrate the result.
+It must not reconstruct the subagent's working context.
