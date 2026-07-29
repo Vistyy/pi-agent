@@ -1,6 +1,6 @@
 ---
 name: session-routing
-description: Use before deciding whether work belongs in the current session, a returning subagent, or a separate Pi session. Also use when coordinating concurrent work or deciding whether the current session may continue while delegated work runs.
+description: Use at the start of work when spawn_agent is available. Also use when the user requests a separate Pi session or when delegated work, ownership, evidence needs, or concurrency changes.
 ---
 
 # Session Routing
@@ -28,11 +28,15 @@ This step is complete when one observable result defines the current session's o
 
 ## 2. Select the route
 
-Keep work in the current session when the work directly produces the current outcome and uses mostly relevant context.
+Before the current session performs broad evidence gathering, determine whether an owning area, an exact source, or a precise search anchor is known.
+When none is known and a worker can interpret the assignment without most of the current session's relevant context, use subagent delegation for bounded orientation.
+Treat investigation across multiple plausible sources as context gathering even when that investigation directly supports the current outcome.
 
-Use subagent delegation when the current outcome needs bounded evidence before the session owner can make a decision.
-Delegate context gathering, verification, review, or an experiment.
-Keep problem framing, hypotheses, decisions, user communication, and persistent edits with the session owner unless the assignment explicitly transfers them.
+Keep work in the current session when an owning area, an exact source, or a precise search anchor is known and the work directly produces the current outcome.
+Keep work in the current session when a worker would need most of the current session's relevant context to interpret the evidence.
+Keep persistent edits, problem framing, hypotheses, decisions, and user communication with the session owner unless the assignment explicitly transfers them.
+
+Use subagent delegation for other bounded context gathering, verification, review, or experiments that the session owner needs before making a decision.
 
 Use a separate-session handoff when the work has an independent outcome, needs its own user dialogue, or would add mostly irrelevant context to the current session.
 A separate-session handoff may transfer the current outcome when a compact handoff can discard a substantial part of the accumulated context.
@@ -40,51 +44,15 @@ Continue the current session when the new session would need to reread most of t
 Do not use a returning subagent for work whose full lifecycle belongs in a separate session.
 
 This step is complete when one route has a stated outcome owner and a context-relevance reason.
+When no owning area, exact source, or precise search anchor was initially known, completion also requires delegated orientation or a stated reason that the worker would need most of the current session's relevant context.
 
 ## 3. Execute the route
 
-For subagent delegation:
+When the selected route is subagent delegation, read [Subagent delegation](references/subagent-delegation.md) before spawning a worker.
+When the selected route is a separate-session handoff, read [Separate-session handoff](references/separate-session-handoff.md) before creating or launching the handoff.
+When the selected route is the current session, continue work on the current outcome.
 
-- Give each worker one self-contained task or falsifiable hypothesis.
-- Give concurrent workers disjoint scopes.
-- Select the skills that match the assignment.
-- Pass those skills when the delegation interface supports them.
-- If the next owner action depends on the evidence, wait for the worker.
-- If an orthogonal owner action is available, continue that action while the worker runs.
-- Do not use or reproduce delegated evidence before the worker responds.
-- After the worker responds, investigate only consequential gaps, ambiguities, or conflicts.
-
-For a separate-session handoff, propose the handoff before launching it unless the user already requested the handoff.
-After the user approves or requests the handoff, create a compact handoff file that contains only:
-
-- the owned outcome;
-- accepted decisions and constraints;
-- exact Task, Change, session, or repository identifiers;
-- authoritative paths and evidence locations;
-- unresolved questions;
-- the verification state.
-
-Do not copy exploratory dialogue, superseded options, or full file contents into the handoff.
-Choose a concise kebab-case session name that identifies the owned outcome.
-Do not use generic names such as `agent`, `session`, or `handoff`.
-
-Run the session launcher:
-
-```sh
-node "${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/skills/session-routing/scripts/start-separate-session.mjs" \
-  --name <session-name> \
-  --cwd <destination-directory> \
-  --handoff-file <handoff-file>
-```
-
-When the handoff transfers the current outcome, add `--focus` and stop work on that outcome in the current session.
-When the handoff transfers independent work, keep the current session focused.
-The launcher creates a new Herdr workspace and uses the session name as the workspace label and Pi session name.
-The new workspace contains the launched Pi session instead of adding a pane to the current workspace.
-The launcher uses the default Pi configuration and starts a new session without continuing, resuming, or forking an existing session.
-Inspect the structured result and report a launch failure instead of claiming that the handoff succeeded.
-
-This step is complete when the selected destination can act without ambiguous ownership or unnecessary prior context and the launcher reports a verified Pi session.
+This step is complete when the selected route's referenced completion criteria are satisfied or current-session work has continued.
 
 ## 4. Recheck scope changes
 
