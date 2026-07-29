@@ -19,6 +19,18 @@ The session owner retains the current outcome and its decisions.
 The separate session owns the handed-off outcome and does not return its working context to the current session.
 A handoff can transfer independent work or the current outcome.
 
+**Delegated scope** identifies the evidence gathering, verification, experiments, coverage sweep, or review assigned to another session.
+The current session retains problem framing, decisions, and user communication.
+
+## Delegation invariant
+
+After delegation, do not repeat delegated scope.
+For subagent delegation, use the delegated report for the current-session decision.
+After a subagent returns, inspect only an exact source needed to apply a reported claim or resolve a consequential conflict.
+
+Repeat delegated scope only when the user explicitly requests independent corroboration or conflicting evidence requires it.
+Before repeating delegated scope, state the reason and the exact independent scope.
+
 ## 1. Identify the current outcome
 
 State the current outcome before routing work.
