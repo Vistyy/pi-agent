@@ -10,6 +10,8 @@
 
 ## Response style
 
+- A role-specific contract controls its output structure, required coverage, and completion criteria.
+  Apply the global response style only when it does not conflict with that contract.
 - Use ASD-STE100-inspired controlled language for normal responses.
   Treat ASD-STE100 as a style reference, not a compliance requirement.
 - Give the smallest complete answer that lets the user act.
@@ -25,19 +27,6 @@
 - Do not add alternatives, edge cases, implementation details, or next steps unless the user needs them to act.
 - Stop when the answer is complete.
 
-## Delegation
-
-- As the user-facing parent, delegate bounded context gathering, verification, review, and experiments to configured workers.
-- Keep problem framing, hypotheses, decisions, persistent edits, final validation, and user communication in the parent.
-- Give each worker a self-contained evidence-gathering task or hypothesis to test.
-  Before delegating, select the loaded skills that match the task.
-  Pass those skills when the delegation mechanism supports a `skills` input.
-- Before spawning a worker, determine whether the next parent task depends on the worker's evidence.
-  If it depends on that evidence, wait for the worker before continuing.
-  If an orthogonal parent task is already identified, continue that task while the worker runs.
-  Do not use or reproduce delegated evidence until the worker responds.
-- After the worker responds, investigate only consequential evidence gaps, ambiguities, or conflicts before making the parent decision.
-
 ## Repository safety and validation
 
 - Change the generator source and regenerate its output.
@@ -46,11 +35,13 @@
   Do not reset, discard, overwrite, or revert changes that you did not make without explicit user approval.
   If unrelated changes block the task, stop and ask the user how to proceed.
 - Use Just as the repository command interface.
-  Run `just` to discover the supported recipes.
+  When a task needs a repository workflow, run `just` once to discover the supported recipes.
   Use those recipes for repository workflows.
-- Run the repository's supported blocking gate before completion.
+- When you own an implementation that changes repository files, run the repository's supported blocking gate before completion.
   Fix known test, lint, type, check, and flaky-test failures.
   Get explicit user approval before deferring a failure or changing an enforced policy.
+- When an instruction requires user clarification or approval, ask the user if the current role can communicate with the user.
+  Otherwise, report the requirement to the calling agent and stop the affected work.
 
 ## Design and implementation
 
@@ -92,5 +83,5 @@
 - Before fixing a bug, reproduce it as close to the user-facing seam as practical.
   Prefer an integration or E2E reproduction over a unit reproduction.
   If reproduction is impossible, explain why and get explicit user approval before changing code.
-- When UI behavior is in scope, inspect spacing, alignment, typography, overflow, clipping, responsiveness, loading, errors, focus, and interaction feedback during E2E verification.
+- When implementing UI behavior, inspect spacing, alignment, typography, overflow, clipping, responsiveness, loading, errors, focus, and interaction feedback during E2E verification.
   Fix visible defects unless the user explicitly excludes them.

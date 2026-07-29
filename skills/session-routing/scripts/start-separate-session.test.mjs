@@ -1,0 +1,121 @@
+import assert from "node:assert/strict";
+import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { spawnSync } from "node:child_process";
+import test from "node:test";
+
+const script = new URL("./start-separate-session.mjs", import.meta.url);
+
+async function fixture() {
+  const root = await mkdtemp(path.join(tmpdir(), "session-routing-test-"));
+  const bin = path.join(root, "bin");
+  const log = path.join(root, "herdr-args.jsonl");
+  const handoff = path.join(root, "handoff.md");
+  await import("node:fs/promises").then(({ mkdir }) => mkdir(bin));
+  await writeFile(handoff, "Own the documentation audit.\n");
+  await writeFile(path.join(bin, "pi"), "#!/bin/sh\nexit 0\n");
+  await chmod(path.join(bin, "pi"), 0o755);
+  await writeFile(
+    path.join(bin, "herdr"),
+    `#!/bin/sh
+printf '%s\\n' "$*" >> "$HERDR_TEST_LOG"
+if [ "$1 $2" = "agent start" ]; then
+  printf '%s\\n' '{"id":"cli:agent:start","result":{"agent":{"name":"docs-audit","terminal_id":"term_123","cwd":"${root}","agent_status":"unknown"},"type":"agent_started"}}'
+  exit 0
+fi
+if [ "$1 $2" = "agent get" ]; then
+  printf '%s\\n' '{"id":"cli:agent:get","result":{"agent":{"agent":"pi","agent_session":{"value":"${root}/session.jsonl"},"agent_status":"working","name":"docs-audit","terminal_id":"term_123","cwd":"${root}"},"type":"agent_info"}}'
+  exit 0
+fi
+printf '%s\\n' '{"error":{"code":"unexpected","message":"unexpected command"}}'
+exit 1
+`,
+  );
+  await chmod(path.join(bin, "herdr"), 0o755);
+  return {
+    root,
+    handoff,
+    log,
+    env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, HERDR_TEST_LOG: log },
+    cleanup: () => rm(root, { recursive: true, force: true }),
+  };
+}
+
+function run(args, env = process.env) {
+  return spawnSync(process.execPath, [script.pathname, ...args], {
+    encoding: "utf8",
+    env,
+  });
+}
+
+test("no arguments shows a non-mutating home view", () => {
+  const result = run([]);
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /^bin: /m);
+  assert.match(result.stdout, /^description: /m);
+  assert.match(result.stdout, /^usage: /m);
+});
+
+test("missing required input fails with actionable usage", () => {
+  const result = run(["--name", "docs-audit"]);
+  assert.equal(result.status, 2);
+  assert.match(result.stdout, /^error: --cwd is required$/m);
+  assert.match(result.stdout, /^help: /m);
+  assert.equal(result.stderr, "");
+});
+
+test("rejects a generic session name", async () => {
+  const f = await fixture();
+  try {
+    const result = run(
+      ["--name", "session", "--cwd", f.root, "--handoff-file", f.handoff],
+      f.env,
+    );
+    assert.equal(result.status, 2);
+    assert.match(result.stdout, /^error: --name must be a descriptive kebab-case name$/m);
+    assert.match(result.stdout, /audit-agent-instructions/);
+  } finally {
+    await f.cleanup();
+  }
+});
+
+test("starts default Pi through Herdr and verifies the detected session", async () => {
+  const f = await fixture();
+  try {
+    const result = run(
+      ["--name", "docs-audit", "--cwd", f.root, "--handoff-file", f.handoff],
+      f.env,
+    );
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.match(result.stdout, /^session:$/m);
+    assert.match(result.stdout, /^  name: "docs-audit"$/m);
+    assert.match(result.stdout, /^  terminal_id: "term_123"$/m);
+    assert.match(result.stdout, /^  status: "working"$/m);
+    assert.match(result.stdout, /^  focus: false$/m);
+
+    const calls = (await readFile(f.log, "utf8")).trim().split("\n");
+    assert.match(calls[0], /^agent start docs-audit /);
+    assert.match(calls[0], /--no-focus -- .*\/pi --name docs-audit Own the documentation audit\.$/);
+    assert.doesNotMatch(calls[0], /--model|--continue|--resume|--fork/);
+    assert.equal(calls[1], "agent get docs-audit");
+  } finally {
+    await f.cleanup();
+  }
+});
+
+test("focuses a continuation handoff when requested", async () => {
+  const f = await fixture();
+  try {
+    const result = run(
+      ["--name", "docs-audit", "--cwd", f.root, "--handoff-file", f.handoff, "--focus"],
+      f.env,
+    );
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.match(result.stdout, /^  focus: true$/m);
+    const calls = await readFile(f.log, "utf8");
+    assert.match(calls, /agent start docs-audit .* --focus -- /);
+  } finally {
+    await f.cleanup();
+  }
+});
