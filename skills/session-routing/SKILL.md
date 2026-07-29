@@ -79,6 +79,8 @@ node "${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/skills/session-routing/scripts/sta
 
 When the handoff transfers the current outcome, add `--focus` and stop work on that outcome in the current session.
 When the handoff transfers independent work, keep the current session focused.
+The launcher creates a new Herdr workspace and uses the session name as the workspace label and Pi session name.
+The new workspace contains the launched Pi session instead of adding a pane to the current workspace.
 The launcher uses the default Pi configuration and starts a new session without continuing, resuming, or forking an existing session.
 Inspect the structured result and report a launch failure instead of claiming that the handoff succeeded.
 

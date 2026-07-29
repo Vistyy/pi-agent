@@ -20,12 +20,20 @@ async function fixture() {
     path.join(bin, "herdr"),
     `#!/bin/sh
 printf '%s\\n' "$*" >> "$HERDR_TEST_LOG"
+if [ "$1 $2" = "workspace create" ]; then
+  printf '%s\\n' '{"id":"cli:workspace:create","result":{"root_pane":{"pane_id":"w99:p1"},"tab":{"tab_id":"w99:t1"},"workspace":{"workspace_id":"w99","label":"docs-audit"},"type":"workspace_created"}}'
+  exit 0
+fi
 if [ "$1 $2" = "agent start" ]; then
-  printf '%s\\n' '{"id":"cli:agent:start","result":{"agent":{"name":"docs-audit","terminal_id":"term_123","cwd":"${root}","agent_status":"unknown"},"type":"agent_started"}}'
+  printf '%s\\n' '{"id":"cli:agent:start","result":{"agent":{"name":"docs-audit","terminal_id":"term_123","cwd":"${root}","agent_status":"unknown","workspace_id":"w99"},"type":"agent_started"}}'
+  exit 0
+fi
+if [ "$1 $2" = "pane close" ]; then
+  printf '%s\\n' '{"id":"cli:pane:close","result":{"type":"ok"}}'
   exit 0
 fi
 if [ "$1 $2" = "agent get" ]; then
-  printf '%s\\n' '{"id":"cli:agent:get","result":{"agent":{"agent":"pi","agent_session":{"value":"${root}/session.jsonl"},"agent_status":"working","name":"docs-audit","terminal_id":"term_123","cwd":"${root}"},"type":"agent_info"}}'
+  printf '%s\\n' '{"id":"cli:agent:get","result":{"agent":{"agent":"pi","agent_session":{"value":"${root}/session.jsonl"},"agent_status":"working","name":"docs-audit","terminal_id":"term_123","cwd":"${root}","workspace_id":"w99"},"type":"agent_info"}}'
   exit 0
 fi
 printf '%s\\n' '{"error":{"code":"unexpected","message":"unexpected command"}}'
@@ -93,12 +101,16 @@ test("starts default Pi through Herdr and verifies the detected session", async 
     assert.match(result.stdout, /^  terminal_id: "term_123"$/m);
     assert.match(result.stdout, /^  status: "working"$/m);
     assert.match(result.stdout, /^  focus: false$/m);
+    assert.match(result.stdout, /^  workspace_id: "w99"$/m);
+    assert.match(result.stdout, /^  workspace_label: "docs-audit"$/m);
 
     const calls = (await readFile(f.log, "utf8")).trim().split("\n");
-    assert.match(calls[0], /^agent start docs-audit /);
-    assert.match(calls[0], /--no-focus -- .*\/pi --name docs-audit Own the documentation audit\.$/);
-    assert.doesNotMatch(calls[0], /--model|--continue|--resume|--fork/);
-    assert.equal(calls[1], "agent get docs-audit");
+    assert.equal(calls[0], `workspace create --cwd ${f.root} --label docs-audit --no-focus`);
+    assert.match(calls[1], /^agent start docs-audit /);
+    assert.match(calls[1], /--workspace w99 --tab w99:t1 --no-focus -- .*\/pi --name docs-audit Own the documentation audit\.$/);
+    assert.doesNotMatch(calls[1], /--model|--continue|--resume|--fork/);
+    assert.equal(calls[2], "pane close w99:p1");
+    assert.equal(calls[3], "agent get docs-audit");
   } finally {
     await f.cleanup();
   }
@@ -114,7 +126,8 @@ test("focuses a continuation handoff when requested", async () => {
     assert.equal(result.status, 0, result.stdout + result.stderr);
     assert.match(result.stdout, /^  focus: true$/m);
     const calls = await readFile(f.log, "utf8");
-    assert.match(calls, /agent start docs-audit .* --focus -- /);
+    assert.match(calls, /workspace create .* --label docs-audit --no-focus/);
+    assert.match(calls, /agent start docs-audit .* --workspace w99 --tab w99:t1 --focus -- /);
   } finally {
     await f.cleanup();
   }

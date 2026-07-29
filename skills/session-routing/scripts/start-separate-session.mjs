@@ -19,11 +19,11 @@ function homePath(value) {
 }
 
 function homeView() {
-  process.stdout.write(`bin: ${quoted(homePath(scriptPath))}\ndescription: ${quoted("Start and verify a separate default Pi session through Herdr")}\nusage: ${quoted(usage)}\n`);
+  process.stdout.write(`bin: ${quoted(homePath(scriptPath))}\ndescription: ${quoted("Start and verify a default Pi session in a new named Herdr workspace")}\nusage: ${quoted(usage)}\n`);
 }
 
 function help() {
-  process.stdout.write(`${usage}\n\nRequired:\n  --name <name>           Descriptive Herdr and Pi session name\n  --cwd <path>            Working directory for the new session\n  --handoff-file <path>   Compact handoff used as the initial Pi prompt\n\nOptional:\n  --focus                 Focus the new session after launch\n  --timeout-ms <number>   Verification timeout in milliseconds (default: 10000)\n  --help                  Show this help\n\nEnvironment:\n  HERDR_BIN               Override the Herdr executable\n  PI_BIN                  Override the Pi executable\n\nExamples:\n  start-separate-session --name audit-agent-instructions --cwd ~/.pi/agent --handoff-file /tmp/handoff.md\n  start-separate-session --name continue-token-audit --cwd ~/.pi/agent --handoff-file /tmp/handoff.md --focus\n`);
+  process.stdout.write(`${usage}\n\nRequired:\n  --name <name>           Descriptive Herdr workspace and Pi session name\n  --cwd <path>            Working directory for the new session\n  --handoff-file <path>   Compact handoff used as the initial Pi prompt\n\nOptional:\n  --focus                 Focus the new session after launch\n  --timeout-ms <number>   Verification timeout in milliseconds (default: 10000)\n  --help                  Show this help\n\nEnvironment:\n  HERDR_BIN               Override the Herdr executable\n  PI_BIN                  Override the Pi executable\n\nExamples:\n  start-separate-session --name audit-agent-instructions --cwd ~/.pi/agent --handoff-file /tmp/handoff.md\n  start-separate-session --name continue-token-audit --cwd ~/.pi/agent --handoff-file /tmp/handoff.md --focus\n`);
 }
 
 function fail(message, suggestion, code = 1) {
@@ -86,15 +86,20 @@ function run(executable, args) {
   return spawnSync(executable, args, { encoding: "utf8", maxBuffer: 1024 * 1024 });
 }
 
-function parseJsonOutput(result, operation) {
-  if (result.error) fail(`${operation} could not execute`, "Check the configured executable and retry");
+function parseJsonOutput(result, operation, cleanup) {
+  if (result.error) {
+    cleanup?.();
+    fail(`${operation} could not execute`, "Check the configured executable and retry");
+  }
   let parsed;
   try {
     parsed = JSON.parse(result.stdout);
   } catch {
+    cleanup?.();
     fail(`${operation} returned an unreadable result`, "Run `herdr status server` and retry");
   }
   if (result.status !== 0 || parsed.error) {
+    cleanup?.();
     const detail = parsed?.error?.message;
     fail(detail ? `${operation} failed: ${detail}` : `${operation} failed`, "Inspect `herdr agent list` and retry");
   }
@@ -143,6 +148,28 @@ if (!handoff) fail("handoff file is empty", "Add the owned outcome and required 
 const herdr = findExecutable("herdr", process.env.HERDR_BIN);
 const pi = findExecutable("pi", process.env.PI_BIN);
 const focusFlag = options.focus ? "--focus" : "--no-focus";
+const created = parseJsonOutput(
+  run(herdr, [
+    "workspace",
+    "create",
+    "--cwd",
+    cwd,
+    "--label",
+    options.name,
+    "--no-focus",
+  ]),
+  "workspace creation",
+);
+const workspace = created?.result?.workspace;
+const rootPane = created?.result?.root_pane;
+const tab = created?.result?.tab;
+if (!workspace?.workspace_id || !rootPane?.pane_id || !tab?.tab_id) {
+  if (workspace?.workspace_id) run(herdr, ["workspace", "close", workspace.workspace_id]);
+  fail("workspace creation returned incomplete identifiers", "Inspect `herdr workspace list` and retry");
+}
+const cleanupWorkspace = () => {
+  run(herdr, ["workspace", "close", workspace.workspace_id]);
+};
 const start = parseJsonOutput(
   run(herdr, [
     "agent",
@@ -150,6 +177,10 @@ const start = parseJsonOutput(
     options.name,
     "--cwd",
     cwd,
+    "--workspace",
+    workspace.workspace_id,
+    "--tab",
+    tab.tab_id,
     focusFlag,
     "--",
     pi,
@@ -158,6 +189,12 @@ const start = parseJsonOutput(
     handoff,
   ]),
   "session launch",
+  cleanupWorkspace,
+);
+parseJsonOutput(
+  run(herdr, ["pane", "close", rootPane.pane_id]),
+  "initial workspace pane cleanup",
+  cleanupWorkspace,
 );
 
 const deadline = Date.now() + options.timeoutMs;
@@ -178,7 +215,8 @@ while (Date.now() <= deadline) {
 }
 
 if (agent?.agent !== "pi" || !agent?.agent_session || agent?.agent_status === "unknown") {
-  fail("session launch was not verified before the timeout", `Run \`herdr agent get ${options.name}\` to inspect the session`);
+  cleanupWorkspace();
+  fail("session launch was not verified before the timeout", "Retry the handoff after checking `herdr status server`");
 }
 
-process.stdout.write(`session:\n  name: ${quoted(agent.name ?? options.name)}\n  terminal_id: ${quoted(agent.terminal_id)}\n  cwd: ${quoted(agent.cwd ?? cwd)}\n  status: ${quoted(agent.agent_status)}\n  focus: ${options.focus}\n  session_path: ${quoted(agent.agent_session.value)}\n`);
+process.stdout.write(`session:\n  name: ${quoted(agent.name ?? options.name)}\n  terminal_id: ${quoted(agent.terminal_id)}\n  cwd: ${quoted(agent.cwd ?? cwd)}\n  status: ${quoted(agent.agent_status)}\n  focus: ${options.focus}\n  workspace_id: ${quoted(workspace.workspace_id)}\n  workspace_label: ${quoted(workspace.label ?? options.name)}\n  session_path: ${quoted(agent.agent_session.value)}\n`);
