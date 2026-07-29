@@ -1,6 +1,6 @@
 ---
 name: session-routing
-description: Use when coordinating work across agents or sessions, or when deciding whether work should stay in the current session, return from a subagent, or move to a separate Pi session.
+description: Use before deciding whether work belongs in the current session, a returning subagent, or a separate Pi session. Also use when coordinating concurrent work or deciding whether the current session may continue while delegated work runs.
 ---
 
 # Session Routing
