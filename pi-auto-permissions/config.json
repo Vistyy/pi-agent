@@ -44,11 +44,11 @@
       "label": "Git branch deletion"
     },
     {
-      "pattern": "\\brm\\b(?=[^\\n;&|]*(?:\\s-[A-Za-z]*[rR][A-Za-z]*\\b|\\s--recursive\\b))",
+      "pattern": "\\brm\\b(?=[^\\n;&|]*(?:\\s-[A-Za-z]*[rR][A-Za-z]*\\b|\\s--recursive\\b))(?=[^\\n;&|]*\\s[\\\"']?(?:/|~|\\$HOME|\\$\\{HOME\\}|/home/syzom)(?=\\s|$|[\\\"']|/\\*))",
       "flags": "i",
       "level": "guarded",
       "group": "filesystem-destructive",
-      "label": "Recursive deletion"
+      "label": "Recursive deletion of filesystem root or home directory"
     },
     {
       "pattern": "\\bfind\\b[^\\n;&|]*\\s-delete\\b",
