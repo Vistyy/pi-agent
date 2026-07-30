@@ -127,6 +127,120 @@ afterEach(() => {
 });
 
 describe("persisted Pi acceptance lifecycle", () => {
+  it("compacts pending Codex requests inline across reload and repeated compaction", async () => {
+    const root = await mkdtemp(join(tmpdir(), "pi-inline-remote-acceptance-"));
+    const cwd = join(root, "project");
+    const agentDir = join(root, "agent");
+    const sessionDir = join(root, "sessions");
+    const compactionBodies: Array<Record<string, unknown>> = [];
+    let normalCount = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+        const target = String(url);
+        if (target.includes("/models?")) {
+          return new Response(
+            JSON.stringify({ models: [{ slug: "gpt-5.4-mini", comp_hash: "family-1" }] }),
+          );
+        }
+        const headers = new Headers(init?.headers);
+        if (headers.get("x-codex-beta-features") === "remote_compaction_v2") {
+          const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+          compactionBodies.push(body);
+          return compactionResponse(`inline-${compactionBodies.length}`);
+        }
+        normalCount += 1;
+        return normalResponse(`answer-${normalCount}`);
+      }),
+    );
+
+    try {
+      const credentials = new MemoryCredentials(
+        new Map([
+          [
+            "openai-codex",
+            {
+              type: "oauth" as const,
+              access: jwt(),
+              refresh: "refresh-token",
+              expires: Date.now() + 60 * 60 * 1000,
+            },
+          ],
+        ]),
+      );
+      const modelRuntime = await ModelRuntime.create({ credentials, modelsPath: null });
+      const registeredModel = getModel("openai-codex", "gpt-5.4-mini");
+      expect(registeredModel).toBeTruthy();
+      const model = { ...registeredModel!, contextWindow: 10, maxTokens: 2 };
+      const settingsManager = SettingsManager.inMemory({
+        transport: "sse",
+        compaction: { enabled: false },
+      });
+      const observedFirst: unknown[] = [];
+      const first = await createAgentSession({
+        cwd,
+        agentDir,
+        model,
+        modelRuntime,
+        settingsManager,
+        sessionManager: SessionManager.create(cwd, sessionDir),
+        resourceLoader: await loader(cwd, agentDir, settingsManager, observedFirst),
+        noTools: "all",
+      });
+
+      await first.session.prompt("start");
+      await first.session.prompt("continue without a synthetic prompt");
+      expect(compactionBodies).toHaveLength(1);
+      expect(
+        observedFirst.some(
+          (payload) =>
+            Array.isArray((payload as { input?: unknown[] }).input) &&
+            (payload as { input: Array<{ type?: string; encrypted_content?: string }> }).input.some(
+              (item) => item.type === "compaction" && item.encrypted_content === "inline-1",
+            ),
+        ),
+      ).toBe(true);
+      const sessionFile = first.session.sessionFile;
+      expect(sessionFile).toBeTruthy();
+      first.session.dispose();
+
+      const observedSecond: unknown[] = [];
+      const second = await createAgentSession({
+        cwd,
+        agentDir,
+        model,
+        modelRuntime,
+        settingsManager,
+        sessionManager: SessionManager.open(sessionFile!),
+        resourceLoader: await loader(cwd, agentDir, settingsManager, observedSecond),
+        noTools: "all",
+      });
+      await second.session.prompt("continue after reload");
+
+      expect(compactionBodies).toHaveLength(2);
+      expect(compactionBodies[1].input).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: "compaction", encrypted_content: "inline-1" }),
+          expect.objectContaining({ type: "compaction_trigger" }),
+        ]),
+      );
+      expect(JSON.stringify(compactionBodies[1].input)).toContain("answer-2");
+      expect(JSON.stringify(compactionBodies[1].input)).toContain("continue after reload");
+      expect(
+        observedSecond.some(
+          (payload) =>
+            Array.isArray((payload as { input?: unknown[] }).input) &&
+            (payload as { input: Array<{ type?: string; encrypted_content?: string }> }).input.some(
+              (item) => item.type === "compaction" && item.encrypted_content === "inline-2",
+            ),
+        ),
+      ).toBe(true);
+      second.session.dispose();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("compacts, reloads, continues, and compacts the remote checkpoint again", async () => {
     const root = await mkdtemp(join(tmpdir(), "pi-remote-acceptance-"));
     const cwd = join(root, "project");

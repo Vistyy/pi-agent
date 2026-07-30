@@ -15,6 +15,8 @@ export interface OpenAIRemoteCompactionDetailsV1 {
   creatingModelId: string;
   compactionCompatibilityHash?: string;
   continuationSettings: ContinuationSettings;
+  inlineCoveredInputItemHash?: string;
+  inlineCoveredInputItemOccurrence?: number;
 }
 
 export interface OpenAIRemoteCompactionEntryDetails {

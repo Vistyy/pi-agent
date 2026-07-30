@@ -5,7 +5,9 @@ Other providers keep normal Pi behavior unless the active branch contains a remo
 
 ## Behavior
 
-The extension uses Pi's normal compaction triggers and `compaction.keepRecentTokens` setting.
+The extension proactively compacts a compatible Codex request at or above 90% of Pi's reported context window before sending that request.
+It rewrites that pending request with the returned remote checkpoint, so the active model and tool loop continues without a synthetic user message.
+Pi's normal compaction triggers and `compaction.keepRecentTokens` setting remain supported.
 It authenticates with the Codex OAuth credential managed by Pi.
 It stores OpenAI's opaque remote checkpoint in the Pi session instead of generating a second plaintext summary.
 
@@ -21,6 +23,7 @@ Use `/compact-pi` to confirm an ordinary Pi compaction that ends the remote chec
 Custom `/compact` instructions are not supported while remote compaction applies.
 
 Remote usage is recorded in both Pi's compaction entry and the shared `pi.usage.recorded` format used by `/cost`.
+Inline checkpoints use a persisted custom entry and the same usage format.
 
 ## Documentation
 

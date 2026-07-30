@@ -87,6 +87,48 @@ describe("remote checkpoint reconstruction", () => {
     }
   });
 
+  it("reconstructs a persisted inline checkpoint after reload", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "pi-inline-remote-compaction-"));
+    try {
+      const manager = SessionManager.create("/tmp/project", directory);
+      manager.appendMessage({ role: "user", content: "hello", timestamp: 1 });
+      manager.appendMessage({
+        role: "assistant",
+        api: "openai-codex-responses",
+        provider: "openai-codex",
+        model: "gpt-test",
+        content: [{ type: "text", text: "working" }],
+        usage: {
+          input: 90,
+          output: 1,
+          cacheRead: 0,
+          cacheWrite: 0,
+          totalTokens: 91,
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+        },
+        stopReason: "toolUse",
+        timestamp: 2,
+      });
+      manager.appendCustomEntry("openai-remote-compaction.checkpoint", {
+        openaiRemoteCompaction: {
+          version: 1,
+          replacementHistory: [{ type: "compaction", encrypted_content: "inline" }],
+          creatingModelId: "gpt-test",
+          continuationSettings: {},
+        },
+      });
+      const sessionFile = manager.getSessionFile();
+      expect(sessionFile).toBeTruthy();
+
+      const reopened = SessionManager.open(sessionFile!);
+      expect(findActiveRemoteCheckpoint(reopened.getBranch())?.replacementHistory).toEqual([
+        { type: "compaction", encrypted_content: "inline" },
+      ]);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
   it("treats a later ordinary Pi compaction as the end of the remote checkpoint chain", () => {
     const branch = [
       {

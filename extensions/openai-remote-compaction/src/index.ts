@@ -1,13 +1,20 @@
+import { createHash } from "node:crypto";
 import {
   buildSessionContext,
   convertToLlm,
+  sessionEntryToContextMessages,
   type ExtensionAPI,
   type ExtensionContext,
   type SessionEntry,
 } from "@earendil-works/pi-coding-agent";
 import { extractAccountId, type CodexAuth } from "./auth.js";
 import { CodexModelCatalog, checkpointIsCompatible } from "./catalog.js";
-import { CODEX_PROVIDER, COMPACTION_MARKER } from "./constants.js";
+import {
+  CODEX_PROVIDER,
+  COMPACTION_MARKER,
+  INLINE_REMOTE_COMPACTION_ENTRY,
+  PROACTIVE_COMPACTION_RATIO,
+} from "./constants.js";
 import {
   buildRemoteCompactionRequest,
   captureContinuationSettings,
@@ -16,10 +23,15 @@ import {
 } from "./request.js";
 import { convertCodexMessages } from "./messages.js";
 import { requestRemoteCompaction } from "./remote.js";
-import { findActiveRemoteCheckpoint, isRemoteCompactionDetails } from "./session-state.js";
+import {
+  findActiveRemoteCheckpoint,
+  findActiveRemoteCheckpointEntry,
+  isRemoteCompactionDetails,
+} from "./session-state.js";
 import type {
   CodexRequestTemplate,
   OpenAIRemoteCompactionEntryDetails,
+  ResponseItem,
 } from "./types.js";
 import { createUsageRecord } from "./usage.js";
 
@@ -62,6 +74,74 @@ function belongsToBranch(scoped: ScopedTemplate, branch: readonly SessionEntry[]
   return scoped.branchAnchorId === null || branch.some((entry) => entry.id === scoped.branchAnchorId);
 }
 
+function hasSuccessfulAssistantAfterCheckpoint(
+  branch: readonly SessionEntry[],
+  checkpoint: ReturnType<typeof findActiveRemoteCheckpointEntry>,
+): boolean {
+  if (!checkpoint) return true;
+  return branch.slice(checkpoint.entryIndex + 1).some(
+    (entry) =>
+      entry.type === "message" &&
+      entry.message.role === "assistant" &&
+      entry.message.stopReason !== "error" &&
+      entry.message.stopReason !== "aborted",
+  );
+}
+
+function responseItemHash(item: ResponseItem): string {
+  return createHash("sha256").update(JSON.stringify(item)).digest("hex");
+}
+
+function inlineInputAnchor(input: readonly ResponseItem[]): {
+  inlineCoveredInputItemHash: string;
+  inlineCoveredInputItemOccurrence: number;
+} | undefined {
+  const coveredItem = input.at(-1);
+  if (!coveredItem) return undefined;
+  const inlineCoveredInputItemHash = responseItemHash(coveredItem);
+  return {
+    inlineCoveredInputItemHash,
+    inlineCoveredInputItemOccurrence: input.filter(
+      (item) => responseItemHash(item) === inlineCoveredInputItemHash,
+    ).length,
+  };
+}
+
+function inlineCheckpointInput(
+  model: { id: string; input?: readonly string[] },
+  branch: readonly SessionEntry[],
+  checkpoint: ReturnType<typeof findActiveRemoteCheckpointEntry>,
+  providerInput: readonly ResponseItem[],
+): ResponseItem[] | undefined {
+  if (!checkpoint || branch[checkpoint.entryIndex]?.type !== "custom") return undefined;
+  const coveredHash = checkpoint.details.inlineCoveredInputItemHash;
+  if (coveredHash) {
+    let remainingOccurrence = checkpoint.details.inlineCoveredInputItemOccurrence ?? 1;
+    let coveredIndex = -1;
+    for (let index = 0; index < providerInput.length; index += 1) {
+      if (responseItemHash(providerInput[index]) !== coveredHash) continue;
+      remainingOccurrence -= 1;
+      if (remainingOccurrence === 0) {
+        coveredIndex = index;
+        break;
+      }
+    }
+    if (coveredIndex >= 0) {
+      return [
+        ...checkpoint.details.replacementHistory,
+        ...providerInput.slice(coveredIndex + 1),
+      ];
+    }
+  }
+  const messages = branch
+    .slice(checkpoint.entryIndex + 1)
+    .flatMap((entry) => sessionEntryToContextMessages(entry));
+  return [
+    ...checkpoint.details.replacementHistory,
+    ...convertCodexMessages(model, convertToLlm(messages)),
+  ];
+}
+
 export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
   const catalog = new CodexModelCatalog();
   const pendingTemplates = new Map<string, ScopedTemplate>();
@@ -93,18 +173,69 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
     const model = currentCodexModel(ctx);
     if (!model || !isCodexRequestTemplate(event.payload)) return;
 
-    const checkpoint = findActiveRemoteCheckpoint(ctx.sessionManager.getBranch());
+    const branch = ctx.sessionManager.getBranch();
+    const active = findActiveRemoteCheckpointEntry(branch);
+    const checkpoint = active?.details;
+    let auth: CodexAuth | undefined;
+    let currentHash: string | undefined;
     let compatible = false;
     if (checkpoint) {
-      const auth = await resolveCodexAuth(ctx);
-      const currentHash = auth ? await catalog.getHash(model.id, auth) : undefined;
+      auth = await resolveCodexAuth(ctx);
+      currentHash = auth ? await catalog.getHash(model.id, auth) : undefined;
       compatible = checkpointIsCompatible(checkpoint, currentHash);
     }
-    const input =
+    const checkpointInput =
       checkpoint && compatible
+        ? inlineCheckpointInput(model, branch, active, event.payload.input ?? [])
+        : undefined;
+    const input =
+      checkpointInput ??
+      (checkpoint && compatible
         ? replaceMarkerWithRemoteCheckpoint(event.payload.input ?? [], checkpoint)
-        : [...(event.payload.input ?? [])];
-    const template = { ...event.payload, input };
+        : [...(event.payload.input ?? [])]);
+    let template = { ...event.payload, input };
+
+    const usage = ctx.getContextUsage();
+    const shouldProactivelyCompact =
+      usage?.percent !== null &&
+      usage?.percent !== undefined &&
+      usage.percent >= PROACTIVE_COMPACTION_RATIO * 100 &&
+      hasSuccessfulAssistantAfterCheckpoint(branch, active);
+    if (shouldProactivelyCompact) {
+      auth ??= await resolveCodexAuth(ctx);
+      if (!auth) {
+        ctx.ui.notify("Inline remote compaction could not resolve Codex OAuth.", "error");
+      } else {
+        currentHash ??= await catalog.getHash(model.id, auth);
+        try {
+          const body = buildRemoteCompactionRequest(template, input);
+          const remote = await requestRemoteCompaction({
+            token: auth.token,
+            authHeaders: auth.headers,
+            body,
+            signal: ctx.signal,
+            sessionId: ctx.sessionManager.getSessionId(),
+          });
+          const details: OpenAIRemoteCompactionEntryDetails = {
+            openaiRemoteCompaction: {
+              version: 1,
+              replacementHistory: remote.replacementHistory,
+              creatingModelId: model.id,
+              ...(currentHash ? { compactionCompatibilityHash: currentHash } : {}),
+              continuationSettings: captureContinuationSettings(template),
+              ...(inlineInputAnchor(input) ?? {}),
+            },
+          };
+          pi.appendEntry(INLINE_REMOTE_COMPACTION_ENTRY, details);
+          pi.appendEntry("pi.usage.recorded", createUsageRecord(model.id, remote.usage));
+          template = { ...template, input: remote.replacementHistory };
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          ctx.ui.notify(`Inline remote compaction failed: ${message}`, "error");
+        }
+      }
+    }
+
     pendingTemplates.set(sessionKey(ctx), {
       template,
       modelId: model.id,
@@ -171,7 +302,8 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
     if (piCompactionBypasses.delete(key)) return;
 
     const branch = event.branchEntries as SessionEntry[];
-    const activeCheckpoint = findActiveRemoteCheckpoint(branch);
+    const activeCheckpointEntry = findActiveRemoteCheckpointEntry(branch);
+    const activeCheckpoint = activeCheckpointEntry?.details;
     const model = currentCodexModel(ctx);
     if (event.customInstructions?.trim() && (model || activeCheckpoint)) {
       ctx.ui.notify("Custom instructions are not supported by OpenAI remote compaction.", "error");
@@ -221,9 +353,11 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
       const sessionContext = buildSessionContext(event.branchEntries as SessionEntry[]);
       const messages = convertToLlm(sessionContext.messages);
       const converted = convertCodexMessages(model, messages);
-      const input = activeCheckpoint
-        ? replaceMarkerWithRemoteCheckpoint(converted, activeCheckpoint)
-        : converted;
+      const input =
+        inlineCheckpointInput(model, branch, activeCheckpointEntry, converted) ??
+        (activeCheckpoint
+          ? replaceMarkerWithRemoteCheckpoint(converted, activeCheckpoint)
+          : converted);
       const body = buildRemoteCompactionRequest(latestTemplate, input);
       const remote = await requestRemoteCompaction({
         token: auth.token,

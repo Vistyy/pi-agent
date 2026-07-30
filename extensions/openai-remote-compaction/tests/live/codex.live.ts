@@ -70,6 +70,50 @@ live("live Codex remote compaction", () => {
     };
 
     try {
+      const inlineSettings = SettingsManager.inMemory({
+        transport: "sse",
+        compaction: { enabled: false },
+      });
+      const inlineLoader = new DefaultResourceLoader({
+        cwd,
+        agentDir,
+        settingsManager: inlineSettings,
+        extensionFactories: [remoteCompactionExtension],
+        noSkills: true,
+        noPromptTemplates: true,
+        noThemes: true,
+        noContextFiles: true,
+        systemPrompt: "Reply briefly and follow the user's exact requested text when possible.",
+      });
+      await inlineLoader.reload();
+      const inline = await createAgentSession({
+        cwd,
+        agentDir,
+        model: { ...initialModel, contextWindow: 10 },
+        modelRuntime,
+        settingsManager: inlineSettings,
+        sessionManager: SessionManager.create(cwd, sessionDir),
+        resourceLoader: inlineLoader,
+        noTools: "all",
+      });
+      await inline.session.prompt("Reply with exactly LIVE-INLINE-PRIME.");
+      const beforeInline = remoteBodies.length;
+      await inline.session.prompt("Reply with exactly LIVE-INLINE-OK.");
+      expect(remoteBodies).toHaveLength(beforeInline + 1);
+      expect(
+        inline.session.sessionManager
+          .getBranch()
+          .some(
+            (entry) =>
+              entry.type === "custom" &&
+              entry.customType === "openai-remote-compaction.checkpoint",
+          ),
+      ).toBe(true);
+      expect(JSON.stringify(inline.session.sessionManager.getBranch().at(-1))).toContain(
+        "LIVE-INLINE-OK",
+      );
+      inline.session.dispose();
+
       const first = await createAgentSession({
         cwd,
         agentDir,

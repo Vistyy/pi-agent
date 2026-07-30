@@ -11,6 +11,10 @@ It does not support direct OpenAI API models, Azure OpenAI, custom WebSocket tra
 The extension observes completed Codex provider requests and retains the stable request settings required for compaction.
 These settings include instructions, tools, reasoning settings, and text settings.
 
+Before a compatible Codex provider request at or above 90% of Pi's reported context window, the extension sends the pending request input with a trailing `compaction_trigger` item.
+It persists the returned checkpoint as a custom session entry and replaces that same pending request input with the remote checkpoint.
+The active model and tool loop continues without a synthetic user message.
+
 When Pi prepares automatic or manual compaction, the extension builds a new request from the active session history.
 The request includes the active remote checkpoint, the visible tail, and a trailing `compaction_trigger` item.
 The request sets `store` to `false` and does not reuse response IDs, streaming settings, or previous input.
@@ -30,6 +34,7 @@ Pi keeps the visible tail according to `compaction.keepRecentTokens`.
 
 The extension reconstructs the active remote checkpoint from the active Pi branch.
 This reconstruction supports resume, reload, tree navigation, native Pi session forks, and repeated remote compaction.
+Inline checkpoints are stored as `openai-remote-compaction.checkpoint` custom entries and are not sent to the model as Pi messages.
 
 ## Model compatibility
 
@@ -59,7 +64,8 @@ It retries network failures, rate limits, and retryable server errors.
 It respects `Retry-After` and Pi's abort signal.
 It does not retry authentication failures or invalid requests.
 
-A final failure does not save a compaction entry or change the active branch.
+A final Pi-managed compaction failure does not save a compaction entry or change the active branch.
+An inline compaction failure leaves the pending request unchanged, so normal provider execution and Pi's existing safeguards remain available.
 The existing remote checkpoint chain remains usable.
 The extension does not fall back automatically because ordinary Pi compaction cannot read history stored only in a remote checkpoint.
 
@@ -92,3 +98,4 @@ Run offline and live validation after each snapshot update.
 ## Non-goals
 
 The extension does not provide continuous plaintext summaries, portable cross-provider handoff, cross-hash checkpoint migration, automatic fallback, custom remote-compaction instructions, or extension configuration.
+Provider-agnostic checkpoint ideas remain non-current; see [the open question](open-questions/provider-agnostic-checkpoint.md).
