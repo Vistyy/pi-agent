@@ -7,7 +7,7 @@ disable-model-invocation: true
 
 # Handoff to Worktree
 
-Before using this workflow, load and apply the `but-why` skill.
+Before running a But Why command, apply the command-result verification rules available in the current session.
 
 ## 1. Resolve the command and current work
 

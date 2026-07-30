@@ -13,7 +13,7 @@ This skill does not start Changes.
 An existing Change handoff remains governed by the `but-why` Change implementation workflow.
 This skill may record approved discovered work without altering or replacing that Change.
 
-Before running But Why commands, read and apply the installed `but-why` skill.
+Before running a But Why command, resolve the command prefix and apply the command-result verification rules available in the current session.
 Before designing the Task graph, read and apply the installed `vertical-slices` skill.
 
 ## 1. Gather the approved input
