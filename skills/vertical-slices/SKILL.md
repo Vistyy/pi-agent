@@ -9,8 +9,8 @@ A **task-level tracer bullet** is one end-to-end path that delivers one observab
 A task-level tracer bullet is narrow by outcome, not by file count or implementation effort.
 
 Use this file to design a Task graph.
-When checking an implemented slice, read and apply [Verify an Implemented Slice](VERIFY.md).
-When implementation reveals work that may change scope, read and apply [Route Discovered Work](ROUTE-DISCOVERED-WORK.md).
+When checking an implemented slice, read and apply [Verify an Implemented Slice](references/VERIFY.md).
+When implementation reveals work that may change scope, read and apply [Route Discovered Work](references/ROUTE-DISCOVERED-WORK.md).
 
 ## 1. Define each slice
 
@@ -55,7 +55,7 @@ Every Task Dependency must be necessary.
 
 ## 3. Sequence a broad migration
 
-When old and new forms must coexist, read and apply [Expand-Contract](EXPAND-CONTRACT.md).
+When old and new forms must coexist, read and apply [Expand-Contract](references/EXPAND-CONTRACT.md).
 When temporary coexistence is unnecessary, keep the migration in one Task.
 Create separate migration Tasks only when each stage has an independently verifiable result and a passing condition.
 

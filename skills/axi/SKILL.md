@@ -134,7 +134,7 @@ Keep progress messages out of stdout.
 
 When directory-scoped live state can change the agent's next action before command execution, add session integration.
 Session integration must be explicit opt-in, idempotent, directory-scoped, lifecycle-aware, and token-budget-aware.
-When implementing hooks, plugins, or installable Agent Skills, read [`SESSION-INTEGRATIONS.md`](SESSION-INTEGRATIONS.md).
+When implementing hooks, plugins, or installable Agent Skills, read [`SESSION-INTEGRATIONS.md`](references/SESSION-INTEGRATIONS.md).
 
 ## Home view
 

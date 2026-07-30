@@ -50,7 +50,3 @@ Summarize only the plan created or changed during this session.
 Ask the user to approve that plan.
 If the user declines the plan, record the feedback as open points and continue the planning session.
 Record the plan as approved only after the user explicitly approves it.
-
-Recommend `/skill:to-spec` when the approved plan needs a specification.
-Recommend `/skill:to-tasks` when an approved specification needs task decomposition.
-Stop after the recommendation.

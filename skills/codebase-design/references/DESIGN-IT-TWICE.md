@@ -2,7 +2,7 @@
 
 Use this process when the user requests independent interfaces or structural designs.
 Generate materially different designs before recommending one.
-Use the vocabulary in [SKILL.md](SKILL.md).
+Use the vocabulary in [SKILL.md](../SKILL.md).
 
 ## 1. Frame the design problem
 

@@ -7,7 +7,6 @@ disable-model-invocation: true
 # To Tasks for But Why
 
 Record user-approved requirements as approved But Why Tasks.
-Use `to-tasks` when the required result is local Task draft files.
 This skill creates or updates Tasks and Task Dependencies.
 This skill does not start Changes.
 An existing Change handoff remains governed by the `but-why` Change implementation workflow.

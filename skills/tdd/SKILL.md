@@ -17,8 +17,8 @@ If the map does not exist and the root `CONTEXT.md` exists, read the root contex
 Read the ADRs for the applicable scope.
 Use the applicable domain terms in test names and interface vocabulary.
 
-For test examples, read [tests.md](tests.md).
-For mocking rules, read [mocking.md](mocking.md).
+For test examples, read [tests.md](references/tests.md).
+For mocking rules, read [mocking.md](references/mocking.md).
 
 ## Test observable behavior
 
@@ -141,5 +141,3 @@ The cycle is complete when the current test first fails for the expected reason,
 
 Select the next test from the remaining required behavior and the completed cycle's evidence.
 Repeat one test -> one implementation until every required behavior has a passing test at the applicable public seam.
-
-Use the `code-review` skill to review the completed diff.

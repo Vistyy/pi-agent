@@ -45,10 +45,10 @@ If `CONTEXT-MAP.md` exists, inspect the root `docs/adr/` and the selected contex
 Otherwise, inspect the root `docs/adr/` when it exists.
 
 Create the applicable `CONTEXT.md` when the user resolves the first domain term.
-Create an ADR only after the user accepts a decision that qualifies under [ADR-FORMAT.md](./ADR-FORMAT.md).
+Create an ADR only after the user accepts a decision that qualifies under [ADR-FORMAT.md](references/ADR-FORMAT.md).
 Use the root locations for system-wide decisions and a context's locations for context-specific decisions.
 
-When distinct domain language or rules suggest a second context, read [Introduce a second context](./CONTEXT-FORMAT.md#introduce-a-second-context).
+When distinct domain language or rules suggest a second context, read [Introduce a second context](references/CONTEXT-FORMAT.md#introduce-a-second-context).
 Ask the user to confirm the split before changing files.
 
 Context discovery is complete when each affected term and decision has one owning context and applicable instruction set.
@@ -107,7 +107,7 @@ Code verification is complete when the applicable implementation agrees with the
 ### Record resolved terms
 
 Update the applicable `CONTEXT.md` immediately after the user resolves a term.
-Use [CONTEXT-FORMAT.md](./CONTEXT-FORMAT.md).
+Use [CONTEXT-FORMAT.md](references/CONTEXT-FORMAT.md).
 
 Use each `CONTEXT.md` only for domain terms and definitions in its scope.
 Record specifications and implementation details in the applicable technical documentation.
@@ -117,7 +117,7 @@ Term recording is complete when each resolved term has one canonical definition 
 
 ### Offer an ADR
 
-When a decision may require an ADR, load [ADR-FORMAT.md](./ADR-FORMAT.md).
+When a decision may require an ADR, load [ADR-FORMAT.md](references/ADR-FORMAT.md).
 Apply its qualification and lifecycle rules before creating or changing an ADR.
 
 ADR evaluation is complete when the accepted decision is recorded in the smallest qualifying artifact without duplicating an existing authority.

@@ -89,5 +89,5 @@ An implemented design is complete when the required behavior is verified and no 
 
 ## Conditional guidance
 
-When deepening is the selected structure, read [DEEPENING.md](DEEPENING.md) before defining dependency seams, adapters, or test migration.
-When the user requests independent alternative interfaces or structural designs, read [DESIGN-IT-TWICE.md](DESIGN-IT-TWICE.md).
+When deepening is the selected structure, read [DEEPENING.md](references/DEEPENING.md) before defining dependency seams, adapters, or test migration.
+When the user requests independent alternative interfaces or structural designs, read [DESIGN-IT-TWICE.md](references/DESIGN-IT-TWICE.md).

@@ -43,11 +43,11 @@ test("a later slash requests inline skill completion", () => {
 
 test("inline completion replaces only the active slash token", () => {
 	assert.deepEqual(
-		applyInlineSlashCompletion(["Use /skill:co for this"], 0, 13, "skill:code-review", "/skill:co"),
+		applyInlineSlashCompletion(["Use /skill:cl for this"], 0, 13, "skill:clarify", "/skill:cl"),
 		{
-			lines: ["Use /skill:code-review for this"],
+			lines: ["Use /skill:clarify for this"],
 			cursorLine: 0,
-			cursorCol: 23,
+			cursorCol: 19,
 		},
 	);
 });

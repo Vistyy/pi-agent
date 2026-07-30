@@ -1,7 +1,7 @@
 # Route Discovered Work
 
 Read this reference only when implementation reveals work that may change approved scope.
-Before classifying the work, apply the Task-boundary and Task Dependency rules in [Vertical Slices](SKILL.md#set-task-boundaries).
+Before classifying the work, apply the Task-boundary and Task Dependency rules in [Vertical Slices](../SKILL.md#set-task-boundaries).
 
 Classify the work before changing scope:
 
