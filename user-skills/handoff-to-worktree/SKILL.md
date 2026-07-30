@@ -7,78 +7,80 @@ disable-model-invocation: true
 
 # Handoff to Worktree
 
-Before running a But Why command, apply the command-result verification rules available in the current session.
+Load the `but-why` skill before the first But Why command.
+Apply the command-result verification rules from that skill.
 
-## 1. Resolve the command and current work
+## 1. Resolve the work
 
-Use `just by` when the current repository is the But Why source repository and provides that recipe.
-Otherwise, use `pnpx but-why` when `pnpx` is available.
-Use `npx -y but-why` when `pnpx` is unavailable and `npx` is available.
-Report that But Why is unavailable when none of these commands can run.
-Use the resolved command prefix for every But Why invocation in this workflow.
-The command templates below use `<but-why>` for that resolved prefix.
+Resolve one runner and its command prefix:
 
-Infer from the current session whether the work belongs to a Task-backed Change or a taskless Change.
-When the session identifies a Task, run `<but-why> task show <task-id>` to confirm the Task and inspect its linked Change.
-When the session identifies an existing taskless Change, run `<but-why> change show <change-id>` to confirm it.
-Use an open linked Change when one exists.
-Ask the user to select the work only when the session and But Why state do not identify one unambiguous target.
+- `just` maps to `just by` in the But Why source repository when the `by` recipe exists.
+- `pnpx` maps to `pnpx but-why` when `pnpx` is available.
+- `npx` maps to `npx -y but-why` when `pnpx` is unavailable and `npx` is available.
 
-This step is complete when the `but-why` skill is loaded, one command prefix and one work target are resolved, and any existing open Change is known.
+Report that But Why is unavailable when no runner can execute it.
+Use the resolved command prefix for each direct But Why command.
 
-## 2. Create the handoff
+When the session identifies a Task, run `<command-prefix> task show <task-id>`.
+When the session identifies a taskless Change, run `<command-prefix> change show <change-id>`.
+Use an existing open linked Change.
+Ask the user to select the work only when the session and But Why state do not identify one target.
 
-Create a compact handoff document for the fresh Pi session.
-Include the next implementation goal, relevant decisions, references to existing artifacts, and suggested skills.
-For a Task-backed Change, include the Task ID and direct the fresh session to run `<but-why> task context <task-id>`.
-Reference existing artifacts by exact path, complete URL, commit SHA, or diff range instead of copying them.
-Exclude sensitive information.
+This step is complete when one runner and one work target are resolved.
 
-Create the handoff in the operating system temporary directory:
+## 2. Prepare the handoff
 
-```sh
-handoff_file="$(mktemp "${TMPDIR:-/tmp}/but-why-handoff.XXXXXX.md")"
-trap 'rm -f "$handoff_file"' EXIT
-```
+Write compact Markdown for the fresh Pi session.
+Include the implementation goal, relevant decisions, exact artifact references, and suggested skills.
+For a Task-backed Change, include the Task ID and direct the fresh session to run `<command-prefix> task context <task-id>`.
+Do not include sensitive information.
 
-Keep temporary-file creation, Change Implement, and cleanup in one shell process so the trap remains active.
-
-This step is complete when the temporary file contains the implementation goal, relevant decisions, suggested skills, and a resolving reference for every relevant artifact; identifies the Task when applicable; contains no sensitive information; and has cleanup armed.
+This step is complete when the handoff gives the fresh session enough context to continue the selected work.
 
 ## 3. Resolve the Change
 
-When the resolved Task has no linked Change, run:
+When the selected Task has no linked Change, run:
 
-```sh
-<but-why> change start --task <task-id>
+```text
+<command-prefix> change start --task <task-id>
 ```
 
-When the work is taskless and has no existing Change, run:
+When selected taskless work has no Change, run:
 
-```sh
-<but-why> change start
+```text
+<command-prefix> change start
 ```
 
-When an open Change already exists, use its Change ID instead of starting another Change.
-If the existing Change reports `prepare_failed`, run `<but-why> change prepare <change-id>` once.
-If Change Start or Change Prepare fails, report the structured failure in the current session and stop.
-Read the Change ID from the command result.
-Run `<but-why> change show <change-id>` and verify that the Change is open and ready and that its Managed Worktree path is present.
+If an existing Change reports `prepare_failed`, run `<command-prefix> change prepare <change-id>` once.
+If Change Start or Change Prepare fails, report the structured failure and stop.
 
-This step is complete when the readback confirms one ready open Change and its Managed Worktree.
+Run `<command-prefix> change show <change-id>`.
+Verify that the Change is open and ready.
+Record its exact Managed Worktree path.
 
-## 4. Launch the fresh session
+This step is complete when one Change is open and ready and its Managed Worktree is known.
 
-Run:
+## 4. Launch the handoff
+
+Resolve `scripts/launch-handoff.mjs` relative to this `SKILL.md` file.
+Pipe the handoff Markdown to the script:
 
 ```sh
-<but-why> change implement <change-id> --handoff-file "$handoff_file"
+node <skill-directory>/scripts/launch-handoff.mjs \
+  --runner <just|pnpx|npx> \
+  --change-id <change-id> \
+  --worktree-path <managed-worktree-path> <<'BUT_WHY_HANDOFF'
+<handoff Markdown>
+BUT_WHY_HANDOFF
 ```
 
-If Change Implement fails, report the structured failure in the current session and stop.
-Run `<but-why> change show <change-id>` and verify that the Change remains open and ready in the expected Managed Worktree.
-Remove the handoff file after Change Implement returns.
-Keep the current Pi session open without copying, forking, switching, or retargeting it.
+Do not run Change Implement separately.
+Do not retry an indeterminate launch.
+The companion script owns launch observation, late-start handling, Change verification, and temporary-file cleanup.
+
+Accept `started`, `already_active`, or `late_active` only when `changeVerified` is `true`.
+For any other result, report the structured result and diagnostic paths, then stop.
+Keep the current Pi session open.
 The fresh Herdr-hosted Pi session owns implementation in the Managed Worktree.
 
-This workflow is complete when Change Implement returns `started` or `already_active`, Change Show confirms the expected open ready Change and Managed Worktree, and the temporary handoff file no longer exists.
+This workflow is complete when the script reports an accepted status with `changeVerified: true`.
