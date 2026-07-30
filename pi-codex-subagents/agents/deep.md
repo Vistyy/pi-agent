@@ -3,7 +3,7 @@ name: deep
 description: "Use for difficult or consequential work that needs broad context, careful reasoning, and active pressure-testing."
 provider: openai-codex
 model: gpt-5.6-luna
-thinking: high
+thinking: xhigh
 tools: read,bash,edit,write,grep,find,ls,web_search,web_fetch,web_content_get
 skills: codebase-design, diagnosing-bugs, spike
 ---

@@ -3,7 +3,7 @@ name: balanced
 description: "Default worker for delegated tasks that need moderate context, reasoning, or coordination across related concerns."
 provider: openai-codex
 model: gpt-5.6-luna
-thinking: medium
+thinking: high
 tools: read,bash,edit,write,grep,find,ls,web_search,web_fetch,web_content_get
 skills: codebase-design, diagnosing-bugs, spike
 ---

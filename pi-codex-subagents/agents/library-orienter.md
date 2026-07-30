@@ -3,7 +3,7 @@ name: library-orienter
 description: "Builds sparse, version-aware orientations of foundational libraries and compares official guidance with repository usage."
 provider: openai-codex
 model: gpt-5.6-luna
-thinking: medium
+thinking: high
 tools: read,bash,grep,find,ls,web_search,web_fetch,web_content_get
 extensions: ~/.pi/agent/extensions/named-subagent-policy/index.ts, @ogulcancelik/pi-auto-permissions, ~/.pi/agent/extensions/openai-fast.ts, ~/.pi/agent/extensions/web-search, ~/.pi/agent/extensions/package-manager-policy, ~/.pi/agent/pi-codex-subagents/extensions/subagent-sandbox/library.ts
 ---
