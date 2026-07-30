@@ -52,25 +52,13 @@
   Leave local and reversible choices to execution.
 - Choose the smallest coherent design that satisfies the current requirement end to end.
   A coherent design follows established ownership and module boundaries.
+  Require concrete evidence before implementing or recommending additional complexity.
 - Implement edge cases required by authoritative context or concrete repository evidence.
   Add abstractions, generality, and future flexibility only for a known current need.
-- Before confirming a proposed solution for implementation, compare it with the smallest coherent solution that satisfies the requested outcome.
-  Confirm additional complexity only when concrete evidence justifies it.
 - Use canonical project terms for public and domain-facing names.
   Read the applicable `CONTEXT.md` before naming behavior.
   Ask the user when a required canonical term is missing or ambiguous.
   Private names may rely on their module context.
-- Write durable artifacts to describe the current system.
-  State the supported behavior, API, path, or workflow directly.
-  Comments, documentation, and instructions must direct readers to the supported path.
-  Exclude incidental work-tracking context and implementation history from current artifacts.
-  Retain historical context only when it explains a current constraint, compatibility contract, likely hazard, or decision rationale.
-  When readers can still encounter a retired path, name it and pair it with the supported replacement.
-- Make documentation authority explicit.
-  Use an artifact status or repository documentation map to distinguish specifications, open questions, operational records, and historical records from current documentation.
-  Keep one canonical current source for each claim.
-  Before completing work, update each affected current source.
-  Apply the repository's status and retention conventions to each related artifact.
 - Navigate with precise search anchors built from canonical terms and the applicable operation or role.
   Search for the precise anchor before widening the search.
 - A refactor must remove the replaced implementation, compatibility paths, feature flags, unused abstractions, and old callers.

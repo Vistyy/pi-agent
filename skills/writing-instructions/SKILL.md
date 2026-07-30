@@ -1,12 +1,13 @@
 ---
 name: writing-instructions
-description: Use when writing, revising, or auditing agent instructions, agent prompts, AGENTS.md files, skills, or normative technical documentation.
+description: Use when writing, revising, or auditing agent instructions, agent prompts, AGENTS.md files, skills, or documentation.
 ---
 
 # Writing Instructions
 
 Write instructions that produce predictable behavior while preserving judgment where context determines the correct action.
 Before writing, revising, or auditing instructions, load and apply the `technical-prose` skill.
+When creating, revising, or auditing documentation, read [Documentation](references/DOCUMENTATION.md) completely and apply it.
 When a bold term controls a decision, read its authoritative definition in [the glossary](references/GLOSSARY.md) before making that decision.
 
 When the user requests an audit, evaluate the existing instructions against every step and completion criterion without changing them.
