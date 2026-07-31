@@ -6,6 +6,7 @@
       "~/.pi/agent/extensions/named-subagent-policy/index.ts",
       "@ogulcancelik/pi-auto-permissions",
       "~/.pi/agent/extensions/openai-fast.ts",
+      "~/.pi/agent/extensions/openai-remote-compaction/index.ts",
       "~/.pi/agent/extensions/web-search",
       "~/.pi/agent/extensions/package-manager-policy",
       "~/.pi/agent/pi-codex-subagents/extensions/subagent-sandbox/index.ts"
