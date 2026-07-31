@@ -1,12 +1,11 @@
 # Writing Skills
 
-Read this reference when writing, revising, or auditing a skill.
 A skill makes an agent follow a predictable process while allowing different outputs.
 
 ## Select the invocation mode
 
 A **model-invoked** skill exposes its description to the agent and can load without user action.
-Make the skill model-invoked when the agent or another skill must find it without user action:
+Make the skill model-invoked when the agent must select it without user action:
 
 - Omit `disable-model-invocation`.
 - Describe each distinct trigger branch once.
@@ -15,7 +14,17 @@ Make the skill model-invoked when the agent or another skill must find it withou
 - Keep behavior and background information in the skill body.
 
 A model-invoked description adds permanent context load.
+The frontmatter description is the single source of truth for model routing.
+Do not repeat skill invocation conditions in `AGENTS.md`, other global instructions, or another skill.
+If model routing is incomplete, correct the frontmatter description.
 The description is complete when every required trigger branch appears once.
+
+Do not use cross-skill references as the default routing mechanism.
+State the required capability and result in shared language.
+Let the agent select an applicable skill from the available frontmatter descriptions.
+This permits another skill to provide the same capability without requiring the same skill name.
+Name or link another skill only when the workflow depends on that skill's exact contract or artifact and a substitute would be invalid.
+A necessary cross-skill reference must state the dependency instead of repeating the referenced skill's policy or invocation conditions.
 
 A **user-invoked** skill hides its description from the agent and can load only when the user invokes it by name.
 Make the skill user-invoked when explicit user choice is part of its behavior:
@@ -60,7 +69,7 @@ Granularity is the degree to which capabilities are divided among skills.
 Each split adds context load or cognitive load.
 
 Split by invocation when a distinct leading word must trigger independently.
-Split by invocation when another skill must reach the capability independently.
+Split by invocation when the capability must be selected independently.
 Consider a sequence split only after visible post-completion steps cause observed premature completion.
 Strengthen the current completion criterion before a sequence split.
 Use a sequence split only when a precise criterion cannot prevent the observed failure.

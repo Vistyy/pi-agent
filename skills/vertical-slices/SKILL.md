@@ -1,6 +1,6 @@
 ---
 name: vertical-slices
-description: Use when decomposing approved requirements into tasks, checking a vertical slice, or routing work discovered during implementation.
+description: Use when decomposing approved requirements into vertical Tasks or routing work discovered during implementation.
 ---
 
 # Vertical Slices
@@ -9,7 +9,6 @@ A **task-level tracer bullet** is one end-to-end path that delivers one observab
 A task-level tracer bullet is narrow by outcome, not by file count or implementation effort.
 
 Use this file to design a Task graph.
-When checking an implemented slice, read and apply [Verify an Implemented Slice](references/VERIFY.md).
 When implementation reveals work that may change scope, read and apply [Route Discovered Work](references/ROUTE-DISCOVERED-WORK.md).
 
 ## 1. Define each slice
@@ -18,19 +17,13 @@ For each slice, record:
 
 - One observable capability.
 - Each owned behavior and its authoritative requirement source.
-- One primary public seam that demonstrates the complete capability.
 - Observable acceptance criteria.
 
 Acceptance criteria must describe required behavior and constraints.
-Acceptance criteria must not prescribe test counts, test categories, or coverage targets.
-Acceptance criteria must not prescribe repository-wide verification commands unless the capability owns repository verification.
-
-When selecting verification seams, read and apply the [TDD seam policy](../tdd/SKILL.md#select-public-seams).
-Use the primary seam for one complete acceptance path.
-Use cheaper public seams for behavior variations when they prove the behavior reliably.
+Acceptance criteria must not prescribe verification mechanisms.
 
 This step is complete when the proposed slices cover every approved requirement exactly once.
-Each proposed slice must have one capability, one primary public seam, and observable acceptance criteria.
+Each proposed slice must have one capability and observable acceptance criteria.
 
 ## 2. Set Task boundaries
 

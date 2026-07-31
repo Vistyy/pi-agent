@@ -72,12 +72,12 @@ This step is complete when the cause is confirmed or the strongest unconfirmed e
 ## 3. Preserve and report the diagnosis
 
 Remove temporary instrumentation and throwaway diagnostic artifacts.
-Convert the diagnostic loop into a regression test at the closest useful public seam when practical.
 Record the command, procedure, query, workload, or measurement method needed to repeat the evidence.
 
-If the task includes a fix, follow the repository bug-fix and testing requirements.
-When both loops are available, verify the fix with the focused diagnostic loop and the original user-level reproduction.
-When a loop is unavailable, record why it could not run and the evidence used instead.
+If the task includes a fix, rerun the diagnostic loop after implementation.
+Also rerun the original user-level reproduction when it remains practical and materially distinct.
+If a required rerun fails, report that the fix is not verified and include the observed failure.
+When a required loop is unavailable, record why it could not run and the evidence used instead.
 
 Report:
 
@@ -86,6 +86,6 @@ Report:
 - The diagnostic loop and final result.
 - The remaining uncertainty or manual verification.
 
-When a broader codebase condition enabled the defect, recommend `/skill:improve-codebase` and include the diagnosis evidence.
+When a broader codebase condition enabled the defect, report a separate improvement opportunity with the diagnosis evidence.
 
 The diagnosis is complete when another maintainer can repeat or locate the available evidence, understand the conclusion and its confidence, and find no temporary diagnostic changes.

@@ -1,6 +1,5 @@
 # Session Integrations
 
-Use this reference when implementing hooks, plugins, or installable Agent Skills for an AXI CLI.
 
 ## Session lifecycle
 

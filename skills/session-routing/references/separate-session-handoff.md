@@ -1,6 +1,5 @@
 # Separate-Session Handoff
 
-Read this reference after selecting a separate-session handoff.
 A separate session owns an independent outcome or an explicitly transferred current outcome.
 
 ## 1. Confirm ownership

@@ -1,6 +1,5 @@
 # TypeScript implementation reference
 
-Use this reference when a TypeScript or JavaScript project selects a corresponding quality outcome.
 This reference explains tool configuration.
 It does not require a project to adopt every listed tool or check.
 

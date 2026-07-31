@@ -1,8 +1,5 @@
 # Deepening
 
-Use this guidance after the parent skill selects deepening as the simplest credible structure.
-Use the parent skill's definitions of **module**, **interface**, **seam**, and **adapter**.
-
 **Depth**: The behavior a caller or test can exercise for each part of the interface it must learn.
 A deep module provides substantial behavior through a small interface.
 
@@ -56,9 +53,8 @@ This step is complete when every seam has a named need and every adapter has a n
 
 ## 4. Migrate verification
 
-Test externally observable behavior through the deepened module's interface.
-Use focused implementation tests only when complex private behavior benefits from direct verification.
-Delete or retarget tests for replaced modules and entry points.
-A behavior-preserving internal refactor should not require changes to interface tests.
+Verify externally observable behavior through the deepened module's interface.
+Delete or retarget checks that exist only for replaced modules and entry points.
+A behavior-preserving internal refactor should not require changes to interface evidence.
 
-Deepening is complete when the interface tests cover the absorbed behavior and every replaced test is deleted or retargeted.
+Deepening is complete when the absorbed behavior is verified and every replaced verification path is removed or retargeted.

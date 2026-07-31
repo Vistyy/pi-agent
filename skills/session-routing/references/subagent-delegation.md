@@ -1,6 +1,5 @@
 # Subagent Delegation
 
-Read this reference after selecting delegated work.
 The main session remains the holistic reasoning owner.
 The subagent owns one bounded question or deliverable and its detailed working context.
 

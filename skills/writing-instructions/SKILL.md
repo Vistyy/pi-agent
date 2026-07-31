@@ -6,7 +6,6 @@ description: Use when writing, revising, or auditing agent instructions, agent p
 # Writing Instructions
 
 Write instructions that produce predictable behavior while preserving judgment where context determines the correct action.
-Before writing, revising, or auditing instructions, load and apply the `technical-prose` skill.
 When creating, revising, or auditing documentation, read [Documentation](references/DOCUMENTATION.md) completely and apply it.
 When a bold term controls a decision, read its authoritative definition in [the glossary](references/GLOSSARY.md) before making that decision.
 
@@ -45,6 +44,8 @@ Place content according to when the actor needs it:
 4. Put shared material that needs no independent invocation in an external reference behind a precise context pointer.
 
 Use **progressive disclosure** when only some branches need detailed material.
+Put each reference-loading condition beside the link in the parent instruction.
+Do not put an instruction to load a reference inside that reference because the instruction cannot cause the reference to load.
 Keep required material inline when a precise context pointer does not load it reliably.
 Use **co-location** within each file.
 Keep each concept's definition, rules, and exceptions under one heading.
@@ -91,7 +92,7 @@ This step is complete when each retained line changes or supports the required b
 
 ## 5. Validate the behavior
 
-Review every changed passage with the completion criteria from this skill and `technical-prose`.
+Review every changed passage against this skill and the applicable prose requirements.
 Trace every applicable branch from invocation or entry through completion.
 For linear instructions, trace at least one representative case.
 Test consequential or disputed instructions against the intended actor when the environment supports such a test.

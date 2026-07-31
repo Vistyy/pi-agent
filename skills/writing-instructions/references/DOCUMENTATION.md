@@ -1,6 +1,5 @@
 # Documentation
 
-Read this reference when creating, revising, or auditing documentation.
 This policy applies across projects.
 It governs project documentation and explanatory content in comments and instructional reference.
 The parent skill governs behavioral instructions.

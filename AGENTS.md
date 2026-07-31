@@ -68,8 +68,3 @@
 
 - Verify checkable claims before stating them.
   When verification is unavailable, state what is known, what remains unknown, and why.
-- Before fixing a bug, reproduce it as close to the user-facing seam as practical.
-  Prefer an integration or E2E reproduction over a unit reproduction.
-  If reproduction is impossible, explain why and get explicit user approval before changing code.
-- When implementing UI behavior, inspect spacing, alignment, typography, overflow, clipping, responsiveness, loading, errors, focus, and interaction feedback during E2E verification.
-  Fix visible defects unless the user explicitly excludes them.

@@ -1,7 +1,6 @@
 # Expand-Contract
 
 **Expand-contract** is a migration sequence that keeps old and new forms available while callers migrate.
-Use expand-contract only when temporary coexistence is required.
 
 1. **Expand**: Add the new form while the old form remains supported.
    The repository must pass with both forms available.

@@ -1,6 +1,6 @@
 ---
 name: codebase-design
-description: Use when deciding where behavior belongs, changing what callers must know, placing or removing a seam, or defining a module's test surface.
+description: Use when deciding where behavior belongs, changing what callers must know, placing or removing a seam, or defining how a module can be verified.
 ---
 
 # Codebase Design
@@ -38,7 +38,7 @@ Locality lets maintainers make and verify a change in one place.
 Name the behavior, rule, or dependency under consideration.
 Name its current owner and every caller that must understand or coordinate it.
 Record the interface knowledge that each caller needs, including invariants, ordering, errors, configuration, and performance constraints.
-Use observed changes, defects, or test friction when available.
+Use observed changes, defects, or verification friction when available.
 
 This step is complete when the behavior, current owner, every caller that must understand or coordinate it, each caller's required interface knowledge, and the coordination cost are explicit.
 If no structural problem remains, keep the current structure.
@@ -57,7 +57,7 @@ Compare only structures supported by the problem:
 - Keep simple behavior direct at the caller.
 - Deepen a module around distributed behavior or knowledge.
 
-Compare each credible structure by caller knowledge, edit locations, new concepts, interfaces, indirection, migration work, and test setup.
+Compare each credible structure by caller knowledge, edit locations, new concepts, interfaces, indirection, migration work, and verification setup.
 
 This step is complete when named evidence supports one structure and its structural and maintenance trade-offs are explicit.
 
@@ -70,24 +70,24 @@ State the interface behavior, invariants, ordering constraints, errors, configur
 Create a seam only when a concrete variation, ownership difference, lifecycle difference, isolation need, or test replacement justifies its interface and indirection.
 When a dependency must vary at a seam, accept an adapter instead of constructing the dependency inside the module.
 Keep implementation-only seams private.
-Tests must use the supported interface for externally observable behavior.
+Verification of externally observable behavior must use the supported interface.
 
 This step is complete when callers can use the interface without implementation knowledge and every seam has a named justification.
 
 ## 4. Verify the design
 
-For a proposed design, show one representative caller and the tests that verify the interface.
+For a proposed design, show one representative caller and a practical verification path.
 State the migration and removal work required by the proposal.
 
 A proposed design is complete when named evidence supports simpler caller reasoning and the verification and migration paths are explicit.
 
-For an implemented design, update callers and tests through the supported interface.
-Remove the replaced structural path after its callers and tests migrate.
+For an implemented design, update callers and affected verification through the supported interface.
+Remove the replaced structural path after its callers and verification migrate.
 Run the applicable repository checks.
 
 An implemented design is complete when the required behavior is verified and no replaced path remains.
 
 ## Conditional guidance
 
-When deepening is the selected structure, read [DEEPENING.md](references/DEEPENING.md) before defining dependency seams, adapters, or test migration.
+When evaluating or selecting deepening, read [DEEPENING.md](references/DEEPENING.md) before defining dependency seams, adapters, or verification migration.
 When the user requests independent alternative interfaces or structural designs, read [DESIGN-IT-TWICE.md](references/DESIGN-IT-TWICE.md).

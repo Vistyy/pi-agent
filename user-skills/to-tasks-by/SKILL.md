@@ -13,7 +13,6 @@ An existing Change handoff remains governed by the `but-why` Change implementati
 This skill may record approved discovered work without altering or replacing that Change.
 
 Before running a But Why command, resolve the command prefix and apply the command-result verification rules available in the current session.
-Before designing the Task graph, read and apply the installed `vertical-slices` skill.
 
 ## 1. Gather the approved input
 
@@ -31,7 +30,6 @@ Each requirement must have one current Task owner or one stated ownership gap.
 
 ## 2. Build the proposed Task graph
 
-Apply `vertical-slices` to the approved requirements and current ownership.
 Expand an unstarted Task when that Task already owns the same observable capability.
 Create a proposed Task for each remaining ownership gap.
 
@@ -39,9 +37,9 @@ For each proposed Task, present:
 
 - The title.
 - The observable capability.
-- The primary verification seam.
 - The authoritative requirements owned.
 - The acceptance criteria.
+- The Task Verification Contract.
 
 Present proposed Task Dependencies as graph edges outside Task Context.
 Keep Task Context limited to approved intent that an implementer needs.
@@ -53,7 +51,8 @@ Recording order must place prerequisite Tasks before dependent Tasks.
 Recording order does not establish implementation priority.
 
 This step is complete when every requirement has one proposed Task owner.
-The proposed graph must satisfy the applicable Task-design criteria from `vertical-slices`.
+Each Task must deliver one independently verifiable observable capability.
+Each Task Dependency must be necessary for implementation or verification.
 
 ## 3. Confirm the proposed graph
 

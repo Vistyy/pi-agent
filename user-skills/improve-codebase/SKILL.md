@@ -71,10 +71,10 @@ Consider only interventions that address the observed cause:
 Compare each credible intervention by expected maintenance reduction, new concepts, dependencies, interfaces, indirection, migration work, test burden, operational risk, and reversibility.
 Prefer the smallest intervention that produces the observable improvement.
 
-When a foundational library may replace custom code, use the `library-orientation` skill before recommending the dependency.
-When the cause of a recurring failure is unknown, use the `diagnosing-bugs` skill before recommending a fix.
-When the intervention changes ownership, a module interface, a seam, an adapter, or a test surface, use the `codebase-design` skill.
-When the intervention changes domain vocabulary or relationships, use the `domain-modeling` skill.
+When a foundational library may replace custom code, research its current capabilities before recommending the dependency.
+When the cause of a recurring failure is unknown, establish causal evidence before recommending a fix.
+When an intervention changes structure, define ownership, caller knowledge, interfaces, seams, and migration.
+When an intervention changes domain vocabulary or relationships, resolve and record the domain meaning.
 
 This step is complete when one intervention, including no change, has stronger evidence and lower total cost than its credible alternatives.
 
@@ -90,6 +90,5 @@ Return concise prose with:
 - The method for verifying the improvement.
 
 Present multiple options only when evidence leaves a genuine decision unresolved.
-When the user explicitly requests visual review, use the `lavish` skill.
 
 The review is complete when the user can decide whether to accept the recommendation without reconstructing the investigation.

@@ -4,10 +4,10 @@ description: "[M] Stress-test a plan and record qualifying decisions as ADRs and
 disable-model-invocation: true
 ---
 
-Run a `grilling` session.
-Use the `domain-modeling` skill to record each resolved domain term immediately in the applicable `CONTEXT.md`.
+Stress-test the plan until its consequential assumptions and trade-offs are explicit.
+Record each resolved domain term immediately in the applicable `CONTEXT.md`.
 Keep provisional and implementation-level decisions in the plan while the user evaluates it.
-After the user explicitly approves the plan, apply the ADR qualification and lifecycle rules from the `domain-modeling` skill.
+After the user explicitly approves the plan, apply the accepted ADR qualification and lifecycle rules.
 Record only accepted architectural decisions that pass the ADR gate.
 
 The session is complete when the user approves the plan, each resolved domain term is recorded, and each accepted decision is in the smallest applicable artifact.

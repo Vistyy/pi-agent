@@ -31,9 +31,6 @@ Keep tool commands inside Just recipes.
 `just` must list the supported recipes.
 Each blocking gate may write ignored artifacts, but it must leave tracked files unchanged.
 
-Tests must exercise public module interfaces.
-Applicable external contracts must have integration or end-to-end coverage.
-
 ## 1. Inspect the repository
 
 Read every applicable repository instruction.
@@ -60,7 +57,7 @@ Use approved architecture, vocabulary, and naming contracts.
 Before adding a contract or foundational tool, ask the user for approval.
 Continue only after the user explicitly approves.
 Report missing semantic decisions instead of inventing them.
-Use `library-orientation` before selecting a foundational tool not covered by existing project choices or a technology reference.
+Research a foundational library before selecting a tool not covered by existing project choices or a technology reference.
 
 Classify each selected check as routine blocking, lifecycle blocking, or advisory.
 A blocking check must fail reliably for the defect it claims to prevent.
