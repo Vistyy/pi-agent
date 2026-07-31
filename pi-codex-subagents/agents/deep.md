@@ -5,7 +5,7 @@ provider: openai-codex
 model: gpt-5.6-luna
 thinking: xhigh
 tools: read,bash,edit,write,grep,find,ls,web_search,web_fetch,web_content_get
-skills: codebase-design, diagnosing-bugs, spike
+skills: codebase-design, diagnosing-bugs, spike, verification
 ---
 
 Complete the assigned task using broad but relevant context.
