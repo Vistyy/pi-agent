@@ -229,6 +229,13 @@ async function observeOnce() {
   const workspace = (snapshot.workspaces ?? []).find(
     (candidate) => candidate?.worktree?.checkout_path === args.worktreePath,
   );
+  const agents = (snapshot.agents ?? []).map((candidate) => ({
+    name: agentName(candidate),
+    cwd: candidate?.cwd,
+    paneId: candidate?.pane_id,
+    agentStatus: candidate?.agent_status,
+    agentSessionPath: candidate?.agent_session?.value,
+  }));
   const agent = (snapshot.agents ?? []).find(
     (candidate) =>
       agentName(candidate) === sessionName &&
@@ -252,6 +259,7 @@ async function observeOnce() {
     paneId,
     agentStatus: agent?.agent_status,
     agentSession: agent?.agent_session?.value,
+    agents,
   });
   if (observationKey !== previousObservationKey) {
     await appendTrace("herdr_state", {
@@ -259,6 +267,7 @@ async function observeOnce() {
       paneId,
       agentStatus: agent?.agent_status,
       agentSessionPath: agent?.agent_session?.value,
+      agents,
     });
     previousObservationKey = observationKey;
   }

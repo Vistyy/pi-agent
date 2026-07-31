@@ -46,6 +46,8 @@ set -eu
 if [ "$1 $2" = "api snapshot" ]; then
   if [ "$TEST_HERDR_MODE" = "late" ] && [ -f "$TEST_LATE_MARKER" ]; then
     printf '{"result":{"snapshot":{"agents":[{"%s":"but-why-change-1","cwd":"%s","pane_id":"pane-1","agent_status":"working"}],"panes":[{"pane_id":"pane-1","cwd":"%s"}],"workspaces":[{"workspace_id":"workspace-1","worktree":{"checkout_path":"%s"}}]}}}\\n' "$TEST_AGENT_FIELD" "$TEST_WORKTREE" "$TEST_WORKTREE" "$TEST_WORKTREE"
+  elif [ "$TEST_HERDR_MODE" = "unmatched" ]; then
+    printf '{"result":{"snapshot":{"agents":[{"name":"unexpected-agent","cwd":"%s","pane_id":"pane-1","agent_status":"starting","agent_session":{"value":"/tmp/unexpected.jsonl"}}],"panes":[{"pane_id":"pane-1","cwd":"%s"}],"workspaces":[{"workspace_id":"workspace-1","worktree":{"checkout_path":"%s"}}]}}}\\n' "$TEST_WORKTREE" "$TEST_WORKTREE" "$TEST_WORKTREE"
   else
     : > "$TEST_LATE_MARKER"
     printf '{"result":{"snapshot":{"agents":[],"panes":[],"workspaces":[]}}}\\n'
@@ -260,7 +262,7 @@ test("removes the handoff and stops the launch process when interrupted", async 
   assert.match(result.trace, /"event":"observer_interrupted"/);
 });
 
-test("preserves diagnostics and fails when an indeterminate launch stays unresolved", async () => {
+test("preserves rejected Herdr agent details when a launch stays indeterminate", async () => {
   const result = await run({
     byResult: {
       error: {
@@ -269,6 +271,7 @@ test("preserves diagnostics and fails when an indeterminate launch stays unresol
         details: { changeId: "change-1" },
       },
     },
+    herdrMode: "unmatched",
   });
 
   assert.equal(result.code, 1);
@@ -276,4 +279,8 @@ test("preserves diagnostics and fails when an indeterminate launch stays unresol
   assert.equal(output.status, "launch_indeterminate");
   assert.equal(output.changeVerified, false);
   assert.equal(typeof output.tracePath, "string");
+  assert.match(result.trace, /"name":"unexpected-agent"/);
+  assert.match(result.trace, /"cwd":".*worktree"/);
+  assert.match(result.trace, /"agentStatus":"starting"/);
+  assert.ok(result.trace.includes('"agentSessionPath":"/tmp/unexpected.jsonl"'));
 });
