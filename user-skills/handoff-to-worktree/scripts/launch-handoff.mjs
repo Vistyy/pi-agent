@@ -40,7 +40,6 @@ if (!args.ok) {
 }
 
 const commandPrefix = runnerCommands[args.runner];
-const sessionName = `but-why-${args.changeId}`;
 const startedAt = performance.now();
 const wallStartedAt = new Date().toISOString();
 const safeId = args.changeId.replaceAll(/[^a-zA-Z0-9._-]/g, "_");
@@ -74,7 +73,7 @@ try {
     wallStartedAt,
     changeId: args.changeId,
     worktreePath: args.worktreePath,
-    sessionName,
+    sessionMatch: "active agent in the Managed Worktree",
     runner: args.runner,
   });
 
@@ -116,10 +115,10 @@ try {
     preserveTrace = true;
     const deadline = performance.now() + lateGraceMs;
     await appendTrace("late_observation_started", { graceMs: lateGraceMs });
-    while (performance.now() < deadline && !isExactActive(latestObservation.agent)) {
+    while (performance.now() < deadline && !isActiveInWorktree(latestObservation.agent)) {
       await sleep(Math.min(pollMs, Math.max(1, deadline - performance.now())));
     }
-    if (isExactActive(latestObservation.agent)) {
+    if (isActiveInWorktree(latestObservation.agent)) {
       status = "late_active";
       await appendTrace("late_session_active", {
         elapsedMs: elapsed(),
@@ -238,7 +237,6 @@ async function observeOnce() {
   }));
   const agent = (snapshot.agents ?? []).find(
     (candidate) =>
-      agentName(candidate) === sessionName &&
       candidate?.cwd === args.worktreePath &&
       ["idle", "working", "blocked"].includes(candidate?.agent_status),
   );
@@ -335,9 +333,8 @@ async function hostPressure() {
   };
 }
 
-function isExactActive(agent) {
+function isActiveInWorktree(agent) {
   return (
-    agentName(agent) === sessionName &&
     agent?.cwd === args.worktreePath &&
     ["idle", "working", "blocked"].includes(agent?.agent_status)
   );
