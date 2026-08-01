@@ -35,6 +35,12 @@ Use this structure and omit empty optional sections:
 - <Likely scope misunderstanding that is explicitly excluded.>
 ```
 
+When the Task retires a concept, apply the repository current-system invariant.
+Identify the retired concept, its replacement, the affected repository surfaces, the targeted search scope, and each accepted exception.
+Classify each evidence item as durable current-behavior evidence or one-time removal evidence.
+Require targeted diff, search, and inspection evidence for the removal claim.
+Do not create durable evidence whose only purpose is to prove that the retired concept is absent.
+
 When the Task has no Material Risk that needs new evidence, use this minimal form:
 
 ```markdown

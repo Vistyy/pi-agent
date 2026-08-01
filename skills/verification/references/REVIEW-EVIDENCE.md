@@ -4,6 +4,10 @@ Evaluate each Verification Claim independently against the submitted evidence an
 Confirm that the evidence uses the required seam or an approved equivalent.
 Confirm that the evidence is current, interpretable, and sufficient for its Material Risk.
 Do not add unsupported requirements or speculative edge cases during review.
+When accepted intent applies the repository current-system invariant, inspect its targeted diff, search, and inspection evidence.
+Require an accepted current boundary for each retained representation of the retired concept.
+Do not request durable evidence whose only purpose is to prove that the retired concept is absent.
+Report an evidence finding when the submitted evidence does not establish the claim.
 
 Distinguish an inability to execute a valid review from a valid judgment that evidence is insufficient.
 For the first case, stop the review and report the failed operation, observed error, and missing capability as a review-tooling failure.

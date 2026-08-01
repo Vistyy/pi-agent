@@ -61,8 +61,11 @@
   Private names may rely on their module context.
 - Navigate with precise search anchors built from canonical terms and the applicable operation or role.
   Search for the precise anchor before widening the search.
-- A refactor must remove the replaced implementation, compatibility paths, feature flags, unused abstractions, and old callers.
-  Keep legacy behavior only with explicit user approval.
+- Every durable repository artifact must implement, verify, or explain the current supported system.
+  When a change retires a concept, remove that concept from current implementation, compatibility behavior, tests, checks, comments, current documentation, names, paths, configuration, and generated artifacts.
+  Retain a representation only when an accepted current boundary requires it, and identify that boundary.
+  Use targeted diff, search, and inspection as one-time removal evidence.
+  Do not add durable evidence whose only purpose is to prove that a retired concept is absent.
 
 ## Verification
 

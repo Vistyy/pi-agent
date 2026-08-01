@@ -49,10 +49,15 @@ This step is complete when the accepted strategy, relevant mechanisms, and manda
 
 Identify each Material Risk introduced or affected by the work.
 For each Material Risk, define the smallest sufficient set of Verification Claims.
+A Material Risk does not authorize maximum prevention.
+Define the smallest fact that provides sufficient confidence without requiring a stronger product guarantee than accepted requirements justify.
+Existing rejection, recovery, or operator control is sufficient when concrete evidence does not show a remaining material consequence.
+Do not add product behavior only to eliminate a possibility or simplify verification.
+When no proportionate claim can address an accepted Material Risk, expose the product decision instead of inventing or silently weakening a claim.
 Use `Not required` only to exclude a likely scope misunderstanding.
 Do not enumerate remote possibilities only to reject them.
 
-This step is complete when every Material Risk has sufficient Verification Claims and every Verification Claim addresses a Material Risk.
+This step is complete when every Material Risk has sufficient Verification Claims, every Verification Claim addresses a Material Risk, and no claim requires an unjustified product guarantee.
 
 ## 3. Apply the applicable workflow
 
