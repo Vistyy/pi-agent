@@ -13,7 +13,6 @@ const run = async ({
   handoff = "Implement the change.\n",
   showResult,
   implementDelay = "0",
-  agentIdentityField = "name",
   interruptAfterMs,
 }) => {
   const root = await mkdtemp(join(tmpdir(), "handoff-observer-test-"));
@@ -25,8 +24,8 @@ const run = async ({
   const just = `#!/bin/sh
 set -eu
 printf '%s\\n' "$*" >> "$TEST_BY_LOG"
-if [ "$4" = "change" ] && [ "$5" = "implement" ]; then
-  handoff_path="$8"
+if [ "$2" = "--json" ] && [ "$3" = "change" ] && [ "$4" = "implement" ]; then
+  handoff_path="$7"
   printf 'handoff=%s\\n' "$handoff_path" >> "$TEST_BY_LOG"
   printf 'content=' >> "$TEST_BY_LOG"
   tr '\\n' ' ' < "$handoff_path" >> "$TEST_BY_LOG"
@@ -35,7 +34,7 @@ if [ "$4" = "change" ] && [ "$5" = "implement" ]; then
   printf '%s\\n' "$TEST_BY_RESULT"
   case "$TEST_BY_RESULT" in *'"error"'*) exit 1;; esac
 fi
-if [ "$4" = "change" ] && [ "$5" = "show" ]; then
+if [ "$2" = "--json" ] && [ "$3" = "change" ] && [ "$4" = "show" ]; then
   printf '%s\\n' "$TEST_SHOW_RESULT"
   exit 0
 fi
@@ -45,7 +44,7 @@ exit 2
 set -eu
 if [ "$1 $2" = "api snapshot" ]; then
   if [ "$TEST_HERDR_MODE" = "late" ] && [ -f "$TEST_LATE_MARKER" ]; then
-    printf '{"result":{"snapshot":{"agents":[{"%s":"but-why-change-1","cwd":"%s","pane_id":"pane-1","agent_status":"working"}],"panes":[{"pane_id":"pane-1","cwd":"%s"}],"workspaces":[{"workspace_id":"workspace-1","worktree":{"checkout_path":"%s"}}]}}}\\n' "$TEST_AGENT_FIELD" "$TEST_WORKTREE" "$TEST_WORKTREE" "$TEST_WORKTREE"
+    printf '{"result":{"snapshot":{"agents":[{"name":"but-why-change-1","cwd":"%s","pane_id":"pane-1","agent_status":"working"}],"panes":[{"pane_id":"pane-1","cwd":"%s"}],"workspaces":[{"workspace_id":"workspace-1","worktree":{"checkout_path":"%s"}}]}}}\\n' "$TEST_WORKTREE" "$TEST_WORKTREE" "$TEST_WORKTREE"
   elif [ "$TEST_HERDR_MODE" = "unmatched" ]; then
     printf '{"result":{"snapshot":{"agents":[{"name":"unexpected-agent","cwd":"%s","pane_id":"pane-1","agent_status":"starting","agent_session":{"value":"/tmp/unexpected.jsonl"}}],"panes":[{"pane_id":"pane-1","cwd":"%s"}],"workspaces":[{"workspace_id":"workspace-1","worktree":{"checkout_path":"%s"}}]}}}\\n' "$TEST_WORKTREE" "$TEST_WORKTREE" "$TEST_WORKTREE"
   else
@@ -99,7 +98,6 @@ exit 1
           })
         ).replaceAll("WORKTREE_REPLACED_BY_TEST_ENV", worktree),
         TEST_IMPLEMENT_DELAY: implementDelay,
-        TEST_AGENT_FIELD: agentIdentityField,
         TEST_HERDR_MODE: herdrMode,
         TEST_LATE_MARKER: join(root, "late.marker"),
         HANDOFF_OBSERVER_POLL_MS: "20",
@@ -198,22 +196,6 @@ test("accepts an exact late Herdr session without launching again", async () => 
   assert.match(result.trace, /"event":"pane_progress"/);
   assert.equal(result.traceMode, 0o600);
   assert.equal(result.diagnosticMode, 0o600);
-});
-
-test("accepts the Herdr agent identity field during late observation", async () => {
-  const result = await run({
-    byResult: {
-      error: {
-        code: "launch_indeterminate",
-        message: "Readiness was not confirmed.",
-      },
-    },
-    herdrMode: "late",
-    agentIdentityField: "agent",
-  });
-
-  assert.equal(result.code, 0, result.stderr);
-  assert.equal(JSON.parse(result.stdout).status, "late_active");
 });
 
 test("rejects contradictory Change Show worktree paths", async () => {

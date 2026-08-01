@@ -81,8 +81,7 @@ try {
   const implement = await run(
     commandPrefix,
     [
-      "--output",
-      "json",
+      "--json",
       "change",
       "implement",
       args.changeId,
@@ -139,7 +138,7 @@ try {
   if (successfulLaunch) {
     verification = await run(
       commandPrefix,
-      ["--output", "json", "change", "show", args.changeId],
+      ["--json", "change", "show", args.changeId],
       showTimeoutMs,
     );
     if (verification.stderr.trim()) process.stderr.write(verification.stderr);
