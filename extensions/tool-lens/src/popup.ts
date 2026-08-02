@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
-import { Key, matchesKey, ProcessTerminal, TUI } from "@earendil-works/pi-tui";
+import { Key, matchesKey, ProcessTerminal } from "@earendil-works/pi-tui";
 import { resultBodyLines } from "./format.js";
 import { deserializeTheme, type ToolLensSnapshot } from "./popup-protocol.js";
 import { ToolLensComponent } from "./ui.js";
@@ -18,33 +18,51 @@ export async function runToolLensPopup(snapshotPath = process.env.TOOL_LENS_SNAP
   const snapshot = await readToolLensSnapshot(snapshotPath);
   const theme = deserializeTheme(snapshot.theme);
   const terminal = new ProcessTerminal();
-  const tui = new TUI(terminal);
   let stopped = false;
+  let renderRequested = false;
+  let lens: ToolLensComponent;
 
   const stop = () => {
     if (stopped) return;
     stopped = true;
-    tui.stop();
+    terminal.showCursor();
+    terminal.stop();
   };
-  const lens = new ToolLensComponent(
+  const renderFrame = () => {
+    const width = Math.max(1, terminal.columns - 4);
+    const maxLines = Math.max(1, terminal.rows - 2);
+    const lines = lens.render(width).slice(0, maxLines);
+    const output = ["\u001b[2J\u001b[H", ...lines.map((line, row) => `\u001b[${row + 1};1H${line}`)].join("");
+    terminal.write(output);
+  };
+  const requestRender = () => {
+    if (stopped || renderRequested) return;
+    renderRequested = true;
+    process.nextTick(() => {
+      renderRequested = false;
+      if (!stopped) renderFrame();
+    });
+  };
+  lens = new ToolLensComponent(
     snapshot.results,
     theme,
     stop,
-    () => tui.requestRender(),
+    requestRender,
     (result, width) => resultBodyLines(result, width),
-    () => Math.max(4, terminal.rows - 5),
+    () => Math.max(4, terminal.rows - 7),
   );
 
-  tui.addChild(lens);
-  tui.setFocus(lens);
-  tui.addInputListener((data) => {
-    if (!matchesKey(data, Key.ctrl("c"))) return undefined;
-    stop();
-    return { consume: true };
-  });
+  terminal.start(
+    (data) => {
+      if (matchesKey(data, Key.ctrl("c"))) stop();
+      else lens.handleInput(data);
+    },
+    requestRender,
+  );
+  terminal.hideCursor();
   process.once("SIGTERM", stop);
   process.once("SIGHUP", stop);
-  tui.start();
+  requestRender();
 
   void Promise.all([
     import("@earendil-works/pi-coding-agent"),
@@ -53,7 +71,7 @@ export async function runToolLensPopup(snapshotPath = process.env.TOOL_LENS_SNAP
     if (stopped) return;
     initTheme(snapshot.theme.name, false);
     lens.setPreviewRenderer(createNativePreviewRenderer(snapshot.cwd, theme));
-    tui.requestRender();
+    requestRender();
   }).catch(() => {
     // Complete stored output remains available when native renderer loading fails.
   });
