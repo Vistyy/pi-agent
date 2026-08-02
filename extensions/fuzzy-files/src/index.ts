@@ -1,11 +1,23 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { getEntries } from "./search.js";
 import { createProvider } from "./provider.js";
+import { SearchSession } from "./search.js";
 
 export default function (pi: ExtensionAPI): void {
-	pi.on("session_start", async (_event, ctx) => {
-		if (!ctx.hasUI) return;
-		void getEntries(pi, ctx.cwd, (message) => ctx.ui.notify(message, "error"));
-		ctx.ui.addAutocompleteProvider((current) => createProvider(pi, ctx, current));
-	});
+  let session: SearchSession | undefined;
+
+  pi.on("session_start", (_event, ctx) => {
+    if (!ctx.hasUI) return;
+    session?.dispose();
+    const searchSession = new SearchSession(pi, ctx.cwd, (message) => {
+      if (session === searchSession) ctx.ui.notify(message, "error");
+    });
+    session = searchSession;
+    void searchSession.warm();
+    ctx.ui.addAutocompleteProvider((current) => createProvider(pi, searchSession, current));
+  });
+
+  pi.on("session_shutdown", () => {
+    session?.dispose();
+    session = undefined;
+  });
 }

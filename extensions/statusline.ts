@@ -1,37 +1,86 @@
 import type { AssistantMessage } from "@earendil-works/pi-ai";
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
-import { execFileSync } from "node:child_process";
 
 type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | string;
 type GitCache = { cwd: string; createdAt: number; value: string | undefined };
 
 const GIT_CACHE_MS = 1000;
-let gitCache: GitCache | undefined;
 
 export default function statusline(pi: ExtensionAPI) {
   let thinkingLevel: ThinkingLevel = "low";
+  let gitCache: GitCache | undefined;
+  let refreshController: AbortController | undefined;
+  let refreshInProgress = false;
+  let disposed = false;
+  let generation = 0;
+  let requestRender: (() => void) | undefined;
+
+  const stopRefresh = () => {
+    disposed = true;
+    generation++;
+    refreshController?.abort();
+    refreshController = undefined;
+  };
+
+  const scheduleRefresh = (ctx: ExtensionContext) => {
+    if (disposed || refreshInProgress) return;
+    if (gitCache?.cwd === ctx.cwd && Date.now() - gitCache.createdAt < GIT_CACHE_MS) return;
+    void refreshGit(ctx);
+  };
+
+  const refreshGit = async (ctx: ExtensionContext) => {
+    if (disposed || refreshInProgress) return;
+    refreshInProgress = true;
+    const refreshGeneration = generation;
+    const controller = new AbortController();
+    refreshController = controller;
+
+    try {
+      const value = await gitSummary(pi, ctx.cwd, controller.signal);
+      if (!disposed && refreshGeneration === generation && !controller.signal.aborted) {
+        gitCache = { cwd: ctx.cwd, createdAt: Date.now(), value };
+        requestRender?.();
+      }
+    } finally {
+      if (refreshController === controller) refreshController = undefined;
+      refreshInProgress = false;
+      if (!disposed && refreshGeneration === generation) scheduleRefresh(ctx);
+    }
+  };
 
   pi.on("session_start", (_event, ctx) => {
+    stopRefresh();
+    disposed = false;
     thinkingLevel = pi.getThinkingLevel();
 
     ctx.ui.setFooter((tui, theme, footerData) => {
-      const unsubscribe = footerData.onBranchChange(() => tui.requestRender());
+      requestRender = () => tui.requestRender();
+      const unsubscribe = footerData.onBranchChange(() => {
+        tui.requestRender();
+        scheduleRefresh(ctx);
+      });
+
+      scheduleRefresh(ctx);
 
       return {
-        dispose: unsubscribe,
+        dispose: () => {
+          unsubscribe();
+          stopRefresh();
+          requestRender = undefined;
+        },
         invalidate() {},
         render(width: number): string[] {
+          scheduleRefresh(ctx);
           const usage = summarizeUsage(ctx.sessionManager.getBranch());
           const contextUsage = ctx.getContextUsage();
           const branch = footerData.getGitBranch();
-          const git = branch ? gitSummary(ctx.cwd) : undefined;
+          const git = branch && gitCache?.cwd === ctx.cwd ? gitCache?.value : undefined;
           const statuses = footerData.getExtensionStatuses();
           const codex = statuses.get("codex-usage");
           const fast = statuses.get("openai-fast");
 
           const divider = theme.fg("borderMuted", "  │  ");
-
           const modelName = theme.fg("text", `${ctx.model?.id ?? "no model"}:${shortThinking(thinkingLevel)}`);
           const fastIndicator = fast ? theme.fg("accent", stripAnsi(fast)) : "";
           const model = segment(theme.fg("accent", "π"), `${fastIndicator}${modelName}`);
@@ -46,31 +95,24 @@ export default function statusline(pi: ExtensionAPI) {
           const tokCompact = segment(theme.fg("dim", "tok"), theme.fg("muted", fmt(usage.total)));
           const costSeg = usage.cost > 0 ? segment(theme.fg("dim", "$"), theme.fg("warning", usage.cost.toFixed(3))) : undefined;
           const codexSeg = codex ? theme.fg("accent", stripAnsi(codex)) : undefined;
-
-          // Tier 0: full git + full tok
-          // Tier 1: compact git + full tok
-          // Tier 2: compact git + compact tok
           const tiers: Array<{ chunks: string[] }> = [
             { chunks: [model, ctxFull, cwdSeg, gitFull, tokFull, costSeg, codexSeg].filter(Boolean) as string[] },
             { chunks: [model, ctxPct, cwdSeg, gitCompact, tokFull, costSeg, codexSeg].filter(Boolean) as string[] },
             { chunks: [model, ctxPct, cwdSeg, gitCompact, tokCompact, costSeg, codexSeg].filter(Boolean) as string[] },
           ];
 
-          // Try each tier; render single line if it fits
           for (const tier of tiers) {
             const line = tier.chunks.join(divider);
             if (visibleWidth(line) <= width) return [line];
           }
 
-          // Fallback: wrap the most compact tier across lines
           const chunks = tiers[2].chunks;
           const lines: string[] = [];
           let line = "";
           for (const chunk of chunks) {
             const candidate = line ? line + divider + chunk : chunk;
-            if (visibleWidth(candidate) <= width) {
-              line = candidate;
-            } else {
+            if (visibleWidth(candidate) <= width) line = candidate;
+            else {
               if (line) lines.push(line);
               line = visibleWidth(chunk) > width ? truncateToWidth(chunk, width, "") : chunk;
             }
@@ -87,6 +129,8 @@ export default function statusline(pi: ExtensionAPI) {
   });
 
   pi.on("session_shutdown", (_event, ctx) => {
+    stopRefresh();
+    requestRender = undefined;
     ctx.ui.setFooter(undefined);
   });
 
@@ -94,125 +138,65 @@ export default function statusline(pi: ExtensionAPI) {
     description: "Reload custom one-line statusline",
     handler: async (_args, ctx) => {
       await ctx.reload();
-      return;
     },
   });
 }
 
-function segment(label: string, value: string): string {
-  return `${label} ${value}`;
-}
-
-function summarizeUsage(entries: Array<{ type: string; message?: unknown }>) {
-  let input = 0;
-  let output = 0;
-  let cost = 0;
-
-  for (const entry of entries) {
-    const raw = entry.message as { role?: string } | undefined;
-    if (entry.type !== "message" || raw?.role !== "assistant") continue;
-    const message = raw as AssistantMessage;
-    input += message.usage?.input ?? 0;
-    output += message.usage?.output ?? 0;
-    cost += message.usage?.cost?.total ?? 0;
-  }
-
-  return { input, output, total: input + output, cost };
-}
-
-function shortThinking(level: ThinkingLevel): string {
-  switch (level) {
-    case "minimal":
-      return "min";
-    case "medium":
-      return "med";
-    case "xhigh":
-      return "xhi";
-    default:
-      return level;
-  }
-}
-
-function gitSummary(cwd: string): string | undefined {
-  if (gitCache && gitCache.cwd === cwd && Date.now() - gitCache.createdAt < GIT_CACHE_MS) return gitCache.value;
+async function gitSummary(pi: ExtensionAPI, cwd: string, signal: AbortSignal): Promise<string | undefined> {
+  const run = async (args: string[]) => {
+    const result = await pi.exec("git", args, { cwd, signal, timeout: 200 });
+    return result.code === 0 ? result.stdout.trim() : undefined;
+  };
 
   try {
+    const [upstream, diffOutput, untrackedOutput] = await Promise.all([
+      run(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"]),
+      run(["diff", "--numstat", "HEAD"]),
+      run(["ls-files", "--others", "--exclude-standard"]),
+    ]);
+    if (signal.aborted) return undefined;
+
+    const divergenceOutput = upstream
+      ? await run(["rev-list", "--left-right", "--count", `${upstream}...HEAD`])
+      : undefined;
+    if (signal.aborted) return undefined;
+
     const parts: string[] = [];
-    const commits = commitDivergence(cwd);
-    if (commits) parts.push(commits);
-
-    const diff = parseDiffNumstat(execFileSync("git", ["diff", "--numstat", "HEAD"], {
-      cwd,
-      encoding: "utf8",
-      timeout: 200,
-      stdio: ["ignore", "pipe", "ignore"],
-    }));
-    const untracked = Number(execFileSync("git", ["ls-files", "--others", "--exclude-standard"], {
-      cwd,
-      encoding: "utf8",
-      timeout: 200,
-      stdio: ["ignore", "pipe", "ignore"],
-    }).split("\n").filter(Boolean).length);
-
+    if (divergenceOutput) {
+      const [behind, ahead] = divergenceOutput.split(/\s+/).map(Number);
+      const divergence = [ahead ? `↑${ahead}` : undefined, behind ? `↓${behind}` : undefined].filter(Boolean).join(" ");
+      if (divergence) parts.push(divergence);
+    }
+    const diff = parseDiffNumstat(diffOutput ?? "");
+    const untracked = untrackedOutput?.split("\n").filter(Boolean).length ?? 0;
     if (diff.files || diff.added || diff.removed) parts.push(`${diff.files}f +${diff.added} -${diff.removed}`);
     if (untracked) parts.push(`?${untracked}`);
-    gitCache = { cwd, createdAt: Date.now(), value: parts.length ? parts.join(" ") : undefined };
-    return gitCache.value;
-  } catch {
-    gitCache = { cwd, createdAt: Date.now(), value: undefined };
-    return undefined;
-  }
-}
-
-function commitDivergence(cwd: string): string | undefined {
-  try {
-    const upstream = execFileSync("git", ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"], {
-      cwd,
-      encoding: "utf8",
-      timeout: 200,
-      stdio: ["ignore", "pipe", "ignore"],
-    }).trim();
-    if (!upstream) return undefined;
-    const [behind, ahead] = execFileSync("git", ["rev-list", "--left-right", "--count", `${upstream}...HEAD`], {
-      cwd,
-      encoding: "utf8",
-      timeout: 200,
-      stdio: ["ignore", "pipe", "ignore"],
-    }).trim().split(/\s+/).map(Number);
-    const parts = [];
-    if (ahead) parts.push(`↑${ahead}`);
-    if (behind) parts.push(`↓${behind}`);
     return parts.length ? parts.join(" ") : undefined;
   } catch {
     return undefined;
   }
 }
 
+function segment(label: string, value: string): string { return `${label} ${value}`; }
+function summarizeUsage(entries: Array<{ type: string; message?: unknown }>) {
+  let input = 0; let output = 0; let cost = 0;
+  for (const entry of entries) {
+    const raw = entry.message as { role?: string } | undefined;
+    if (entry.type !== "message" || raw?.role !== "assistant") continue;
+    const message = raw as AssistantMessage;
+    input += message.usage?.input ?? 0; output += message.usage?.output ?? 0; cost += message.usage?.cost?.total ?? 0;
+  }
+  return { input, output, total: input + output, cost };
+}
+function shortThinking(level: ThinkingLevel): string { return level === "minimal" ? "min" : level === "medium" ? "med" : level === "xhigh" ? "xhi" : level; }
 function parseDiffNumstat(value: string): { files: number; added: number; removed: number } {
-  let files = 0;
-  let added = 0;
-  let removed = 0;
+  let files = 0; let added = 0; let removed = 0;
   for (const line of value.split("\n")) {
     if (!line.trim()) continue;
-    const [a, r] = line.split("\t");
-    files++;
-    added += a === "-" ? 0 : Number(a || 0);
-    removed += r === "-" ? 0 : Number(r || 0);
+    const [a, r] = line.split("\t"); files++; added += a === "-" ? 0 : Number(a || 0); removed += r === "-" ? 0 : Number(r || 0);
   }
   return { files, added, removed };
 }
-
-function formatCwd(cwd: string): string {
-  const home = process.env.HOME;
-  return home && cwd.startsWith(home) ? `~${cwd.slice(home.length) || ""}` : cwd;
-}
-
-function fmt(value: number): string {
-  if (value < 1000) return String(value);
-  if (value < 1_000_000) return `${(value / 1000).toFixed(value < 10_000 ? 1 : 0)}k`;
-  return `${(value / 1_000_000).toFixed(1)}m`;
-}
-
-function stripAnsi(value: string): string {
-  return value.replace(/\x1b\[[0-9;]*m/g, "");
-}
+function formatCwd(cwd: string): string { const home = process.env.HOME; return home && cwd.startsWith(home) ? `~${cwd.slice(home.length) || ""}` : cwd; }
+function fmt(value: number): string { return value < 1000 ? String(value) : value < 1_000_000 ? `${(value / 1000).toFixed(value < 10_000 ? 1 : 0)}k` : `${(value / 1_000_000).toFixed(1)}m`; }
+function stripAnsi(value: string): string { return value.replace(/\x1b\[[0-9;]*m/g, ""); }
