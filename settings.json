@@ -9,6 +9,7 @@
   "doubleEscapeAction": "tree",
   "theme": "rose-pine-moon",
   "packages": [
+    "../../projects/but-why",
     "../../projects/pi-extensions/pi-lavish",
     "npm:@ogulcancelik/pi-session-recall@1.0.6",
     "npm:@ogulcancelik/pi-auto-permissions@0.1.2",
