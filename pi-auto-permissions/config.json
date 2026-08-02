@@ -6,6 +6,7 @@
     "reasoningEffort": "low",
     "timeoutMs": 30000
   },
+  "systemPromptFile": "./guardian-prompt.md",
   "reviewEvidence": {
     "projectInstructions": true
   },
@@ -15,6 +16,13 @@
     "placement": "widget"
   },
   "rules": [
+    {
+      "pattern": "(?:^|(?:&&|\\|\\||;)\\s*)by\\s+(?:task\\s+create|change\\s+start)\\b|\\b(?:npx|pnpx)\\b[^\\n;&|]*(?:\\bby|\\bbut-why)\\s+(?:task\\s+create|change\\s+start)\\b",
+      "flags": "i",
+      "level": "guarded",
+      "group": "but-why-lifecycle",
+      "label": "But Why lifecycle operation"
+    },
     {
       "pattern": "\\bgit\\s+push\\b",
       "flags": "i",

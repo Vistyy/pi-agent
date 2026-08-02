@@ -14,6 +14,7 @@
 !session-recall.json
 !pi-auto-permissions/
 !pi-auto-permissions/config.json
+!pi-auto-permissions/guardian-prompt.md
 !pi-codex-subagents/
 !pi-codex-subagents/config.json
 !pi-codex-subagents/agents/
