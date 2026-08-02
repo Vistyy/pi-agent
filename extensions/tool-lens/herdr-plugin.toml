@@ -1,0 +1,30 @@
+id = "pi-tool-lens"
+name = "Pi Tool Lens"
+version = "0.1.0"
+min_herdr_version = "0.7.4"
+platforms = ["linux", "macos"]
+description = "Inspect completed Pi tool results in a Herdr popup terminal."
+
+[[panes]]
+id = "lens"
+title = "Tool Lens"
+placement = "popup"
+command = [
+  "sh",
+  "-c",
+  '''status=0
+error_log="$HERDR_PLUGIN_STATE_DIR/last-error.log"
+"$HERDR_PLUGIN_ROOT/node_modules/.bin/tsx" "$HERDR_PLUGIN_ROOT/src/popup.ts" 2>"$error_log" || status=$?
+if [ "$status" -ne 0 ]; then
+  printf '\nTool Lens exited with an error:\n\n'
+  cat "$error_log"
+  printf '\nPress Enter to close.\n'
+  IFS= read -r _
+else
+  rm -f -- "$error_log"
+fi
+if [ -n "${TOOL_LENS_SNAPSHOT:-}" ]; then
+  rm -rf -- "$(dirname -- "$TOOL_LENS_SNAPSHOT")"
+fi
+exit "$status"''',
+]
