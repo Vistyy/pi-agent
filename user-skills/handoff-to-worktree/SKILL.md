@@ -77,9 +77,18 @@ Do not run Change Implement separately.
 Do not retry an indeterminate launch.
 The companion script owns launch observation, late-start handling, Change verification, and temporary-file cleanup.
 
+Treat an accepted result as a handoff result, not a Pi-readiness result.
 Accept `started`, `already_active`, or `late_active` only when `changeVerified` is `true`.
+
+- `started` means But Why confirmed Herdr dispatch and the named Interactive Session.
+  It does not confirm that Pi is active or ready.
+- `already_active` means But Why observed the matching active Interactive Session before dispatch.
+- `late_active` means the companion script observed an active agent in the Managed Worktree during bounded recovery after an indeterminate result.
+- `changeVerified: true` verifies only the Change identity, open state, Change readiness, and exact Managed Worktree path.
+
+For `started`, do not wait for, poll for, or report Pi activity or readiness.
 For any other result, report the structured result and diagnostic paths, then stop.
 Keep the current Pi session open.
-The fresh Herdr-hosted Pi session owns implementation in the Managed Worktree.
+The fresh Herdr-hosted Pi session is the intended implementation owner, but `started` does not confirm that it is active.
 
-This workflow is complete when the script reports an accepted status with `changeVerified: true`.
+This workflow is complete when the script reports an accepted handoff result with `changeVerified: true`.
