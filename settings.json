@@ -16,7 +16,6 @@
     "npm:@ogulcancelik/pi-codex-subagents@0.3.2"
   ],
   "extensions": [
-    "-extensions/pi-swop/index.ts",
     "extensions/named-subagent-policy/index.ts"
   ],
   "enabledModels": [

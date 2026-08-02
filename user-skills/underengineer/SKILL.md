@@ -1,10 +1,10 @@
 ---
-name: slopminning
+name: underengineer
 description: "[M] Find unnecessary complexity in a plan and show what can go."
 disable-model-invocation: true
 ---
 
-# Slopminning
+# Underengineer
 
 Review the current plan or proposed solution without changing or implementing it.
 If the user supplies a target, review that target.

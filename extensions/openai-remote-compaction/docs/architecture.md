@@ -78,7 +78,6 @@ A successful Pi compaction ends the remote checkpoint chain.
 When OpenAI reports usage, the extension maps it into `CompactionEntry.usage`.
 After Pi saves the compaction, the extension appends a schema-version-1 `pi.usage.recorded` custom entry.
 The entry identifies `openai-remote-compaction` as the extension and `remote-compaction` as the operation.
-The extension does not import or call `pi-cost`.
 
 ## Validation
 
