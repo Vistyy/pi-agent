@@ -1,17 +1,13 @@
 ---
 name: dumb-it-down
-description: "[M] Simplify the idea and explain it in plain words."
+description: "[M] Explain the current idea in plain words without changing it."
 disable-model-invocation: true
 ---
 
-Simplify the underlying idea, solution, or plan first.
-If a simpler approach preserves the required behavior, use that approach.
-If the remaining complexity is required, explain the reason in one sentence.
-
-Then explain the result in plain language.
-Include the context required by a reader who does not know the project.
-Focus on the information that the user must understand or decide.
+Explain the current idea, solution, or plan in plain language without changing its behavior or decisions.
+Preserve the project's canonical terms, but briefly explain terms that an unfamiliar reader might not know.
+Include only the context that the reader needs to understand or decide.
 Keep the explanation short.
 
-Continue to simplify ideas and language during this conversation until the user requests more detail.
-Each response is complete when it preserves the required behavior, explains each necessary complexity in one sentence, gives the reader the context needed to understand or decide, uses plain language, and remains short.
+Continue to use plain language during this conversation until the user requests more detail.
+Each response is complete when it preserves the original meaning, provides the necessary context, explains unfamiliar terms, and remains short.
