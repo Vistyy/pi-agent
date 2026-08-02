@@ -10,10 +10,10 @@
   "theme": "rose-pine-moon",
   "packages": [
     "../../projects/but-why",
-    "../../projects/pi-extensions/pi-lavish",
     "npm:@ogulcancelik/pi-session-recall@1.0.6",
-    "npm:@ogulcancelik/pi-auto-permissions@0.1.2",
-    "npm:@ogulcancelik/pi-codex-subagents@0.3.2"
+    "npm:@ogulcancelik/pi-auto-permissions@0.1.3",
+    "npm:@ogulcancelik/pi-codex-subagents@0.3.2",
+    "git:github.com/Vistyy/pi-lavish@v0.4.0"
   ],
   "extensions": [
     "extensions/named-subagent-policy/index.ts"
