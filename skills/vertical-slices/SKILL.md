@@ -22,13 +22,19 @@ For each slice, record:
 Acceptance criteria must describe required behavior and constraints.
 Acceptance criteria must not prescribe verification mechanisms.
 
+Do not infer approval from brainstorming or provisional planning.
+If requirement approval is unclear, resolve it with the applicable authority before setting Task boundaries.
+
 This step is complete when the proposed slices cover every approved requirement exactly once.
 Each proposed slice must have one capability and observable acceptance criteria.
 
 ## 2. Set Task boundaries
 
 Prefer the fewest independently verifiable Tasks that preserve clear ownership and necessary dependencies.
-Split work only when each resulting Task has an independently verifiable result.
+Task sizing must not remove, defer, replace, or narrow approved behavior.
+Treat implementation size as a reason to look again for a valid Task boundary, not as permission to reduce approved scope.
+Split work only when each resulting Task has an independently verifiable supported result.
+If no such split exists, keep the capability in one Task even when it is large.
 Each split must also have a distinct capability, shared contract, lifecycle, owner, or blocker.
 Create a shared-contract Task only when the shared contract is independently verifiable and multiple slices require it.
 Keep implementation stages in one Task when they serve one capability and share ownership and dependencies.

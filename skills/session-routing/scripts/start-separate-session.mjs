@@ -23,7 +23,7 @@ function homeView() {
 }
 
 function help() {
-  process.stdout.write(`${usage}\n\nRequired:\n  --name <name>           Descriptive Herdr workspace and Pi session name\n  --cwd <path>            Working directory for the new session\n  --handoff-file <path>   Compact handoff used as the initial Pi prompt\n\nOptional:\n  --focus                 Focus the new session after launch\n  --timeout-ms <number>   Verification timeout in milliseconds (default: 10000)\n  --help                  Show this help\n\nEnvironment:\n  HERDR_BIN               Override the Herdr executable\n  PI_BIN                  Override the Pi executable\n\nExamples:\n  start-separate-session --name audit-agent-instructions --cwd ~/.pi/agent --handoff-file /tmp/handoff.md\n  start-separate-session --name continue-token-audit --cwd ~/.pi/agent --handoff-file /tmp/handoff.md --focus\n`);
+  process.stdout.write(`${usage}\n\nRequired:\n  --name <name>           Descriptive Herdr workspace and Pi session name\n  --cwd <path>            Working directory for the new session\n  --handoff-file <path>   Compact handoff used as the initial Pi prompt\n\nOptional:\n  --focus                 Focus the new session after launch\n  --timeout-ms <number>   Verification timeout in milliseconds (default: 10000)\n  --help                  Show this help\n\nEnvironment:\n  HERDR_BIN               Override the Herdr executable\n\nExamples:\n  start-separate-session --name audit-agent-instructions --cwd ~/.pi/agent --handoff-file /tmp/handoff.md\n  start-separate-session --name continue-token-audit --cwd ~/.pi/agent --handoff-file /tmp/handoff.md --focus\n`);
 }
 
 function fail(message, suggestion, code = 1) {
@@ -93,7 +93,7 @@ function parseJsonOutput(result, operation, cleanup) {
   }
   let parsed;
   try {
-    parsed = JSON.parse(result.stdout);
+    parsed = JSON.parse(result.stdout.trim() || result.stderr.trim());
   } catch {
     cleanup?.();
     fail(`${operation} returned an unreadable result`, "Run `herdr status server` and retry");
@@ -104,6 +104,18 @@ function parseJsonOutput(result, operation, cleanup) {
     fail(detail ? `${operation} failed: ${detail}` : `${operation} failed`, "Inspect `herdr agent list` and retry");
   }
   return parsed;
+}
+
+function requireSuccess(result, operation, cleanup) {
+  if (!result.error && result.status === 0) return;
+  cleanup?.();
+  let detail;
+  try {
+    detail = JSON.parse(result.stdout.trim() || result.stderr.trim())?.error?.message;
+  } catch {
+    // Use the generic failure below.
+  }
+  fail(detail ? `${operation} failed: ${detail}` : `${operation} failed`, "Inspect `herdr agent list` and retry");
 }
 
 function sleep(milliseconds) {
@@ -146,8 +158,6 @@ try {
 if (!handoff) fail("handoff file is empty", "Add the owned outcome and required context to the handoff file", 2);
 
 const herdr = findExecutable("herdr", process.env.HERDR_BIN);
-const pi = findExecutable("pi", process.env.PI_BIN);
-const focusFlag = options.focus ? "--focus" : "--no-focus";
 const created = parseJsonOutput(
   run(herdr, [
     "workspace",
@@ -162,8 +172,7 @@ const created = parseJsonOutput(
 );
 const workspace = created?.result?.workspace;
 const rootPane = created?.result?.root_pane;
-const tab = created?.result?.tab;
-if (!workspace?.workspace_id || !rootPane?.pane_id || !tab?.tab_id) {
+if (!workspace?.workspace_id || !rootPane?.pane_id) {
   if (workspace?.workspace_id) run(herdr, ["workspace", "close", workspace.workspace_id]);
   fail("workspace creation returned incomplete identifiers", "Inspect `herdr workspace list` and retry");
 }
@@ -175,27 +184,34 @@ const start = parseJsonOutput(
     "agent",
     "start",
     options.name,
-    "--cwd",
-    cwd,
-    "--workspace",
-    workspace.workspace_id,
-    "--tab",
-    tab.tab_id,
-    focusFlag,
+    "--kind",
+    "pi",
+    "--pane",
+    rootPane.pane_id,
     "--",
-    pi,
     "--name",
     options.name,
-    handoff,
   ]),
   "session launch",
   cleanupWorkspace,
 );
-parseJsonOutput(
-  run(herdr, ["pane", "close", rootPane.pane_id]),
-  "initial workspace pane cleanup",
+requireSuccess(
+  run(herdr, ["pane", "send-text", rootPane.pane_id, `@${handoffFile}`]),
+  "handoff entry",
   cleanupWorkspace,
 );
+requireSuccess(
+  run(herdr, ["pane", "send-keys", rootPane.pane_id, "Enter"]),
+  "handoff submission",
+  cleanupWorkspace,
+);
+if (options.focus) {
+  parseJsonOutput(
+    run(herdr, ["workspace", "focus", workspace.workspace_id]),
+    "workspace focus",
+    cleanupWorkspace,
+  );
+}
 
 const deadline = Date.now() + options.timeoutMs;
 let agent = start?.result?.agent;

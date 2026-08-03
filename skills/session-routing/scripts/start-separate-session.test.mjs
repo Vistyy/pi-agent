@@ -14,8 +14,6 @@ async function fixture() {
   const handoff = path.join(root, "handoff.md");
   await import("node:fs/promises").then(({ mkdir }) => mkdir(bin));
   await writeFile(handoff, "Own the documentation audit.\n");
-  await writeFile(path.join(bin, "pi"), "#!/bin/sh\nexit 0\n");
-  await chmod(path.join(bin, "pi"), 0o755);
   await writeFile(
     path.join(bin, "herdr"),
     `#!/bin/sh
@@ -28,8 +26,12 @@ if [ "$1 $2" = "agent start" ]; then
   printf '%s\\n' '{"id":"cli:agent:start","result":{"agent":{"name":"docs-audit","terminal_id":"term_123","cwd":"${root}","agent_status":"unknown","workspace_id":"w99"},"type":"agent_started"}}'
   exit 0
 fi
-if [ "$1 $2" = "pane close" ]; then
-  printf '%s\\n' '{"id":"cli:pane:close","result":{"type":"ok"}}'
+if [ "$1 $2" = "workspace focus" ]; then
+  printf '%s\\n' '{"id":"cli:workspace:focus","result":{"type":"ok"}}'
+  exit 0
+fi
+if [ "$1 $2" = "pane send-text" ] || [ "$1 $2" = "pane send-keys" ]; then
+  printf '%s\\n' '{"id":"cli:pane:input","result":{"type":"ok"}}'
   exit 0
 fi
 if [ "$1 $2" = "agent get" ]; then
@@ -106,11 +108,14 @@ test("starts default Pi through Herdr and verifies the detected session", async 
 
     const calls = (await readFile(f.log, "utf8")).trim().split("\n");
     assert.equal(calls[0], `workspace create --cwd ${f.root} --label docs-audit --no-focus`);
-    assert.match(calls[1], /^agent start docs-audit /);
-    assert.match(calls[1], /--workspace w99 --tab w99:t1 --no-focus -- .*\/pi --name docs-audit Own the documentation audit\.$/);
+    assert.equal(
+      calls[1],
+      "agent start docs-audit --kind pi --pane w99:p1 -- --name docs-audit",
+    );
     assert.doesNotMatch(calls[1], /--model|--continue|--resume|--fork/);
-    assert.equal(calls[2], "pane close w99:p1");
-    assert.equal(calls[3], "agent get docs-audit");
+    assert.equal(calls[2], `pane send-text w99:p1 @${f.handoff}`);
+    assert.equal(calls[3], "pane send-keys w99:p1 Enter");
+    assert.equal(calls[4], "agent get docs-audit");
   } finally {
     await f.cleanup();
   }
@@ -127,7 +132,8 @@ test("focuses a continuation handoff when requested", async () => {
     assert.match(result.stdout, /^  focus: true$/m);
     const calls = await readFile(f.log, "utf8");
     assert.match(calls, /workspace create .* --label docs-audit --no-focus/);
-    assert.match(calls, /agent start docs-audit .* --workspace w99 --tab w99:t1 --focus -- /);
+    assert.match(calls, /agent start docs-audit --kind pi --pane w99:p1 -- /);
+    assert.match(calls, /workspace focus w99/);
   } finally {
     await f.cleanup();
   }
