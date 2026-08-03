@@ -57,9 +57,16 @@ Compare only structures supported by the problem:
 - Keep simple behavior direct at the caller.
 - Deepen a module around distributed behavior or knowledge.
 
+When relationships among Modules or callers affect the choice, represent the current structure and each credible proposed structure with the lightest suitable terminal-native table, tree, graph, or diagram.
+Use the representation to inspect ownership, crossings, cycles, coordination, and deletion opportunities.
+If the representation is convoluted, investigate whether moving, deleting, merging, or deepening a Module simplifies the design.
+Treat convolution as evidence to investigate, not as proof that the design is wrong.
+Retain complexity when authoritative context or concrete evidence requires it, and state that reason.
+
 Compare each credible structure by caller knowledge, edit locations, new concepts, interfaces, indirection, migration work, and verification setup.
 
 This step is complete when named evidence supports one structure and its structural and maintenance trade-offs are explicit.
+When a representation is required, completion also requires explicit ownership and coordination, the result of the convolution investigation, and the reason for each retained source of complexity.
 
 ## 3. Define ownership and interfaces
 
