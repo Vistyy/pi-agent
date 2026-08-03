@@ -2,7 +2,10 @@ import { createHash } from "node:crypto";
 import type { SessionEntry } from "@earendil-works/pi-coding-agent";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import remoteCompactionExtension from "../src/index.js";
-import { COMPACTION_MARKER } from "../src/constants.js";
+import {
+  COMPACTION_MARKER,
+  REMOTE_COMPACTION_COMPLETED_EVENT,
+} from "../src/constants.js";
 
 function jwt(): string {
   const encode = (value: unknown) => Buffer.from(JSON.stringify(value)).toString("base64url");
@@ -22,6 +25,7 @@ function apiHarness() {
           commands.set(name, command),
       ),
       appendEntry: vi.fn(),
+      events: { emit: vi.fn() },
     },
     handlers,
     commands,
@@ -199,6 +203,10 @@ describe("remote compaction extension lifecycle", () => {
         usage: expect.objectContaining({ input: 12, output: 2, totalTokens: 14, cost: 0 }),
       }),
     );
+    expect(api.events.emit).toHaveBeenCalledWith(
+      REMOTE_COMPACTION_COMPLETED_EVENT,
+      undefined,
+    );
 
     await handlers.get("session_compact")?.(
       {
@@ -217,6 +225,7 @@ describe("remote compaction extension lifecycle", () => {
       ctx,
     );
     expect(api.appendEntry).toHaveBeenCalledOnce();
+    expect(api.events.emit).toHaveBeenCalledOnce();
 
     await handlers.get("session_compact")?.(
       {
@@ -240,6 +249,7 @@ describe("remote compaction extension lifecycle", () => {
         usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: 0 },
       }),
     );
+    expect(api.events.emit).toHaveBeenCalledTimes(2);
 
     const compactedBranch = [
       ...entries,
@@ -880,6 +890,14 @@ describe("remote compaction extension lifecycle", () => {
         }),
       }),
     );
+    expect(api.events.emit).toHaveBeenCalledWith(
+      REMOTE_COMPACTION_COMPLETED_EVENT,
+      undefined,
+    );
+    expect(ctx.ui.notify).toHaveBeenCalledWith(
+      "Remote context compacted. Continuing the current run.",
+      "info",
+    );
     expect(JSON.stringify(rewritten)).not.toContain("continue the unfinished task");
   });
 
@@ -946,6 +964,8 @@ describe("remote compaction extension lifecycle", () => {
     ]);
     expect(fetch.mock.calls.some(([url]) => String(url).endsWith("/responses"))).toBe(false);
     expect(api.appendEntry).not.toHaveBeenCalled();
+    expect(api.events.emit).not.toHaveBeenCalled();
+    expect(ctx.ui.notify).not.toHaveBeenCalledWith(expect.any(String), "info");
   });
 
   it("preserves provider-bound tail items after an inline checkpoint", async () => {
@@ -1011,6 +1031,8 @@ describe("remote compaction extension lifecycle", () => {
 
     expect(unchanged.input).toEqual(payload.input);
     expect(api.appendEntry).not.toHaveBeenCalled();
+    expect(api.events.emit).not.toHaveBeenCalled();
+    expect(ctx.ui.notify).not.toHaveBeenCalledWith(expect.any(String), "info");
     expect(ctx.ui.notify).toHaveBeenCalledWith(
       expect.stringContaining("Inline remote compaction failed"),
       "error",

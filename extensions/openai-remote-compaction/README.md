@@ -24,6 +24,9 @@ Custom `/compact` instructions are not supported while remote compaction applies
 
 Remote usage is recorded in both Pi's compaction entry and the shared `pi.usage.recorded` format used by `/cost`.
 Inline checkpoints use a persisted custom entry and the same usage format.
+After successful inline or Pi-managed remote compaction, the extension emits `openai-remote-compaction:completed` through `pi.events` with an `undefined` payload.
+The event is not emitted for ordinary Pi compaction or failed remote compaction.
+Successful inline compaction also shows a brief notice before the current run continues.
 
 ## Documentation
 

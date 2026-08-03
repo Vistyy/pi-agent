@@ -14,6 +14,7 @@ import {
   COMPACTION_MARKER,
   INLINE_REMOTE_COMPACTION_ENTRY,
   PROACTIVE_COMPACTION_RATIO,
+  REMOTE_COMPACTION_COMPLETED_EVENT,
 } from "./constants.js";
 import {
   buildRemoteCompactionRequest,
@@ -228,6 +229,8 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
           };
           pi.appendEntry(INLINE_REMOTE_COMPACTION_ENTRY, details);
           pi.appendEntry("pi.usage.recorded", createUsageRecord(model.id, remote.usage));
+          pi.events.emit(REMOTE_COMPACTION_COMPLETED_EVENT, undefined);
+          ctx.ui.notify("Remote context compacted. Continuing the current run.", "info");
           template = { ...template, input: remote.replacementHistory };
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
@@ -295,6 +298,7 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
       "pi.usage.recorded",
       createUsageRecord(details.creatingModelId, event.compactionEntry.usage),
     );
+    pi.events.emit(REMOTE_COMPACTION_COMPLETED_EVENT, undefined);
   });
 
   pi.on("session_before_compact", async (event, ctx) => {
