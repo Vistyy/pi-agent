@@ -156,6 +156,21 @@ describe("headless extension lifecycle", () => {
 		expect(ui.setStatus).toHaveBeenCalledWith("openai-fast", "⚡");
 	});
 
+	it("hides the OpenAI fast indicator for non-OpenAI models", async () => {
+		vi.stubEnv("PI_OPENAI_FAST", "1");
+		const { api, handlers } = extensionApi();
+		const { ctx, ui } = interactiveContext();
+		const openaiFast = await importExtension("../../openai-fast.ts");
+		openaiFast(api as any);
+
+		handlers.get("session_start")?.({}, ctx);
+		handlers.get("model_select")?.({ model: { provider: "anthropic", id: "claude-sonnet", name: "Claude" } }, ctx);
+		expect(ui.setStatus).toHaveBeenLastCalledWith("openai-fast", undefined);
+
+		handlers.get("model_select")?.({ model: { provider: "openai", id: "gpt-5.6", name: "GPT-5.6" } }, ctx);
+		expect(ui.setStatus).toHaveBeenLastCalledWith("openai-fast", "⚡");
+	});
+
 	it("does not initialize file autocomplete headlessly", async () => {
 		const { api, handlers } = extensionApi();
 		const { ctx, ui } = headlessContext();

@@ -80,20 +80,21 @@ export default function statusline(pi: ExtensionAPI) {
           const codex = statuses.get("codex-usage");
           const fast = statuses.get("openai-fast");
 
-          const divider = theme.fg("borderMuted", "  │  ");
+          const divider = theme.fg("borderMuted", " | ");
           const modelName = theme.fg("text", `${ctx.model?.id ?? "no model"}:${shortThinking(thinkingLevel)}`);
           const fastIndicator = fast ? theme.fg("accent", stripAnsi(fast)) : "";
-          const model = segment(theme.fg("accent", "π"), `${fastIndicator}${modelName}`);
-          const ctxPct = contextUsage?.percent != null ? segment(theme.fg("dim", "ctx"), theme.fg(contextUsage.percent >= 80 ? "warning" : "muted", `${Math.round(contextUsage.percent)}%`)) : undefined;
+          const model = `${theme.fg("accent", "π")} ${modelName}${fastIndicator ? ` ${fastIndicator}` : ""}`;
+          const contextColor = contextUsage?.percent != null && contextUsage.percent >= 80 ? "warning" : "muted";
+          const ctxPct = contextUsage?.percent != null ? theme.fg(contextColor, `${Math.round(contextUsage.percent)}%`) : undefined;
           const ctxFull = contextUsage?.tokens != null
-            ? segment(theme.fg("dim", "ctx"), theme.fg(contextUsage.percent != null && contextUsage.percent >= 80 ? "warning" : "muted", `${Math.round(contextUsage.percent ?? 0)}%/${fmt(contextUsage.contextWindow)}`))
+            ? theme.fg(contextColor, `${Math.round(contextUsage.percent ?? 0)}%/${fmt(contextUsage.contextWindow)}`)
             : ctxPct;
-          const cwdSeg = segment(theme.fg("dim", "cwd"), theme.fg("muted", formatCwd(ctx.cwd)));
-          const gitFull = branch ? segment(theme.fg("dim", "git"), theme.fg("success", `${branch}${git ? ` ${git}` : ""}`)) : undefined;
-          const gitCompact = branch ? segment(theme.fg("dim", "git"), theme.fg("success", branch)) : undefined;
-          const tokFull = segment(theme.fg("dim", "tok"), theme.fg("muted", `${fmt(usage.total)} (${fmt(usage.input)}↑/${fmt(usage.output)}↓)`));
-          const tokCompact = segment(theme.fg("dim", "tok"), theme.fg("muted", fmt(usage.total)));
-          const costSeg = usage.cost > 0 ? segment(theme.fg("dim", "$"), theme.fg("warning", usage.cost.toFixed(3))) : undefined;
+          const cwdSeg = theme.fg("muted", formatCwd(ctx.cwd));
+          const gitFull = branch ? theme.fg("success", `${branch}${git ? ` ${git}` : ""}`) : undefined;
+          const gitCompact = branch ? theme.fg("success", branch) : undefined;
+          const tokFull = theme.fg("muted", `${fmt(usage.total)} (${fmt(usage.input)}↑/${fmt(usage.output)}↓)`);
+          const tokCompact = theme.fg("muted", fmt(usage.total));
+          const costSeg = usage.cost > 0 ? theme.fg("warning", `$${usage.cost.toFixed(3)}`) : undefined;
           const codexSeg = codex ? theme.fg("accent", stripAnsi(codex)) : undefined;
           const tiers: Array<{ chunks: string[] }> = [
             { chunks: [model, ctxFull, cwdSeg, gitFull, tokFull, costSeg, codexSeg].filter(Boolean) as string[] },
@@ -106,19 +107,11 @@ export default function statusline(pi: ExtensionAPI) {
             if (visibleWidth(line) <= width) return [line];
           }
 
-          const chunks = tiers[2].chunks;
-          const lines: string[] = [];
-          let line = "";
-          for (const chunk of chunks) {
-            const candidate = line ? line + divider + chunk : chunk;
-            if (visibleWidth(candidate) <= width) line = candidate;
-            else {
-              if (line) lines.push(line);
-              line = visibleWidth(chunk) > width ? truncateToWidth(chunk, width, "") : chunk;
-            }
-          }
-          if (line) lines.push(visibleWidth(line) > width ? truncateToWidth(line, width, "") : line);
-          return lines;
+          return renderCompactStatus(
+            [model, ctxPct, cwdSeg, gitCompact, tokCompact, costSeg].filter(Boolean) as string[],
+            width,
+            divider,
+          );
         },
       };
     });
@@ -135,7 +128,7 @@ export default function statusline(pi: ExtensionAPI) {
   });
 
   pi.registerCommand("statusline", {
-    description: "Reload custom one-line statusline",
+    description: "Reload custom statusline",
     handler: async (_args, ctx) => {
       await ctx.reload();
     },
@@ -177,7 +170,26 @@ async function gitSummary(pi: ExtensionAPI, cwd: string, signal: AbortSignal): P
   }
 }
 
-function segment(label: string, value: string): string { return `${label} ${value}`; }
+function renderCompactStatus(chunks: string[], width: number, divider: string): string[] {
+  const availableWidth = Math.max(1, width);
+  const model = chunks[0] ?? "";
+  if (visibleWidth(model) > availableWidth) return [truncateToWidth(model, availableWidth, "")];
+
+  let line = model;
+  const context = chunks[1];
+  if (context) {
+    const candidate = `${line}${divider}${context}`;
+    if (visibleWidth(candidate) > availableWidth) return [line];
+    line = candidate;
+  }
+
+  for (const chunk of chunks.slice(2)) {
+    const candidate = `${line}${divider}${chunk}`;
+    if (visibleWidth(candidate) <= availableWidth) line = candidate;
+  }
+
+  return [line];
+}
 function summarizeUsage(entries: Array<{ type: string; message?: unknown }>) {
   let input = 0; let output = 0; let cost = 0;
   for (const entry of entries) {
