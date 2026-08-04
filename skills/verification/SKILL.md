@@ -1,6 +1,6 @@
 ---
 name: verification
-description: Use when evidence is needed to determine whether work satisfies its requirements.
+description: Use when designing verification, producing evidence that work satisfies requirements, or reviewing verification design or evidence.
 ---
 
 # Verification
@@ -41,27 +41,39 @@ When project verification strategy is missing or needs revision, read [Manage Pr
 
 This step is complete when the required result, accepted verification constraints, relevant mechanisms, and mandatory gates are known.
 
-## 2. Design proportionate evidence
+## 2. Design verification
 
-When creating or redesigning a project verification portfolio, read [Design a Verification Portfolio](references/DESIGN-PORTFOLIO.md) and follow that workflow instead of this work-level design step.
-Before selecting evidence for current work, read [Verification Techniques](references/TECHNIQUES.md).
+Use this branch when planning verification or selecting evidence for current work.
+When creating or redesigning a project verification portfolio, read [Design a Verification Portfolio](references/DESIGN-PORTFOLIO.md) and follow that workflow instead of this work-level design branch.
+Before selecting evidence, read [Verification Techniques](references/TECHNIQUES.md).
 
 Identify each Material Risk introduced or affected by the work.
 For each Material Risk, define the smallest sufficient set of Verification Claims.
-For each Verification Claim, select proportionate feasible Evidence through the technique workflow.
+For each Verification Claim, select proportionate feasible Verification Evidence through the technique workflow.
 
 A Material Risk does not authorize maximum prevention.
 Do not require a stronger product guarantee than accepted requirements justify.
 Existing rejection, recovery, or operator control is sufficient when concrete evidence does not show a remaining material consequence.
-When no proportionate evidence can address an accepted Material Risk, expose the unresolved requirement or product decision instead of inventing or silently weakening a claim.
+When no proportionate evidence can address an accepted Material Risk, expose the unresolved requirement or product decision instead of inventing or silently weakening a Claim.
 Do not enumerate remote possibilities only to reject them.
 When no Material Risk needs evidence beyond applicable mandatory gates, do not add verification work by convention.
 
-This step is complete when every Material Risk has sufficient Verification Claims, every Claim has proportionate feasible Evidence, and no Claim requires an unjustified product guarantee.
+Design is complete when every Material Risk has sufficient Verification Claims, every Claim has proportionate feasible Evidence, and no Claim requires an unjustified product guarantee.
 
-## 3. Produce or review evidence
+## 3. Produce verification evidence
 
-- When producing verification evidence, read [Produce Verification Evidence](references/PRODUCE-EVIDENCE.md).
-- When reviewing completed work or submitted evidence, read [Review Verification Evidence](references/REVIEW-EVIDENCE.md).
+Use this branch when implementing work or otherwise collecting evidence.
+Follow accepted Verification Claims and any approved verification plan.
+When applicable Risks or Claims are not yet known, complete the design branch first.
+Before selecting or materially changing an evidence mechanism, read [Verification Techniques](references/TECHNIQUES.md).
+Read [Produce Verification Evidence](references/PRODUCE-EVIDENCE.md) and follow its workflow.
 
-This step is complete when every applicable workflow reaches its completion criterion.
+Production is complete when every Verification Claim has interpretable evidence and every mandatory gate passes.
+
+## 4. Review verification
+
+Use this branch when reviewing a proposed verification design, completed work, or submitted evidence.
+When review requires selecting or materially reconsidering an evidence mechanism, read [Verification Techniques](references/TECHNIQUES.md).
+Read [Review Verification Design and Evidence](references/REVIEW-EVIDENCE.md) and follow the applicable workflow.
+
+Review is complete when every applicable review workflow reaches its completion criterion.
