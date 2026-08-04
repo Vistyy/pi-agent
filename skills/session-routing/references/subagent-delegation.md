@@ -1,8 +1,5 @@
 # Subagent Delegation
 
-The main session remains the holistic reasoning owner.
-The subagent owns one bounded question or deliverable and its detailed working context.
-
 ## 1. Prepare the assignment
 
 Assign one self-contained question or deliverable.
@@ -42,7 +39,6 @@ Use a new subagent only when the new assignment has a separate working set.
 An explicitly independent corroboration assignment can also use a new subagent.
 
 This step is complete when each active scope has one owner.
-The main session must not have imported a delegated working set.
 
 ## 3. Apply the report
 
@@ -55,4 +51,3 @@ Inspection is also permitted to resolve conflicting evidence or apply the result
 Do not repeat the delegated exploration.
 
 This step is complete when the main session can integrate the result.
-It must not reconstruct the subagent's working context.

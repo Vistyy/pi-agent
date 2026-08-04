@@ -10,19 +10,23 @@
 
 Example session-start context:
 
-```toon
-specs[2]{id,title,status}:
-  1,Fix auth bug,open
-  2,Add pagination,in-progress
+Render this context in the CLI's selected output format.
+Do not assume TOON.
+Use TOON only after the user or project explicitly selects and approves it; then use it consistently.
 
-help[2]:
+```text
+specs: 2 records
+  id: 1; title: Fix auth bug; status: open
+  id: 2; title: Add pagination; status: in-progress
+help:
   Run `mytool specs view 1` for details
   Run `mytool specs create --title "..."` to add a spec
 ```
 
 ## Integration requirements
 
-- **Default app targets**: Support Claude Code, Codex, OpenCode, and Pi when each harness can run the integration.
+- **Per-harness approval**: Obtain explicit user or project approval for each target harness before setup or implementation.
+  Do not assume support for Claude Code, Codex, OpenCode, or Pi.
 - **Explicit opt-in**: Install hooks or plugins only through a user-invoked setup command.
 - **Portable commands**: Use a PATH-resolved binary when it resolves to the current executable.
   Otherwise, use the current executable's absolute path.
@@ -34,6 +38,8 @@ help[2]:
 - **Lifecycle capture**: At session end, record available transcript locations, modified paths, and referenced specifications.
 
 ## Harness integration
+
+The following harness guidance applies only after that harness has individual user or project approval.
 
 - **Claude Code**: Use native hooks in `~/.claude/settings.json` or project `.claude/settings.json`.
   Use `SessionStart` to inject context through stdout.

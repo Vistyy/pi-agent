@@ -64,6 +64,9 @@ Treat convolution as evidence to investigate, not as proof that the design is wr
 Retain complexity when authoritative context or concrete evidence requires it, and state that reason.
 
 Compare each credible structure by caller knowledge, edit locations, new concepts, interfaces, indirection, migration work, and verification setup.
+Reject structures that do not satisfy the required behavior or established ownership constraints.
+Among the remaining structures, prefer the one that introduces the least caller knowledge, coordination, concepts, interfaces, indirection, dependencies, and verification setup.
+Retain an additional commitment only when named evidence requires it.
 
 This step is complete when named evidence supports one structure and its structural and maintenance trade-offs are explicit.
 When a representation is required, completion also requires explicit ownership and coordination, the result of the convolution investigation, and the reason for each retained source of complexity.

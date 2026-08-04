@@ -5,8 +5,8 @@ description: Use when decomposing approved requirements into vertical Tasks or r
 
 # Vertical Slices
 
-A **task-level tracer bullet** is one end-to-end path that delivers one observable capability across every required integration layer.
-A task-level tracer bullet is narrow by outcome, not by file count or implementation effort.
+A slice is one end-to-end path that delivers one observable capability across every required integration layer.
+A slice is narrow by outcome, not by file count or implementation effort.
 
 Use this file to design a Task graph.
 When implementation reveals work that may change scope, read and apply [Route Discovered Work](references/ROUTE-DISCOVERED-WORK.md).

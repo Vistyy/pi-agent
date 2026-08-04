@@ -10,7 +10,12 @@ When creating, revising, or auditing documentation, read [Documentation](referen
 When a bold term controls a decision, read its authoritative definition in [the glossary](references/GLOSSARY.md) before making that decision.
 
 When the user requests an audit, evaluate the existing instructions against every step and completion criterion without changing them.
-Report each failed criterion and the evidence that supports the finding.
+Report findings in a table with one row per failed criterion:
+
+| Criterion | Evidence | Impact |
+| --- | --- | --- |
+
+Report no findings only when every criterion passes.
 
 ## 1. Define the required behavior
 

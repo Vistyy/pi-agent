@@ -43,10 +43,12 @@ This section is complete when the frontmatter, description, and invocation behav
 
 A model-invoked description is the machine-readable trigger that points from the agent context to the skill.
 Its wording determines when the agent loads the skill.
-The description must identify every distinct invocation condition without summarizing the skill's behavior or background.
+The description must define the largest applicability region that remains correct.
+Include every required trigger branch, exclude adjacent non-matching tasks, and omit conditions that are not needed for routing.
+Do not summarize the skill's behavior or background.
 
 Context load is the permanent agent-context cost of a model-invoked description.
-Use the shortest description that preserves complete trigger coverage.
+Use the shortest wording that preserves that applicability boundary.
 
 This section is complete when the agent can distinguish matching tasks from adjacent non-matching tasks by reading only the description.
 
@@ -62,6 +64,16 @@ A skill can contain only steps, only reference, or both.
 When a skill has steps, unrelated reference can hide the current action and weaken attention.
 
 This section is complete when every action and reference is at the lowest reliable level and each step has a sufficient completion criterion.
+
+## Define recurring outputs
+
+When a skill repeatedly produces the same kind of user-facing result, define a stable output contract so recurring information appears in the same place across invocations.
+Fix the ordering and representation of recurring fields.
+Use tables for repeated comparable records and headings for connected reasoning.
+Do not standardize outputs whose structure materially depends on the task.
+Preserve a user-requested format unless the skill requires its format for predictable operation.
+
+This section is complete when recurring information has a predictable location and the format does not force unrelated content into the same structure.
 
 ## Split only at a useful seam
 

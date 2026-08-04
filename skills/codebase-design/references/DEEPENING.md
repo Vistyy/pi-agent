@@ -1,10 +1,6 @@
 # Deepening
 
-**Depth**: The behavior a caller or test can exercise for each part of the interface it must learn.
 A deep module provides substantial behavior through a small interface.
-
-**Leverage**: The capability callers receive for each part of the interface they must learn.
-One implementation can provide leverage to many callers and tests.
 
 ## 1. Confirm the deepening hypothesis
 

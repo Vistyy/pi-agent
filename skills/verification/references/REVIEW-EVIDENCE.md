@@ -10,7 +10,6 @@ Confirm that each Material Risk is plausible, meaningful, and supported by accep
 Confirm that the Verification Claims are sufficient to address each Material Risk without requiring an unjustified product guarantee.
 Confirm that each selected evidence mechanism can establish its Verification Claim at proportionate cost through a reliable seam.
 Confirm that the design includes every applicable mandatory gate.
-Do not add unsupported requirements or speculative edge cases during review.
 
 Report a design finding for each unsupported Material Risk, insufficient Verification Claim, unsuitable evidence mechanism, or missing mandatory gate.
 Design review is complete when every reviewed Material Risk, Verification Claim, evidence mechanism, and mandatory gate is sufficient or has a concrete design finding.
@@ -21,7 +20,12 @@ Evaluate each Verification Claim independently against the submitted evidence an
 Confirm that the evidence uses a materially required seam or a reliable equivalent.
 Confirm that the evidence is current, interpretable, and sufficient for its Material Risk.
 Confirm that every applicable mandatory gate passed.
-Do not add unsupported requirements or speculative edge cases during review.
+
+When reviewing multiple comparable Claims, use this branch-specific table:
+
+| Claim | Evidence | Verdict | Gap |
+| --- | --- | --- | --- |
+| <Verification Claim> | <Verification Evidence> | <sufficient or finding> | <unsupported fact or none> |
 
 When accepted requirements retire a concept, inspect targeted diff, search, and inspection evidence across the affected surfaces.
 Require an accepted current boundary for each retained representation of the retired concept.

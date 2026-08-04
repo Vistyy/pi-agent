@@ -98,5 +98,24 @@ For an assessment request, run every available read-only check that supports the
 Resolve each failure or report its exact unresolved cause.
 Preserve unrelated working-tree changes.
 
-The final report must include the outcome classification, files changed or proposed, commands and results, unresolved decisions, and remaining failures.
+Return the final report under these headings in order:
+
+### Outcome
+
+| Requested outcome | Classification | Evidence |
+| --- | --- | --- |
+
+### Command results
+
+| Requested outcome | Command | Scope or lifecycle | Blocking mode | Result | Findings or unresolved cause |
+| --- | --- | --- | --- | --- | --- |
+
+### Files changed or proposed
+
+### Unresolved decisions
+
+### Remaining failures
+
+Use one row per requested outcome and command.
+Use `None` under a heading when it has no entries.
 Authorized changes are complete only when `just quality`, each selected lifecycle-blocking command, and selected advisory reports match the documented project policy in the pinned environment.

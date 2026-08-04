@@ -5,8 +5,6 @@ description: "Use for GitHub issues, pull requests, CI runs, workflows, releases
 
 # gh-axi
 
-Use `gh-axi` for GitHub operations.
-
 Run commands as `pnpx -y gh-axi <command>`.
 When output suggests `gh-axi ...`, add the `pnpx -y` prefix before running it.
 
@@ -54,15 +52,15 @@ For example:
 
 `pnpx -y gh-axi api repos/{owner}/{repo}/topics`
 
-## Command reference
+## Help
 
-Top-level commands include dashboard, issue, pr, run, workflow, release, repo, label, search, api, and setup.
-Run `pnpx -y gh-axi --help` for global flags.
-Run `pnpx -y gh-axi <command> --help` for command-specific usage.
+Use `pnpx -y gh-axi --help` as the authority for available commands and global flags.
+Use `pnpx -y gh-axi <command> --help` for command-specific usage.
 
 ## Output and retries
 
-- `gh-axi` returns TOON-encoded output.
+- `gh-axi` uses TOON as its established selected output format.
+  Do not change that format without explicit user or project approval.
 - When output provides `full_log`, use that file instead of requesting the complete log again.
 - Mutations are idempotent and report what changed or whether the requested state already exists.
 - A failed mutation can be retried safely with the same arguments.

@@ -80,14 +80,16 @@ This step is complete when one intervention, including no change, has stronger e
 
 ## 4. Present the recommendation
 
-Return concise prose with:
+Return concise prose under these headings in this order:
 
-- The observed maintenance cost and its evidence.
-- The underlying cause and supported scope.
-- The recommended intervention.
-- The expected observable improvement.
-- The added complexity, migration cost, and main risk.
-- The method for verifying the improvement.
+1. `Observed cost`
+2. `Cause and scope`
+3. `Recommendation`
+4. `Expected improvement`
+5. `Cost and risk`
+6. `Verification`
+
+Each section must state the corresponding evidence or conclusion from this workflow.
 
 Present multiple options only when evidence leaves a genuine decision unresolved.
 

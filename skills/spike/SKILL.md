@@ -37,9 +37,15 @@ This step is complete when the evidence supports the hypothesis, refutes the hyp
 
 ## 4. Record the result
 
-Record the hypothesis, baseline, experiment, commands, observations, conclusion, and limitations.
-Classify the result as supported, refuted, or inconclusive.
-State how the result affects the current plan.
+Record the result under these fixed headings in order:
+
+1. `Hypothesis`: State the falsifiable technical hypothesis.
+2. `Baseline`: Record the defined baseline and measurement method when applicable.
+3. `Experiment`: Record the real-system procedure, commands, changed variable, and scope.
+4. `Evidence`: Record the observations and artifacts needed to interpret the result.
+5. `Conclusion`: Classify the result as supported, refuted, or inconclusive.
+6. `Effect on plan`: State how the result changes the current plan.
+7. `Limitations`: Record untested conditions, unresolved evidence gaps, and scope limits.
 
 This step is complete when another agent can understand what was tested and why the result affects the plan.
 

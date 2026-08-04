@@ -5,8 +5,6 @@ description: Use when subagents are available, delegated context changes, or the
 
 # Session Routing
 
-Keep the main session responsible for holistic reasoning.
-Keep detailed working context local to the agent performing the work.
 Route by reasoning responsibility, working-context cost, and outcome ownership.
 Do not route by an arbitrary turn count.
 
@@ -26,8 +24,7 @@ It has its own user dialogue and does not return its working context to the curr
 ## Invariants
 
 Delegate working context, not holistic judgment.
-The main session must frame the overall problem and integrate worker reports.
-It must resolve cross-cutting trade-offs and make the final decision.
+The main session resolves cross-cutting trade-offs and makes the final decision.
 
 Give each bounded question or deliverable one owner.
 While a subagent owns it, the main session must not independently gather evidence or perform the same work.
@@ -52,7 +49,6 @@ This step is complete when the owned outcome, accepted constraints, and main-ses
 ## 2. Route the work
 
 Keep work in the main session when it uses context already present.
-Also keep holistic framing, synthesis, and user communication in the main session.
 
 Use a subagent when a bounded question or deliverable can be stated compactly.
 For a broad question, keep the holistic question in the main session and delegate its bounded evidence needs.
@@ -81,8 +77,7 @@ This step is complete when the selected route satisfies its branch-specific comp
 
 ## 4. Integrate results and route follow-up work
 
-Use subagent reports as the main session's evidence source.
-Perform the holistic reasoning that combines those reports with the user outcome and accepted constraints.
+Use subagent reports to perform the holistic reasoning that combines them with the user outcome and accepted constraints.
 
 When a report needs more source-local investigation, continue the same subagent with the exact unresolved question.
 Inspect an exact source in the main session only when the holistic decision requires it.

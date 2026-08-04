@@ -30,20 +30,24 @@ Verify opt-in setup, idempotence, directory scoping, lifecycle capture, and toke
 For implemented changes, validate each affected behavior through the supported CLI interface.
 Record the observed stdout, stderr, and exit code for each applicable success, empty, error, mutation, no-argument, and help case.
 
-## Before changing TOON output
+## Output format
 
-Before changing TOON output syntax, read the [TOON specification](https://toonformat.dev/reference/spec.html).
+Do not assume TOON as the output format.
+Use the format selected by the user or project.
+Use the established project format when none is selected; do not introduce TOON.
+Use TOON only after the user or project explicitly selects and approves it.
+After TOON is selected and approved, use it consistently for the CLI's structured stdout, including errors, mutations, empty states, and session context.
+
+Before changing selected TOON syntax, read the [TOON specification](https://toonformat.dev/reference/spec.html).
 Verify that generated stdout is valid TOON.
+Keep internal logic independent of the selected output format and serialize at the output boundary.
 
-Use [TOON](https://toonformat.dev/) (Token-Oriented Object Notation) on stdout.
-TOON provides approximately 40% token savings over equivalent JSON while remaining readable by agents.
-Keep internal logic on JSON.
-Convert JSON to TOON at the output boundary.
+The following examples describe fields and values without selecting an output syntax:
 
-```toon
-tasks[2]{id,title,status,assignee}:
-  "1",Fix auth bug,open,alice
-  "2",Add pagination,closed,bob
+```text
+items: 2 records
+  id: 1; title: Fix auth bug; status: open; assignee: alice
+  id: 2; title: Add pagination; status: closed; assignee: bob
 ```
 
 ## Default output
@@ -55,22 +59,20 @@ Use the smallest stdout schema that lets the agent decide what to do next.
 - Put bodies and descriptions in detail views.
 - Provide `--fields` for additional fields.
 
-When most repositories contain fewer than 100 labels, prefer a default limit of 100 over 30.
-
 Include every large detail field.
 When a large detail field exceeds the default limit, include a truncated preview and the total size.
 When content is truncated, provide an escape hatch.
 When content is complete, omit the escape hatch.
-Choose a limit that covers most use cases, typically 500-1500 characters.
+Choose a documented limit that covers common use cases.
 
-```toon
+```text
 task:
   number: 42
   title: Fix auth bug
   state: open
   body: First 500 chars of the issue body...
     ... (truncated, 8432 chars total)
-help[1]: Run `tasks view 42 --full` to see complete body
+help: Run `tasks view 42 --full` to see complete body
 ```
 
 When the backend can provide commonly needed aggregate data at acceptable cost, include it.
@@ -79,10 +81,10 @@ When the backend can provide commonly needed aggregate data at acceptable cost, 
 - Include derived state summaries that commonly determine the next action.
 - Summarize related data, for example with `checks: 3/3 passed` and `comments: 7`.
 
-```toon
+```text
 count: 30 of 847 total
-tasks[30]{number,title,state}:
-  1,Fix auth bug,open
+tasks: 30 records
+  number: 1; title: Fix auth bug; state: open
   ...
 ```
 
@@ -151,11 +153,11 @@ Include:
 $ tasks
 bin: ~/.local/bin/tasks
 description: Manage project tasks in the current workspace
-tasks[3]{id,title,status}:
-  1,Fix auth bug,open
-  2,Add pagination,open
-  3,Update docs,closed
-help[2]:
+tasks: 3 records
+  id: 1; title: Fix auth bug; status: open
+  id: 2; title: Add pagination; status: open
+  id: 3; title: Update docs; status: closed
+help:
   Run `tasks view <id>` to see full details
   Run `tasks create --title "..."` to add a task
 ```
@@ -173,7 +175,7 @@ Expose only commands valid for the returned state.
 - Offer valid alternatives without prescribing an unnecessary sequence.
 - When a list is truncated, state the total.
 - For a truncated list, include the command that returns all items.
-- Keep pagination details out of TOON array headers.
+- Keep pagination details out of array headers in formats that have array headers.
 - After an error, include the command that corrects the reported problem.
 
 ## Help

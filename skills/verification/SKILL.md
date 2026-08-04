@@ -58,6 +58,12 @@ When no proportionate evidence can address an accepted Material Risk, expose the
 Do not enumerate remote possibilities only to reject them.
 When no Material Risk needs evidence beyond applicable mandatory gates, do not add verification work by convention.
 
+When the design contains multiple comparable risk records, use this branch-specific table:
+
+| Risk | Claim | Evidence |
+| --- | --- | --- |
+| <Material Risk> | <Verification Claim> | <Verification Evidence> |
+
 Design is complete when every Material Risk has sufficient Verification Claims, every Claim has proportionate feasible Evidence, and no Claim requires an unjustified product guarantee.
 
 ## 3. Produce verification evidence

@@ -5,8 +5,6 @@ description: "Use when interacting with a rendered web page, inspecting browser 
 
 # chrome-devtools-axi
 
-Use `chrome-devtools-axi` when a task requires a real rendered page.
-
 Run commands as `pnpx -y chrome-devtools-axi <command>`.
 When output suggests `chrome-devtools-axi ...`, add the `pnpx -y` prefix before running it.
 
@@ -48,22 +46,10 @@ The first command starts a persistent bridge.
 The browser session remains available across commands.
 After all requested browser observations and artifacts are complete, run `pnpx -y chrome-devtools-axi stop`.
 
-## Commands
+## Help
 
-```
-commands[35]:
-  open <url>, snapshot, screenshot <path>, click @<uid>, fill @<uid> <text>,
-  type <text>, press <key>, scroll <dir>, back, wait <ms|text>, eval <js>,
-  run,
-  hover @<uid>, drag @<from> @<to>, fillform @<uid>=<val>..., dialog <action>,
-  upload @<uid> <path>, pages, newpage <url>, selectpage <id>, closepage <id>,
-  resize <w> <h>, emulate, console, console-get <id>, network,
-  network-get [id], lighthouse, perf-start, perf-stop,
-  perf-insight <set> <name>, heap <path>, start, stop, setup hooks
-```
-
-Run `pnpx -y chrome-devtools-axi --help` for global flags and environment variables.
-Run `pnpx -y chrome-devtools-axi <command> --help` for command-specific usage.
+Use `pnpx -y chrome-devtools-axi --help` as the authority for available commands, global flags, and environment variables.
+Use `pnpx -y chrome-devtools-axi <command> --help` for command-specific usage.
 
 ## Output controls
 

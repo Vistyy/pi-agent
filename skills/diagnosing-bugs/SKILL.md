@@ -65,6 +65,8 @@ When existing evidence cannot distinguish the explanations, add targeted tempora
 Prefix temporary instrumentation with a unique searchable marker such as `[DEBUG-a4f2]`.
 
 Confirm a cause only when it predicts the failing observation and controlling the cause changes the diagnostic result.
+Limit the causal conclusion to what the experiment distinguishes.
+Do not generalize a local cause into a broader system condition without additional evidence.
 When causal confirmation is impractical, classify the explanation as unconfirmed and state the missing evidence.
 
 This step is complete when the cause is confirmed or the strongest unconfirmed explanation and its evidence gap are explicit.
@@ -79,13 +81,15 @@ Also rerun the original user-level reproduction when it remains practical and ma
 If a required rerun fails, report that the fix is not verified and include the observed failure.
 When a required loop is unavailable, record why it could not run and the evidence used instead.
 
-Report:
+Report the diagnosis under these fixed headings in order:
 
-- The confirmed or unconfirmed cause.
-- The experiments and observations that support the conclusion.
-- The diagnostic loop and final result.
-- The remaining uncertainty or manual verification.
+1. `Cause`: State the confirmed or unconfirmed cause without exceeding what the experiments distinguish.
+2. `Supporting experiments`: Record the experiments and observations that support the conclusion.
+3. `Diagnostic loop`: Record the repeatable method and baseline result.
+4. `Final verification`: Record the final loop result and any materially distinct user-level reproduction.
+5. `Remaining uncertainty`: Record evidence gaps, confidence limits, or manual verification.
 
-When a broader codebase condition enabled the defect, report a separate improvement opportunity with the diagnosis evidence.
+If a required rerun fails or is unavailable, record the failure or reason under `Final verification`.
+When a broader codebase condition enabled the defect, report a separate evidence-backed improvement opportunity.
 
 The diagnosis is complete when another maintainer can repeat or locate the available evidence, understand the conclusion and its confidence, and find no temporary diagnostic changes.

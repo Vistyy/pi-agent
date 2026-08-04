@@ -1,7 +1,5 @@
 # Separate-Session Handoff
 
-A separate session owns an independent outcome or an explicitly transferred current outcome.
-
 ## 1. Confirm ownership
 
 Propose the handoff before launching it unless the user already requested the handoff.

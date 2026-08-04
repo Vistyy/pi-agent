@@ -5,40 +5,14 @@ description: Use when defining domain terms, resolving inconsistent terminology,
 
 # Domain Modeling
 
-Use this skill when you change a project's domain model.
-Use it to define terms, test relationships, and record resolved decisions.
+Define terms, test relationships, and record resolved decisions.
 Reading `CONTEXT.md` without changing the model does not require this skill.
 
 ## Find the applicable context
 
-Most repositories have one context:
-
-```
-/
-├── CONTEXT.md
-├── docs/
-│   └── adr/
-│       ├── 0001-event-sourced-orders.md
-│       └── 0002-postgres-for-write-model.md
-└── src/
-```
-
+Most repositories have one context.
 If `CONTEXT-MAP.md` exists at the repository root, the repository has multiple contexts.
-Use the map to find each context:
-
-```
-/
-├── CONTEXT-MAP.md
-├── docs/
-│   └── adr/                          ← system-wide decisions
-├── src/
-│   ├── ordering/
-│   │   ├── CONTEXT.md
-│   │   └── docs/adr/                 ← context-specific decisions
-│   └── billing/
-│       ├── CONTEXT.md
-│       └── docs/adr/
-```
+Use the map to find each context.
 
 Before changing the domain model, inspect the applicable repository instructions, `CONTEXT.md`, and existing ADRs.
 If `CONTEXT-MAP.md` exists, inspect the root `docs/adr/` and the selected context's `docs/adr/`.
@@ -63,20 +37,10 @@ If the user uses a term that conflicts with the applicable `CONTEXT.md`:
 2. State how the user's meaning differs.
 3. Ask which meaning is correct.
 
-Example:
-
-> The applicable `CONTEXT.md` defines cancellation as X, but you appear to mean Y.
-> Which meaning is correct?
-
 ### Clarify vague terms
 
 If a term has multiple possible meanings, identify the possible concepts.
 Propose one canonical term for each concept.
-
-Example:
-
-> Does `account` refer to the Customer or the User?
-> These terms identify different concepts.
 
 ### Test domain relationships
 
@@ -95,12 +59,6 @@ If the code and the statement conflict:
 1. Describe the behavior in the code.
 2. Describe the conflicting statement.
 3. Ask which behavior defines the current domain model.
-
-Example:
-
-> The code cancels an entire Order.
-> You stated that partial cancellation is possible.
-> Which behavior is correct?
 
 Code verification is complete when the applicable implementation agrees with the domain statement or the user resolves each identified conflict.
 
