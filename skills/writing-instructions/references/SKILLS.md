@@ -63,7 +63,18 @@ The [writing-instructions glossary](GLOSSARY.md#disclosed-reference) defines bot
 A skill can contain only steps, only reference, or both.
 When a skill has steps, unrelated reference can hide the current action and weaken attention.
 
+### Represent fixed procedures in scripts
+
+If the agent would otherwise reconstruct a fixed procedure from prose, provide a script in the skill's `scripts/` directory.
+The script must perform the procedure.
+Use a script only when the procedure does not require task-specific judgment.
+
+Put the condition for invoking the script, its task-specific inputs, and the judgment applied to its result in `SKILL.md`.
+Put validation, repeated tool calls, state handling, and other fixed mechanics in the script.
+Make the script return the facts that the agent needs for the next decision.
+
 This section is complete when every action and reference is at the lowest reliable level and each step has a sufficient completion criterion.
+Each applicable fixed procedure that would otherwise require reconstruction must also be in a script.
 
 ## Define recurring outputs
 
