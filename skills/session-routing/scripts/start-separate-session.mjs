@@ -23,7 +23,7 @@ function homeView() {
 }
 
 function help() {
-  process.stdout.write(`${usage}\n\nRequired:\n  --name <name>           Descriptive Herdr workspace and Pi session name\n  --cwd <path>            Working directory for the new session\n  --handoff-file <path>   Compact handoff used as the initial Pi prompt\n\nOptional:\n  --focus                 Focus the new session after launch\n  --timeout-ms <number>   Verification timeout in milliseconds (default: 10000)\n  --help                  Show this help\n\nEnvironment:\n  HERDR_BIN               Override the Herdr executable\n\nExamples:\n  start-separate-session --name audit-agent-instructions --cwd ~/.pi/agent --handoff-file /tmp/handoff.md\n  start-separate-session --name continue-token-audit --cwd ~/.pi/agent --handoff-file /tmp/handoff.md --focus\n`);
+  process.stdout.write(`${usage}\n\nRequired:\n  --name <name>           Descriptive Herdr workspace and Pi session name\n  --cwd <path>            Working directory for the new session\n  --handoff-file <path>   Compact handoff used as the initial Pi prompt\n\nOptional:\n  --focus                 Focus the new session after launch\n  --timeout-ms <number>   Shell readiness and Pi verification timeout in milliseconds (default: 10000)\n  --help                  Show this help\n\nEnvironment:\n  HERDR_BIN               Override the Herdr executable\n\nExamples:\n  start-separate-session --name audit-agent-instructions --cwd ~/.pi/agent --handoff-file /tmp/handoff.md\n  start-separate-session --name continue-token-audit --cwd ~/.pi/agent --handoff-file /tmp/handoff.md --focus\n`);
 }
 
 function fail(message, suggestion, code = 1) {
@@ -118,6 +118,36 @@ function requireSuccess(result, operation, cleanup) {
   fail(detail ? `${operation} failed: ${detail}` : `${operation} failed`, "Inspect `herdr agent list` and retry");
 }
 
+function startAgentWhenShellReady({ herdr, name, paneId, deadline, cleanup }) {
+  const args = ["agent", "start", name, "--kind", "pi", "--pane", paneId, "--", "--name", name];
+  while (true) {
+    const result = run(herdr, args);
+    if (result.error) {
+      cleanup?.();
+      fail("session launch could not execute", "Check the configured executable and retry");
+    }
+    let parsed;
+    try {
+      parsed = JSON.parse(result.stdout.trim() || result.stderr.trim());
+    } catch {
+      cleanup?.();
+      fail("session launch returned an unreadable result", "Run `herdr status server` and retry");
+    }
+    if (result.status === 0 && !parsed.error) return parsed;
+
+    const detail = parsed?.error?.message;
+    if (typeof detail === "string" && /not an available shell/i.test(detail) && Date.now() < deadline) {
+      sleep(Math.min(100, Math.max(1, deadline - Date.now())));
+      continue;
+    }
+    cleanup?.();
+    fail(
+      detail ? `session launch failed: ${detail}` : "session launch failed",
+      "Inspect `herdr agent list` and retry",
+    );
+  }
+}
+
 function sleep(milliseconds) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
 }
@@ -136,8 +166,12 @@ if (options.help) {
 if (!options.name) fail("--name is required", usage, 2);
 if (!options.cwd) fail("--cwd is required", usage, 2);
 if (!options.handoffFile) fail("--handoff-file is required", usage, 2);
-if (options.name.length > 64 || !/^[a-z0-9]+(?:-[a-z0-9]+)+$/.test(options.name)) {
-  fail("--name must be a descriptive kebab-case name", "Use a name such as audit-agent-instructions", 2);
+if (options.name.length > 32 || !/^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$/.test(options.name)) {
+  fail(
+    "--name must be a descriptive kebab-case name of at most 32 characters",
+    "Use a name such as audit-agent-instructions",
+    2,
+  );
 }
 if (!Number.isFinite(options.timeoutMs) || options.timeoutMs < 0) fail("--timeout-ms must be a non-negative number", usage, 2);
 
@@ -179,22 +213,14 @@ if (!workspace?.workspace_id || !rootPane?.pane_id) {
 const cleanupWorkspace = () => {
   run(herdr, ["workspace", "close", workspace.workspace_id]);
 };
-const start = parseJsonOutput(
-  run(herdr, [
-    "agent",
-    "start",
-    options.name,
-    "--kind",
-    "pi",
-    "--pane",
-    rootPane.pane_id,
-    "--",
-    "--name",
-    options.name,
-  ]),
-  "session launch",
-  cleanupWorkspace,
-);
+const deadline = Date.now() + options.timeoutMs;
+const start = startAgentWhenShellReady({
+  herdr,
+  name: options.name,
+  paneId: rootPane.pane_id,
+  deadline,
+  cleanup: cleanupWorkspace,
+});
 requireSuccess(
   run(herdr, ["pane", "send-text", rootPane.pane_id, `@${handoffFile}`]),
   "handoff entry",
@@ -213,7 +239,6 @@ if (options.focus) {
   );
 }
 
-const deadline = Date.now() + options.timeoutMs;
 let agent = start?.result?.agent;
 while (Date.now() <= deadline) {
   const get = run(herdr, ["agent", "get", options.name]);

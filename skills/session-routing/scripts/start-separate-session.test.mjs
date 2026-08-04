@@ -23,6 +23,15 @@ if [ "$1 $2" = "workspace create" ]; then
   exit 0
 fi
 if [ "$1 $2" = "agent start" ]; then
+  if [ "\${HERDR_TEST_NOT_READY_ONCE:-}" = "1" ] && [ ! -e "$HERDR_TEST_READY_FILE" ]; then
+    touch "$HERDR_TEST_READY_FILE"
+    printf '%s\\n' '{"error":{"code":"pane_not_ready","message":"agent target pane w99:p1 is not an available shell"}}'
+    exit 1
+  fi
+  if [ "\${HERDR_TEST_AGENT_START_ERROR:-}" = "1" ]; then
+    printf '%s\\n' '{"error":{"code":"agent_start_failed","message":"agent launch rejected"}}'
+    exit 1
+  fi
   printf '%s\\n' '{"id":"cli:agent:start","result":{"agent":{"name":"docs-audit","terminal_id":"term_123","cwd":"${root}","agent_status":"unknown","workspace_id":"w99"},"type":"agent_started"}}'
   exit 0
 fi
@@ -83,11 +92,30 @@ test("rejects a generic session name", async () => {
       f.env,
     );
     assert.equal(result.status, 2);
-    assert.match(result.stdout, /^error: --name must be a descriptive kebab-case name$/m);
+    assert.match(
+      result.stdout,
+      /^error: --name must be a descriptive kebab-case name of at most 32 characters$/m,
+    );
     assert.match(result.stdout, /audit-agent-instructions/);
   } finally {
     await f.cleanup();
   }
+});
+
+test("rejects a name that Herdr cannot accept", () => {
+  const result = run([
+    "--name",
+    "this-session-name-is-longer-than-32",
+    "--cwd",
+    "/tmp",
+    "--handoff-file",
+    "/tmp/handoff.md",
+  ]);
+  assert.equal(result.status, 2);
+  assert.match(
+    result.stdout,
+    /^error: --name must be a descriptive kebab-case name of at most 32 characters$/m,
+  );
 });
 
 test("starts default Pi through Herdr and verifies the detected session", async () => {
@@ -116,6 +144,81 @@ test("starts default Pi through Herdr and verifies the detected session", async 
     assert.equal(calls[2], `pane send-text w99:p1 @${f.handoff}`);
     assert.equal(calls[3], "pane send-keys w99:p1 Enter");
     assert.equal(calls[4], "agent get docs-audit");
+  } finally {
+    await f.cleanup();
+  }
+});
+
+test("waits for a newly created pane to become an interactive shell", async () => {
+  const f = await fixture();
+  try {
+    const result = run(
+      ["--name", "docs-audit", "--cwd", f.root, "--handoff-file", f.handoff],
+      {
+        ...f.env,
+        HERDR_TEST_NOT_READY_ONCE: "1",
+        HERDR_TEST_READY_FILE: path.join(f.root, "shell-ready"),
+      },
+    );
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    const calls = (await readFile(f.log, "utf8")).trim().split("\n");
+    assert.deepEqual(calls.slice(0, 4), [
+      `workspace create --cwd ${f.root} --label docs-audit --no-focus`,
+      "agent start docs-audit --kind pi --pane w99:p1 -- --name docs-audit",
+      "agent start docs-audit --kind pi --pane w99:p1 -- --name docs-audit",
+      `pane send-text w99:p1 @${f.handoff}`,
+    ]);
+  } finally {
+    await f.cleanup();
+  }
+});
+
+test("fails when a pane does not become a shell before the timeout", async () => {
+  const f = await fixture();
+  try {
+    const result = run(
+      [
+        "--name",
+        "docs-audit",
+        "--cwd",
+        f.root,
+        "--handoff-file",
+        f.handoff,
+        "--timeout-ms",
+        "0",
+      ],
+      {
+        ...f.env,
+        HERDR_TEST_NOT_READY_ONCE: "1",
+        HERDR_TEST_READY_FILE: path.join(f.root, "shell-ready"),
+      },
+    );
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /agent target pane w99:p1 is not an available shell/);
+    const calls = (await readFile(f.log, "utf8")).trim().split("\n");
+    assert.equal(
+      calls.filter((call) => call.startsWith("agent start docs-audit")).length,
+      1,
+    );
+  } finally {
+    await f.cleanup();
+  }
+});
+
+test("does not retry another agent-start failure", async () => {
+  const f = await fixture();
+  try {
+    const result = run(
+      ["--name", "docs-audit", "--cwd", f.root, "--handoff-file", f.handoff],
+      { ...f.env, HERDR_TEST_AGENT_START_ERROR: "1" },
+    );
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /agent launch rejected/);
+    const calls = (await readFile(f.log, "utf8")).trim().split("\n");
+    assert.equal(
+      calls.filter((call) => call.startsWith("agent start docs-audit")).length,
+      1,
+    );
   } finally {
     await f.cleanup();
   }
