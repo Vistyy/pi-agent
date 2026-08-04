@@ -41,7 +41,8 @@
 
 ## Decision principle
 
-- **Minimum sufficient commitment:** Among candidates that satisfy the required outcome and are consistent with authoritative context and concrete evidence, choose the weakest valid candidate: the one that rules out the fewest possibilities not already ruled out by those requirements and evidence.
+- **Minimum sufficient commitment:** Among candidates that satisfy the required outcome and are consistent with authoritative context and concrete evidence, choose the weakest valid candidate.
+- Here, `weakest` means making the fewest unsupported commitments and therefore ruling out the fewest possibilities beyond those already ruled out by the requirements and evidence.
 - Sufficiency includes coherence, required reliability, and coverage of material risks.
   Weakness does not mean brevity, vagueness, or minimum effort.
 
