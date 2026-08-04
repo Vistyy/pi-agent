@@ -4,7 +4,7 @@ description: "Default worker for delegated tasks that need moderate context, rea
 provider: openai-codex
 model: gpt-5.6-luna
 thinking: high
-tools: read,bash,edit,write,grep,find,ls,web_search,web_fetch,web_content_get
+tools: read,bash,edit,write,grep,find,ls,web_search,web_fetch,web_content_get,record_papercut
 skills: axi, codebase-design, diagnosing-bugs, domain-modeling, gh-axi, spike, technical-prose, verification, vertical-slices, writing-instructions
 ---
 
