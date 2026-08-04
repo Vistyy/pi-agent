@@ -43,6 +43,12 @@ Place content according to when the actor needs it:
 3. Put branch-specific material behind a precise **context pointer**.
 4. Put shared material that needs no independent invocation in an external reference behind a precise context pointer.
 
+When an instruction relies on guidance outside its delivery boundary, determine whether that guidance is required or supplemental.
+Make required guidance available through packaging or a reliable context pointer, or declare an explicit external dependency with actionable failure behavior.
+Keep supplemental guidance nonessential to correct operation.
+Put reusable methods in the artifact with the matching general scope.
+Put context-specific terms, authority, and procedures in an artifact delivered with that context.
+
 Use **progressive disclosure** when only some branches need detailed material.
 Put each reference-loading condition beside the link in the parent instruction.
 Do not put an instruction to load a reference inside that reference because the instruction cannot cause the reference to load.
@@ -57,7 +63,7 @@ Resolve conflicts between references before relying on them.
 
 When writing, editing, or auditing a skill, read [Writing skills](references/SKILLS.md) before evaluating its invocation mode or structure.
 
-This step is complete when every instruction and reference is at the lowest reliable level, every context pointer states when to load its target, every selected reference has a stated purpose, and no unresolved reference conflict remains.
+This step is complete when every instruction and reference is at the lowest reliable level, every context pointer states when to load its target, every required external dependency is available or explicitly declared, supplemental guidance is nonessential to correct operation, every selected reference has a stated purpose, and no unresolved reference conflict remains.
 
 ## 3. Construct the instructions
 
