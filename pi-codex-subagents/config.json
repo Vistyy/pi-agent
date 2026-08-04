@@ -10,7 +10,8 @@
       "~/.pi/agent/extensions/web-search",
       "~/.pi/agent/extensions/package-manager-policy",
       "~/.pi/agent/extensions/papercuts.ts",
-      "~/.pi/agent/pi-codex-subagents/extensions/subagent-sandbox/index.ts"
+      "~/.pi/agent/pi-codex-subagents/extensions/subagent-sandbox/index.ts",
+      "~/.pi/agent/extensions/model-shims.ts"
     ]
   }
 }

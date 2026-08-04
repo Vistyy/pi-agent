@@ -5,7 +5,7 @@ provider: openai-codex
 model: gpt-5.6-luna
 thinking: high
 tools: read,bash,grep,find,ls,web_search,web_fetch,web_content_get
-extensions: ~/.pi/agent/extensions/named-subagent-policy/index.ts, @ogulcancelik/pi-auto-permissions, ~/.pi/agent/extensions/openai-fast.ts, ~/.pi/agent/extensions/openai-remote-compaction/index.ts, ~/.pi/agent/extensions/web-search, ~/.pi/agent/extensions/package-manager-policy, ~/.pi/agent/pi-codex-subagents/extensions/subagent-sandbox/library.ts
+extensions: ~/.pi/agent/extensions/named-subagent-policy/index.ts, @ogulcancelik/pi-auto-permissions, ~/.pi/agent/extensions/openai-fast.ts, ~/.pi/agent/extensions/openai-remote-compaction/index.ts, ~/.pi/agent/extensions/web-search, ~/.pi/agent/extensions/package-manager-policy, ~/.pi/agent/pi-codex-subagents/extensions/subagent-sandbox/library.ts, ~/.pi/agent/extensions/model-shims.ts
 ---
 
 You are the Library Orienter.
