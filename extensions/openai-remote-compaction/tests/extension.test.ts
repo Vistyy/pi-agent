@@ -894,7 +894,9 @@ describe("remote compaction extension lifecycle", () => {
       REMOTE_COMPACTION_COMPLETED_EVENT,
       undefined,
     );
-    expect(ctx.ui.notify).toHaveBeenCalledWith(
+    expect(ctx.ui.notify).toHaveBeenNthCalledWith(1, "Compacting remote context...", "info");
+    expect(ctx.ui.notify).toHaveBeenNthCalledWith(
+      2,
       "Remote context compacted. Continuing the current run.",
       "info",
     );
@@ -1032,8 +1034,9 @@ describe("remote compaction extension lifecycle", () => {
     expect(unchanged.input).toEqual(payload.input);
     expect(api.appendEntry).not.toHaveBeenCalled();
     expect(api.events.emit).not.toHaveBeenCalled();
-    expect(ctx.ui.notify).not.toHaveBeenCalledWith(expect.any(String), "info");
-    expect(ctx.ui.notify).toHaveBeenCalledWith(
+    expect(ctx.ui.notify).toHaveBeenNthCalledWith(1, "Compacting remote context...", "info");
+    expect(ctx.ui.notify).toHaveBeenNthCalledWith(
+      2,
       expect.stringContaining("Inline remote compaction failed"),
       "error",
     );

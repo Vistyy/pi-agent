@@ -210,6 +210,7 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
         currentHash ??= await catalog.getHash(model.id, auth);
         try {
           const body = buildRemoteCompactionRequest(template, input);
+          ctx.ui.notify("Compacting remote context...", "info");
           const remote = await requestRemoteCompaction({
             token: auth.token,
             authHeaders: auth.headers,
