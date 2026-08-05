@@ -3,9 +3,9 @@
   "skills": [
     "user-skills"
   ],
-  "defaultProvider": "openai-codex",
-  "defaultModel": "gpt-5.6-sol",
-  "defaultThinkingLevel": "medium",
+  "defaultProvider": "deepseek",
+  "defaultModel": "deepseek-v4-flash",
+  "defaultThinkingLevel": "high",
   "doubleEscapeAction": "tree",
   "theme": "rose-pine-moon",
   "packages": [
@@ -21,8 +21,7 @@
   "enabledModels": [
     "openai-codex/gpt-5.6-sol",
     "openai-codex/gpt-5.6-terra",
-    "openai-codex/gpt-5.6-luna",
-    "deepseek/deepseek-v4-flash"
+    "openai-codex/gpt-5.6-luna"
   ],
   "showCacheMissNotices": true,
   "quietStartup": true,
