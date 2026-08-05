@@ -13,7 +13,7 @@
     "npm:@ogulcancelik/pi-session-recall@1.0.6",
     "npm:@ogulcancelik/pi-auto-permissions@0.1.3",
     "npm:@ogulcancelik/pi-codex-subagents@0.3.2",
-    "git:github.com/Vistyy/pi-lavish@v0.4.1"
+    "git:github.com/Vistyy/pi-lavish@v0.4.2"
   ],
   "extensions": [
     "extensions/named-subagent-policy/index.ts"
