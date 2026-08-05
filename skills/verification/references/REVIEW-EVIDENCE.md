@@ -5,6 +5,7 @@ When both a verification design and produced evidence are submitted, review the 
 
 ## Review a verification design
 
+Before reviewing a verification design, read [Verification Techniques](TECHNIQUES.md).
 Evaluate the design against accepted requirements and applicable verification constraints.
 Confirm that each Material Risk is plausible, meaningful, and supported by accepted requirements or concrete evidence.
 Confirm that every Verification Claim states one specific fact and is sufficient to address one Material Risk without requiring an unjustified product guarantee.
@@ -17,6 +18,7 @@ Design review is complete when every applicable Material Risk, Verification Clai
 
 ## Review produced evidence
 
+When review requires material reconsideration of an evidence mechanism, read [Verification Techniques](TECHNIQUES.md).
 When an accepted verification design exists, use its Verification Claims.
 Otherwise, derive the applicable Claims from accepted requirements and the Material Risks affected by the work without requiring a new design artifact.
 Evaluate every applicable Verification Claim independently against the submitted evidence.

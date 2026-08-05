@@ -1,6 +1,7 @@
 # Produce Verification Evidence
 
 Collect the evidence required by accepted requirements and any approved verification plan while performing the work.
+Before selecting or materially changing an evidence mechanism, read [Verification Techniques](TECHNIQUES.md).
 Follow the applicable technique procedure.
 Record only the applicable command or procedure, relevant environment, and observation or artifact needed to interpret each result.
 Complete every mandatory gate through its supported owning workflow.

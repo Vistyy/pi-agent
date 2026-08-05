@@ -3,6 +3,13 @@
 Verification techniques are an open set.
 The examples in this reference illustrate credible evidence forms but do not limit which mechanism an agent may select.
 
+## Terms
+
+**Distinct Regression Failure**: A plausible regression that other selected or retained Verification Evidence would not reveal.
+A different input, fixture, branch, assertion, or code path does not make a failure distinct by itself.
+
+**Lifecycle Cost**: The total cost of Verification Evidence across authoring, review, code and fixtures, execution time and resources, stability, failure diagnosis, coupling, and future maintenance, compared with the least-cost feasible Evidence that establishes the same Claim.
+
 ## Select evidence
 
 Use the least costly supported seam that establishes the complete Verification Claim reliably.
