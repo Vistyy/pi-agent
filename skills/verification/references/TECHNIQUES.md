@@ -17,7 +17,7 @@ For example:
 - A type or API Claim can use type checking or static analysis.
 - A local behavioral Claim can use focused execution or a narrow automated test.
 - A cross-component Claim can use focused integration evidence at the boundary that owns the interaction.
-- A critical system-path Claim can use a small end-to-end sentinel while lower-cost seams cover variations.
+- A Claim that requires the complete system path can use end-to-end evidence while lower-cost seams cover variations.
 - A visual or interaction Claim can use rendered inspection or a representative browser procedure.
 - An operational or configuration Claim can use a real command and resulting state inspection.
 - A performance Claim can use measurement against an explicit budget.
@@ -29,31 +29,32 @@ Use test-double evidence only when the Verification Claim does not require real 
 
 ## Admit a durable automated test
 
-Lifecycle cost includes authoring and review, code and fixture size, execution time and resources, stability, failure diagnosis, coupling, and future maintenance.
+Compare Lifecycle Cost with the least-cost feasible Evidence that can establish the Claim.
 Do not use a numerical score or test-to-production line ratio to replace judgment about confidence and cost.
 
-Require a new or changed durable test or coherent test group only when all applicable conditions are true:
+Require a new or changed durable test only when all applicable conditions are true:
 
 - It protects accepted supported behavior, an interface, an invariant, or a reproduced defect class.
-- It detects a distinct plausible regression failure supported by accepted requirements or concrete evidence.
-- Existing retained evidence and proportionate one-time evidence do not establish the Claim sufficiently.
+- It detects a Distinct Regression Failure supported by accepted requirements or concrete evidence.
+- Existing retained Evidence and proportionate one-time Evidence do not establish the Claim sufficiently.
 - The selected seam observes the Claim reliably.
-- The distinct confidence gained justifies the lifecycle cost.
+- The additional coverage justifies its additional Lifecycle Cost over the least-cost feasible alternative.
 
-Before requiring durable automation, state the distinct regression failure, why existing or one-time evidence is insufficient, and why the lifecycle cost is proportionate.
-For each additional durable case, identify the materially distinct failure that retained evidence would otherwise miss.
-Consolidate or omit cases that add no distinct failure, especially when they repeat the same Claim through an equally or more expensive seam.
+Before requiring durable automation, state the Distinct Regression Failure, why existing or one-time Evidence is insufficient, and why the Lifecycle Cost is proportionate.
+Apply these conditions to every added or changed test case, including each parameterized case.
+Map each test case to its Distinct Regression Failure.
+A parameterized test can use one table or matrix when that mapping remains explicit.
+Remove or consolidate a test case that does not satisfy these conditions.
 Do not translate each accepted-behavior statement or evidence example into a test.
 
 Do not retain a test only to prove that an edit occurred.
 Use search, diff review, type checking, or a one-time script for retired text, symbols, files, or implementation structure.
 When execution or resource cost is a Material Risk or an accepted budget applies, measure the focused mechanism and its effect on the maintained workflow.
 
-When a test is retained as regression evidence for a reproduced defect, demonstrate that it fails against the defective behavior when practical.
-This demonstration may use the pre-fix revision after implementation.
-For a test other than a reproduced-defect regression test, require sensitivity evidence only when an approved verification plan identifies a concrete false-confidence risk.
+When a test is retained as regression evidence for a reproduced defect, demonstrate that it fails against the defective behavior when the pre-fix revision can run the same test and inputs in the supported environment.
+For a test other than a reproduced-defect regression test, require sensitivity evidence only when an approved verification plan identifies a specific way the test could pass while the claimed failure remains.
 Do not use temporary source mutation as a routine sensitivity technique.
-Use a controlled mutation experiment only when the required confidence specifically justifies it.
+Use a controlled mutation experiment only when the accepted Claim requires that sensitivity evidence.
 
 ## Resolve an unsupported technique
 
@@ -64,4 +65,4 @@ Obtain approval before adding a dependency, changing an accepted project mechani
 If approval or capability is unavailable, stop the affected work or amend its approved plan.
 Do not weaken the Verification Claim silently.
 
-Technique selection is complete when each mechanism can establish its Verification Claim at justified lifecycle cost and each consequential unknown has an explicit resolution path.
+Technique selection is complete when each mechanism can establish its Verification Claim at justified Lifecycle Cost and each consequential unknown has an explicit resolution path.

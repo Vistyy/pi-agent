@@ -6,8 +6,8 @@ Record only the applicable command or procedure, relevant environment, and obser
 Complete every mandatory gate through its supported owning workflow.
 Do not duplicate a gate manually when that workflow owns its execution and evidence.
 
-When an approved verification plan exists, the actor may use another mechanism that establishes the same Claim through every materially required seam.
-The actor must not weaken required confidence or change a materially required seam without amending the plan through its applicable authority.
+When an approved verification plan exists, the actor may use another mechanism that establishes the same Claim through every Required Seam.
+The actor must not weaken Claim coverage or change a Required Seam without amending the plan through its applicable authority.
 If the work reveals an affected Material Risk or Claim that the plan does not address, return to verification design before relying on new evidence.
 If required evidence cannot be produced, stop the affected work and report the failed mechanism, observed result, and required decision or capability.
 Do not treat missing evidence as success.

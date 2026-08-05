@@ -31,7 +31,7 @@ Use the project's established strategy artifact when one exists.
 Otherwise, use `VERIFICATION.md` when repository-local Markdown is an appropriate authoritative medium.
 Use the artifact's established structure.
 When no structure exists, organize only the accepted content needed by the project.
-Strategy can describe recurring Material Risks, non-obvious evidence constraints, supported mechanism limits, mandatory gates, intentionally retained system sentinels, and accepted runtime or stability constraints.
+Strategy can describe recurring Material Risks, non-obvious evidence constraints, supported mechanism limits, mandatory gates, intentionally retained end-to-end evidence and the Risks it addresses, and accepted runtime or stability constraints.
 Omit categories without accepted content.
 Keep proposed mechanisms in the applicable work item or experiment until approval.
 Remove a replaced statement in the same change.

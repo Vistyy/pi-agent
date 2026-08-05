@@ -8,7 +8,9 @@ description: Use when designing verification, producing evidence that work satis
 Design, produce, and review evidence that is proportionate to the plausible and meaningful ways work can fail to satisfy its requirements.
 Do not require a test by default.
 
-## Canonical terms
+## Terms
+
+Use `Material Risk -> Verification Claim -> Verification Evidence` as the canonical relationship.
 
 **Material Risk**: A plausible failure with a meaningful consequence that is supported by accepted requirements or concrete evidence.
 Do not use numerical risk scoring.
@@ -18,6 +20,13 @@ Do not invent unsupported requirements or speculative edge cases.
 A Claim is not a list of scenarios or an evidence mechanism.
 
 **Verification Evidence**: An interpretable observation or artifact that supports or refutes a Verification Claim.
+
+**Distinct Regression Failure**: A plausible regression that other selected or retained Verification Evidence would not reveal.
+A different input, fixture, branch, assertion, or code path does not make a failure distinct by itself.
+
+**Required Seam**: A boundary that a Verification Claim or accepted verification plan requires because interaction across it is part of the Claim.
+
+**Lifecycle Cost**: The total cost of Verification Evidence across authoring, review, code and fixtures, execution time and resources, stability, failure diagnosis, coupling, and future maintenance, compared with the least-cost feasible Evidence that establishes the same Claim.
 
 ## Authority
 
@@ -56,7 +65,7 @@ For each Verification Claim, select proportionate feasible Verification Evidence
 
 A Material Risk does not authorize maximum prevention.
 Do not require a stronger product guarantee than accepted requirements justify.
-Existing rejection, recovery, or operator control is sufficient when concrete evidence does not show a remaining material consequence.
+Treat existing rejection, recovery, or operator control as sufficient only when accepted requirements or concrete evidence show that it prevents, contains, or recovers from the identified consequence.
 When no proportionate evidence can address an accepted Material Risk, expose the unresolved requirement or product decision instead of inventing or silently weakening a Claim.
 Do not enumerate remote possibilities only to reject them.
 When no Material Risk needs evidence beyond applicable mandatory gates, do not add verification work by convention.

@@ -8,8 +8,8 @@ When both a verification design and produced evidence are submitted, review the 
 Evaluate the design against accepted requirements and applicable verification constraints.
 Confirm that each Material Risk is plausible, meaningful, and supported by accepted requirements or concrete evidence.
 Confirm that every Verification Claim states one specific fact and is sufficient to address one Material Risk without requiring an unjustified product guarantee.
-Confirm that each selected evidence mechanism can establish its Verification Claim at proportionate lifecycle cost through a reliable seam.
-For each required durable test or coherent test group, confirm the distinct regression failure, the insufficiency of existing or one-time evidence, and the proportionality of lifecycle cost.
+Confirm that each selected evidence mechanism can establish its Verification Claim at proportionate Lifecycle Cost through every Required Seam.
+For each required durable test, apply the admission rule to every test case and confirm its Distinct Regression Failure, the insufficiency of existing or one-time Evidence, and the proportionality of Lifecycle Cost.
 Confirm that the design includes every applicable mandatory gate.
 
 Report a design finding for each unsupported Material Risk, insufficient Verification Claim, unsuitable or duplicative evidence mechanism, unjustified durable test, or missing mandatory gate.
@@ -20,7 +20,7 @@ Design review is complete when every applicable Material Risk, Verification Clai
 When an accepted verification design exists, use its Verification Claims.
 Otherwise, derive the applicable Claims from accepted requirements and the Material Risks affected by the work without requiring a new design artifact.
 Evaluate every applicable Verification Claim independently against the submitted evidence.
-Confirm that the evidence uses a materially required seam or a reliable equivalent.
+Confirm that the Evidence uses every Required Seam or another mechanism that establishes the same Claim through every Required Seam.
 Confirm that the evidence corresponds to the exact work, revision, and relevant environment to which the Claim applies.
 Confirm that the evidence is interpretable and sufficient for its Material Risk.
 Confirm that every applicable mandatory gate passed.
