@@ -3,8 +3,8 @@
   "skills": [
     "user-skills"
   ],
-  "defaultProvider": "deepseek",
-  "defaultModel": "deepseek-v4-flash",
+  "defaultProvider": "openai-codex",
+  "defaultModel": "gpt-5.6-terra",
   "defaultThinkingLevel": "high",
   "doubleEscapeAction": "tree",
   "theme": "rose-pine-moon",
