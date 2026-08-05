@@ -1,6 +1,6 @@
 ---
 name: session-routing
-description: Use when subagents are available, delegated context changes, or the user requests a separate Pi session.
+description: Use when deciding whether work stays in the current session, goes to a subagent, or transfers to a separate Pi session.
 ---
 
 # Session Routing
@@ -28,8 +28,8 @@ The main session resolves cross-cutting trade-offs and makes the final decision.
 
 Give each bounded question or deliverable one owner.
 While a subagent owns it, the main session must not independently gather evidence or perform the same work.
-When the user explicitly requests independent corroboration, assign the same question to a separate subagent.
-Use a separate session instead only when the user requests one.
+For independent corroboration, assign the same question to an additional subagent.
+Use a separate session only when the user requests one or approves an agent-proposed handoff.
 Conflicting evidence can also require independent corroboration.
 State the reason and the independent scope before assigning the additional owner.
 
@@ -57,8 +57,8 @@ Also delegate bounded experiments, implementation, verification, and review.
 Delegate before gathering that detailed context in the main session.
 
 Use a separate-session handoff when work has an independent outcome or requires its own user dialogue.
+For an agent-proposed handoff, obtain user approval before launching it.
 Also use a handoff when the user explicitly transfers the current outcome.
-Before investigating a newly discovered independent outcome, obtain the approval required by the handoff reference.
 Outcome ownership takes precedence over source location or known search anchors.
 
 This step is complete when the main session retains holistic reasoning.
@@ -77,11 +77,7 @@ This step is complete when the selected route satisfies its branch-specific comp
 
 ## 4. Integrate results and route follow-up work
 
-Use subagent reports to perform the holistic reasoning that combines them with the user outcome and accepted constraints.
-
-When a report needs more source-local investigation, continue the same subagent with the exact unresolved question.
-Inspect an exact source in the main session only when the holistic decision requires it.
-Inspection is also permitted to resolve consequential conflicting evidence or apply the reported result.
+Integrate the selected route into the main-session decision.
 
 When new work introduces a different outcome or working set, return to the routing decision before investigating it.
 
