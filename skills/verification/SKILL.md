@@ -14,24 +14,27 @@ Do not require a test by default.
 Do not use numerical risk scoring.
 Do not invent unsupported requirements or speculative edge cases.
 
-**Verification Claim**: A specific fact that evidence must establish to address a Material Risk.
+**Verification Claim**: A specific fact that evidence must establish to address one Material Risk.
+A Claim is not a list of scenarios or an evidence mechanism.
 
 **Verification Evidence**: An interpretable observation or artifact that supports or refutes a Verification Claim.
 
 ## Authority
 
 Accepted requirements define the required result.
-Applicable instructions, approved plans, and project strategy define verification constraints and mandatory gates.
+Applicable instructions and accepted decisions define verification constraints and mandatory gates.
+Project verification strategy owns accepted verification decisions that apply across work.
+Approved work-specific plans apply the relevant strategy and define current Material Risks, Verification Claims, and Verification Evidence.
 Executable behavior and configuration determine whether a named mechanism exists.
 
-Verification must not weaken accepted requirements, mandatory gates, or accepted project strategy.
+Verification must not weaken accepted requirements, mandatory gates, approved plans, or accepted project strategy.
 When accepted authorities conflict, stop and ask the applicable authority to resolve the conflict.
-When documentation disagrees with executable availability, correct the stale documentation before relying on it.
+When documentation disagrees with executable availability, use executable behavior to determine availability and report the stale documentation.
+Update that documentation only through its owning workflow and within the authorized scope.
 Do not add product behavior only to make verification easier.
 
 Do not audit every verification source during each invocation.
 Inspect only the authorities and mechanisms relevant to the current work.
-Keep proposed project-wide mechanisms outside the accepted project strategy until the applicable authority approves them.
 
 ## 1. Discover the verification context
 
@@ -39,7 +42,7 @@ Read the applicable requirements, instructions, context, accepted decisions, app
 Inspect the executable mechanisms relevant to the work.
 When project verification strategy is missing or needs revision, read [Manage Project Verification Strategy](references/PROJECT-STRATEGY.md).
 
-This step is complete when the required result, accepted verification constraints, relevant mechanisms, and mandatory gates are known.
+This step is complete when the required result, accepted verification constraints, relevant mechanisms, and mandatory gates are known, and each consequential conflict or unknown has an explicit resolution path.
 
 ## 2. Design verification
 
@@ -64,22 +67,21 @@ When the design contains multiple comparable risk records, use this branch-speci
 | --- | --- | --- |
 | <Material Risk> | <Verification Claim> | <Verification Evidence> |
 
-Design is complete when every Material Risk has sufficient Verification Claims, every Claim has proportionate feasible Evidence, and no Claim requires an unjustified product guarantee.
+Design is complete when every Material Risk has sufficient Verification Claims, every Claim has proportionate feasible Evidence, every applicable mandatory gate is included, and no Claim requires an unjustified product guarantee.
 
 ## 3. Produce verification evidence
 
 Use this branch when implementing work or otherwise collecting evidence.
-Follow accepted Verification Claims and any approved verification plan.
 When applicable Risks or Claims are not yet known, complete the design branch first.
 Before selecting or materially changing an evidence mechanism, read [Verification Techniques](references/TECHNIQUES.md).
 Read [Produce Verification Evidence](references/PRODUCE-EVIDENCE.md) and follow its workflow.
 
-Production is complete when every Verification Claim has interpretable evidence and every mandatory gate passes.
+Production is complete when the evidence-production workflow reaches its completion criterion.
 
 ## 4. Review verification
 
 Use this branch when reviewing a proposed verification design, completed work, or submitted evidence.
-When review requires selecting or materially reconsidering an evidence mechanism, read [Verification Techniques](references/TECHNIQUES.md).
+When reviewing a verification design or materially reconsidering an evidence mechanism, read [Verification Techniques](references/TECHNIQUES.md).
 Read [Review Verification Design and Evidence](references/REVIEW-EVIDENCE.md) and follow the applicable workflow.
 
 Review is complete when every applicable review workflow reaches its completion criterion.
