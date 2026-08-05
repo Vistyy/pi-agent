@@ -65,6 +65,13 @@
                     }
                 }
             }
+        },
+        "opencode-go": {
+            "modelOverrides": {
+                "deepseek-v4-flash": {
+                    "contextWindow": 300000
+                }
+            }
         }
     }
 }

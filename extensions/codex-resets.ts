@@ -64,7 +64,7 @@ async function resolveAuth(ctx: ExtensionContext): Promise<Record<string, string
 		if (!auth.ok) continue;
 		const headers: Record<string, string> = { ...(auth.headers ?? {}) };
 		if (!hasHeader(headers, "Authorization") && auth.apiKey) headers.Authorization = `Bearer ${auth.apiKey}`;
-		if (!hasHeader(headers, "User-Agent")) headers["User-Agent"] = "pi-codex-usage-simple";
+		if (!hasHeader(headers, "User-Agent")) headers["User-Agent"] = "pi-quota-usage";
 		if (hasHeader(headers, "Authorization")) return headers;
 	}
 	throw new Error("No Pi openai-codex subscription auth found. Switch to a Codex model or run /login.");

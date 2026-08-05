@@ -77,7 +77,7 @@ export default function statusline(pi: ExtensionAPI) {
           const branch = footerData.getGitBranch();
           const git = branch && gitCache?.cwd === ctx.cwd ? gitCache?.value : undefined;
           const statuses = footerData.getExtensionStatuses();
-          const codex = statuses.get("codex-usage");
+          const codex = statuses.get("quota-codex");
           const fast = statuses.get("openai-fast");
 
           const divider = theme.fg("borderMuted", " | ");
