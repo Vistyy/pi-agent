@@ -18,7 +18,7 @@ It uses compact reports instead of accumulating each worker's raw working contex
 A subagent may explore, analyze, implement, verify, experiment, or review within that scope.
 It returns a compact report to the main session but does not own the holistic judgment.
 
-**Separate session**: Owns an independent outcome or an explicitly transferred current outcome.
+**Session transfer**: A new Pi session owns an independent outcome or an explicitly transferred current outcome.
 It has its own user dialogue and does not return its working context to the current session.
 
 ## Invariants
@@ -29,7 +29,7 @@ The main session resolves cross-cutting trade-offs and makes the final decision.
 Give each bounded question or deliverable one owner.
 While a subagent owns it, the main session must not independently gather evidence or perform the same work.
 For independent corroboration, assign the same question to an additional subagent.
-Use a separate session only when the user requests one or approves an agent-proposed handoff.
+Use a Session transfer only when the user requests one or approves an agent-proposed Session transfer.
 Conflicting evidence can also require independent corroboration.
 State the reason and the independent scope before assigning the additional owner.
 
@@ -56,9 +56,9 @@ Delegate work that requires repository exploration, multiple source reads, or co
 Also delegate bounded experiments, implementation, verification, and review.
 Delegate before gathering that detailed context in the main session.
 
-Use a separate-session handoff when work has an independent outcome or requires its own user dialogue.
-For an agent-proposed handoff, obtain user approval before launching it.
-Also use a handoff when the user explicitly transfers the current outcome.
+Use a Session transfer when work has an independent outcome or requires its own user dialogue.
+For an agent-proposed Session transfer, obtain user approval before launching it.
+Also use a Session transfer when the user explicitly transfers the current outcome.
 Outcome ownership takes precedence over source location or known search anchors.
 
 This step is complete when the main session retains holistic reasoning.
@@ -68,8 +68,8 @@ Each context-heavy or independently owned scope must also have one explicit owne
 
 For delegated work, read [Subagent delegation](references/subagent-delegation.md) before assigning the worker.
 
-For a separate-session handoff, read [Separate-session handoff](references/separate-session-handoff.md).
-Read it before creating or launching the handoff.
+For a Session transfer, read [Session transfer](references/session-transfer.md).
+Read it before creating or launching the Session transfer.
 
 For current-session work, continue without loading a branch reference.
 

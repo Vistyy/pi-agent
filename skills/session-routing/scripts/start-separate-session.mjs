@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const scriptPath = fileURLToPath(import.meta.url);
-const usage = "start-separate-session --name <name> --cwd <path> --handoff-file <path> [--focus] [--timeout-ms <milliseconds>]";
+const usage = "start-separate-session --name <name> --cwd <path> --transfer-file <path> [--focus] [--timeout-ms <milliseconds>]";
 
 function quoted(value) {
   return JSON.stringify(String(value));
@@ -23,7 +23,7 @@ function homeView() {
 }
 
 function help() {
-  process.stdout.write(`${usage}\n\nRequired:\n  --name <name>           Descriptive Herdr workspace and Pi session name\n  --cwd <path>            Working directory for the new session\n  --handoff-file <path>   Compact handoff used as the initial Pi prompt\n\nOptional:\n  --focus                 Focus the new session after launch\n  --timeout-ms <number>   Shell readiness and Pi verification timeout in milliseconds (default: 10000)\n  --help                  Show this help\n\nEnvironment:\n  HERDR_BIN               Override the Herdr executable\n\nExamples:\n  start-separate-session --name audit-agent-instructions --cwd ~/.pi/agent --handoff-file /tmp/handoff.md\n  start-separate-session --name continue-token-audit --cwd ~/.pi/agent --handoff-file /tmp/handoff.md --focus\n`);
+  process.stdout.write(`${usage}\n\nRequired:\n  --name <name>           Descriptive Herdr workspace and Pi session name\n  --cwd <path>            Working directory for the new session\n  --transfer-file <path>  Compact transfer brief used as the initial Pi prompt\n\nOptional:\n  --focus                 Focus the new session after launch\n  --timeout-ms <number>   Shell readiness and Pi verification timeout in milliseconds (default: 10000)\n  --help                  Show this help\n\nEnvironment:\n  HERDR_BIN               Override the Herdr executable\n\nExamples:\n  start-separate-session --name audit-agent-instructions --cwd ~/.pi/agent --transfer-file /tmp/transfer.md\n  start-separate-session --name continue-token-audit --cwd ~/.pi/agent --transfer-file /tmp/transfer.md --focus\n`);
 }
 
 function fail(message, suggestion, code = 1) {
@@ -47,7 +47,7 @@ function parseArgs(argv) {
     const key = {
       "--name": "name",
       "--cwd": "cwd",
-      "--handoff-file": "handoffFile",
+      "--transfer-file": "transferFile",
       "--timeout-ms": "timeoutMs",
     }[arg];
     if (!key) fail(`unknown option ${arg}`, usage, 2);
@@ -165,7 +165,7 @@ if (options.help) {
 }
 if (!options.name) fail("--name is required", usage, 2);
 if (!options.cwd) fail("--cwd is required", usage, 2);
-if (!options.handoffFile) fail("--handoff-file is required", usage, 2);
+if (!options.transferFile) fail("--transfer-file is required", usage, 2);
 if (options.name.length > 32 || !/^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$/.test(options.name)) {
   fail(
     "--name must be a descriptive kebab-case name of at most 32 characters",
@@ -182,14 +182,15 @@ try {
   fail(`working directory does not exist: ${quoted(cwd)}`, "Pass an existing directory with --cwd", 2);
 }
 
-const handoffFile = path.resolve(options.handoffFile);
-let handoff;
+const transferFile = path.resolve(options.transferFile);
+let transferBrief;
 try {
-  handoff = readFileSync(handoffFile, "utf8").trim();
+  transferBrief = readFileSync(transferFile, "utf8").trim();
 } catch {
-  fail(`handoff file is unreadable: ${quoted(handoffFile)}`, "Pass a readable file with --handoff-file", 2);
+  fail(`transfer file is unreadable: ${quoted(transferFile)}`, "Pass a readable file with --transfer-file", 2);
 }
-if (!handoff) fail("handoff file is empty", "Add the owned outcome and required context to the handoff file", 2);
+if (!transferBrief)
+  fail("transfer file is empty", "Add the owned outcome and required context to the transfer file", 2);
 
 const herdr = findExecutable("herdr", process.env.HERDR_BIN);
 const created = parseJsonOutput(
@@ -222,13 +223,13 @@ const start = startAgentWhenShellReady({
   cleanup: cleanupWorkspace,
 });
 requireSuccess(
-  run(herdr, ["pane", "send-text", rootPane.pane_id, `@${handoffFile}`]),
-  "handoff entry",
+  run(herdr, ["pane", "send-text", rootPane.pane_id, `@${transferFile}`]),
+  "transfer entry",
   cleanupWorkspace,
 );
 requireSuccess(
   run(herdr, ["pane", "send-keys", rootPane.pane_id, "Enter"]),
-  "handoff submission",
+  "transfer submission",
   cleanupWorkspace,
 );
 if (options.focus) {
@@ -257,7 +258,7 @@ while (Date.now() <= deadline) {
 
 if (agent?.agent !== "pi" || !agent?.agent_session || agent?.agent_status === "unknown") {
   cleanupWorkspace();
-  fail("session launch was not verified before the timeout", "Retry the handoff after checking `herdr status server`");
+  fail("session launch was not verified before the timeout", "Retry the Session transfer after checking `herdr status server`");
 }
 
 process.stdout.write(`session:\n  name: ${quoted(agent.name ?? options.name)}\n  terminal_id: ${quoted(agent.terminal_id)}\n  cwd: ${quoted(agent.cwd ?? cwd)}\n  status: ${quoted(agent.agent_status)}\n  focus: ${options.focus}\n  workspace_id: ${quoted(workspace.workspace_id)}\n  workspace_label: ${quoted(workspace.label ?? options.name)}\n  session_path: ${quoted(agent.agent_session.value)}\n`);

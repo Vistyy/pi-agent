@@ -11,9 +11,9 @@ async function fixture() {
   const root = await mkdtemp(path.join(tmpdir(), "session-routing-test-"));
   const bin = path.join(root, "bin");
   const log = path.join(root, "herdr-args.jsonl");
-  const handoff = path.join(root, "handoff.md");
+  const transfer = path.join(root, "transfer.md");
   await import("node:fs/promises").then(({ mkdir }) => mkdir(bin));
-  await writeFile(handoff, "Own the documentation audit.\n");
+  await writeFile(transfer, "Own the documentation audit.\n");
   await writeFile(
     path.join(bin, "herdr"),
     `#!/bin/sh
@@ -54,7 +54,7 @@ exit 1
   await chmod(path.join(bin, "herdr"), 0o755);
   return {
     root,
-    handoff,
+    transfer,
     log,
     env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, HERDR_TEST_LOG: log },
     cleanup: () => rm(root, { recursive: true, force: true }),
@@ -88,7 +88,7 @@ test("rejects a generic session name", async () => {
   const f = await fixture();
   try {
     const result = run(
-      ["--name", "session", "--cwd", f.root, "--handoff-file", f.handoff],
+      ["--name", "session", "--cwd", f.root, "--transfer-file", f.transfer],
       f.env,
     );
     assert.equal(result.status, 2);
@@ -108,8 +108,8 @@ test("rejects a name that Herdr cannot accept", () => {
     "this-session-name-is-longer-than-32",
     "--cwd",
     "/tmp",
-    "--handoff-file",
-    "/tmp/handoff.md",
+    "--transfer-file",
+    "/tmp/transfer.md",
   ]);
   assert.equal(result.status, 2);
   assert.match(
@@ -122,7 +122,7 @@ test("starts default Pi through Herdr and verifies the detected session", async 
   const f = await fixture();
   try {
     const result = run(
-      ["--name", "docs-audit", "--cwd", f.root, "--handoff-file", f.handoff],
+      ["--name", "docs-audit", "--cwd", f.root, "--transfer-file", f.transfer],
       f.env,
     );
     assert.equal(result.status, 0, result.stdout + result.stderr);
@@ -141,7 +141,7 @@ test("starts default Pi through Herdr and verifies the detected session", async 
       "agent start docs-audit --kind pi --pane w99:p1 -- --name docs-audit",
     );
     assert.doesNotMatch(calls[1], /--model|--continue|--resume|--fork/);
-    assert.equal(calls[2], `pane send-text w99:p1 @${f.handoff}`);
+    assert.equal(calls[2], `pane send-text w99:p1 @${f.transfer}`);
     assert.equal(calls[3], "pane send-keys w99:p1 Enter");
     assert.equal(calls[4], "agent get docs-audit");
   } finally {
@@ -153,7 +153,7 @@ test("waits for a newly created pane to become an interactive shell", async () =
   const f = await fixture();
   try {
     const result = run(
-      ["--name", "docs-audit", "--cwd", f.root, "--handoff-file", f.handoff],
+      ["--name", "docs-audit", "--cwd", f.root, "--transfer-file", f.transfer],
       {
         ...f.env,
         HERDR_TEST_NOT_READY_ONCE: "1",
@@ -166,7 +166,7 @@ test("waits for a newly created pane to become an interactive shell", async () =
       `workspace create --cwd ${f.root} --label docs-audit --no-focus`,
       "agent start docs-audit --kind pi --pane w99:p1 -- --name docs-audit",
       "agent start docs-audit --kind pi --pane w99:p1 -- --name docs-audit",
-      `pane send-text w99:p1 @${f.handoff}`,
+      `pane send-text w99:p1 @${f.transfer}`,
     ]);
   } finally {
     await f.cleanup();
@@ -182,8 +182,8 @@ test("fails when a pane does not become a shell before the timeout", async () =>
         "docs-audit",
         "--cwd",
         f.root,
-        "--handoff-file",
-        f.handoff,
+        "--transfer-file",
+        f.transfer,
         "--timeout-ms",
         "0",
       ],
@@ -209,7 +209,7 @@ test("does not retry another agent-start failure", async () => {
   const f = await fixture();
   try {
     const result = run(
-      ["--name", "docs-audit", "--cwd", f.root, "--handoff-file", f.handoff],
+      ["--name", "docs-audit", "--cwd", f.root, "--transfer-file", f.transfer],
       { ...f.env, HERDR_TEST_AGENT_START_ERROR: "1" },
     );
     assert.equal(result.status, 1);
@@ -224,11 +224,11 @@ test("does not retry another agent-start failure", async () => {
   }
 });
 
-test("focuses a continuation handoff when requested", async () => {
+test("focuses a transferred current outcome when requested", async () => {
   const f = await fixture();
   try {
     const result = run(
-      ["--name", "docs-audit", "--cwd", f.root, "--handoff-file", f.handoff, "--focus"],
+      ["--name", "docs-audit", "--cwd", f.root, "--transfer-file", f.transfer, "--focus"],
       f.env,
     );
     assert.equal(result.status, 0, result.stdout + result.stderr);
