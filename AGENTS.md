@@ -57,8 +57,10 @@
   Leave local and reversible choices to execution.
 - Apply minimum sufficient commitment to design by minimizing caller knowledge, coordination, concepts, interfaces, dependencies, and additional behavioral guarantees while preserving the required end-to-end behavior and established ownership.
 - Retain edge cases, abstractions, generality, and future flexibility only when authoritative context or concrete evidence establishes a current need, and state that reason.
-- Use canonical project terms for public and domain-facing names.
-  Read the applicable `CONTEXT.md` before naming behavior.
+- Use canonical project terms from the applicable `CONTEXT.md` in public and domain-facing names, instructions, documentation, and user communication.
+  Read the applicable `CONTEXT.md` before naming or describing domain behavior.
+  Once the audience has the applicable context, prefer the canonical term to repeated paraphrase.
+  If the audience cannot access that context, provide the required meaning directly or through a reliable reference.
   Ask the user when a required canonical term is missing or ambiguous.
   Private names may rely on their module context.
 - Navigate with precise search anchors built from canonical terms and the applicable operation or role.

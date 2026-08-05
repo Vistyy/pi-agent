@@ -78,11 +78,14 @@ End each step with a checkable **completion criterion**.
 When incomplete coverage matters, make the completion criterion exhaustive.
 Use a **leading word** when an established compact concept controls behavior more reliably than a longer explanation.
 
+State the target behavior directly and before any prohibition that constrains it.
+Use a prohibition only when an explicit exclusion changes behavior.
+
 Prefer interfaces, valid states, and explicit requirements over examples when they can define the behavior completely.
 Use examples to clarify ambiguous boundaries and edge cases.
 Do not use examples as the only definition of available operations or valid states.
 
-This step is complete when each action has one object, each condition precedes its action, each step has a sufficient completion criterion, and each example clarifies rather than defines the available behavior.
+This step is complete when each action has one object, each condition precedes its action, each step has a sufficient completion criterion, each prohibition follows an explicit target behavior and defines a necessary exclusion, and each example clarifies rather than defines the available behavior.
 
 ## 4. Prune the instructions
 

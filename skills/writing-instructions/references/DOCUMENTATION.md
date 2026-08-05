@@ -33,6 +33,11 @@ Keep each claim in the medium that owns it.
 Link to that authority when the reader needs access to it.
 Add explanatory prose only when the authority does not communicate the meaning that the audience needs.
 
+Treat documentation that repeats an authoritative environment lookup as a cache.
+Examples include package scripts, configuration, directory layout, schemas, and `--help` output.
+Keep the cache only when the lookup is sufficiently difficult for the identified audience to justify its maintenance and attention cost.
+Prefer documenting the unwritten convention, rationale, or operational constraint that the environment does not reveal.
+
 ## Admit a document or passage
 
 Keep a document or passage only when all of these conditions are true:

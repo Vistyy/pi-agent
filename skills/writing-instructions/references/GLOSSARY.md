@@ -126,6 +126,12 @@ A demanding completion criterion increases required legwork.
 **Post-completion steps** are the steps that follow the current step.
 Visible later steps can pull attention away from the current completion criterion.
 
+### Real context boundary
+
+A **real context boundary** removes post-completion steps from the current actor's context.
+A bounded subagent assignment or separate-session handoff creates one when the receiving actor sees only its owned scope.
+An inline skill or tool call does not create one when the same actor still sees the later sequence.
+
 ### Premature completion
 
 _Premature completion_ is the failure mode in which the actor leaves a step before satisfying its completion criterion because attention moves to post-completion steps.
