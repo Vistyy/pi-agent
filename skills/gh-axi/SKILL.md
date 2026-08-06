@@ -5,8 +5,8 @@ description: "Use for GitHub issues, pull requests, CI runs, workflows, releases
 
 # gh-axi
 
-Run commands as `pnpx -y gh-axi <command>`.
-When output suggests `gh-axi ...`, add the `pnpx -y` prefix before running it.
+Run commands as `pnpm dlx gh-axi <command>`.
+When output suggests `gh-axi ...`, add the `pnpm dlx` prefix before running it.
 
 `gh-axi` requires an installed and authenticated [`gh`](https://cli.github.com/) CLI.
 If authentication fails, ask the user to run `gh auth login`.
@@ -15,11 +15,11 @@ If authentication fails, ask the user to run `gh auth login`.
 
 1. Select the narrowest command for the requested GitHub object.
    If the task does not identify an issue, pull request, run, workflow, release, or repository, use the dashboard to discover it.
-   Run the dashboard as `pnpx -y gh-axi`.
+   Run the dashboard as `pnpm dlx gh-axi`.
    Completion: the first command addresses the identified object or discovers the missing identifier.
 
 2. Set the repository for cross-repository operations.
-   Add `--repo=owner/name` after the command, such as `pnpx -y gh-axi issue list --repo=owner/name`.
+   Add `--repo=owner/name` after the command, such as `pnpm dlx gh-axi issue list --repo=owner/name`.
    Completion: every cross-repository command contains the repository flag.
 
 3. Follow relevant `help:` hints.
@@ -50,12 +50,12 @@ For a multiline body, comment, or release note:
 Use `api` when no dedicated command supports the operation.
 For example:
 
-`pnpx -y gh-axi api repos/{owner}/{repo}/topics`
+`pnpm dlx gh-axi api repos/{owner}/{repo}/topics`
 
 ## Help
 
-Use `pnpx -y gh-axi --help` as the authority for available commands and global flags.
-Use `pnpx -y gh-axi <command> --help` for command-specific usage.
+Use `pnpm dlx gh-axi --help` as the authority for available commands and global flags.
+Use `pnpm dlx gh-axi <command> --help` for command-specific usage.
 
 ## Output and retries
 
