@@ -8,16 +8,15 @@ description: Use when deciding where behavior belongs, changing what callers mus
 Select the simplest structure that makes ownership and coordination explicit, keeps caller knowledge small, and makes important behavior easy to verify.
 A deep module is one possible structure, not the default result.
 
-## Canonical vocabulary
+## Working vocabulary
 
-Use the following terms only with these meanings.
+Use the following terms with these meanings in design analysis.
+Preserve established domain, repository, external-system, and exact technical terms when replacing them would reduce accuracy.
 
 **Module**: Anything with an interface and an implementation, including a function, class, package, or tier-spanning slice.
-Use **Module** instead of *unit*, *component*, or *service*.
 
 **Interface**: Everything a caller must know to use a module correctly.
 The interface includes entry points, invariants, ordering constraints, error modes, configuration, and performance characteristics.
-Use **Interface** instead of *API* or *signature*.
 
 **Implementation**: Code inside a module.
 When describing a role at a seam, use **Adapter**.
@@ -25,7 +24,6 @@ When describing code inside the module, use **Implementation**.
 
 **Seam**: A location where behavior can change without editing that location.
 A module exposes its interface at a seam.
-Use **Seam** instead of *boundary*.
 
 **Adapter**: An implementation that satisfies an interface at a seam.
 The term describes the role, not the code shape.
@@ -36,11 +34,12 @@ Locality lets maintainers make and verify a change in one place.
 ## 1. Identify the structural problem
 
 Name the behavior, rule, or dependency under consideration.
-Name its current owner and every caller that must understand or coordinate it.
-Record the interface knowledge that each caller needs, including invariants, ordering, errors, configuration, and performance constraints.
+Name its current owner and the callers whose knowledge or coordination can affect the decision.
+Record only interface knowledge established and material to the decision, such as relevant invariants, ordering, errors, configuration, or performance constraints.
+State decision-blocking unknowns instead of filling them with conventional behavior.
 Use observed changes, defects, or verification friction when available.
 
-This step is complete when the behavior, current owner, every caller that must understand or coordinate it, each caller's required interface knowledge, and the coordination cost are explicit.
+This step is complete when the behavior, current owner, material caller knowledge, and coordination cost are explicit enough to compare structures.
 If no structural problem remains, keep the current structure.
 
 ## 2. Compare the credible structures
@@ -49,7 +48,7 @@ Apply the **deletion test** to each relevant module.
 If deleting a module removes complexity, prefer deletion or direct code.
 If deleting a module distributes knowledge or behavior among callers, the module provides locality.
 
-Compare only structures supported by the problem:
+Credible structures can include:
 
 - Keep the current structure.
 - Delete or merge pass-through modules.
@@ -57,19 +56,12 @@ Compare only structures supported by the problem:
 - Keep simple behavior direct at the caller.
 - Deepen a module around distributed behavior or knowledge.
 
-When relationships among Modules or callers affect the choice, represent the current structure and each credible proposed structure with the lightest suitable terminal-native table, tree, graph, or diagram.
-Use the representation to inspect ownership, crossings, cycles, coordination, and deletion opportunities.
-If the representation is convoluted, investigate whether moving, deleting, merging, or deepening a Module simplifies the design.
-Treat convolution as evidence to investigate, not as proof that the design is wrong.
-Retain complexity when authoritative context or concrete evidence requires it, and state that reason.
-
+Compare only structures supported by the problem.
 Compare each credible structure by caller knowledge, edit locations, new concepts, interfaces, indirection, migration work, and verification setup.
 Reject structures that do not satisfy the required behavior or established ownership constraints.
 Among the remaining structures, prefer the one that introduces the least caller knowledge, coordination, concepts, interfaces, indirection, dependencies, and verification setup.
-Retain an additional commitment only when named evidence requires it.
 
 This step is complete when named evidence supports one structure and its structural and maintenance trade-offs are explicit.
-When a representation is required, completion also requires explicit ownership and coordination, the result of the convolution investigation, and the reason for each retained source of complexity.
 
 ## 3. Define ownership and interfaces
 
@@ -82,7 +74,7 @@ When a dependency must vary at a seam, accept an adapter instead of constructing
 Keep implementation-only seams private.
 Verification of externally observable behavior must use the supported interface.
 
-This step is complete when callers can use the interface without implementation knowledge and every seam has a named justification.
+This step is complete when callers can use the interface without implementation knowledge and each seam created, retained, or materially evaluated by the design has a named justification.
 
 ## 4. Verify the design
 
@@ -99,5 +91,4 @@ An implemented design is complete when the required behavior is verified and no 
 
 ## Conditional guidance
 
-When evaluating or selecting deepening, read [DEEPENING.md](references/DEEPENING.md) before defining dependency seams, adapters, or verification migration.
 When the user requests independent alternative interfaces or structural designs, read [DESIGN-IT-TWICE.md](references/DESIGN-IT-TWICE.md).

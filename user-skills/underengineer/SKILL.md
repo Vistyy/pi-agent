@@ -19,9 +19,9 @@ A **future possibility** is behavior that might become useful but is not current
 A **complexity item** is a proposed element that adds work or makes the solution harder to understand, change, verify, or operate.
 Complexity items include extra scope, concepts, indirection, dependencies, states, configuration, compatibility behavior, and operational machinery.
 
-Apply the instruction precedence from the current agent context.
-Within that precedence, use explicit user statements, project instructions, accepted decisions, and current repository evidence.
+Use explicit user statements, project instructions, accepted decisions, and current repository evidence.
 If these sources conflict, report the conflict instead of choosing one silently.
+Do not treat a proposed structure, generic quality concern, future possibility, or missing information as a current requirement or current constraint.
 
 ## Verdicts
 
@@ -36,12 +36,11 @@ Identify each current requirement, current constraint, future possibility, and u
 For the final `What must remain`, include only requirements and constraints whose loss could change a verdict.
 Do not report a future possibility unless the proposal relies on it to justify complexity.
 
-This step is complete when every stated need is classified and the preservation boundary is explicit.
-
 ## 2. Challenge each complexity item
 
 List each complexity item in the proposal.
-Use this mandatory comparison table with one row per item:
+Use this mandatory comparison table with one row per independently decidable item.
+Group items only when they have the same treatment and verdict:
 
 | Item and effect | Simplest supported treatment | Verdict |
 | --- | --- | --- |
@@ -57,15 +56,11 @@ If no complexity item exists, state `None identified` instead of creating an emp
 Prefer deletion or a direct solution over new machinery.
 A future possibility does not justify present complexity.
 
-This step is complete when every complexity item has one supported verdict.
-
 ## 3. Recommend the simplest coherent solution
 
 Describe the smallest solution that preserves every current requirement and current constraint.
 Present it as one coherent proposal instead of repeating the table's verdict inventory.
 If an `UNCLEAR` verdict blocks the recommendation, ask only the questions that can resolve it.
-
-This step is complete when the recommendation preserves the full preservation boundary and the table accounts for every complexity item.
 
 Return exactly these sections in this order:
 
@@ -76,6 +71,9 @@ Return exactly these sections in this order:
 
 Start `Simplest version` with one direct recommendation.
 Under `What must remain`, use one concise bullet list.
+This section is a preservation boundary, not a summary.
+Include a rule only when it is an accepted requirement or constraint whose removal could change a table verdict.
+Do not include review scope, a recommendation, a design conclusion, or a negative restatement of missing information or permission.
 Distinguish requirements from constraints only when the distinction changes a verdict.
 
-The review is complete when the user can choose the simpler version without reconstructing the analysis.
+The review is complete when the preservation boundary is explicit, every complexity item has a supported verdict, the recommendation preserves that boundary, and every unresolved verdict-changing conflict or missing input appears under `Open questions`.
