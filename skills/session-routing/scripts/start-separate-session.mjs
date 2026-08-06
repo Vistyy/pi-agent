@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const scriptPath = fileURLToPath(import.meta.url);
-const usage = "start-separate-session --name <name> --cwd <path> --transfer-file <path> [--focus] [--timeout-ms <milliseconds>]";
+const usage = "start-separate-session --name <name> --cwd <path> --transfer-file <path> [--timeout-ms <milliseconds>]";
 
 function quoted(value) {
   return JSON.stringify(String(value));
@@ -23,7 +23,7 @@ function homeView() {
 }
 
 function help() {
-  process.stdout.write(`${usage}\n\nRequired:\n  --name <name>           Descriptive Herdr workspace and Pi session name\n  --cwd <path>            Working directory for the new session\n  --transfer-file <path>  Compact transfer brief used as the initial Pi prompt\n\nOptional:\n  --focus                 Focus the new session after launch\n  --timeout-ms <number>   Shell readiness and Pi verification timeout in milliseconds (default: 10000)\n  --help                  Show this help\n\nEnvironment:\n  HERDR_BIN               Override the Herdr executable\n\nExamples:\n  start-separate-session --name audit-agent-instructions --cwd ~/.pi/agent --transfer-file /tmp/transfer.md\n  start-separate-session --name continue-token-audit --cwd ~/.pi/agent --transfer-file /tmp/transfer.md --focus\n`);
+  process.stdout.write(`${usage}\n\nRequired:\n  --name <name>           Descriptive Herdr workspace and Pi session name\n  --cwd <path>            Working directory for the new session\n  --transfer-file <path>  Compact transfer brief used as the initial Pi prompt\n\nOptional:\n  --timeout-ms <number>   Shell readiness and Pi verification timeout in milliseconds (default: 10000)\n  --help                  Show this help\n\nEnvironment:\n  HERDR_BIN               Override the Herdr executable\n\nExamples:\n  start-separate-session --name audit-agent-instructions --cwd ~/.pi/agent --transfer-file /tmp/transfer.md\n`);
 }
 
 function fail(message, suggestion, code = 1) {
@@ -33,13 +33,9 @@ function fail(message, suggestion, code = 1) {
 }
 
 function parseArgs(argv) {
-  const result = { focus: false, timeoutMs: 10_000 };
+  const result = { timeoutMs: 10_000 };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
-    if (arg === "--focus") {
-      result.focus = true;
-      continue;
-    }
     if (arg === "--help") {
       result.help = true;
       continue;
@@ -232,13 +228,6 @@ requireSuccess(
   "transfer submission",
   cleanupWorkspace,
 );
-if (options.focus) {
-  parseJsonOutput(
-    run(herdr, ["workspace", "focus", workspace.workspace_id]),
-    "workspace focus",
-    cleanupWorkspace,
-  );
-}
 
 let agent = start?.result?.agent;
 while (Date.now() <= deadline) {
@@ -261,4 +250,4 @@ if (agent?.agent !== "pi" || !agent?.agent_session || agent?.agent_status === "u
   fail("session launch was not verified before the timeout", "Retry the Session transfer after checking `herdr status server`");
 }
 
-process.stdout.write(`session:\n  name: ${quoted(agent.name ?? options.name)}\n  terminal_id: ${quoted(agent.terminal_id)}\n  cwd: ${quoted(agent.cwd ?? cwd)}\n  status: ${quoted(agent.agent_status)}\n  focus: ${options.focus}\n  workspace_id: ${quoted(workspace.workspace_id)}\n  workspace_label: ${quoted(workspace.label ?? options.name)}\n  session_path: ${quoted(agent.agent_session.value)}\n`);
+process.stdout.write(`session:\n  name: ${quoted(agent.name ?? options.name)}\n  terminal_id: ${quoted(agent.terminal_id)}\n  cwd: ${quoted(agent.cwd ?? cwd)}\n  status: ${quoted(agent.agent_status)}\n  focus: false\n  workspace_id: ${quoted(workspace.workspace_id)}\n  workspace_label: ${quoted(workspace.label ?? options.name)}\n  session_path: ${quoted(agent.agent_session.value)}\n`);

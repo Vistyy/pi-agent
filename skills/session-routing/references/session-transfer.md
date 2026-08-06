@@ -36,8 +36,9 @@ node "${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/skills/session-routing/scripts/sta
   --transfer-file <transfer-file>
 ```
 
-When the Session transfer moves the current outcome, add `--focus` and stop work on that outcome in the current session.
-When it moves independent work, keep the current session focused on its own outcome.
+The launcher creates the Herdr workspace with `--no-focus` and does not focus the new session.
+Keep the current session focused regardless of whether the transfer moves independent work or the current outcome.
+When the Session transfer moves the current outcome, stop work on that outcome in the current session after the verified launch.
 
 Inspect the structured launcher result.
 If the launcher fails or does not verify the Pi session, report the failure and do not claim success.

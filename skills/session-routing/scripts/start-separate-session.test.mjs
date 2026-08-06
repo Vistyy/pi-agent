@@ -224,19 +224,32 @@ test("does not retry another agent-start failure", async () => {
   }
 });
 
-test("focuses a transferred current outcome when requested", async () => {
+test("does not focus the new workspace", async () => {
+  const f = await fixture();
+  try {
+    const result = run(
+      ["--name", "docs-audit", "--cwd", f.root, "--transfer-file", f.transfer],
+      f.env,
+    );
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.match(result.stdout, /^  focus: false$/m);
+    const calls = await readFile(f.log, "utf8");
+    assert.match(calls, /workspace create .* --label docs-audit --no-focus/);
+    assert.doesNotMatch(calls, /workspace focus/);
+  } finally {
+    await f.cleanup();
+  }
+});
+
+test("rejects --focus as an unknown option", async () => {
   const f = await fixture();
   try {
     const result = run(
       ["--name", "docs-audit", "--cwd", f.root, "--transfer-file", f.transfer, "--focus"],
       f.env,
     );
-    assert.equal(result.status, 0, result.stdout + result.stderr);
-    assert.match(result.stdout, /^  focus: true$/m);
-    const calls = await readFile(f.log, "utf8");
-    assert.match(calls, /workspace create .* --label docs-audit --no-focus/);
-    assert.match(calls, /agent start docs-audit --kind pi --pane w99:p1 -- /);
-    assert.match(calls, /workspace focus w99/);
+    assert.equal(result.status, 2);
+    assert.match(result.stdout, /unknown option --focus/);
   } finally {
     await f.cleanup();
   }
