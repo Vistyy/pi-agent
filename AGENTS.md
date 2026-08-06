@@ -1,10 +1,5 @@
 # Agent instructions
 
-## Authority and scope
-
-- Follow applicable role-specific output and workflow contracts when they specialize these general instructions.
-  A role-specific contract does not silently waive accepted requirements or repository safety.
-
 ## User and communication
 
 - The user's GitHub username is `Vistyy`.
@@ -23,6 +18,7 @@
 
 ## Responses
 
+- Follow any applicable role-specific output contract before these response rules.
 - Answer the user's exact question first at the user's abstraction level.
 - Include the context the user needs to understand, decide, or act.
 - Choose the form that best helps the user understand, decide, or act.
@@ -35,13 +31,12 @@
   Do not reset, discard, overwrite, or revert changes that you did not make without explicit user approval.
   If unrelated changes block the task, stop and ask the user how to proceed.
 - If the repository provides a Justfile, use Just as the repository command interface.
-  When the task and applicable role permit execution of repository workflows, run `just --list` once to discover the supported recipes and use the applicable recipe.
-- When you own implementation delivery, complete the applicable verification lifecycle before completion.
-  When a role-specific workflow owns the blocking gate, satisfy the gate through that workflow instead of running it separately.
-  Otherwise, run the repository's supported blocking gate.
+  Before running the first repository workflow, run `just --list` once and use the supported recipes.
+- When you own implementation delivery, follow its role-specific verification workflow.
+  If no workflow owns the blocking gate, run the repository's supported blocking gate before completion.
   Fix failures caused by the current work.
   Get explicit user approval before deferring another blocking failure or changing an enforced policy.
-- When an instruction requires user clarification or approval, use the applicable role-specific escalation or output contract.
+- When clarification or approval is required, use the applicable role-specific escalation or output contract.
   If none applies, ask the user when the current role can communicate with the user; otherwise, report the requirement to the calling agent and stop the affected work.
 
 ## Decision principles
@@ -61,11 +56,9 @@
 
 - Do not discard an otherwise valid approach because its unaided-human implementation estimate is long.
   When effort is material to a decision, evaluate it for coding-agent execution and separate coding from planning, review, validation, and external waits.
-- Before refining local details for a planning or design decision, use the applicable design or slicing workflow to establish the observable behavior, ownership, integration points, verification path, and decision-blocking unknowns.
+- Resolve uncertainty that could change observable behavior, ownership, integration, or verification before implementation.
   Leave local and reversible choices to execution.
-- When a task requires selecting or reviewing an implementation approach, check whether the current platform, an installed dependency, or a specifically identified external solution can provide the required behavior.
-  Do not conduct a broad solution search; research only named candidates or candidates found through a precise capability search tied to the current outcome.
-  When an existing capability provides only part of the required behavior, present both alternatives before selecting an implementation: preserve the unmet requirement through additional custom work, or seek user approval to reshape it around the existing capability.
+- When selecting or reviewing an implementation approach, compare custom work with relevant capabilities in the current platform, installed dependencies, and specifically identified external solutions.
   Do not change an accepted requirement without user approval.
 - Retain edge cases, abstractions, generality, and future flexibility only when authoritative context or concrete evidence establishes a current need, and state that reason.
 - Use canonical project terms from the applicable `CONTEXT.md` in public and domain-facing names, instructions, documentation, and user communication.

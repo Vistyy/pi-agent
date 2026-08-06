@@ -1,6 +1,6 @@
 ---
 name: codebase-design
-description: Use when deciding where behavior belongs, changing what callers must know, placing or removing a seam, representing relationships that affect structure, or defining how a module can be verified.
+description: Use when deciding where behavior belongs, selecting between existing capabilities and custom work, changing what callers must know, placing or removing a seam, representing relationships that affect structure, or defining how a module can be verified.
 ---
 
 # Codebase Design
@@ -45,6 +45,11 @@ This step is complete when the behavior, current owner, material caller knowledg
 If no structural problem remains, keep the current structure.
 
 ## 2. Compare the credible structures
+
+Before selecting custom work, check whether the current platform, an installed dependency, or a specifically identified external solution can provide the required behavior.
+Research only named candidates or candidates found through a precise capability search tied to the current outcome.
+When an existing capability provides only part of the required behavior, compare preserving the unmet requirement through additional custom work with seeking user approval to reshape it around the existing capability.
+Do not change an accepted requirement without user approval.
 
 Apply the **deletion test** to each relevant module.
 If deleting a module removes complexity, prefer deletion or direct code.
