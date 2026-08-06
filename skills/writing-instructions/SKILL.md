@@ -1,124 +1,63 @@
 ---
 name: writing-instructions
-description: Use when writing, revising, or auditing agent instructions, agent prompts, AGENTS.md files, skills, or documentation.
+description: Use when writing, revising, or auditing instructions or technical documentation.
 ---
 
 # Writing Instructions
 
-Write instructions that produce predictable behavior while preserving judgment where context determines the correct action.
-When creating, revising, or auditing documentation, read [Documentation](references/DOCUMENTATION.md) completely and apply it.
-When a bold term controls a decision, read its authoritative definition in [the glossary](references/GLOSSARY.md) before making that decision.
+Write technical prose that produces the required behavior or understanding without adding unsupported meaning.
+When the artifact's purpose is to explain or help readers operate the supported technical system, read [Documentation](references/DOCUMENTATION.md) completely.
+Do not load that reference only because an instruction artifact uses Markdown or includes rationale.
+When writing or reviewing a skill, also read [Writing skills](references/SKILLS.md) completely.
 
-When the user requests an audit, evaluate the existing instructions against every step and completion criterion without changing them.
-Report findings in a table with one row per failed criterion:
+When the user requests an audit, do not change files.
+Check every applicable criterion and report each failure with its evidence and impact.
+Report no findings only after every criterion passes.
 
-| Criterion | Evidence | Impact |
-| --- | --- | --- |
+## 1. Establish the target
 
-Report no findings only when every criterion passes.
-
-## 1. Define the required behavior
-
-Name the instruction artifact, its actor, and its intended audience.
-State the observable behavior that the instructions must produce.
-Identify the conditions, scope, authority, and invariants that control that behavior.
-Inspect the applicable environment and existing instructions for local conventions and conflicts.
-
-When correct behavior depends on local conventions, direct the actor to inspect and follow those conventions.
-Use unconditional rules for invariants, safety constraints, compliance requirements, and exact output requirements.
-When local conventions are absent or incomplete, use the applicable invariant or explicit requirement.
-When no authority determines a consequential choice, ask the user for clarification.
+Identify the artifact, audience, and behavior or question the prose must address.
+Identify the applicable scope, authority, invariants, and local conventions.
+Inspect the environment when correct content depends on existing behavior or conventions.
+Resolve conflicting authorities before drafting.
+Ask the user when no authority determines a consequential choice.
 Leave local and reversible choices to the actor's judgment.
-Resolve conflicting authorities before drafting instructions.
 
-This step is complete when the actor, audience, observable behavior, scope, controlling context, invariants, fallback behavior, and authority precedence are explicit.
+## 2. Place and write the content
 
-## 2. Place each instruction at the lowest reliable level
+Put each rule or claim at the lowest reliable delivery boundary.
+Put interface-specific behavior where the actor encounters the interface.
+Keep ordered actions and universally required rules in the primary artifact.
+Move branch-specific detail to a reference only when the primary artifact states exactly when to load it.
+Keep required detail inline when a loading instruction would be unreliable.
+Make required external guidance available, or state the dependency and what to do when it is unavailable.
 
-Before placing content, read [Information hierarchy](references/GLOSSARY.md#information-hierarchy).
+State each condition before the action or claim that depends on it.
+Give each ordered step one primary action.
+State an observable result when completion would otherwise be unclear.
+Name the actor or subject when responsibility could be unclear.
+Make each requirement observable.
+Use `must` for requirements, `should` for recommendations, `may` for permission, and `can` for capability or possible results.
+State supported behavior before a prohibition that limits it.
+Keep requirements and instructions distinct from rationale and examples.
+Use examples to clarify boundaries, not as the only definition of supported behavior.
 
-Put interface-specific behavior at the **interface boundary**.
-Put tool usage in the tool description, valid states in the schema, and file-specific rules beside the applicable files.
-Keep global instructions for behavior that applies across interfaces or files.
+## 3. Remove unnecessary content
 
-Place content according to when the actor needs it:
+Keep each meaning in one authoritative location.
+For each claim, assumption, condition, distinction, required step, guarantee, and output constraint, identify which required behavior, current constraint, or evidence rules out a weaker alternative.
+Remove or weaken it when none does.
+Remove obsolete, duplicate, and irrelevant content.
+Remove an instruction that does not change what the actor would otherwise do.
+Disclose conditional detail when keeping it inline makes the active instructions difficult to use.
 
-1. Put ordered actions in in-scope **steps**.
-2. Put universally required rules and facts in in-scope **reference**.
-3. Put branch-specific material behind a precise **context pointer**.
-4. Put shared material that needs no independent invocation in an external reference behind a precise context pointer.
+## 4. Validate the result
 
-When an instruction relies on guidance outside its delivery boundary, determine whether that guidance is required or supplemental.
-Make required guidance available through packaging or a reliable context pointer, or declare an explicit external dependency with actionable failure behavior.
-Keep supplemental guidance nonessential to correct operation.
-Put reusable methods in the artifact with the matching general scope.
-Put context-specific terms, authority, and procedures in an artifact delivered with that context.
-
-Use **progressive disclosure** when only some branches need detailed material.
-Put each reference-loading condition beside the link in the parent instruction.
-Do not put an instruction to load a reference inside that reference because the instruction cannot cause the reference to load.
-Keep required material inline when a precise context pointer does not load it reliably.
-Use **co-location** within each file.
-Keep each concept's definition, rules, and exceptions under one heading.
-
-Select the highest-fidelity authoritative reference that directly expresses the required behavior or quality.
-Prefer executable tests for behavior, representative code for implementation conventions, rendered artifacts for visual requirements, and rubrics for judgment-dependent quality.
-State why and when the actor must consult each reference.
-Resolve conflicts between references before relying on them.
-
-When writing, editing, or auditing a skill, read [Writing skills](references/SKILLS.md) before evaluating its invocation mode or structure.
-
-This step is complete when every instruction and reference is at the lowest reliable level, every context pointer states when to load its target, every required external dependency is available or explicitly declared, supplemental guidance is nonessential to correct operation, every selected reference has a stated purpose, and no unresolved reference conflict remains.
-
-## 3. Construct the instructions
-
-Give each step one primary action.
-State each condition before the action that depends on it.
-End each step with a checkable **completion criterion**.
-When incomplete coverage matters, make the completion criterion exhaustive.
-Use a **leading word** when an established compact concept controls behavior more reliably than a longer explanation.
-
-State the target behavior directly and before any prohibition that constrains it.
-Use a prohibition only when an explicit exclusion changes behavior.
-
-Prefer interfaces, valid states, and explicit requirements over examples when they can define the behavior completely.
-Use examples to clarify ambiguous boundaries and edge cases.
-Do not use examples as the only definition of available operations or valid states.
-
-This step is complete when each action has one object, each condition precedes its action, each step has a sufficient completion criterion, each prohibition follows an explicit target behavior and defines a necessary exclusion, and each example clarifies rather than defines the available behavior.
-
-## 4. Prune the instructions
-
-Before pruning, read [Pruning](references/GLOSSARY.md#pruning).
-
-Keep each meaning in one **single source of truth**.
-Make each behavioral change through one authoritative edit.
-Remove obsolete and irrelevant content.
-Apply the **no-op** test to each sentence:
-
-> Does this sentence change behavior from the default behavior?
-
-Delete a sentence that fails the test.
-A shorter no-op remains a no-op.
-Disclose conditional material when active content creates **sprawl**.
-
-This step is complete when each retained line changes or supports the required behavior, each meaning has one authority, no obsolete content remains, and conditional detail does not create sprawl.
-
-## 5. Validate the behavior
-
-Review every changed passage against this skill and the applicable prose requirements.
-Trace every applicable branch from invocation or entry through completion.
+Trace every applicable path from entry to completion.
 For linear instructions, trace at least one representative case.
-Test consequential or disputed instructions against the intended actor when the environment supports such a test.
-Record untested assumptions when behavioral testing is unavailable.
+Test consequential or disputed behavior with the intended actor when the environment supports it.
+Confirm that the result preserves its intended behavior, scope, conditions, technical claims, and necessary relationships.
+Record assumptions that cannot be tested.
 
-Classify observed failures before changing the instructions:
-
-- For **premature completion**, strengthen the current completion criterion before splitting the sequence.
-- For **duplication**, choose one authoritative location.
-- For **sediment**, remove stale or irrelevant content.
-- For **sprawl**, disclose conditional material or split a genuine branch or sequence.
-- For a **no-op**, remove the instruction or replace it with an effective control.
-
-The instructions are complete when every traced branch produces the required observable behavior, every applicable review criterion passes, and each untested assumption is explicit.
-An audit is complete when every failed criterion identifies the applicable evidence and no file has changed.
+The work is complete when the artifact addresses its intended behavior or question, each meaning has one authority, every applicable path satisfies its observable completion conditions, and each untested assumption is explicit.
+An audit is complete when every failed criterion identifies its evidence and impact and no file has changed.

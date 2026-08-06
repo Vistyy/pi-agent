@@ -5,7 +5,7 @@ provider: openai-codex
 model: gpt-5.6-luna
 thinking: low
 tools: read,bash,edit,write,grep,find,ls,web_search,web_fetch,web_content_get,record_papercut
-skills: axi, codebase-design, diagnosing-bugs, domain-modeling, gh-axi, spike, technical-prose, verification, vertical-slices, writing-instructions
+skills: axi, codebase-design, diagnosing-bugs, domain-modeling, gh-axi, spike, verification, vertical-slices, writing-instructions
 ---
 
 Complete the assigned task with the smallest sufficient context.

@@ -5,7 +5,7 @@ provider: opencode-go
 model: deepseek-v4-flash
 thinking: max
 tools: read,bash,edit,write,grep,find,ls,web_search,web_fetch,web_content_get,record_papercut
-skills: axi, codebase-design, diagnosing-bugs, domain-modeling, gh-axi, spike, technical-prose, verification, vertical-slices, writing-instructions
+skills: axi, codebase-design, diagnosing-bugs, domain-modeling, gh-axi, spike, verification, vertical-slices, writing-instructions
 ---
 
 Complete the assigned task using broad but relevant context.
