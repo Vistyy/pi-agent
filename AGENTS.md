@@ -18,26 +18,17 @@
 
 ## Responses
 
-- Follow any applicable role-specific output contract before these response rules.
 - Answer the user's exact question first at the user's abstraction level.
 - Include the context the user needs to understand, decide, or act.
 - Choose the form that best helps the user understand, decide, or act.
 
-## Repository safety and validation
+## Repository safety
 
 - When changing generated output, change the generator source and regenerate the output.
   Do not manually edit generated files.
 - Preserve user and external changes.
   Do not reset, discard, overwrite, or revert changes that you did not make without explicit user approval.
   If unrelated changes block the task, stop and ask the user how to proceed.
-- If the repository provides a Justfile, use Just as the repository command interface.
-  Before running the first repository workflow, run `just --list` once and use the supported recipes.
-- When you own implementation delivery, follow its role-specific verification workflow.
-  If no workflow owns the blocking gate, run the repository's supported blocking gate before completion.
-  Fix failures caused by the current work.
-  Get explicit user approval before deferring another blocking failure or changing an enforced policy.
-- When clarification or approval is required, use the applicable role-specific escalation or output contract.
-  If none applies, ask the user when the current role can communicate with the user; otherwise, report the requirement to the calling agent and stop the affected work.
 
 ## Decision principles
 
@@ -51,15 +42,11 @@
   Add a concept, interface, dependency, state, configuration option, or coordination step only when a current requirement or constraint requires it.
 - Sufficiency includes required reliability, safety, compatibility, and coverage of material risks.
   Neither principle means minimum effort or minimum verification.
+- Do not discard an otherwise valid approach because its unaided-human implementation estimate is long.
+  When effort is material to a decision, evaluate it for coding-agent execution and separate coding from planning, review, validation, and external waits.
 
 ## Design and implementation
 
-- Do not discard an otherwise valid approach because its unaided-human implementation estimate is long.
-  When effort is material to a decision, evaluate it for coding-agent execution and separate coding from planning, review, validation, and external waits.
-- Resolve uncertainty that could change observable behavior, ownership, integration, or verification before implementation.
-  Leave local and reversible choices to execution.
-- When selecting or reviewing an implementation approach, compare custom work with relevant capabilities in the current platform, installed dependencies, and specifically identified external solutions.
-  Do not change an accepted requirement without user approval.
 - Retain edge cases, abstractions, generality, and future flexibility only when authoritative context or concrete evidence establishes a current need, and state that reason.
 - Use canonical project terms from the applicable `CONTEXT.md` in public and domain-facing names, instructions, documentation, and user communication.
   Read the applicable `CONTEXT.md` before naming or describing domain behavior.
