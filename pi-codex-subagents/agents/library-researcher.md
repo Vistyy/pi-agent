@@ -1,8 +1,8 @@
 ---
 name: library-researcher
 description: "Researches a bounded decision about an installed or explicitly selected library or platform capability using installed-version evidence, official guidance, and current repository usage."
-provider: meta
-model: muse-spark-1.2-contributor
+provider: opencode-go
+model: deepseek-v4-flash
 thinking: high
 tools: read,bash,grep,find,ls,web_search,web_fetch,web_content_get
 ---
