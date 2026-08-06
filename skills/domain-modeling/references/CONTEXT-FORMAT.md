@@ -32,8 +32,8 @@ _Avoid_: Client, buyer, account
 - Group terms under subheadings when natural groups appear.
 - Use a flat list when all terms belong to one group.
 
-Before you add a term, confirm that it identifies a project-specific concept.
-Keep general programming concepts in the applicable technical documentation.
+Before adding a term, confirm that it has a project-specific meaning within the applicable context.
+Keep general programming terms without a project-specific domain meaning in the applicable technical documentation.
 
 ## Select the repository structure
 
@@ -75,7 +75,7 @@ When the evidence suggests a second context, state the distinct language or rule
 
 After the user confirms the split:
 
-1. Ask the user to confirm each context's canonical name, purpose, and repository location.
+1. Propose each context's canonical name, purpose, and repository location from the accepted domain language and repository structure, then ask the user to confirm them.
 2. Create each context-specific `CONTEXT.md` with its confirmed name and purpose.
 3. Move each term from the root `CONTEXT.md` to its applicable context.
 4. If a term's context is ambiguous, ask the user to resolve it before continuing the transition.

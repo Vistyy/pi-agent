@@ -1,7 +1,7 @@
 # ADR Format
 
 An ADR records an accepted architectural decision that is stable enough to guide implementation.
-Keep proposals and unresolved choices in the applicable Task, specification, or open-questions document.
+Keep proposals and unresolved choices in the applicable task, specification, or open-questions document.
 
 ## Decide whether an ADR is required
 
@@ -16,7 +16,7 @@ Evaluate reversal cost against the project's current lifecycle.
 Planned or unimplemented behavior in unreleased software is normally easy to reverse.
 
 A configuration field, schema member, module split, implementation detail, or sequencing choice does not qualify by category alone.
-Record it in the applicable Task or specification unless the decision itself satisfies all three conditions.
+Record it in the applicable task or specification unless the decision itself satisfies all three conditions.
 Do not create an ADR when an existing ADR already owns the rationale.
 
 This step is complete when each condition has concrete evidence and no existing ADR owns the decision.
@@ -28,7 +28,6 @@ Supersede an ADR only when the governing decision changes and the old record rem
 Update active references when an ADR is renamed, removed, or superseded.
 
 When repository policy permits removal, delete a stale pre-release ADR instead of preserving it as documentation sediment.
-Git history remains the historical record.
 
 This step is complete when one active ADR owns the decision and every active reference points to it.
 
@@ -59,10 +58,11 @@ status: accepted
 {State the context, decision, and reason in one to three sentences.}
 ```
 
+Set the frontmatter status to `accepted`, `deprecated`, or `superseded by ADR-NNNN`, as applicable.
+
 Add a section only when a future maintainer needs it:
 
 - **Considered Options** records important rejected alternatives.
 - **Consequences** records non-obvious downstream effects.
-- **Status** may be `accepted`, `deprecated`, or `superseded by ADR-NNNN`.
 
-The ADR is complete when it states one qualifying decision, preserves only necessary rationale, and contains no Task plan or implementation checklist.
+The ADR is complete when it states one qualifying decision, preserves only necessary rationale, and contains no task plan or implementation checklist.

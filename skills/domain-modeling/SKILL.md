@@ -10,7 +10,6 @@ Reading `CONTEXT.md` without changing the model does not require this skill.
 
 ## Find the applicable context
 
-Most repositories have one context.
 If `CONTEXT-MAP.md` exists at the repository root, the repository has multiple contexts.
 Use the map to find each context.
 
@@ -18,14 +17,9 @@ Before changing the domain model, inspect the applicable repository instructions
 If `CONTEXT-MAP.md` exists, inspect the root `docs/adr/` and the selected context's `docs/adr/`.
 Otherwise, inspect the root `docs/adr/` when it exists.
 
-Create the applicable `CONTEXT.md` when the user resolves the first domain term.
-Create an ADR only after the user accepts a decision that qualifies under [ADR-FORMAT.md](references/ADR-FORMAT.md).
-Use the root locations for system-wide decisions and a context's locations for context-specific decisions.
-
 When distinct domain language or rules suggest a second context, read [Introduce a second context](references/CONTEXT-FORMAT.md#introduce-a-second-context).
-Ask the user to confirm the split before changing files.
 
-Context discovery is complete when each affected term and decision has one owning context and applicable instruction set.
+Context discovery is complete when each affected term and decision has one owning context.
 
 ## Maintain the model during the session
 
@@ -40,7 +34,7 @@ If the user uses a term that conflicts with the applicable `CONTEXT.md`:
 ### Clarify vague terms
 
 If a term has multiple possible meanings, identify the possible concepts.
-Propose one canonical term for each concept.
+Propose one canonical term for each concept and ask the user to confirm it.
 
 ### Test domain relationships
 
@@ -53,7 +47,7 @@ If ambiguity remains, keep the affected model change incomplete until the user r
 
 ### Verify statements against the code
 
-When the user states how the system works, inspect the applicable code.
+When the user states how the domain works, inspect the applicable code.
 If the code and the statement conflict:
 
 1. Describe the behavior in the code.
@@ -78,4 +72,4 @@ Term recording is complete when each resolved term has one canonical definition 
 When a decision may require an ADR, load [ADR-FORMAT.md](references/ADR-FORMAT.md).
 Apply its qualification and lifecycle rules before creating or changing an ADR.
 
-ADR evaluation is complete when the accepted decision is recorded in the smallest qualifying artifact without duplicating an existing authority.
+ADR evaluation is complete when the accepted decision is recorded in the applicable task, specification, or ADR without duplicating an existing authority.
