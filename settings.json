@@ -3,9 +3,9 @@
   "skills": [
     "user-skills"
   ],
-  "defaultProvider": "openai-codex",
-  "defaultModel": "gpt-5.6-terra",
-  "defaultThinkingLevel": "high",
+  "defaultProvider": "meta",
+  "defaultModel": "muse-spark-1.2-contributor",
+  "defaultThinkingLevel": "xhigh",
   "doubleEscapeAction": "tree",
   "theme": "rose-pine-moon",
   "packages": [
