@@ -18,7 +18,7 @@ Design review is complete when every applicable Material Risk, Verification Clai
 
 ## Review produced evidence
 
-When review requires material reconsideration of an evidence mechanism, read [Verification Techniques](TECHNIQUES.md).
+When review may require material reconsideration of an evidence mechanism, read [Verification Techniques](TECHNIQUES.md).
 When an accepted verification design exists, use its Verification Claims.
 Otherwise, derive the applicable Claims from accepted requirements and the Material Risks affected by the work without requiring a new design artifact.
 Evaluate every applicable Verification Claim independently against the submitted evidence.
@@ -27,15 +27,12 @@ Confirm that the evidence corresponds to the exact work, revision, and relevant 
 Confirm that the evidence is interpretable and sufficient for its Material Risk.
 Confirm that every applicable mandatory gate passed.
 
-When reviewing multiple comparable Claims, use this branch-specific table:
+When reviewing multiple Claims, use this branch-specific table:
 
 | Claim | Evidence | Verdict | Gap |
 | --- | --- | --- | --- |
 | <Verification Claim> | <Verification Evidence> | <sufficient or finding> | <unsupported fact or none> |
 
-When accepted requirements retire a concept, inspect targeted diff, search, and inspection evidence across the affected surfaces.
-Require an accepted current boundary for each retained representation of the retired concept.
-Do not request durable evidence whose only purpose is to prove that the retired concept is absent.
 Report an evidence finding when submitted evidence does not establish its Claim.
 
 Distinguish an inability to execute a valid review from a valid judgment that evidence is insufficient.

@@ -1,6 +1,7 @@
 # Manage Project Verification Strategy
 
-Use this workflow when no project verification strategy exists or verification work may add, change, or remove a durable decision that applies across work.
+Use this workflow when deciding whether to add, change, or remove a durable verification decision that applies across work.
+The absence of a separate strategy artifact does not trigger this workflow for routine work.
 
 ## 1. Admit project strategy
 

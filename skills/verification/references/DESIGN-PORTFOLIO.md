@@ -14,10 +14,8 @@ This step is complete when the proposed Claims are finite, each states a fact no
 ## 2. Select sufficient evidence
 
 Before selecting or reconciling portfolio evidence, read [Verification Techniques](TECHNIQUES.md).
-For each Verification Claim, select the smallest sufficient evidence set at the least costly reliable supported seams.
+For each Verification Claim, select the smallest sufficient evidence set.
 Retain an additional evidence mechanism or durable test case only when it addresses a Distinct Regression Failure.
-Use end-to-end evidence only when the complete system path is a Required Seam.
-Use lower-cost seams for variations that do not require the full system.
 Define a runtime or stability budget only when an accepted constraint requires one, and give it an explicit measurement method.
 
 This step is complete when every Claim has sufficient Evidence and no selected mechanism or durable test case can be removed without leaving a Claim unestablished or a Distinct Regression Failure undetected.

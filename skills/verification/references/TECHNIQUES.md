@@ -12,9 +12,7 @@ A different input, fixture, branch, assertion, or code path does not make a fail
 
 ## Select evidence
 
-Use the least costly supported seam that establishes the complete Verification Claim reliably.
-Use integration or end-to-end evidence only when interaction across that boundary is part of the Claim.
-Use evidence that is independent from the implementation logic under review.
+Use integration or end-to-end evidence only when interaction across a Required Seam is part of the Claim.
 Do not use test count or coverage percentage as a substitute for a Verification Claim.
 Do not preserve an existing test, category, seam, or integration level only because it already exists.
 
@@ -54,8 +52,6 @@ A parameterized test can use one table or matrix when that mapping remains expli
 Remove or consolidate a test case that does not satisfy these conditions.
 Do not translate each accepted-behavior statement or evidence example into a test.
 
-Do not retain a test only to prove that an edit occurred.
-Use search, diff review, type checking, or a one-time script for retired text, symbols, files, or implementation structure.
 When execution or resource cost is a Material Risk or an accepted budget applies, measure the focused mechanism and its effect on the maintained workflow.
 
 When a test is retained as regression evidence for a reproduced defect, demonstrate that it fails against the defective behavior when the pre-fix revision can run the same test and inputs in the supported environment.
