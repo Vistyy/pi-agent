@@ -14,7 +14,7 @@ Then investigate each material unresolved point that requires a shared decision.
 Classify information as:
 
 - **Fact**: Repository evidence or authoritative documentation establishes it.
-- **Settled decision**: A plan, specification, ADR, or user answer establishes it.
+- **Settled decision**: An accepted plan, accepted specification, ADR, or user answer establishes it.
 - **Open point**: A material gap, conflict, or choice remains unresolved.
 
 Treat facts and settled decisions as constraints.
@@ -32,19 +32,17 @@ When investigating implementation mechanisms, preserve the settled behavior.
 
 Use an open narrowing question only when the evidence supports no recommendation.
 State why no recommendation is available.
-Keep rejected mechanisms rejected unless new evidence invalidates the rejection.
+Do not revisit a rejected mechanism unless new evidence or the user reopens it.
 
 ## Complete the plan
 
-A grilling session produces an approved plan.
 A request to `continue` or `proceed` advances the planning session.
 
 The plan is ready when:
 
 - Every behavior required before implementation is explicit.
 - Material constraints and dependencies are explicit.
-- Each unresolved choice can be made during implementation without changing agreed behavior or another module's contract.
-- Each unresolved choice can be reversed within the current task.
+- Each unresolved choice is local to the implementation and can be reversed without changing agreed behavior or another module's contract.
 
 Summarize only the plan created or changed during this session.
 Ask the user to approve that plan.
