@@ -11,25 +11,15 @@ import {
 export interface SubagentSandboxOptions {
   homeDir?: string;
   scratchRoot?: string;
-  persistentWritableDirectories?: string[];
-  xdgCacheHome?: string;
 }
 
-function sandboxContract(
-  scratchDir: string,
-  persistentWritableDirectories: string[],
-) {
+function sandboxContract(scratchDir: string) {
   return `## Disposable worker filesystem
 
 Use \`${scratchDir}\`, exposed in Bash as \`$TMPDIR\`, for prototypes and files shared across tool calls.
 The edit and write tools accept only absolute paths inside this scratch directory.
 Bash changes outside scratch are discarded after each Bash call.
-A continued worker receives a new empty scratch directory.
-${
-  persistentWritableDirectories.length > 0
-    ? `The following directory is persistent host storage: \`${persistentWritableDirectories.join("`, `")}\`.`
-    : ""
-}`.trimEnd();
+A continued worker receives a new empty scratch directory.`;
 }
 
 export function registerSubagentSandbox(
@@ -38,9 +28,6 @@ export function registerSubagentSandbox(
 ) {
   const homeDir = options.homeDir ?? process.env.HOME ?? homedir();
   const scratchRoot = options.scratchRoot ?? DEFAULT_SCRATCH_ROOT;
-  const persistentWritableDirectories =
-    options.persistentWritableDirectories ?? [];
-  const xdgCacheHome = options.xdgCacheHome;
   let scratchRun: ScratchRun | undefined;
 
   const ensureScratchRun = () => {
@@ -61,10 +48,7 @@ export function registerSubagentSandbox(
   pi.on("before_agent_start", (event) => {
     const { scratchDir } = ensureScratchRun();
     return {
-      systemPrompt: `${event.systemPrompt}\n\n${sandboxContract(
-        scratchDir,
-        persistentWritableDirectories,
-      )}`,
+      systemPrompt: `${event.systemPrompt}\n\n${sandboxContract(scratchDir)}`,
     };
   });
 
@@ -89,9 +73,7 @@ export function registerSubagentSandbox(
       event.input.command = buildSandboxedCommand(command, {
         bashNetwork: true,
         homeDir,
-        persistentWritableDirectories,
         scratchDir,
-        xdgCacheHome,
       });
     }
   });

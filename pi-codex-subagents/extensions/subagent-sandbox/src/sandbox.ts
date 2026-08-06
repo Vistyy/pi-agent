@@ -1,4 +1,4 @@
-import { existsSync, realpathSync, statSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import path from "node:path";
 
 const DEFAULT_PATH =
@@ -26,8 +26,6 @@ export interface SandboxCommandOptions {
   scratchDir: string;
   homeDir: string;
   bashNetwork?: boolean;
-  persistentWritableDirectories?: string[];
-  xdgCacheHome?: string;
 }
 
 function resolveExistingPath(value: string) {
@@ -94,16 +92,6 @@ function caBundleEnvironmentArguments(caBundlePath: string | undefined) {
   ]);
 }
 
-function persistentWritableDirectoryArguments(directories: string[]) {
-  return directories.flatMap((directory) => {
-    const resolved = resolveExistingPath(directory);
-    if (!statSync(resolved).isDirectory()) {
-      throw new Error(`Persistent sandbox path must be a directory: ${resolved}`);
-    }
-    return ["--bind", resolved, resolved];
-  });
-}
-
 export function buildBwrapArguments(options: SandboxCommandOptions) {
   const scratchDir = resolveExistingPath(options.scratchDir);
   const homeDir = resolveExistingPath(options.homeDir);
@@ -112,11 +100,6 @@ export function buildBwrapArguments(options: SandboxCommandOptions) {
   }
   const caBundlePath = resolveCaBundlePath();
   const bashNetwork = options.bashNetwork ?? true;
-  const persistentWritableDirectories =
-    options.persistentWritableDirectories ?? [];
-  const xdgCacheHome = options.xdgCacheHome
-    ? resolveExistingPath(options.xdgCacheHome)
-    : undefined;
 
   return [
     "--die-with-parent",
@@ -211,7 +194,6 @@ export function buildBwrapArguments(options: SandboxCommandOptions) {
     "$PWD",
     "--tmp-overlay",
     "$PWD",
-    ...persistentWritableDirectoryArguments(persistentWritableDirectories),
     "--chdir",
     "$PWD",
     "--clearenv",
@@ -222,9 +204,6 @@ export function buildBwrapArguments(options: SandboxCommandOptions) {
     "--setenv",
     "TMPDIR",
     scratchDir,
-    ...(xdgCacheHome
-      ? ["--setenv", "XDG_CACHE_HOME", xdgCacheHome]
-      : []),
     "--setenv",
     "TERM",
     "${TERM:-xterm-256color}",

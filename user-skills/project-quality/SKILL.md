@@ -62,7 +62,6 @@ Use approved architecture, vocabulary, and naming contracts.
 For an assessment, report a candidate contract or foundational tool and the approval needed without selecting or adding it.
 Before selecting or adding one during authorized changes, ask the user for approval and continue only after explicit approval.
 Report missing semantic decisions instead of inventing them.
-Research a foundational library before selecting a tool not covered by existing project choices or a technology reference.
 
 Classify each selected check as routine blocking, lifecycle blocking, or advisory.
 A blocking check must fail reliably for the defect it claims to prevent.
