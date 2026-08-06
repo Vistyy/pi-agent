@@ -2,16 +2,15 @@
 
 ## 1. Prepare the assignment
 
-Assign one self-contained question or deliverable.
-State the user outcome, accepted constraints, relevant decisions, and known starting anchors.
-State the result that the main session needs.
-Do not explore sources merely to prepare the assignment.
+Assign one bounded deliverable.
+State the user outcome, accepted constraints, relevant decisions, known starting anchors, and the result the main session needs.
+Do not explore sources only to prepare the assignment.
 
-When the subagent may edit files, identify the owned deliverable and any known path constraints.
-Give concurrent subagents disjoint scopes.
-Pass the skills that match each assignment when the delegation interface supports skills.
+When the subagent may edit files, identify its owned deliverable and known path constraints.
+Give concurrent subagents disjoint scopes unless independent corroboration is intentional.
+Pass the skills that match the assignment when the delegation interface supports them.
 
-Require a compact report containing the applicable information:
+Request a compact report containing the applicable information:
 
 - the result or recommendation;
 - exact source paths and relevant identifiers;
@@ -20,34 +19,25 @@ Require a compact report containing the applicable information:
 - verification performed and its result;
 - unresolved questions, conflicts, or risks.
 
-Require an orientation report to identify exact sources, relevant symbols, concise evidence, and unresolved gaps.
-Do not request full file contents, exhaustive command output, or exploratory history.
-Request them only when the main-session decision requires them.
+Request full file contents, exhaustive output, or exploratory history only when the main-session decision requires them.
 
-This step is complete when the subagent has one bounded scope and a decision-ready response contract.
+This step is complete when the assignment has one owner, one bounded deliverable, and a decision-ready response contract.
 
 ## 2. Coordinate the work
 
-Let the subagent retain the detailed working context for its assigned scope.
-Do not independently investigate or verify that scope while the subagent owns it.
+Do not independently investigate or verify a scope while its subagent owns it.
+Continue with disjoint work when it does not depend on the delegated result.
+Wait when the next action requires the result.
+Send follow-up work that requires the same working context to the same subagent.
+Use another subagent only for a separate scope or intentional independent corroboration.
 
-Continue main-session reasoning or work with a disjoint working set when it does not depend on the delegated result.
-When the next main-session action depends on the result, wait for the subagent.
-
-Send follow-up work to the same subagent when it requires that subagent's existing working context.
-Use a new subagent only when the new assignment has a separate working set.
-An explicitly independent corroboration assignment can also use a new subagent.
-
-This step is complete when each active scope has one owner.
+This step is complete when every active scope has one owner.
 
 ## 3. Apply the report
 
-Use the returned report as the evidence source for holistic reasoning.
-Check that the report satisfies the requested response contract.
+Use the report as evidence for the main-session decision.
+When a source-local gap can affect that decision, ask the same subagent to resolve it.
+Inspect an exact source in the main session only when synthesis or conflicting evidence requires it.
+Do not repeat delegated exploration.
 
-When a source-local gap can affect the requested result or main-session decision, ask the same subagent to resolve it.
-Inspect an exact source in the main session only when the holistic decision requires it.
-Inspection is also permitted to resolve conflicting evidence or apply the result.
-Do not repeat the delegated exploration.
-
-This step is complete when the main session can integrate the result.
+This step is complete when the main session can integrate the result or has assigned each material gap.

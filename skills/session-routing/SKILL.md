@@ -5,81 +5,61 @@ description: Use when deciding whether work stays in the current session, goes t
 
 # Session Routing
 
-Route by reasoning responsibility, working-context cost, and outcome ownership.
+Route by outcome ownership and by how much detailed working context the outcome requires.
 Do not route by an arbitrary turn count.
 
 ## Roles
 
-**Main session**: Owns the user outcome, problem framing, accepted constraints, and cross-cutting decisions.
-It performs synthesis and user communication.
-It uses compact reports instead of accumulating each worker's raw working context.
+**Main session**: Owns the user outcome, problem framing, cross-cutting decisions, synthesis, and user communication.
 
-**Subagent**: Owns one bounded question or deliverable and the detailed working context needed to complete it.
-A subagent may explore, analyze, implement, verify, experiment, or review within that scope.
-It returns a compact report to the main session but does not own the holistic judgment.
+**Subagent**: Owns one bounded deliverable and the detailed working context needed to produce it.
+It returns a compact result to the main session without owning the holistic judgment.
 
-**Session transfer**: A new Pi session owns an independent outcome or an explicitly transferred current outcome.
-It has its own user dialogue and does not return its working context to the current session.
+**Session transfer**: Gives an independent outcome or the current outcome to a new Pi session with its own user dialogue.
 
-## Invariants
+## Rules
 
-Delegate working context, not holistic judgment.
-The main session resolves cross-cutting trade-offs and makes the final decision.
+Keep holistic judgment in the main session.
+Give each bounded scope one owner, and do not duplicate an active owner's work.
+Send context-local follow-up work to the agent that already has the working context.
+Use independent corroboration only when conflicting evidence or material risk justifies the duplicate scope.
+Launch a Session transfer only when the user requests or approves it.
 
-Give each bounded question or deliverable one owner.
-While a subagent owns it, the main session must not independently gather evidence or perform the same work.
-For independent corroboration, assign the same question to an additional subagent.
-Use a Session transfer only when the user requests one or approves an agent-proposed Session transfer.
-Conflicting evidence can also require independent corroboration.
-State the reason and the independent scope before assigning the additional owner.
+## 1. Frame the outcome
 
-Keep detailed context with the agent that already has it.
-Send context-local follow-up work to the same subagent instead of importing its working set into the main session.
+State the observable outcome, accepted constraints, and decisions that the main session must retain.
+Gather only the context needed to choose a route.
+Ask the user when the outcome is unclear or requires a consequential decision.
 
-## 1. Frame the current outcome
+This step is complete when the owned outcome and retained decisions are explicit.
 
-State the observable outcome that the main session owns.
-Identify the holistic decisions that must remain in the main session.
-Do not search the repository or read multiple sources before making the routing decision.
+## 2. Choose the route
 
-If the outcome is unclear or requires a consequential user decision, ask the user before routing work.
+Keep work in the main session when it uses context already present or when the evidence gathering is small and tightly coupled to the main decision.
 
-This step is complete when the owned outcome, accepted constraints, and main-session decisions are explicit.
+Use a subagent when one bounded deliverable can be stated compactly and its detailed working context can be compressed into a result sufficient for the main-session decision.
+A subagent can explore, analyze, implement, verify, experiment, or review within that boundary.
+Do not delegate only because work involves multiple files, sources, or commands.
+Delegate before gathering the detailed context that the subagent will own.
 
-## 2. Route the work
-
-Keep work in the main session when it uses context already present.
-
-Use a subagent when a bounded question or deliverable can be stated compactly.
-For a broad question, keep the holistic question in the main session and delegate its bounded evidence needs.
-Delegate work that requires repository exploration, multiple source reads, or command-output analysis.
-Also delegate bounded experiments, implementation, verification, and review.
-Delegate before gathering that detailed context in the main session.
-
-Use a Session transfer when work has an independent outcome or requires its own user dialogue.
-For an agent-proposed Session transfer, obtain user approval before launching it.
-Also use a Session transfer when the user explicitly transfers the current outcome.
+Use a Session transfer when work has an independent outcome or the user transfers the current outcome.
+For an agent-proposed transfer, obtain user approval before launching it.
 Outcome ownership takes precedence over source location or known search anchors.
 
-This step is complete when the main session retains holistic reasoning.
-Each context-heavy or independently owned scope must also have one explicit owner.
+This step is complete when each scope has one owner and the main session retains the holistic decision.
 
-## 3. Execute the selected route
+## 3. Execute the route
 
 For delegated work, read [Subagent delegation](references/subagent-delegation.md) before assigning the worker.
 
-For a Session transfer, read [Session transfer](references/session-transfer.md).
-Read it before creating or launching the Session transfer.
+For a Session transfer, read [Session transfer](references/session-transfer.md) before launching it.
 
 For current-session work, continue without loading a branch reference.
 
-This step is complete when the selected route satisfies its branch-specific completion criteria.
+## 4. Integrate results
 
-## 4. Integrate results and route follow-up work
+Integrate delegated results into the main-session decision.
+Route context-local gaps back to the same agent.
+When new work introduces a different outcome or working set, choose its route before gathering detailed context.
 
-Integrate the selected route into the main-session decision.
-
-When new work introduces a different outcome or working set, return to the routing decision before investigating it.
-
-This step is complete when the main session has made the required integrated decision.
-Every unresolved scope must also have an explicit owner.
+This workflow is complete when the main session has made the required integrated decision and every unresolved scope has an explicit owner.
