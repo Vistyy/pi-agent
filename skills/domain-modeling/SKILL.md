@@ -1,6 +1,6 @@
 ---
 name: domain-modeling
-description: Use when defining domain terms, resolving inconsistent terminology, testing relationships between domain concepts, recording domain decisions, maintaining a project's domain model, or when another skill needs to maintain the domain model.
+description: Use when defining domain terms, resolving inconsistent or vague terminology, testing relationships between domain concepts, verifying domain statements against code, or maintaining the domain model in CONTEXT.md or ADRs.
 ---
 
 # Domain Modeling
