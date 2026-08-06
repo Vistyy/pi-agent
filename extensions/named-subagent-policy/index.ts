@@ -11,7 +11,8 @@ const NAMED_AGENT_REQUIRED_REASON =
   "spawn_agent requires a named agent_type.";
 
 function isAgentsFile(filePath: string) {
-  return path.basename(filePath).toUpperCase() === "AGENTS.MD";
+  const fileName = path.basename(filePath).toUpperCase();
+  return fileName === "AGENTS.MD" || fileName === "AGENTS.OVERRIDE.MD";
 }
 
 function escapeAttribute(value: string) {

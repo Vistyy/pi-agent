@@ -63,7 +63,16 @@ describe("subagent sandbox extension", () => {
       "The edit and write tools accept only absolute paths inside this scratch directory.",
     );
     expect(result.systemPrompt).toContain(path.join(scratchRoot, runDirectories[0], "scratch"));
+    expect(result.systemPrompt).toContain(
+      "The scratch directory is deleted when this worker exits.",
+    );
+    expect(result.systemPrompt).toContain(
+      "The parent agent cannot use paths inside the deleted directory.",
+    );
     expect(result.systemPrompt).toContain("A continued worker receives a new empty scratch directory.");
+    expect(result.systemPrompt).toContain(
+      "Do not return a path inside this scratch directory as a deliverable to the parent agent.",
+    );
     expect(runDirectories).toHaveLength(1);
 
     handlers.get("session_shutdown")?.(undefined as never, undefined as never);

@@ -16,10 +16,13 @@ export interface SubagentSandboxOptions {
 function sandboxContract(scratchDir: string) {
   return `## Disposable worker filesystem
 
-Use \`${scratchDir}\`, exposed in Bash as \`$TMPDIR\`, for prototypes and files shared across tool calls.
+Use \`${scratchDir}\`, exposed in Bash as \`$TMPDIR\`, for temporary working files shared across tool calls.
 The edit and write tools accept only absolute paths inside this scratch directory.
 Bash changes outside scratch are discarded after each Bash call.
-A continued worker receives a new empty scratch directory.`;
+The scratch directory is deleted when this worker exits.
+The parent agent cannot use paths inside the deleted directory.
+A continued worker receives a new empty scratch directory.
+Do not return a path inside this scratch directory as a deliverable to the parent agent.`;
 }
 
 export function registerSubagentSandbox(

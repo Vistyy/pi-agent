@@ -100,7 +100,7 @@ describe("named subagent policy", () => {
     }
   });
 
-  test("applicable AGENTS.md guidance is added to the child system prompt", () => {
+  test("applicable AGENTS.override.md guidance is added to the child system prompt", () => {
     const root = mkdtempSync(path.join(tmpdir(), "named-subagent-policy-"));
     temporaryDirectories.push(root);
     const agentDirectory = path.join(root, "agent-home");
@@ -108,9 +108,10 @@ describe("named subagent policy", () => {
     const workingDirectory = path.join(repository, "src");
     mkdirSync(agentDirectory, { recursive: true });
     mkdirSync(workingDirectory, { recursive: true });
+    writeFileSync(path.join(repository, "AGENTS.md"), "Do not include me.\n");
     writeFileSync(
-      path.join(repository, "AGENTS.md"),
-      "Use the repository entry point. See [details](DETAILS.md).\n",
+      path.join(repository, "AGENTS.override.md"),
+      "Use the override entry point. See [details](DETAILS.md).\n",
     );
     writeFileSync(path.join(repository, "DETAILS.md"), "Do not preload me.\n");
     writeFileSync(path.join(repository, "CLAUDE.md"), "Do not include me.\n");
@@ -137,8 +138,8 @@ describe("named subagent policy", () => {
       expect(result).toEqual({
         systemPrompt: [
           "Base subagent prompt.",
-          `<project-guidance source="${path.join(repository, "AGENTS.md")}">`,
-          "Use the repository entry point. See [details](DETAILS.md).",
+          `<project-guidance source="${path.join(repository, "AGENTS.override.md")}">`,
+          "Use the override entry point. See [details](DETAILS.md).",
           "</project-guidance>",
         ].join("\n\n"),
       });
