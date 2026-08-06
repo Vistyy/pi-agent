@@ -6,7 +6,7 @@
    The repository must pass with both forms available.
 2. **Migrate**: Move callers to the new form in passing batches.
    Keep a batch in the same task by default.
-   Create a separate task only for an independently verifiable result with a distinct capability, owner, lifecycle, or blocker.
+   Create a separate Task only when the Task-boundary rules permit.
 3. **Contract**: Remove the old form after all callers use the new form.
    The repository must pass with only the new form available.
 

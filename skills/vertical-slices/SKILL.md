@@ -30,6 +30,7 @@ Each proposed slice must have one capability and observable acceptance criteria.
 
 ## 2. Set Task boundaries
 
+Create one Task for each slice.
 Prefer the fewest independently verifiable Tasks that preserve clear ownership and necessary dependencies.
 Task sizing must not remove, defer, replace, or narrow approved behavior.
 Treat implementation size as a reason to look again for a valid Task boundary, not as permission to reduce approved scope.
@@ -56,7 +57,7 @@ Every Task Dependency must be necessary.
 
 When old and new forms must coexist, read and apply [Expand-Contract](references/EXPAND-CONTRACT.md).
 When temporary coexistence is unnecessary, keep the migration in one Task.
-Create separate migration Tasks only when each stage has an independently verifiable result and a passing condition.
+Create separate migration Tasks only when each stage has an independently verifiable supported result.
 
-This step is complete when each migration stage can finish in a supported state.
+This step is complete when each migration stage has an independently verifiable supported result.
 Every separate stage must satisfy the Task-boundary rules.
