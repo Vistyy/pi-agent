@@ -1,6 +1,6 @@
 ---
 name: codebase-design
-description: Use when deciding where behavior belongs, changing what callers must know, placing or removing a seam, or defining how a module can be verified.
+description: Use when deciding where behavior belongs, changing what callers must know, placing or removing a seam, representing relationships that affect structure, or defining how a module can be verified.
 ---
 
 # Codebase Design
@@ -35,6 +35,8 @@ Locality lets maintainers make and verify a change in one place.
 
 Name the behavior, rule, or dependency under consideration.
 Name its current owner and the callers whose knowledge or coordination can affect the decision.
+When relationships, ownership, flow, state, or coordination affect the decision, represent the relevant relationships in the smallest form that makes them inspectable.
+Use the representation to identify avoidable coordination before comparing structures.
 Record only interface knowledge established and material to the decision, such as relevant invariants, ordering, errors, configuration, or performance constraints.
 State decision-blocking unknowns instead of filling them with conventional behavior.
 Use observed changes, defects, or verification friction when available.
