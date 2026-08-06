@@ -27,7 +27,7 @@ Use evidence that is independent from the implementation logic under review.
 
 ## Authority and context
 
-Before applying a workflow, read the relevant requirements, instructions, accepted decisions, project strategy, and approved plans when they exist, and inspect the applicable executable mechanisms.
+Before applying a workflow, read the relevant requirements, instructions, accepted decisions, project strategy, and approved plans, and inspect the applicable executable mechanisms.
 Use accepted requirements to define the required result, applicable instructions, accepted decisions, and project strategy to define verification constraints and mandatory gates, and approved plans to define current Material Risks, Claims, and Evidence.
 Do not weaken those authorities or mandatory gates, and do not add product behavior only to make verification easier.
 When accepted authorities conflict, stop and ask the applicable authority to resolve the conflict.
@@ -37,13 +37,12 @@ Inspect only the authorities and mechanisms relevant to the current work.
 
 ## Choose the applicable workflow
 
-Apply only the workflows that match the work:
+Apply each workflow that matches the work:
 
 - For work-level verification design, read [Design Verification for Current Work](references/DESIGN-WORK.md).
 - For creation or redesign of a project verification portfolio, read [Design a Verification Portfolio](references/DESIGN-PORTFOLIO.md) instead of the work-level design workflow.
 - For implementation or collection of evidence, read [Produce Verification Evidence](references/PRODUCE-EVIDENCE.md).
 - For review of a verification design or produced evidence, read [Review Verification Design and Evidence](references/REVIEW-EVIDENCE.md).
 - When deciding whether to add, change, or remove a durable cross-work verification decision, read [Manage Project Verification Strategy](references/PROJECT-STRATEGY.md).
-  Routine work-level verification does not trigger this workflow.
 
 The verification work is complete when every applicable workflow reaches its completion criterion.
