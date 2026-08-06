@@ -53,6 +53,39 @@
                 }
             ]
         },
+        "meta": {
+            "baseUrl": "https://api.meta.ai/v1",
+            "api": "openai-responses",
+            "apiKey": "$MODEL_API_KEY",
+            "models": [
+                {
+                    "id": "muse-spark-1.2-contributor",
+                    "name": "Muse Spark 1.2 Contributor",
+                    "reasoning": true,
+                    "thinkingLevelMap": {
+                        "off": null,
+                        "minimal": "minimal",
+                        "low": "low",
+                        "medium": "medium",
+                        "high": "high",
+                        "xhigh": "xhigh",
+                        "max": null
+                    },
+                    "input": [
+                        "text",
+                        "image"
+                    ],
+                    "contextWindow": 200000,
+                    "maxTokens": 131072,
+                    "cost": {
+                        "input": 0.1,
+                        "output": 0.2,
+                        "cacheRead": 0.002,
+                        "cacheWrite": 0
+                    }
+                }
+            ]
+        },
         "openrouter": {
             "modelOverrides": {
                 "moonshotai/kimi-k2.7-code": {
