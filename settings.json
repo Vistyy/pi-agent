@@ -21,12 +21,18 @@
   "enabledModels": [
     "openai-codex/gpt-5.6-sol",
     "openai-codex/gpt-5.6-terra",
-    "openai-codex/gpt-5.6-luna"
+    "openai-codex/gpt-5.6-luna",
+    "meta/muse-spark-1.2-contributor"
   ],
   "showCacheMissNotices": true,
   "quietStartup": true,
   "steeringMode": "all",
   "followUpMode": "all",
   "hideThinkingBlock": true,
-  "collapseChangelog": true
+  "collapseChangelog": true,
+  "markdown": {
+    "mermaid": "streaming"
+  },
+  "tuiMode": "fullscreen",
+  "fullscreenScrollbar": "auto"
 }
