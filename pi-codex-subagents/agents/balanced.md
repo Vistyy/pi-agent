@@ -1,8 +1,8 @@
 ---
 name: balanced
 description: "Default worker for delegated tasks that need moderate context, reasoning, or coordination across related concerns."
-provider: opencode-go
-model: deepseek-v4-flash
+provider: meta
+model: muse-spark-1.2-contributor
 thinking: high
 tools: read,bash,edit,write,grep,find,ls,web_search,web_fetch,web_content_get,record_papercut
 skills: axi, codebase-design, diagnosing-bugs, domain-modeling, gh-axi, spike, verification, vertical-slices, writing-instructions
