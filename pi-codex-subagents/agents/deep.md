@@ -1,9 +1,9 @@
 ---
 name: deep
 description: "Use for difficult or consequential work that needs broad context, careful reasoning, and active pressure-testing."
-provider: opencode-go
-model: deepseek-v4-flash
-thinking: max
+provider: meta
+model: muse-spark-1.2-contributor
+thinking: xhigh
 tools: read,bash,edit,write,grep,find,ls,web_search,web_fetch,web_content_get,record_papercut
 skills: axi, codebase-design, diagnosing-bugs, domain-modeling, gh-axi, spike, verification, vertical-slices, writing-instructions
 ---

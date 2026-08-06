@@ -1,8 +1,8 @@
 ---
 name: fast
 description: "Use for a small, well-defined task that needs limited context and a quick, reliable result."
-provider: openai-codex
-model: gpt-5.6-luna
+provider: meta
+model: muse-spark-1.2-contributor
 thinking: low
 tools: read,bash,edit,write,grep,find,ls,web_search,web_fetch,web_content_get,record_papercut
 skills: axi, codebase-design, diagnosing-bugs, domain-modeling, gh-axi, spike, verification, vertical-slices, writing-instructions
