@@ -16,6 +16,11 @@ export interface SubagentSandboxOptions {
 function sandboxContract(scratchDir: string) {
   return `## Disposable worker filesystem
 
+Bash commands run in a restricted sandbox.
+The Docker daemon and \`/dev/kvm\` are unavailable.
+Do not retry or attempt workarounds.
+If the task requires either capability, report that requirement to the parent agent and continue with work that does not require it.
+
 Use \`${scratchDir}\`, exposed in Bash as \`$TMPDIR\`, for temporary working files shared across tool calls.
 The edit and write tools accept only absolute paths inside this scratch directory.
 Bash changes outside scratch are discarded after each Bash call.

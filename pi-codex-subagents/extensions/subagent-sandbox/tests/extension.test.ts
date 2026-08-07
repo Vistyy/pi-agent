@@ -58,6 +58,18 @@ describe("subagent sandbox extension", () => {
 
     const runDirectories = readdirSync(scratchRoot);
     expect(result.systemPrompt).toContain("## Disposable worker filesystem");
+    expect(result.systemPrompt).toContain(
+      "Bash commands run in a restricted sandbox.",
+    );
+    expect(result.systemPrompt).toContain(
+      "The Docker daemon and `/dev/kvm` are unavailable.",
+    );
+    expect(result.systemPrompt).toContain(
+      "Do not retry or attempt workarounds.",
+    );
+    expect(result.systemPrompt).toContain(
+      "If the task requires either capability, report that requirement to the parent agent and continue with work that does not require it.",
+    );
     expect(result.systemPrompt).toContain("$TMPDIR");
     expect(result.systemPrompt).toContain(
       "The edit and write tools accept only absolute paths inside this scratch directory.",
