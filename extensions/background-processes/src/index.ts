@@ -7,56 +7,27 @@ import {
   type ExtensionAPI,
   type ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
-import { Type } from "typebox";
 import {
   BackgroundTaskRegistry,
   MAX_ACTIVE_TASKS,
   MAX_RETAINED_TASKS,
-  type TaskView,
-  type WaitResult,
 } from "./registry.js";
-import type { OutputSnapshot } from "./output.js";
+import {
+  activeTaskLine,
+  outputText,
+  taskList,
+  taskSummary,
+  waitText,
+} from "./presentation.js";
+import {
+  runSchema,
+  statusSchema,
+  taskIdSchema,
+  waitSchema,
+} from "./tool-parameters.js";
 
-const MAX_TIMEOUT_SECONDS = 2_147_483_647 / 1_000;
 const completionMessageType = "pi-background-process-completion";
 const statusWidgetKey = "pi-background-processes";
-const STATUS_TASK_LIMIT = 3;
-
-const optionalRunTimeout = Type.Optional(Type.Number({
-  description: "Maximum execution time in seconds. If exceeded, the task is terminated with status timed_out. Omit for no limit.",
-  minimum: 0.001,
-  maximum: MAX_TIMEOUT_SECONDS,
-}));
-
-const runSchema = Type.Object({
-  name: Type.String({
-    description: "Short human-readable task label shown in the status line, /ps, and completion message. This is not a long description.",
-    minLength: 1,
-    maxLength: 80,
-  }),
-  command: Type.String({ description: "Long-running Bash command to execute.", minLength: 1 }),
-  timeoutSeconds: optionalRunTimeout,
-});
-
-const statusSchema = Type.Object({
-  taskId: Type.Optional(Type.String({ description: "Task ID. Omit to list all retained tasks." })),
-});
-
-const taskIdSchema = Type.Object({
-  taskId: Type.String({ description: "Background task ID returned by bg_run." }),
-});
-
-const waitSchema = Type.Object({
-  taskIds: Type.Optional(Type.Array(Type.String({ description: "Background task ID returned by bg_run." }), {
-    description: "Tasks to wait for. Omit or pass an empty array to snapshot all tasks currently running.",
-    uniqueItems: true,
-  })),
-  timeoutSeconds: Type.Optional(Type.Number({
-    description: "Maximum time to wait in seconds. A wait timeout does not stop background tasks.",
-    minimum: 0.001,
-    maximum: MAX_TIMEOUT_SECONDS,
-  })),
-});
 
 function sessionEnvironment(ctx: ExtensionContext): NodeJS.ProcessEnv {
   const env = { ...process.env };
@@ -75,77 +46,6 @@ function sessionEnvironment(ctx: ExtensionContext): NodeJS.ProcessEnv {
   }
   if (ctx.thinkingLevel) env.PI_REASONING_LEVEL = ctx.thinkingLevel;
   return env;
-}
-
-function elapsed(task: TaskView): string {
-  const start = task.startedAt ?? task.createdAt;
-  const end = task.completedAt ?? Date.now();
-  const seconds = Math.max(0, end - start) / 1_000;
-  if (seconds < 60) return `${seconds.toFixed(1)}s`;
-  const minutes = Math.floor(seconds / 60);
-  const remainder = Math.floor(seconds % 60);
-  return `${minutes}m${String(remainder).padStart(2, "0")}s`;
-}
-
-function taskSummary(task: TaskView): string {
-  const exit = task.exitCode === undefined ? "" : ` exit=${task.exitCode ?? "none"}`;
-  const error = task.error ? ` error=${JSON.stringify(task.error)}` : "";
-  return `${task.id} ${task.status} ${elapsed(task)} ${JSON.stringify(task.name)}${exit}${error}`;
-}
-
-function taskList(tasks: readonly TaskView[]): string {
-  if (tasks.length === 0) return "Background tasks: 0 tasks in this Pi session.";
-  return [`Background tasks: ${tasks.length}`, ...tasks.map(taskSummary)].join("\n");
-}
-
-function compactTaskName(name: string): string {
-  const compact = name.replace(/\s+/g, " ").trim();
-  return compact.length <= 32 ? compact : `${compact.slice(0, 29)}...`;
-}
-
-function activeTaskLine(tasks: readonly TaskView[]): string | undefined {
-  const active = tasks.filter((task) => task.status === "starting" || task.status === "running");
-  if (active.length === 0) return undefined;
-
-  const visible = active
-    .slice(0, STATUS_TASK_LIMIT)
-    .map((task) => `${task.id} ${JSON.stringify(compactTaskName(task.name))}`)
-    .join(", ");
-  const remaining = active.length - STATUS_TASK_LIMIT;
-  const more = remaining > 0 ? `, +${remaining} more` : "";
-  return `Background: ${active.length} running - ${visible}${more} - /ps for details`;
-}
-
-function outputText(task: TaskView, output: OutputSnapshot): string {
-  const body = output.content || "(no output)";
-  const notices: string[] = [];
-  if (output.truncation.truncated) {
-    notices.push(
-      `Showing the last ${output.truncation.outputLines} of ${output.truncation.totalLines} lines ` +
-      `(${formatSize(output.truncation.outputBytes)} of ${formatSize(output.truncation.totalBytes)}).`,
-    );
-  }
-  if (output.fullOutputPath) notices.push(`Full output: ${output.fullOutputPath}`);
-  if (output.fullOutputCapped) {
-    notices.push(`The temporary full-output file reached its background-process size limit.`);
-  }
-  if (output.fullOutputError) notices.push(`Temporary output file error: ${output.fullOutputError}`);
-  const suffix = notices.length > 0 ? `\n\n[${notices.join(" ")}]` : "";
-  return `${taskSummary(task)}\n\n${body}${suffix}`;
-}
-
-function waitText(result: WaitResult): string {
-  if (result.tasks.length === 0) return "No running background tasks were selected. Wait completed immediately.";
-  const header = result.timedOut
-    ? "Background wait timed out. Unfinished tasks continue running."
-    : "Selected background tasks reached terminal state.";
-  const summaries = result.tasks.map(taskSummary);
-  if (result.tasks.length !== 1) {
-    return [header, ...summaries, "Use bg_logs with a task ID to inspect captured output."].join("\n");
-  }
-  const task = result.tasks[0]!;
-  const output = result.outputs[0]!.output;
-  return `${header}\n\n${outputText(task, output)}`;
 }
 
 function textResult(text: string, details: unknown) {
