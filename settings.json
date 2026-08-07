@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.84.0",
+  "lastChangelogVersion": "0.84.1",
   "skills": [
     "user-skills"
   ],
@@ -33,5 +33,5 @@
     "mermaid": "streaming"
   },
   "tuiMode": "fullscreen",
-  "fullscreenScrollbar": "auto"
+  "fullscreenScrollbar": "always"
 }
