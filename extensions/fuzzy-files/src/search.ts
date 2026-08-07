@@ -11,62 +11,67 @@ const CACHE_TTL_MS = 30_000;
 const FD_TIMEOUT_MS = 10_000;
 const FD_BASE_ARGS = ["--hidden", "--exclude", ".git", "--exclude", "node_modules", "--exclude", ".next", "--exclude", "dist", "--exclude", "build", "--exclude", "target", "--exclude", ".venv", "--exclude", "vendor", "."];
 
+export type SearchScope = "project" | "global";
 export type SearchEntry = { absPath: string; display: string; isDirectory: boolean };
 export type SearchIndex = { entries: SearchEntry[]; finder: Fzf<SearchEntry[]>; timestamp: number };
 
 type Cache = { cwd: string; index: SearchIndex };
 
 export class SearchSession {
-  private cache: Cache | undefined;
-  private scan: Promise<void> | undefined;
-  private controller: AbortController | undefined;
+  private readonly caches: Partial<Record<SearchScope, Cache>> = {};
+  private readonly scans: Partial<Record<SearchScope, Promise<void>>> = {};
+  private readonly controllers: Partial<Record<SearchScope, AbortController>> = {};
+  private readonly loadErrorsShown: Partial<Record<SearchScope, boolean>> = {};
   private generation = 0;
   private disposed = false;
-  private loadErrorShown = false;
 
   constructor(private readonly pi: ExtensionAPI, private readonly cwd: string, private readonly notify: (message: string) => void) {}
 
-  warm(): Promise<void> {
+  warm(scope: SearchScope = "project"): Promise<void> {
     if (this.disposed) return Promise.resolve();
-    if (this.cache && Date.now() - this.cache.index.timestamp < CACHE_TTL_MS) return Promise.resolve();
-    if (this.scan) return this.scan;
+    const cache = this.caches[scope];
+    if (cache && Date.now() - cache.index.timestamp < CACHE_TTL_MS) return Promise.resolve();
+    const activeScan = this.scans[scope];
+    if (activeScan) return activeScan;
 
     const controller = new AbortController();
     const generation = this.generation;
-    this.controller = controller;
-    this.scan = scanEntries(this.pi, this.cwd, controller.signal)
+    this.controllers[scope] = controller;
+    const scan = scanEntries(this.pi, this.cwd, scope, controller.signal)
       .then((entries) => {
         if (this.disposed || generation !== this.generation || controller.signal.aborted) return;
-        this.cache = { cwd: this.cwd, index: createIndex(entries) };
-        this.loadErrorShown = false;
+        this.caches[scope] = { cwd: this.cwd, index: createIndex(entries) };
+        this.loadErrorsShown[scope] = false;
       })
       .catch((error: unknown) => {
-        if (this.disposed || generation !== this.generation || controller.signal.aborted || this.loadErrorShown) return;
-        this.loadErrorShown = true;
-        this.notify(`fuzzy-files: scan failed: ${error instanceof Error ? error.message : String(error)}`);
+        if (this.disposed || generation !== this.generation || controller.signal.aborted || this.loadErrorsShown[scope]) return;
+        this.loadErrorsShown[scope] = true;
+        this.notify(`fuzzy-files: ${scope} scan failed: ${error instanceof Error ? error.message : String(error)}`);
       })
       .finally(() => {
-        if (this.controller === controller) this.controller = undefined;
-        if (generation === this.generation) this.scan = undefined;
+        if (this.controllers[scope] === controller) delete this.controllers[scope];
+        if (generation === this.generation) delete this.scans[scope];
       });
-    return this.scan;
+    this.scans[scope] = scan;
+    return scan;
   }
 
-  getReadyIndex(): SearchIndex | undefined {
+  getReadyIndex(scope: SearchScope = "project"): SearchIndex | undefined {
     if (this.disposed) return undefined;
-    if (!this.cache || this.cache.cwd !== this.cwd) {
-      void this.warm();
+    const cache = this.caches[scope];
+    if (!cache || cache.cwd !== this.cwd) {
+      void this.warm(scope);
       return undefined;
     }
-    if (Date.now() - this.cache.index.timestamp >= CACHE_TTL_MS) void this.warm();
-    return this.cache.index;
+    if (Date.now() - cache.index.timestamp >= CACHE_TTL_MS) void this.warm(scope);
+    return cache.index;
   }
 
   dispose(): void {
     this.disposed = true;
     this.generation++;
-    this.controller?.abort();
-    this.controller = undefined;
+    for (const controller of Object.values(this.controllers)) controller?.abort();
+    for (const scope of Object.keys(this.controllers) as SearchScope[]) delete this.controllers[scope];
   }
 }
 
@@ -78,7 +83,9 @@ function createIndex(entries: SearchEntry[]): SearchIndex {
   };
 }
 
-async function getRoots(cwd: string, signal: AbortSignal): Promise<string[]> {
+async function getRoots(cwd: string, scope: SearchScope, signal: AbortSignal): Promise<string[]> {
+  if (scope === "project") return [resolve(cwd)];
+
   const home = homedir();
   const roots = [cwd, resolve(home, ".pi")];
   const projectsDir = resolve(home, "projects");
@@ -98,8 +105,8 @@ async function scanType(pi: ExtensionAPI, root: string, type: "f" | "d", signal:
   return result.stdout.split("\n").map((line) => line.trim()).filter(Boolean).map((rel) => resolve(root, rel));
 }
 
-async function scanEntries(pi: ExtensionAPI, cwd: string, signal: AbortSignal): Promise<SearchEntry[]> {
-  const roots = await getRoots(cwd, signal);
+async function scanEntries(pi: ExtensionAPI, cwd: string, scope: SearchScope, signal: AbortSignal): Promise<SearchEntry[]> {
+  const roots = await getRoots(cwd, scope, signal);
   const byPath = new Map<string, SearchEntry>();
   for (const root of roots) {
     for (const absPath of await scanType(pi, root, "d", signal)) byPath.set(absPath, { absPath, display: displayPath(absPath, cwd), isDirectory: true });

@@ -2,7 +2,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import type { AutocompleteItem, AutocompleteProvider, AutocompleteSuggestions } from "@earendil-works/pi-tui";
 import { basename, dirname } from "node:path";
 import { rankIndex, type SearchEntry, type SearchSession } from "./search.js";
-import { extractAtToken, withTrailingSlash } from "./utils.js";
+import { extractSearchToken, withTrailingSlash } from "./utils.js";
 
 function toItem(entry: SearchEntry): AutocompleteItem {
   const label = entry.isDirectory ? withTrailingSlash(basename(entry.absPath)) : basename(entry.absPath);
@@ -15,17 +15,17 @@ export function createProvider(_pi: ExtensionAPI, session: SearchSession, curren
   return {
     async getSuggestions(lines, cursorLine, cursorCol, options): Promise<AutocompleteSuggestions | null> {
       const currentLine = lines[cursorLine] ?? "";
-      const token = extractAtToken(currentLine.slice(0, cursorCol));
-      if (token === undefined) return current.getSuggestions(lines, cursorLine, cursorCol, options);
+      const token = extractSearchToken(currentLine.slice(0, cursorCol));
+      if (!token) return current.getSuggestions(lines, cursorLine, cursorCol, options);
 
-      const index = session.getReadyIndex();
+      const index = session.getReadyIndex(token.scope);
       if (options.signal.aborted || !index || index.entries.length === 0) {
         return current.getSuggestions(lines, cursorLine, cursorCol, options);
       }
 
-      const matched = rankIndex(index, token);
+      const matched = rankIndex(index, token.query);
       if (matched.length === 0) return current.getSuggestions(lines, cursorLine, cursorCol, options);
-      return { items: matched.map(toItem), prefix: `@${token}` };
+      return { items: matched.map(toItem), prefix: `${token.marker}${token.query}` };
     },
 
     applyCompletion(lines, cursorLine, cursorCol, item, prefix) {

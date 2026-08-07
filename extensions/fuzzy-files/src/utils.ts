@@ -1,9 +1,13 @@
 import { homedir } from "node:os";
 import { relative } from "node:path";
 
-export function extractAtToken(textBeforeCursor: string): string | undefined {
-	const match = textBeforeCursor.match(/(?:^|[ \t])@([^\s@]*)$/);
-	return match?.[1];
+export type SearchToken = { scope: "project" | "global"; marker: "@" | "@@"; query: string };
+
+export function extractSearchToken(textBeforeCursor: string): SearchToken | undefined {
+	const match = textBeforeCursor.match(/(?:^|[ \t])(@@?)([^\s@]*)$/);
+	if (!match) return undefined;
+	const marker = match[1] as "@" | "@@";
+	return { scope: marker === "@@" ? "global" : "project", marker, query: match[2] ?? "" };
 }
 
 export function displayPath(absPath: string, cwd: string): string {

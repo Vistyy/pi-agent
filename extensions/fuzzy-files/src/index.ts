@@ -12,7 +12,8 @@ export default function (pi: ExtensionAPI): void {
       if (session === searchSession) ctx.ui.notify(message, "error");
     });
     session = searchSession;
-    void searchSession.warm();
+    void searchSession.warm("project");
+    void searchSession.warm("global");
     ctx.ui.addAutocompleteProvider((current) => createProvider(pi, searchSession, current));
   });
 

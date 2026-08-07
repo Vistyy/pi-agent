@@ -1,10 +1,22 @@
-import { describe, expect, it } from "vitest";
-import { rankEntries, type SearchEntry } from "../src/search.js";
+import { describe, expect, it, vi } from "vitest";
+import { SearchSession, rankEntries, type SearchEntry } from "../src/search.js";
 
 const entry = (display: string, isDirectory = false): SearchEntry => ({
 	absPath: `/repo/${display}`,
 	display,
 	isDirectory,
+});
+
+describe("SearchSession", () => {
+	it("scans only the current working directory for project search", async () => {
+		const pi = { exec: vi.fn(async (..._args: any[]) => ({ code: 0, stdout: "", stderr: "" })) };
+		const session = new SearchSession(pi as any, "/tmp/project", vi.fn());
+
+		await session.warm("project");
+
+		expect(pi.exec).toHaveBeenCalledTimes(2);
+		expect(pi.exec.mock.calls.map((call) => call[2]?.cwd)).toEqual(["/tmp/project", "/tmp/project"]);
+	});
 });
 
 describe("rankEntries", () => {

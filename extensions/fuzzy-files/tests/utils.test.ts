@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { extractAtToken, withTrailingSlash } from "../src/utils.js";
+import { extractSearchToken, withTrailingSlash } from "../src/utils.js";
 
 describe("utils", () => {
-	it("extracts the active @ token", () => {
-		expect(extractAtToken("open @src/fo")).toBe("src/fo");
-		expect(extractAtToken("@README.md")).toBe("README.md");
-		expect(extractAtToken("open @src file")).toBeUndefined();
-		expect(extractAtToken("email@host")).toBeUndefined();
+	it("extracts project and global search tokens", () => {
+		expect(extractSearchToken("open @src/fo")).toEqual({ scope: "project", marker: "@", query: "src/fo" });
+		expect(extractSearchToken("@@README.md")).toEqual({ scope: "global", marker: "@@", query: "README.md" });
+		expect(extractSearchToken("open @src file")).toBeUndefined();
+		expect(extractSearchToken("email@host")).toBeUndefined();
+		expect(extractSearchToken("@@@src")).toBeUndefined();
 	});
 
 	it("adds one trailing slash", () => {
