@@ -1,4 +1,4 @@
 {
-  "tui.altScreen.halfPageUp": "shift+up",
-  "tui.altScreen.halfPageDown": "shift+down"
+  "tui.altScreen.halfPageUp": "alt+o",
+  "tui.altScreen.halfPageDown": "alt+p"
 }
