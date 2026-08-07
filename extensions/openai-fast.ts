@@ -5,7 +5,7 @@ const STATUS_ID = "openai-fast";
 const FAST_PROVIDERS = new Set(["openai", "openai-codex"]);
 
 export default function openaiFast(pi: ExtensionAPI) {
-	let enabled = process.env[ENV_KEY] === "1";
+	let enabled = process.env[ENV_KEY] !== "0";
 
 	pi.on("session_start", (_event, ctx) => {
 		setStatus(ctx, enabled);
