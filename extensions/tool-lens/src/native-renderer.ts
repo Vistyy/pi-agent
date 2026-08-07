@@ -60,12 +60,14 @@ export function createNativePreviewRenderer(cwd: string, theme: Theme): PreviewR
           showImages: false,
           isError: result.isError,
         };
-        const component = definition.renderResult(
-          { content: result.content, details: result.details },
-          { expanded: true, isPartial: false },
-          theme,
-          context,
-        );
+        const component = result.toolName === "write" && !result.isError && definition.renderCall
+          ? definition.renderCall(result.args, theme, context)
+          : definition.renderResult(
+            { content: result.content, details: result.details },
+            { expanded: true, isPartial: false },
+            theme,
+            context,
+          );
         cached = { component, context };
         cache.set(result.toolCallId, cached);
       }

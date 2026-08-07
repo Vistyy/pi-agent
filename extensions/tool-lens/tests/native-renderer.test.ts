@@ -41,7 +41,6 @@ describe("native result previews", () => {
 
   it.each([
     ["read", { path: "a.txt" }, "read output"],
-    ["write", { path: "a.txt", content: "written" }, "Successfully wrote"],
     ["bash", { command: "printf output" }, "bash output"],
     ["grep", { pattern: "needle", path: "." }, "a.txt:1:needle"],
     ["find", { pattern: "*.txt", path: "." }, "a.txt"],
@@ -50,6 +49,32 @@ describe("native result previews", () => {
     const render = createNativePreviewRenderer("/tmp", theme);
     const output = stripAnsi(render(result({ toolName, args, content: [{ type: "text", text }], details: undefined }), 80).join("\n"));
     expect(output).toContain(text);
+  });
+
+  it("shows the complete content supplied to a successful Write call", () => {
+    const render = createNativePreviewRenderer("/tmp", theme);
+    const output = stripAnsi(render(result({
+      toolName: "write",
+      args: { path: "a.ts", content: "const answer = 42;\nexport { answer };\n" },
+      content: [{ type: "text", text: "Successfully wrote 38 bytes to a.ts" }],
+      details: undefined,
+    }), 80).join("\n"));
+    expect(output).toContain("const answer = 42;");
+    expect(output).toContain("export { answer };");
+    expect(output).not.toContain("Successfully wrote 38 bytes");
+  });
+
+  it("shows the stored error from a failed Write call", () => {
+    const render = createNativePreviewRenderer("/tmp", theme);
+    const output = stripAnsi(render(result({
+      toolName: "write",
+      args: { path: "a.ts", content: "not written" },
+      content: [{ type: "text", text: "Permission denied" }],
+      details: undefined,
+      isError: true,
+    }), 80).join("\n"));
+    expect(output).toContain("Permission denied");
+    expect(output).not.toContain("not written");
   });
 
   it("falls back instead of crashing when a native renderer lacks process-global state", () => {

@@ -20,7 +20,8 @@ The popup requires Pi to run inside Herdr 0.7.4 or newer.
 Typing filters list rows by tool name and invocation text without searching result bodies.
 Up and Down change the selected tool and update the preview immediately.
 Shift+Up and Shift+Down scroll the preview by one line, Ctrl+U and Ctrl+D scroll it by half a page, and Home and End jump to its bounds.
-For the seven built-in tools, the preview uses Pi's native expanded result renderer so Edit diffs, Bash output, syntax colors, truncation notices, and other native styling remain available.
+For the seven built-in tools, the preview uses Pi's native expanded rendering so Edit diffs, Bash output, syntax colors, truncation notices, and other native styling remain available.
+A successful Write preview uses Pi's expanded call renderer because the written file content is stored in the call arguments and Pi's result renderer intentionally shows no content on success.
 For extension-owned tools, the preview falls back to the complete stored result because Pi does not expose their renderer definitions or persist rendered components.
 The preview preserves content order, represents each stored image with its MIME type instead of rendering the image, and shows the result summary with compact input, output, and total token estimates.
 Token estimates use a simple character heuristic, exclude provider-specific image token costs, and are not billing measurements.
