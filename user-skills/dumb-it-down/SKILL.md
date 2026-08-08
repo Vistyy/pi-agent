@@ -1,13 +1,11 @@
 ---
 name: dumb-it-down
-description: "[M] Explain the current idea in plain words without changing it."
+description: "[M] Re-explain the preceding assistant message in plain language without changing its meaning."
 disable-model-invocation: true
 ---
 
-Explain the current idea, solution, or plan in plain language without changing its behavior or decisions.
-Preserve the project's canonical terms, but briefly explain terms that an unfamiliar reader might not know.
-Include only the context that the reader needs to understand or decide.
-Keep the explanation short.
+Re-explain the assistant message immediately before this skill invocation in plain language.
+Preserve its meaning and the project's canonical terms, but briefly explain unfamiliar terms.
+Include only necessary context and keep the explanation short.
 
-Continue to use plain language during this conversation until the user requests more detail.
-Each response is complete when it preserves the original meaning, provides the necessary context, explains unfamiliar terms, and remains short.
+Afterward, continue using plain language until the user requests more detail.
