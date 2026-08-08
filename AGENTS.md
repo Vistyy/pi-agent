@@ -47,6 +47,12 @@
 
 ## Design and implementation
 
+- When repository code receives a value whose runtime form has not been established, the code responsible for accepting that representation must decode it before passing it into trusted code.
+  A decoder checks the structure and conditions required at that boundary and returns either a typed value or a failure.
+- Every path that accepts the same unchecked representation must pass through that boundary check.
+  After the boundary, downstream code must be able to rely on the decoded type instead of repeating shape checks or carrying the unchecked value through `unknown`, `any`, or a type assertion.
+- Validate again only when the value crosses another untrusted boundary or must satisfy a new contract.
+  Use the simplest sufficient decoder.
 - Retain edge cases, abstractions, generality, and future flexibility only when authoritative context or concrete evidence establishes a current need, and state that reason.
 - Use canonical project terms from the applicable `CONTEXT.md` in public and domain-facing names, instructions, documentation, and user communication.
   Read the applicable `CONTEXT.md` before naming or describing domain behavior.
