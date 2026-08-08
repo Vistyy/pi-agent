@@ -32,24 +32,23 @@ Evidence produced with a test double establishes behavior against that test doub
 It does not establish integration with the real dependency.
 Use test-double evidence only when the Verification Claim does not require real integration evidence.
 
-## Admit a durable automated test
+## Admit durable automated coverage
 
-Compare Lifecycle Cost with the least-cost feasible Evidence that can establish the Claim.
-Do not use a numerical score or test-to-production line ratio to replace judgment about confidence and cost.
+A requirement, code change, branch, scenario, or Verification Claim does not by itself require new durable automation.
+Start with retained Evidence and proportionate one-time Evidence.
 
-Require a new or changed durable test only when all applicable conditions are true:
+Add a test or expand durable coverage only when all applicable conditions are true:
 
 - It protects accepted supported behavior, an interface, an invariant, or a reproduced defect class.
 - It detects a Distinct Regression Failure supported by accepted requirements or concrete evidence.
-- Existing retained Evidence and proportionate one-time Evidence do not establish the Claim sufficiently.
+- Retained Evidence and proportionate one-time Evidence do not establish the Claim sufficiently.
 - The selected seam observes the Claim reliably.
-- The additional coverage justifies its additional Lifecycle Cost over the least-cost feasible alternative.
+- The additional protection justifies its Lifecycle Cost over the least-cost feasible alternative.
 
-Before requiring durable automation, state the Distinct Regression Failure, why existing or one-time Evidence is insufficient, and why the Lifecycle Cost is proportionate.
-Apply these conditions to every added or changed test case, including each parameterized case.
-Map each test case to its Distinct Regression Failure.
-A parameterized test can use one table or matrix when that mapping remains explicit.
-Remove or consolidate a test case that does not satisfy these conditions.
+Before adding or expanding coverage, state the Distinct Regression Failure, why retained and one-time Evidence are insufficient, and why the Lifecycle Cost is proportionate.
+Apply these conditions to each additional test case, including each parameterized case.
+Prefer updating, reusing, consolidating, or removing retained Evidence when that produces sufficient confidence at lower Lifecycle Cost.
+Updating an existing expectation because the accepted contract changed preserves that Evidence; it does not by itself justify another test case or suite.
 Do not translate each accepted-behavior statement or evidence example into a test.
 
 When execution or resource cost is a Material Risk or an accepted budget applies, measure the focused mechanism and its effect on the maintained workflow.

@@ -1,17 +1,12 @@
 # Route Discovered Work
 
-Before classifying the work, apply the valid task boundary and task dependency definitions in the main skill.
+Apply the bounded supported result and Task dependency definitions from the main skill.
 
-Classify the work before changing scope:
+- Keep work inside the current Task when it is necessary to deliver its approved result and does not change accepted intent or its boundary.
+- Stop and present evidence when discovered work changes accepted intent or reveals another bounded supported result.
+- Keep unrelated work outside the current Task.
 
-- Keep a local implementation detail inside the current task when it serves the approved capability.
-- Stop and report evidence when required work changes approved behavior ownership or a task boundary.
-- Propose a separate task only when the work establishes a valid task boundary, and add any required task dependencies.
-- Keep unrelated work outside the current task.
+Obtain approval before changing an approved Task boundary.
+After approval, update the authoritative Task record or graph before implementation continues.
 
-Wait for user approval before changing an approved task boundary.
-After approval, create or update every affected task artifact.
-Update the canonical task graph before implementation continues.
-
-Routing is complete when all required work belongs to an approved task.
-The recorded task graph must match the approved boundaries.
+Routing is complete when all required work belongs to an approved Task and the authoritative graph matches those boundaries.

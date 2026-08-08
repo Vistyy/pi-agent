@@ -1,15 +1,15 @@
 # Expand-Contract
 
-**Expand-contract** is a migration sequence that keeps old and new forms available while callers migrate.
+Use expand-contract when old and new forms must coexist while supported callers migrate.
 
-1. **Expand**: Add the new form while the old form remains supported.
-   The repository must pass with both forms available.
-2. **Migrate**: Move callers to the new form in passing batches.
-   Keep a batch in the same task by default.
-   Create a separate task only at a valid task boundary.
-3. **Contract**: Remove the old form after all callers use the new form.
-   The repository must pass with only the new form available.
+- **Expand** adds the new form while the old form remains supported.
+- **Migrate** moves bounded caller populations to the new form while the repository remains supported.
+- **Contract** removes the old form after no supported caller requires it.
 
-When stages use separate tasks, each migration task must depend on expansion and contraction must depend on every migration.
+Apply the bounded supported result rule to every proposed stage and caller population.
+Do not merge migration work merely because every stage contributes to one final target.
+Do not create separate Tasks when an intermediate state is not approved and supported.
 
-The sequence is complete when each stage passes, all callers use the new form, and contraction removes the replaced form.
+A caller-migration Task depends on expansion only when it cannot be implemented or verified before expansion is complete.
+Contraction depends on every migration whose completion is necessary before removal.
+Each recorded stage must have a coherent passing condition.
