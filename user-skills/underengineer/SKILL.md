@@ -1,79 +1,93 @@
 ---
 name: underengineer
-description: "[M] Find unnecessary complexity in a plan and show what can go."
+description: "[M] Rethink the current explanation or proposed solution and remove unsupported assumptions and unnecessary complexity."
 disable-model-invocation: true
 ---
 
 # Underengineer
 
-Review the current plan or proposed solution without changing or implementing it.
-If the user supplies a target, review that target.
-Otherwise, review the most recent plan or proposed solution in the conversation.
+Review the diagnosis, explanation, plan, or proposed solution that the user identifies.
+Otherwise, review the most recent one in the conversation.
 If no clear target exists, ask the user for one and stop.
+Do not change or implement it.
 
 ## Terms
 
-A **current requirement** is observable behavior that the solution must provide now.
-A **current constraint** is an accepted decision or applicable rule that limits the solution now.
-A **future possibility** is behavior that might become useful but is not currently required.
-A **complexity item** is a proposed element that adds work or makes the solution harder to understand, change, verify, or operate.
-Complexity items include extra scope, concepts, indirection, dependencies, states, configuration, compatibility behavior, and operational machinery.
+An **established fact** is an observation supported by explicit user statements, applicable authority, or current evidence.
 
-Use explicit user statements, project instructions, accepted decisions, and current repository evidence.
-If these sources conflict, report the conflict instead of choosing one silently.
-Do not treat a proposed structure, generic quality concern, future possibility, or missing information as a current requirement or current constraint.
+A **current requirement** is observable behavior that the result must provide now.
+
+A **current constraint** is an accepted decision or applicable rule that limits the result now.
+
+A **commitment** is an assumption, distinction, guarantee, scope choice, or proposed element that makes the explanation or response more specific.
+
+A **complexity item** is a commitment that adds work or makes the result harder to understand, change, verify, or operate.
+Complexity items include extra scope, concepts, indirection, dependencies, states, configuration, compatibility behavior, and operational machinery.
 
 ## Verdicts
 
-- `REMOVE`: Deleting the complexity item preserves every current requirement and current constraint.
-- `SIMPLIFY`: The complexity item serves a current requirement or current constraint, but a simpler alternative serves it fully.
-- `KEEP`: Removing or simplifying the complexity item would violate a current requirement or current constraint.
+- `REMOVE`: The commitment is unsupported or can be deleted while preserving every established fact, current requirement, and current constraint.
+- `SIMPLIFY`: The commitment serves the result, but a weaker explanation or simpler treatment serves it fully.
+- `KEEP`: Removing or weakening the commitment would conflict with an established fact, current requirement, or current constraint.
 - `UNCLEAR`: Missing or conflicting information can change the verdict.
 
-## 1. Establish what must remain
+## 1. Establish what must be explained or preserved
 
-Identify each current requirement, current constraint, future possibility, and unresolved conflict.
-For the final `What must remain`, include only requirements and constraints whose loss could change a verdict.
-Do not report a future possibility unless the proposal relies on it to justify complexity.
+State the observed problem or required outcome.
+Separate established facts from interpretations and proposed causes.
+Identify only the current requirements and current constraints whose loss could change the result.
+Report conflicts instead of resolving them silently.
+Do not treat a proposed structure, generic quality concern, future possibility, or missing information as a current requirement or constraint.
 
-## 2. Challenge each complexity item
+## 2. Remove unsupported specificity
 
-List each complexity item in the proposal.
-Use this mandatory comparison table with one row per independently decidable item.
-Group items only when they have the same treatment and verdict:
+Identify the commitments in the current explanation or response.
+Include only commitments that are present in or necessarily implied by the target; do not invent one to populate the comparison table.
+For each commitment, ask what rules out a weaker alternative.
+Remove or weaken it when nothing does.
+Prefer the least specific explanation that accounts for every established fact and remains compatible with possibilities the evidence has not ruled out.
+Do not assume that a broader common cause exists when the evidence supports only the specific case.
+State what additional evidence would be necessary to retain a more specific explanation when that distinction affects the result.
 
-| Item and effect | Simplest supported treatment | Verdict |
-| --- | --- | --- |
+## 3. Remove unnecessary complexity
 
-Keep each cell concise.
-Include a cost in `Item and effect` only when it changes the decision.
-For `REMOVE`, state the direct solution or deletion.
-For `SIMPLIFY`, state the simpler alternative.
-For `KEEP`, state why removal would violate what must remain.
-For `UNCLEAR`, state the exact missing or conflicting information.
-If no complexity item exists, state `None identified` instead of creating an empty table.
-
+When a response or solution is proposed, test each complexity item against the established facts, current requirements, current constraints, and the least specific supported explanation.
 Prefer deletion or a direct solution over new machinery.
 A future possibility does not justify present complexity.
+Retain a specific mechanism only when removing or simplifying it would violate what must remain.
 
-## 3. Recommend the simplest coherent solution
+Use this table with one row per independently decidable commitment:
 
-Describe the smallest solution that preserves every current requirement and current constraint.
-Present it as one coherent proposal instead of repeating the table's verdict inventory.
-If an `UNCLEAR` verdict blocks the recommendation, ask only the questions that can resolve it.
+| Commitment and effect | Simplest supported treatment | Verdict |
+| --- | --- | --- |
+
+Group items only when they have the same treatment and verdict.
+Keep each cell concise.
+For `REMOVE`, state the direct deletion.
+For `SIMPLIFY`, state the weaker explanation or simpler treatment.
+For `KEEP`, state what requires it.
+For `UNCLEAR`, state the exact missing or conflicting information.
+If no removable or questionable commitment exists, state `None identified` instead of creating an empty table.
+
+## 4. Present one coherent result
 
 Return exactly these sections in this order:
 
 1. `Simplest version`
 2. `What must remain`
-3. `Complexity check`
+3. `Underengineering check`
 4. `Open questions` only when an `UNCLEAR` verdict or unresolved conflict remains.
 
 Start `Simplest version` with one direct recommendation.
-Under `What must remain`, use one concise bullet list.
-This section is a preservation boundary, not a summary.
-Include a rule only when it is an accepted requirement or constraint whose removal could change a table verdict.
-Do not include review scope, a recommendation, a design conclusion, or a negative restatement of missing information or permission.
-Distinguish requirements from constraints only when the distinction changes a verdict.
+State the least specific supported explanation when the target includes a diagnosis or explanation.
+State the simplest coherent response when the target includes a plan or solution.
+When the target includes both, use the selected explanation to evaluate the response.
 
-The review is complete when the preservation boundary is explicit, every complexity item has a supported verdict, the recommendation preserves that boundary, and every unresolved verdict-changing conflict or missing input appears under `Open questions`.
+Under `What must remain`, use one concise bullet list.
+Include only established facts, current requirements, and current constraints whose loss could change a verdict.
+
+Under `Underengineering check`, include the comparison table or `None identified`.
+Do not repeat the table as a second inventory.
+If an `UNCLEAR` verdict blocks the result, ask only the questions that can resolve it.
+
+The review is complete when the explanation contains no unsupported specificity, the response contains no unnecessary complexity, the result preserves every established fact, current requirement, and current constraint, and every verdict-changing unknown is explicit.

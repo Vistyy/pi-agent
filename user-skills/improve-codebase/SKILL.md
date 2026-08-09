@@ -17,6 +17,9 @@ Discover and follow the repository's applicable instructions, accepted decisions
 
 Inspect enough current implementation, callers, tests, and checks to identify concrete maintenance costs.
 Look especially for repetition, unnecessary indirection, obsolete or custom machinery, and verification friction.
+Treat code shapes and advisory findings as investigation leads, not maintenance costs.
+Before retaining a candidate, name its present maintenance consequence and the evidence for that consequence.
+A hypothetical future edit, divergence, or defect is insufficient unless the current structure leaves a material requirement unprotected.
 Use repository history only when it can establish or refute a recurring cost.
 
 Keep a candidate only when current evidence from named files, changes, failures, tests, or commands supports the cost.
