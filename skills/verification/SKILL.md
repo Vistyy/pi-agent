@@ -24,6 +24,8 @@ A Claim is not a list of scenarios or an evidence mechanism.
 
 Select the least costly reliable supported evidence that establishes the complete Claim through every Required Seam.
 Use evidence that is independent from the implementation logic under review.
+Evidence establishes a Verification Claim only through decoded observations that contain the facts the Claim requires.
+Missing, malformed, or unavailable observations do not establish the Claim.
 
 ## Authority and context
 

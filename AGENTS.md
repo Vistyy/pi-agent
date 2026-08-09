@@ -47,11 +47,11 @@
 
 ## Design and implementation
 
-- When repository code receives a value whose runtime form has not been established, the code responsible for accepting that representation must decode it before passing it into trusted code.
-  A decoder checks the structure and conditions required at that boundary and returns either a typed value or a failure.
-- Every path that accepts the same unchecked representation must pass through that boundary check.
-  After the boundary, downstream code must be able to rely on the decoded type instead of repeating shape checks or carrying the unchecked value through `unknown`, `any`, or a type assertion.
-- Validate again only when the value crosses another untrusted boundary or must satisfy a new contract.
+- Decode runtime observations from persistence, processes, and external systems at their owning boundary before trusted use.
+  The decoder must establish the structure, identity, relationships, and conditions that downstream code relies on, and every path that accepts the representation must use it.
+  Treat missing or malformed representations as boundary failures, preserve unavailable or uncertain facts as unknown, and report a mismatch only from a decoded conflict.
+  Reconcile an uncertain mutation against its exact target before retry unless the dependency documents the retry as idempotent.
+  After the boundary, use the decoded type without repeated checks, `unknown`, `any`, or type assertions, and validate again only at a new untrusted boundary or for a new contract.
   Use the simplest sufficient decoder.
 - Retain edge cases, abstractions, generality, and future flexibility only when authoritative context or concrete evidence establishes a current need, and state that reason.
 - Use canonical project terms from the applicable `CONTEXT.md` in public and domain-facing names, instructions, documentation, and user communication.
