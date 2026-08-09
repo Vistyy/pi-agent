@@ -29,9 +29,12 @@ When implementation reveals work that may change scope, read and apply [Route Di
 5. Before recording each Task, state its supported completion result in one sentence.
    Identify any included behavior that can be delivered later while leaving that result safe, usable, and independently acceptable.
    Assign that behavior to another Task with its own bounded supported result.
+   State how a human reviewer can understand and judge the complete implementation and required evidence as one coherent change.
+   Use available repository evidence, including prior implementation attempts, when judging whether this review path is practical.
+   The review path is not a detailed implementation plan or an estimate of exact files, lines, or effort.
 6. Treat implementation, review, or verification difficulty as evidence that the proposed boundary must be reconsidered.
    When required verification shows no practical coherent implementation, review, and evidence path, reconsider the boundary or present the concern to the applicable authority before recording the Task.
-   If no practical bounded result is clear, present the evidence and obtain a decision from the applicable authority before recording the Task.
+   If no practical review path or bounded result is clear, present the evidence and obtain a decision from the applicable authority before recording the Task.
 7. Add a dependency only when its definition applies.
    Related work, shared files, likely conflicts, priority, or recording order do not establish a dependency.
 
