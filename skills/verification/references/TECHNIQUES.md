@@ -13,6 +13,9 @@ A different input, fixture, branch, assertion, or code path does not make a fail
 ## Select evidence
 
 Use integration or end-to-end evidence only when interaction across a Required Seam is part of the Claim.
+When selected Evidence is unreliable or has disproportionate Lifecycle Cost, treat that as an unresolved verification-feasibility signal.
+Reconsider the Evidence, Verification Claim, and Required Seam before adding verification machinery.
+If no proportionate reliable Evidence can establish the accepted Claim, expose the feasibility problem and route any resulting intent, scope, or design change through its applicable authority.
 Do not use test count or coverage percentage as a substitute for a Verification Claim.
 Do not preserve an existing test, category, seam, or integration level only because it already exists.
 
