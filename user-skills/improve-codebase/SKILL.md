@@ -1,96 +1,63 @@
 ---
 name: improve-codebase
-description: "[M] Find evidence-backed opportunities that make future code changes easier and safer."
+description: "[M] Find the smallest evidence-backed codebase improvement that is not already tracked."
 disable-model-invocation: true
 ---
 
 # Improve Codebase
 
-Recommend the smallest evidence-backed change that reduces the cost, risk, or uncertainty of future maintenance.
-Deletion, local simplification, tooling, tests, structural change, and no change are all valid outcomes.
+Recommend the smallest evidence-backed improvement that reduces the cost, risk, or uncertainty of future maintenance without duplicating known work.
+Deletion, direct simplification, and no change are valid outcomes.
 
-If `CONTEXT-MAP.md` exists, use it to select the applicable context.
-Otherwise, if the root `CONTEXT.md` exists, use the root context.
-Use applicable domain terms and treat applicable ADRs as current constraints.
+## 1. Find a current maintenance cost
 
-## 1. Find maintenance evidence
+If the user names a target, start there.
+Otherwise, inspect the current codebase broadly.
+Discover and follow the repository's applicable instructions, accepted decisions, and domain terms.
 
-If the user names a module, subsystem, task, or recurring problem, start there.
-Otherwise, scan recent repository history broadly but shallowly.
-Inspect commit intent, changed paths, repeated co-changes, linked issues, and test or build failures.
-Group changes that appear to perform the same maintenance task.
+Inspect enough current implementation, callers, tests, and checks to identify concrete maintenance costs.
+Look especially for repetition, unnecessary indirection, obsolete or custom machinery, and verification friction.
+Use repository history only when it can establish or refute a recurring cost.
 
-Inspect a small representative sample of the strongest pattern.
-Read the relevant diffs, current implementation, callers, tests, and repository commands.
-Confirm that the historical friction still exists in the current code.
-Widen the history only when more evidence could change the selected pattern or its scope.
+Keep a candidate only when current evidence from named files, changes, failures, tests, or commands supports the cost.
+If a candidate fails a later check, return to this step and inspect the next strongest candidate.
 
-If the repository provides `just health`, run it as advisory maintenance evidence.
-Verify relevant findings against the current code before recommending work.
-Do not convert a health finding into a task without evidence of maintenance cost.
+## 2. Exclude known work and respect accepted constraints
 
-Look for observed costs in these categories:
+Discover the repository's authoritative mechanisms for recording work instead of assuming a particular CLI, file format, or hosting service.
+Search relevant tasks, issues, plans, roadmaps, or equivalent records by component, cost, cause, and intended outcome rather than exact wording alone.
 
-- Discovery: maintainers repeatedly struggle to locate or understand behavior.
-- Change surface: one conceptual change requires coordinated edits in many places.
-- Reasoning: hidden rules, states, ordering, or shared state make local reasoning unreliable.
-- Verification: tests or checks are slow, brittle, incomplete, or difficult to set up.
-- Custom code: the repository maintains behavior that an existing tool or library could provide more simply.
-- Operation: changes are difficult to migrate, observe, deploy, or reverse.
-- Obsolete complexity: dead paths, compatibility layers, duplicate helpers, or stale configuration remain active maintenance concerns.
+Reject a candidate that an existing work record substantively covers, regardless of its status or label.
+If a record covers only part of the candidate, continue only with a distinct residual problem supported by its own evidence.
+If similar work was completed, verify that the current cost remains.
+If active work is expected to materially change the candidate's evidence or change surface, defer the candidate unless it remains independently justified after that work.
 
-This step is complete when one observed maintenance cost is supported by named files, changes, failures, tests, or commands.
-If the repository provides insufficient evidence, report that result and stop.
+Check applicable accepted decisions and explanations for intentional complexity or trade-offs.
+An accepted trade-off does not automatically exclude an improvement.
+Continue only when the candidate respects the accepted constraint or material new evidence justifies reconsidering it.
 
-## 2. Explain the cause and scope
+If an unavailable authoritative source is necessary to determine whether the candidate is already known, report that the check could not be completed instead of claiming a novel recommendation.
 
-Separate verified facts, inferences, and unknowns.
-Trace the current dependencies, runtime flow, ownership, and verification path that produce the observed cost.
-Define the observable improvement, such as fewer edit locations, less caller knowledge, less custom code, simpler verification, or automatic failure detection.
+## 3. Select the smallest improvement
 
-Use the narrowest scope supported by the evidence.
-Widen from a local change to a module or subsystem change only when several maintenance tasks share the same cause.
-Require evidence across multiple subsystems before recommending a repository-wide architectural shift.
+Trace only the relationships needed to establish the cost, its cause, and the safe change boundary.
+Define the observable maintenance improvement.
+Compare the direct deletion or simplification with other credible treatments by maintenance benefit, added complexity, risk, and reversibility.
+Recommend the smallest treatment that fully produces the improvement and preserves current requirements and constraints.
 
-This step is complete when the cause, supported scope, and observable improvement are explicit.
+If no candidate passes the evidence, known-work, and constraint checks, report that no untracked recommendation was found within the inspected scope.
 
-## 3. Select the intervention
-
-Consider only interventions that address the observed cause:
-
-- Delete obsolete or duplicate code.
-- Improve names, navigation, or local documentation.
-- Simplify control flow, state, or data representation.
-- Replace custom code with an existing tool or library.
-- Add a deterministic check or generator.
-- Improve tests, fixtures, feedback speed, or observability.
-- Change ownership, an interface, a seam, or a module structure.
-- Improve migration, rollout, or recovery behavior.
-- Keep the current design.
-
-Compare each credible intervention by expected maintenance reduction, new concepts, dependencies, interfaces, indirection, migration work, test burden, operational risk, and reversibility.
-Prefer the smallest intervention that produces the observable improvement.
-
-When a foundational library may replace custom code, research its current capabilities before recommending the dependency.
-When the cause of a recurring failure is unknown, establish causal evidence before recommending a fix.
-When an intervention changes structure, define ownership, caller knowledge, interfaces, seams, and migration.
-When an intervention changes domain vocabulary or relationships, resolve and record the domain meaning.
-
-This step is complete when one intervention, including no change, has stronger evidence and lower total cost than its credible alternatives.
-
-## 4. Present the recommendation
+## 4. Present the result
 
 Return concise prose under these headings in this order:
 
-1. `Observed cost`
-2. `Cause and scope`
-3. `Recommendation`
-4. `Expected improvement`
-5. `Cost and risk`
-6. `Verification`
+1. `Recommendation`
+2. `Evidence`
+3. `Known-work and constraint check`
+4. `Cost, risk, and verification`
 
-Each section must state the corresponding evidence or conclusion from this workflow.
-
+Name the authoritative work records and accepted decisions checked.
+Distinguish relevant existing work from the recommendation and disclose any unavailable relevant source.
 Present multiple options only when evidence leaves a genuine decision unresolved.
 
-The review is complete when the user can decide whether to accept the recommendation without reconstructing the investigation.
+The review is complete when the evidence establishes a current maintenance cost, the recommendation is not covered by known work, accepted constraints are preserved or materially reconsidered, and the user can decide whether to accept the smallest supported improvement.
