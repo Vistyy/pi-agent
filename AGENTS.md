@@ -47,12 +47,10 @@
 
 ## Design and implementation
 
-- Decode runtime observations from persistence, processes, and external systems at their owning boundary before trusted use.
-  The decoder must establish the structure, identity, relationships, and conditions that downstream code relies on, and every path that accepts the representation must use it.
-  Treat missing or malformed representations as boundary failures, preserve unavailable or uncertain facts as unknown, and report a mismatch only from a decoded conflict.
-  Reconcile an uncertain mutation against its exact target before retry unless the dependency documents the retry as idempotent.
-  After the boundary, use the decoded type without repeated checks, `unknown`, `any`, or type assertions, and validate again only at a new untrusted boundary or for a new contract.
-  Use the simplest sufficient decoder.
+- At each runtime boundary, rely on its enforced contract and validate only required facts that the contract does not guarantee.
+  Do not inspect unrelated data for corruption.
+  Before a destructive action, derive or verify the exact target.
+  Reconcile an uncertain mutation before retry unless retry is documented as idempotent.
 - Retain edge cases, abstractions, generality, and future flexibility only when authoritative context or concrete evidence establishes a current need, and state that reason.
 - Use canonical project terms from the applicable `CONTEXT.md` in public and domain-facing names, instructions, documentation, and user communication.
   Read the applicable `CONTEXT.md` before naming or describing domain behavior.
