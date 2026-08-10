@@ -29,10 +29,15 @@ When implementation reveals work that may change scope, read and apply [Route Di
 5. Before recording each Task, state its supported completion result in one sentence.
    Identify any included behavior that can be delivered later while leaving that result safe, usable, and independently acceptable.
    Assign that behavior to another Task with its own bounded supported result.
-   State how a human reviewer can understand and judge the complete implementation and required evidence as one coherent change.
+   State the one coherent judgment that relates the complete result's behavior groups, state relationships, interface changes, and required evidence and shows why they form one bounded supported result that a human can understand and judge.
+   A sequence of review areas, passes, or verification mechanisms does not supply that judgment.
    Use available repository evidence, including prior implementation attempts, when judging whether this review path is practical.
+   When available evidence has disproved a review path, do not reuse that path or a materially equivalent Task boundary unless concrete evidence shows why the observed mismatch no longer applies.
    The review path is not a detailed implementation plan or an estimate of exact files, lines, or effort.
 6. Treat implementation, review, or verification difficulty as evidence that the proposed boundary must be reconsidered.
+   Treat multiple independently understandable behavior groups, state relationships, interface changes, or verification arguments as boundary evidence requiring either a split or concrete evidence that they form one bounded supported result.
+   Calling them one subsystem or lifecycle is not that evidence.
+   No single file, line, effort, or verification count determines the boundary.
    When required verification shows no practical coherent implementation, review, and evidence path, reconsider the boundary or present the concern to the applicable authority before recording the Task.
    If no practical review path or bounded result is clear, present the evidence and obtain a decision from the applicable authority before recording the Task.
 7. Add a dependency only when its definition applies.
