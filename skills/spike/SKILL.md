@@ -19,7 +19,8 @@ This step is complete when the hypothesis, decision criteria, and applicable bas
 ## 2. Establish approval and scope
 
 Describe the experiment, its boundary, and any repository changes, external effects, material risk, or cost.
-Treat an explicit user request for an experiment as approval within the described scope.
+Treat an explicit user request for an experiment as approval only for its requested boundary and explicitly named effects.
+Obtain separate approval before adding an unmentioned repository mutation, external effect, material cost, or material risk.
 An agent-proposed read-only local probe may proceed when the current authorized outcome requires its evidence, repository instructions permit it, and it has no material cost, risk, or external effect.
 Otherwise, obtain approval before modifying files, changing external state, incurring material cost, or introducing material risk for an agent-proposed spike.
 Obtain approval before materially expanding an approved experiment's scope, risk, cost, or external effects.

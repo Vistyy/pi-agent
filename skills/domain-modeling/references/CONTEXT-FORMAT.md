@@ -62,7 +62,9 @@ Use these rules to select the structure:
 
 - If `CONTEXT-MAP.md` exists, read it to find the applicable context.
 - If only a root `CONTEXT.md` exists, use the root context.
-- If neither file exists, create a root `CONTEXT.md` when the user resolves the first term.
+- If neither root file exists, search for nested `CONTEXT.md` files before creating a new authority.
+- If nested or multiple context files exist without a root map, report the structure gap.
+- Create a root `CONTEXT.md` only when domain-model changes are authorized and the repository-wide search finds no existing context.
 
 When multiple contexts exist, identify the context for the current topic.
 If the applicable context is unclear, ask the user.
@@ -73,7 +75,7 @@ Create a second context only when two areas use distinct domain language or rule
 Separate directories or modules do not establish separate contexts.
 When the evidence suggests a second context, state the distinct language or rules and ask the user to confirm the split.
 
-After the user confirms the split:
+After the user confirms the split and authorizes the domain-model changes:
 
 1. Propose each context's canonical name, purpose, and repository location from the accepted domain language and repository structure, then ask the user to confirm them.
 2. Create each context-specific `CONTEXT.md` with its confirmed name and purpose.
@@ -84,5 +86,5 @@ After the user confirms the split:
 7. Record each context's location and its relationships with other contexts.
 8. Remove the root `CONTEXT.md` after every term has moved.
 
-Update `CONTEXT-MAP.md` immediately when a context or relationship changes.
-The transition is complete when the map links every context, each term has one applicable context, and every known cross-context relationship is recorded.
+Update `CONTEXT-MAP.md` when an authorized context or material cross-context relationship changes.
+The transition is complete when the map links every context, each term has one applicable context, and each cross-context relationship that affects language, rules, ownership, or supported interaction is recorded.

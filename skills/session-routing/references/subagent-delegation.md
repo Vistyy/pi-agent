@@ -36,8 +36,9 @@ This step is complete when every active scope has one owner.
 ## 3. Apply the report
 
 Use the report as evidence for the main-session decision.
-When a source-local gap can affect that decision, ask the same subagent to resolve it.
+For a material source-local gap likely to be resolved by follow-up, send the same subagent one bounded follow-up with an explicit stopping condition.
+End at resolution or the stopping condition; if the gap remains, report its evidence limit, and do not extend the follow-up for unrelated evidence.
 Inspect an exact source in the main session only when synthesis or conflicting evidence requires it.
 Do not repeat delegated exploration.
 
-This step is complete when the main session can integrate the result or has assigned each material gap.
+This step is complete when the main session can integrate the result or has reported each unresolved material gap and its evidence limit.

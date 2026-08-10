@@ -58,8 +58,7 @@ For current-session work, continue without loading a branch reference.
 
 ## 4. Integrate results
 
-Integrate delegated results into the main-session decision.
-Route context-local gaps back to the same agent.
+Integrate delegated results and explicit evidence limits into the main-session decision.
 When new work introduces a different outcome or working set, choose its route before gathering detailed context.
 
-This workflow is complete when the main session has made the required integrated decision and every unresolved scope has an explicit owner.
+This workflow is complete when the main session has made the required integrated decision and every unresolved material gap and its evidence limit are explicit.

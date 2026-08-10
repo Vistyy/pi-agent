@@ -1,7 +1,8 @@
 # Session Integrations
 
-
 ## Session lifecycle
+
+When session integration is selected:
 
 1. Provide a user-invoked setup command that installs or repairs the session integration.
 2. At session start, run the CLI and collect directory-scoped home-view data.
@@ -56,18 +57,14 @@ The following harness guidance applies only after that harness has individual us
 
 ## Installable Agent Skill
 
-Provide an installable [Agent Skill](https://agentskills.io) as an on-demand discovery option.
-It supports harnesses that implement the skill format without requiring per-session context.
-Users can install the session integration, the skill, or both.
+When an installable Agent Skill is an approved delivery option, provide it as an on-demand discovery option for harnesses that implement the [Agent Skills standard](https://agentskills.io).
 
 ```sh
 pnpx skills add <owner>/<repo> --skill <name>
 ```
 
-- **Single source of truth**: Generate `SKILL.md` from the same static command guidance as the no-argument home view.
-  Exclude live state.
-  Add a CI `--check` step that fails when the committed skill differs from the generated skill.
-- **Static content**: Keep open sessions, current items, and other live data out of `SKILL.md`.
+- **Static source of truth**: Keep `SKILL.md` command guidance aligned with established static CLI guidance.
+  Keep open sessions, current items, and other live data out of `SKILL.md`.
 - **Executable commands**: Write examples that run without a global installation, such as `pnpx -y mytool ...`.
 - **Invocation description**: State the user intent that must load the skill.
-- **Installation guidance**: Document the session integration and skill as two supported installation options.
+- **Installation guidance**: Document each approved installation option.

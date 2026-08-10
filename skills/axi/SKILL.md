@@ -9,26 +9,15 @@ AXI defines ergonomic standards for CLI tools that autonomous agents run through
 
 ## Completion criterion
 
-An AXI pass is complete when every modified or reviewed command accounts for:
+An AXI pass is complete when each command behavior materially in scope follows the applicable sections below and the applicable verification claims are established through the supported CLI interface.
+Do not change behavior or collect new evidence solely to satisfy an inapplicable section.
+Reuse existing evidence for unchanged behavior.
 
-- Stdout format.
-- Default schema.
-- Truncation.
-- Aggregate counts.
-- Empty states.
-- Errors.
-- Exit codes.
-- Prompts.
-- Output channels.
-- No-args behavior.
-- Contextual help.
-- `--help`.
+Read [Session Integrations](references/SESSION-INTEGRATIONS.md) only when the change includes session integration, such as a hook, plugin, setup command that installs or repairs it, or an approved installable Agent Skill delivery option.
+When session integration applies, verify opt-in setup, idempotence, directory scoping, lifecycle capture, and token budget.
 
-When the change includes hooks, plugins, setup commands, or installable skills, also review session integration.
-Verify opt-in setup, idempotence, directory scoping, lifecycle capture, and token budget.
-
-For implemented changes, validate each affected behavior through the supported CLI interface.
-Record the observed stdout, stderr, and exit code for each applicable success, empty, error, mutation, no-argument, and help case.
+For implemented changes, capture only the command observations required by the applicable verification claims, including stdout, stderr, or the exit code as relevant.
+Reuse one observation when it covers equivalent paths or multiple claims.
 
 ## Output format
 
@@ -54,16 +43,14 @@ items: 2 records
 
 Use the smallest stdout schema that lets the agent decide what to do next.
 
-- Use three or four fields in a default list schema.
-- Set the default limit from observed or documented collection sizes.
-- Put bodies and descriptions in detail views.
-- Provide `--fields` for additional fields.
+- Set an applicable default limit from observed or documented collection sizes.
+- Put bodies and descriptions in detail views when list decisions do not require them.
+- Provide `--fields` only when the supported command needs selectable fields beyond the default schema.
 
-Include every large detail field.
-When a large detail field exceeds the default limit, include a truncated preview and the total size.
+When an included field exceeds an established output limit, provide a truncated preview and total size.
+If current work introduces truncation without an established limit, make that output-policy decision explicit.
 When content is truncated, provide an escape hatch.
 When content is complete, omit the escape hatch.
-Choose a documented limit that covers common use cases.
 
 ```text
 task:
@@ -75,11 +62,10 @@ task:
 help: Run `tasks view 42 --full` to see complete body
 ```
 
-When the backend can provide commonly needed aggregate data at acceptable cost, include it.
+Include aggregate data only when it supports a current agent decision and the backend can provide it at acceptable cost.
 
-- Include the total count in list output, not only the page size.
-- Include derived state summaries that commonly determine the next action.
-- Summarize related data, for example with `checks: 3/3 passed` and `comments: 7`.
+- Include the total count when the agent must interpret the result beyond the page size.
+- Include derived state or related-data summaries when they materially determine the next action.
 
 ```text
 count: 30 of 847 total
@@ -108,11 +94,11 @@ task: #42 already closed (no-op)    # exit 0
 ```
 
 Return errors on stdout in the same structured format as normal output.
-Include the problem and an actionable suggestion.
+Include the problem and an actionable suggestion when one is known and useful.
 
 - Validate required flags before calling dependencies.
-- Translate dependency errors into actionable meaning.
-- Discard raw dependency output, stack traces, and dependency names.
+- Translate known dependency errors when doing so provides actionable meaning.
+- Keep raw dependency output, stack traces, and dependency names out of stdout.
 - Reference the CLI's commands in suggestions.
 
 ```text
@@ -134,20 +120,19 @@ Keep progress messages out of stdout.
 
 ## Session integration
 
-When directory-scoped live state can change the agent's next action before command execution, add session integration.
+When directory-scoped live state has evidence-backed value for changing the agent's next action before command execution, add session integration.
 Session integration must be explicit opt-in, idempotent, directory-scoped, lifecycle-aware, and token-budget-aware.
-When implementing hooks, plugins, or installable Agent Skills, read [`SESSION-INTEGRATIONS.md`](references/SESSION-INTEGRATIONS.md).
 
 ## Home view
 
-When the CLI has no arguments, show the home view.
-Identify the tool before live data.
-Include:
+Define a noninteractive structured response for a no-argument invocation.
+Use a home view when it supports command discovery or the next action.
+When a home view includes live state, identify the tool before live data and include only directory-scoped state material to the next choice.
+Include applicable content from this list:
 
 - The current executable's absolute path, with the user's home directory collapsed to `~`.
 - A one-sentence CLI description.
-- Directory-scoped live state that supports the next command choice.
-- When another action is required, commands supported by the displayed state.
+- Commands supported by the displayed state when another action is required.
 
 ```text
 $ tasks
@@ -164,19 +149,11 @@ help:
 
 ## Contextual disclosure
 
-Expose only commands valid for the returned state.
-
-- After an open item, include its applicable mutation command.
-- After an empty list, include its applicable create command.
-- After a list, include the detail command with an `<id>` placeholder.
-- Carry disambiguating flags such as `--repo` and `--source` into suggestions.
-- Use placeholders such as `<id>` and `"<title>"` for values the agent must select.
-- When a detail view, count, or confirmation fully answers the request, omit suggestions.
-- Offer valid alternatives without prescribing an unnecessary sequence.
-- When a list is truncated, state the total.
-- For a truncated list, include the command that returns all items.
-- Keep pagination details out of array headers in formats that have array headers.
-- After an error, include the command that corrects the reported problem.
+When contextual suggestions materially help select a next action, include only commands valid for the returned state.
+Preserve applicable disambiguating flags and use placeholders for values the agent must select.
+Omit suggestions when the result fully answers the request, and offer alternatives without prescribing an unnecessary sequence.
+For truncated output or a known error, include an escape or correction command only when it is useful and available.
+Keep pagination details out of array headers in formats that have array headers.
 
 ## Help
 
@@ -184,6 +161,6 @@ Support `--help` on every subcommand.
 Provide a concise, complete reference.
 Include available flags and defaults.
 Identify required arguments.
-Provide two or three usage examples.
+Provide usage examples only when they clarify non-trivial usage.
 Keep help focused on the requested subcommand.
 Do not dump the entire CLI manual.

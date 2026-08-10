@@ -33,8 +33,10 @@
 ## Decision principles
 
 - First establish the required outcome, current constraints, and authoritative evidence.
+- Treat mechanisms, examples, alternatives, checklists, and preventive ideas raised during exploration as candidates, not requirements or constraints, unless the applicable authority accepts them as such.
+- A request to investigate, discuss, explain, compare, review, or plan authorizes evidence gathering only.
+  Do not edit files, mutate durable state, dispatch implementation, or create work records unless the user also authorizes that action.
 - **Bennett's Razor:** Make no claim or commitment more specific than required by the outcome, current constraints, and authoritative evidence.
-  Among valid candidates, prefer the candidate compatible with the most possibilities that those inputs have not ruled out.
 - Before retaining an assumption, condition, distinction, or guarantee, identify what rules out a weaker alternative.
   Remove or weaken it when nothing does.
 - Weakness does not mean brevity, simplicity, or vagueness.
@@ -51,7 +53,8 @@
   Do not inspect unrelated data for corruption.
   Before a destructive action, derive or verify the exact target.
   Reconcile an uncertain mutation before retry unless retry is documented as idempotent.
-- Retain edge cases, abstractions, generality, and future flexibility only when authoritative context or concrete evidence establishes a current need, and state that reason.
+- An unruled-out possibility is not supported behavior.
+  Retain an edge case, abstraction, generality, or future flexibility only for a current need established by authority or concrete evidence, and keep other choices local.
 - Use canonical project terms from the applicable `CONTEXT.md` in public and domain-facing names, instructions, documentation, and user communication.
   Read the applicable `CONTEXT.md` before naming or describing domain behavior.
   If the audience cannot access that context, provide the required meaning directly or through a reliable reference.

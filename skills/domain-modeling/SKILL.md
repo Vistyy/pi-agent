@@ -10,10 +10,11 @@ Reading `CONTEXT.md` without changing the model does not require this skill.
 
 ## Find the applicable context
 
-If `CONTEXT-MAP.md` exists at the repository root, the repository has multiple contexts.
-Use the map to find each context.
+If `CONTEXT-MAP.md` exists at the repository root, use it to find each context.
+If neither a root map nor a root `CONTEXT.md` exists, locate existing nested `CONTEXT.md` files before assuming that the repository has no domain model.
+When nested or multiple contexts exist without a root map, report the structure gap and ask which context owns the current topic when ownership is unclear.
 
-Before changing the domain model, inspect the applicable repository instructions, `CONTEXT.md`, and existing ADRs.
+Before changing the domain model, inspect the applicable repository instructions, the selected `CONTEXT.md`, and existing ADRs.
 If `CONTEXT-MAP.md` exists, inspect the root `docs/adr/` and the selected context's `docs/adr/`.
 Otherwise, inspect the root `docs/adr/` when it exists.
 
@@ -58,18 +59,18 @@ Code verification is complete when the applicable implementation agrees with the
 
 ### Record resolved terms
 
-Update the applicable `CONTEXT.md` immediately after the user resolves a term.
+When domain-model changes are authorized, update the applicable `CONTEXT.md` after the user resolves a term.
+Otherwise, report the proposed canonical definition and the authorization needed to record it.
 Use [CONTEXT-FORMAT.md](references/CONTEXT-FORMAT.md).
 
 Use each `CONTEXT.md` only for domain terms and definitions in its scope.
 Record specifications and implementation details in the applicable technical documentation.
-Record qualifying architectural decisions as ADRs.
 
-Term recording is complete when each resolved term has one canonical definition in its owning `CONTEXT.md`.
+Term handling is complete when an authorized definition is recorded in its owning `CONTEXT.md`, or when the unrecorded proposed definition, owning context, and needed authorization are explicit.
 
 ### Offer an ADR
 
 When a decision may require an ADR, load [ADR-FORMAT.md](references/ADR-FORMAT.md).
 Apply its qualification and lifecycle rules before creating or changing an ADR.
 
-ADR evaluation is complete when the accepted decision is recorded in the applicable task, specification, or ADR without duplicating an existing authority.
+ADR evaluation is complete when the accepted decision is recorded in an applicable authorized artifact without duplicating an existing authority, or when the unrecorded qualifying decision and needed authorization are explicit.

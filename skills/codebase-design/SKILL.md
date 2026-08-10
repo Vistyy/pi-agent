@@ -37,7 +37,9 @@ Locality lets maintainers make and verify a change in one place.
 Name the behavior, rule, or dependency under consideration.
 Name its current owner and the callers whose knowledge or coordination can affect the decision.
 When relationships, ownership, flow, state, or coordination affect the decision, represent the relevant relationships in the smallest form that makes them inspectable.
-Use the representation to identify avoidable coordination before comparing structures.
+When the decision spans multiple modules, trace one representative operation through the complete relevant path and evaluate how the modules compose rather than judging each one in isolation.
+For each layer on that path, identify the behavior or boundary it owns, what its callers must know or coordinate, and what knowledge it removes from adjacent callers.
+Use the representation to identify avoidable coordination, duplicated representation or state, and split ownership before comparing structures.
 Record only interface knowledge established and material to the decision, such as relevant invariants, ordering, errors, configuration, or performance constraints.
 State decision-blocking unknowns instead of filling them with conventional behavior.
 Use observed changes, defects, or verification friction when available.
@@ -52,9 +54,10 @@ Research only named candidates or candidates found through a precise capability 
 When an existing capability provides only part of the required behavior, compare preserving the unmet requirement through additional custom work with seeking user approval to reshape it around the existing capability.
 Do not change an accepted requirement without user approval.
 
-Apply the **deletion test** to each relevant module.
+Apply the **deletion test** to each relevant module and to the participating module chain.
 If deleting a module removes complexity, prefer deletion or direct code.
 If deleting a module distributes knowledge or behavior among callers, the module provides locality.
+Evaluate adjacent modules as one possible module when their separation makes callers translate, sequence, or reconcile them without preserving a concrete ownership or lifecycle boundary.
 
 Credible structures can include:
 
@@ -65,9 +68,10 @@ Credible structures can include:
 - Deepen a module around distributed behavior or knowledge.
 
 Compare only structures supported by the problem.
-Compare each credible structure by caller knowledge, edit locations, new concepts, interfaces, indirection, migration work, and verification setup.
+Compare each credible structure only by dimensions material to this decision, such as caller knowledge, edit locations, new concepts, interfaces, indirection, migration work, and verification setup.
+Compare those costs across the complete representative path because a locally simple interface can still increase aggregate translation or coordination.
 Reject structures that do not satisfy the required behavior or established ownership constraints.
-Among the remaining structures, prefer the one that introduces the least caller knowledge, coordination, concepts, interfaces, indirection, dependencies, and verification setup.
+Among the remaining structures, prefer the simplest one that satisfies those constraints and minimizes the costs material to this decision.
 
 This step is complete when named evidence supports one structure and its structural and maintenance trade-offs are explicit.
 
@@ -91,13 +95,13 @@ This step is complete when callers can use the interface without implementation 
 
 For a proposed design, show one representative caller and a practical verification path.
 State the migration and removal work required by the proposal.
+When staging requires a temporary interface, Adapter, representation, or compatibility path, identify the exact later removal and its verification instead of presenting the temporary layer as the completed simplification.
 
 A proposed design is complete when named evidence supports simpler caller reasoning and the verification and migration paths are explicit.
 
 For an implemented design, update callers and affected verification through the supported interface.
 Treat an unsafe cast needed to construct a verification Adapter as evidence of an interface mismatch, and resolve the mismatch instead of hiding it.
 Remove the replaced structural path after its callers and verification migrate.
-Run the applicable repository checks.
 
 An implemented design is complete when the required behavior is verified and no replaced path remains.
 

@@ -30,9 +30,11 @@ When investigating implementation mechanisms, preserve the settled behavior.
 4. Ask exactly one self-contained question.
 5. Wait for the user's answer.
 
-Use an open narrowing question only when the evidence supports no recommendation.
-State why no recommendation is available.
+Use an open narrowing question only when bounded inspection supports no recommendation.
+State the evidence limit, and do not repeat the inspection without new evidence.
 Do not revisit a rejected mechanism unless new evidence or the user reopens it.
+If the user asks to stop planning, stop and report the current decision ledger, unresolved open points, and approval status.
+Stopping preserves the current approval status unless the user explicitly abandons the plan or withdraws approval.
 
 ## Complete the plan
 
@@ -46,5 +48,6 @@ The plan is ready when:
 
 Summarize only the plan created or changed during this session.
 Ask the user to approve that plan.
-If the user declines the plan, record the feedback as open points and continue the planning session.
+If the user declines the plan, record the feedback as open points and ask whether to revise it or stop.
+Continue only when the user requests revision or continuation.
 Record the plan as approved only after the user explicitly approves it.
