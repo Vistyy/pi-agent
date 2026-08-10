@@ -17,6 +17,7 @@ Preserve established domain, repository, external-system, and exact technical te
 
 **Interface**: Everything a caller must know to use a module correctly.
 The interface includes entry points, invariants, ordering constraints, error modes, configuration, and performance characteristics.
+Judge an interface by the knowledge and coordination it imposes on callers, not by its syntax, method count, or number of types.
 
 **Implementation**: Code inside a module.
 When describing a role at a seam, use **Adapter**.
@@ -75,6 +76,9 @@ This step is complete when named evidence supports one structure and its structu
 State which modules or callers own each rule and where coordination is intentional.
 Use an interface only when it reduces the knowledge or coordination that callers must carry.
 State the interface behavior, invariants, ordering constraints, errors, configuration, and relevant performance characteristics.
+Give each workflow only the operations it needs, and accept only caller inputs that the operation treats as authoritative or checks against an authoritative source.
+For a state-changing operation, represent each material precondition in the accepted type or validate it at the operation boundary.
+Return the facts and failure evidence needed to interpret each operation without ambient mutable state or undocumented preceding calls.
 
 Create a seam only when a concrete variation, ownership difference, lifecycle difference, isolation need, or test replacement justifies its interface and indirection.
 When a dependency must vary at a seam, accept an adapter instead of constructing the dependency inside the module.
@@ -91,6 +95,7 @@ State the migration and removal work required by the proposal.
 A proposed design is complete when named evidence supports simpler caller reasoning and the verification and migration paths are explicit.
 
 For an implemented design, update callers and affected verification through the supported interface.
+Treat an unsafe cast needed to construct a verification Adapter as evidence of an interface mismatch, and resolve the mismatch instead of hiding it.
 Remove the replaced structural path after its callers and verification migrate.
 Run the applicable repository checks.
 
