@@ -1,15 +1,13 @@
 # Expand-Contract
 
-Use expand-contract when old and new forms must coexist while supported callers migrate.
+Expand-contract is an optional migration pattern for cases where old and new forms must coexist while supported callers move.
+It is not a default Task structure.
 
-- **Expand** adds the new form while the old form remains supported.
-- **Migrate** moves bounded caller populations to the new form while the repository remains supported.
-- **Contract** removes the old form after no supported caller requires it.
+- Expand introduces the new form while the old form remains supported.
+- Migrate moves callers while both forms remain supported.
+- Contract removes the old form after no supported caller requires it.
 
-Apply the bounded supported result rule to every proposed stage and caller population.
-Do not merge migration work merely because every stage contributes to one final target.
-Do not create separate Tasks when an intermediate state is not approved and supported.
-
-A caller-migration Task depends on expansion only when it cannot be implemented or verified before expansion is complete.
-Contraction depends on every migration whose completion is necessary before removal.
-Each recorded stage must have a coherent passing condition.
+Use the pattern only when evidence establishes that coexistence is necessary.
+The phases do not require separate Tasks.
+Choose Task boundaries only where a phase or caller population leaves an independently acceptable supported result.
+When coexistence is unnecessary, complete the replacement as one result instead of introducing migration stages.

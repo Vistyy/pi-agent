@@ -1,31 +1,17 @@
 # Design a Verification Portfolio
 
-Design from Material Risks before using individual existing tests or checks as precedent.
+Use this reference only when the user explicitly asks to design, reduce, or substantially reorganize maintained verification across a project.
+Routine implementation verification does not require a portfolio design.
 
-## 1. Define the portfolio claims
+Start from supported behavior and the consequential failures the project needs to detect, not from the current test inventory or a target coverage number.
+Inspect the current evidence before proposing additions or removals.
+Retain the smallest coherent set that gives justified confidence across the supported system.
+One mechanism may establish confidence in several behaviors, and one behavior does not require one dedicated test.
 
-Identify the finite set of durable Material Risks for the supported system.
-For each Material Risk, define the smallest set of Verification Claims that the maintained portfolio must establish.
-Make each Claim one specific fact rather than a scenario list or evidence mechanism.
-Do not create one Claim per existing test or check.
+Remove or consolidate evidence when the remaining portfolio still detects the meaningful failures it was protecting against.
+Add evidence only for a material confidence gap that the retained portfolio does not address sufficiently.
+Consider execution time, stability, diagnosis, coupling, and maintenance as part of portfolio quality.
 
-This step is complete when the proposed Claims are finite, each states a fact no other proposed Claim states, together they address every Material Risk, and they are independent of the current evidence inventory.
-
-## 2. Select sufficient evidence
-
-Before selecting or reconciling portfolio evidence, read [Verification Techniques](TECHNIQUES.md).
-For each Verification Claim, select the smallest sufficient evidence set.
-Retain an additional evidence mechanism or durable test case only when it addresses a Distinct Regression Failure.
-Define a runtime or stability budget only when an accepted constraint requires one, and give it an explicit measurement method.
-
-This step is complete when every Claim has sufficient Evidence and no selected mechanism or durable test case can be removed without leaving a Claim unestablished or a Distinct Regression Failure undetected.
-
-## 3. Reconcile the current portfolio
-
-Map each existing test or check to every proposed Claim that it helps establish.
-One mechanism may support multiple Claims.
-Remove or consolidate any mechanism or durable test case whose removal leaves every Claim established and every Distinct Regression Failure detected.
-Add evidence only for a Claim that otherwise lacks sufficient coverage.
-Use [Manage Project Verification Strategy](PROJECT-STRATEGY.md) to present the complete risk-first portfolio proposal for one approval and to record it only after approval.
-
-Portfolio design is complete when every approved Claim has sufficient Evidence, removing any retained mechanism would leave a Claim unestablished or a Distinct Regression Failure undetected, and the accepted strategy is recorded in its authoritative artifact.
+Do not require a risk matrix, claim inventory, complete test mapping, or standard proposal format.
+Present the consequential additions, removals, retained protections, and trade-offs in the clearest form for the decision.
+Record a durable project decision only through the project's applicable authority.

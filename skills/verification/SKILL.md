@@ -5,46 +5,40 @@ description: Use whenever work has requirements whose satisfaction should be est
 
 # Verification
 
-Design, produce, and review evidence that is proportionate to the plausible and meaningful ways work can fail to satisfy its requirements.
+Verification establishes justified confidence that work satisfies accepted requirements.
+A test is one possible source of evidence, not the default output.
+
+## Mindset
+
+Start from the specific work and the plausible ways it could materially be wrong.
+Ask what observation would distinguish a correct result from an incorrect one.
+Understand the implementation, its boundaries, existing evidence, and mandatory gates before choosing how to observe the result.
+Use judgment rather than a fixed mapping from a change type to a verification mechanism.
+Use this reasoning to choose evidence, but do not require a verification plan or inventory unless the user requests one or software must parse it.
+
+Prefer evidence that observes the relevant behavior directly, would reveal the meaningful failure, and has proportionate creation and maintenance cost.
+A broader, slower, or more durable mechanism is not inherently stronger.
+Use a broader boundary only when the behavior being established depends on that boundary.
+Treat missing, malformed, unavailable, or ambiguous observations as unknown rather than success.
+
+## Durable tests
+
 Do not require a test by default.
+Add a durable test when it protects accepted behavior from a plausible meaningful regression that the other selected evidence would not reveal, and when its ongoing value justifies its maintenance cost.
+A requirement, branch, scenario, or changed line does not create that need by itself.
+Do not create durable evidence whose only purpose is to prove exact documentation wording or the absence of a retired concept unless that fact is itself an executable supported contract.
 
-## Core model
+Existing mandatory gates remain binding.
+Do not duplicate a gate manually when its owning workflow will produce the required evidence.
+If proportionate evidence cannot establish a required result, report what remains unknown and why instead of inventing confidence or adding verification machinery by convention.
 
-Use `Material Risk -> Verification Claim -> Verification Evidence` as the canonical relationship.
+## Optional references
 
-**Material Risk**: A plausible failure with a meaningful consequence that is supported by accepted requirements or concrete evidence.
-Do not use numerical risk scoring or invent unsupported requirements or speculative edge cases.
+Read only the reference that matches an actual need:
 
-**Verification Claim**: A specific fact that evidence must establish to address one Material Risk.
-A Claim is not a list of scenarios or an evidence mechanism.
+- Read [Verification Techniques](references/TECHNIQUES.md) when mechanism choice is consequential or unfamiliar, or when durable automation is under consideration.
+- Read [Review Verification Evidence](references/REVIEW-EVIDENCE.md) when explicitly reviewing a verification approach or produced evidence.
+- Read [Design a Verification Portfolio](references/DESIGN-PORTFOLIO.md) when explicitly designing, reducing, or substantially reorganizing project-wide verification.
+- Read [Manage Project Verification Strategy](references/PROJECT-STRATEGY.md) when considering a durable verification decision that applies across work.
 
-**Verification Evidence**: An interpretable observation or artifact that supports or refutes a Verification Claim.
-
-**Required Seam**: A boundary that a Verification Claim or accepted verification plan requires because interaction across it is part of the Claim.
-
-Select the least costly reliable supported evidence that establishes the complete Claim through every Required Seam.
-Use evidence that is independent from the implementation logic under review.
-Evidence establishes a Verification Claim only through decoded observations that contain the facts the Claim requires.
-Missing, malformed, or unavailable observations do not establish the Claim.
-
-## Authority and context
-
-Before applying a workflow, read the relevant requirements, instructions, accepted decisions, project strategy, and approved plans, and inspect the applicable executable mechanisms.
-Use accepted requirements to define the required result, applicable instructions, accepted decisions, and project strategy to define verification constraints and mandatory gates, and approved plans to define current Material Risks, Claims, and Evidence.
-Do not weaken those authorities or mandatory gates, and do not add product behavior only to make verification easier.
-When accepted authorities conflict, stop and ask the applicable authority to resolve the conflict.
-Use executable behavior to determine whether a verification mechanism exists, and report documentation that disagrees with its availability.
-Update stale documentation only through its owning workflow and within the authorized scope.
-Inspect only the authorities and mechanisms relevant to the current work.
-
-## Choose the applicable workflow
-
-Apply each workflow that matches the work:
-
-- For work-level verification design, read [Design Verification for Current Work](references/DESIGN-WORK.md).
-- For creation or redesign of a project verification portfolio, read [Design a Verification Portfolio](references/DESIGN-PORTFOLIO.md) instead of the work-level design workflow.
-- For implementation or collection of evidence, read [Produce Verification Evidence](references/PRODUCE-EVIDENCE.md).
-- For review of a verification design or produced evidence, read [Review Verification Design and Evidence](references/REVIEW-EVIDENCE.md).
-- When deciding whether to add, change, or remove a durable cross-work verification decision, read [Manage Project Verification Strategy](references/PROJECT-STRATEGY.md).
-
-The verification work is complete when every applicable workflow reaches its completion criterion.
+Routine verification does not require a separate design document or any optional reference.
