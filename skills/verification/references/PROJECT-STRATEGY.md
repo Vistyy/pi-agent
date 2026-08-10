@@ -1,14 +1,27 @@
 # Manage Project Verification Strategy
 
-Use this reference only for a durable verification decision that applies across work.
-The absence of a separate strategy artifact does not create a need for one.
+## Decide whether strategy is needed
 
-First determine whether current instructions, accepted decisions, executable configuration, and maintained documentation already communicate the decision sufficiently.
-Treat historical tests and prior plans as evidence, not policy.
-Create or change strategy only when a durable cross-work knowledge gap remains and the applicable authority accepts the decision.
+Use project strategy for durable verification decisions that apply across work and are not already sufficiently clear from a more authoritative source.
+The absence of a strategy artifact does not create a need for one.
+Do not use strategy to repeat generic verification guidance, list routine commands, restate executable configuration, preserve work history, or hold unapproved proposals.
 
-Record only current decisions that future work must know, such as non-obvious constraints, mandatory gates, supported mechanism limits, or intentionally retained broad evidence.
-Do not use strategy to repeat generic verification advice, list routine commands, preserve work history, or hold unapproved proposals.
-Use the project's existing authoritative location and structure when one exists.
-Otherwise, use the least structure needed to communicate the accepted decision.
-Remove replaced guidance in the same change, and remove the artifact when no project-specific strategy remains.
+A separate strategy is justified only when it closes a durable cross-work knowledge gap.
+
+## Establish the current facts
+
+Inspect relevant instructions, accepted decisions, executable configuration, maintained documentation, representative verification mechanisms, and known operational constraints.
+Distinguish accepted policy from historical test conventions and prior plans.
+Resolve a consequential conflict before recording strategy.
+
+## Approve and record the strategy
+
+Present the proposed durable decision and obtain its applicable approval before recording it as project strategy.
+Record only current decisions that future work must know, such as non-obvious evidence constraints, mandatory gates, supported mechanism limits, intentionally retained broad evidence, or accepted runtime and stability constraints.
+
+Use the project's established strategy artifact when one exists.
+Otherwise, use `VERIFICATION.md` when repository-local Markdown is an appropriate authoritative medium.
+Use the artifact's established structure.
+When no structure exists, use only the structure needed to communicate the accepted decisions.
+Remove replaced guidance in the same change.
+If no project-specific strategy remains, remove the artifact after approval.
