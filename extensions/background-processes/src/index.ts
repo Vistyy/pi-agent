@@ -11,7 +11,9 @@ import {
   BackgroundTaskRegistry,
   MAX_ACTIVE_TASKS,
   MAX_RETAINED_TASKS,
+  type TaskView,
 } from "./registry.js";
+import { DeferredNotifications } from "./notifications.js";
 import {
   activeTaskLine,
   outputText,
@@ -53,6 +55,7 @@ function textResult(text: string, details: unknown) {
 }
 
 export function registerBackgroundProcesses(pi: ExtensionAPI, operations: BashOperations): void {
+  let context: ExtensionContext | undefined;
   let ui: ExtensionContext["ui"] | undefined;
   let registry!: BackgroundTaskRegistry;
   const updateStatusWidget = () => {
@@ -62,25 +65,32 @@ export function registerBackgroundProcesses(pi: ExtensionAPI, operations: BashOp
     else ui.setWidget(statusWidgetKey, undefined);
   };
 
+  const deliverCompletion = (task: TaskView) => {
+    pi.sendMessage(
+      {
+        customType: completionMessageType,
+        content: [
+          `Background task ${task.id} reached terminal state: ${task.status}.`,
+          `Name: ${task.name}`,
+          task.error ? `Result: ${task.error}` : undefined,
+          `Use bg_logs with taskId ${task.id} to inspect its captured output.`,
+        ].filter(Boolean).join("\n"),
+        display: true,
+        details: { taskId: task.id, name: task.name, status: task.status },
+      },
+      { deliverAs: "followUp", triggerTurn: true },
+    );
+  };
+  const notifications = new DeferredNotifications<TaskView>(
+    () => context?.isIdle() ?? true,
+    deliverCompletion,
+  );
   registry = new BackgroundTaskRegistry(
     operations,
-    (task) => {
-      pi.sendMessage(
-        {
-          customType: completionMessageType,
-          content: [
-            `Background task ${task.id} reached terminal state: ${task.status}.`,
-            `Name: ${task.name}`,
-            task.error ? `Result: ${task.error}` : undefined,
-            `Use bg_logs with taskId ${task.id} to inspect its captured output.`,
-          ].filter(Boolean).join("\n"),
-          display: true,
-          details: { taskId: task.id, name: task.name, status: task.status },
-        },
-        { deliverAs: "followUp", triggerTurn: true },
-      );
-    },
+    (task) => notifications.complete(task.id, task),
     updateStatusWidget,
+    (task) => notifications.claim(task.id),
+    (task) => notifications.complete(task.id, task),
   );
 
   pi.registerTool({
@@ -102,6 +112,7 @@ export function registerBackgroundProcesses(pi: ExtensionAPI, operations: BashOp
     ],
     parameters: runSchema,
     async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+      context = ctx;
       ui = ctx.ui;
       const task = registry.run({
         name: params.name,
@@ -167,8 +178,8 @@ export function registerBackgroundProcesses(pi: ExtensionAPI, operations: BashOp
     label: "Background Kill",
     description: "Stop one running background task. This operation is idempotent for a task already in terminal state.",
     parameters: taskIdSchema,
-    async execute(_toolCallId, params) {
-      const task = await registry.kill(params.taskId);
+    async execute(_toolCallId, params, signal) {
+      const task = await registry.kill(params.taskId, signal);
       return textResult(taskSummary(task), { task });
     },
   });
@@ -182,7 +193,10 @@ export function registerBackgroundProcesses(pi: ExtensionAPI, operations: BashOp
     },
   });
 
+  pi.on("agent_settled", () => notifications.flush());
+
   pi.on("session_shutdown", async () => {
+    notifications.clear();
     await registry.shutdown();
   });
 }

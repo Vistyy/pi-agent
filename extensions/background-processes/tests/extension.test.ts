@@ -58,11 +58,12 @@ function setup() {
   return { api, commands, handlers, operations, sentMessages, tools };
 }
 
-function context(cwd: string) {
+function context(cwd: string, idle = true) {
   const ui = { notify: vi.fn(), setWidget: vi.fn() };
   return {
     ctx: {
       cwd,
+      isIdle: () => idle,
       model: { provider: "openai-codex", id: "gpt-test" },
       thinkingLevel: "high",
       sessionManager: {
@@ -89,7 +90,7 @@ describe("background process extension", () => {
 
     expect([...tools.keys()]).toEqual(["bg_run", "bg_wait", "bg_status", "bg_logs", "bg_kill"]);
     expect([...commands.keys()]).toEqual(["ps"]);
-    expect([...handlers.keys()]).toEqual(["session_shutdown"]);
+    expect([...handlers.keys()]).toEqual(["agent_settled", "session_shutdown"]);
     expect(tools.get("bg_run").promptGuidelines).toContain(
       "Use bash for ordinary commands, including slow commands that should finish in the current turn.",
     );
@@ -138,6 +139,39 @@ describe("background process extension", () => {
       options: { deliverAs: "followUp", triggerTurn: true },
     });
     expect(sentMessages[0]?.message.content).not.toContain("result\n");
+  });
+
+  test("a wait claims a completion deferred during the current parent turn", async () => {
+    const root = await mkdtemp(join(tmpdir(), "pi-bg-extension-"));
+    temporaryDirectories.push(root);
+    const { handlers, operations, sentMessages, tools } = setup();
+    const { ctx } = context(root, false);
+
+    await execute(tools.get("bg_run"), { name: "Submit", command: "submit" }, ctx);
+    operations.complete(0, "accepted\n");
+    await nextTurn();
+    expect(sentMessages).toEqual([]);
+
+    const result = await execute(tools.get("bg_wait"), { taskIds: ["bg-001"] }, ctx);
+    await handlers.get("agent_settled")?.({}, ctx);
+
+    expect(result.content[0].text).toContain("accepted");
+    expect(sentMessages).toEqual([]);
+  });
+
+  test("an unclaimed completion deferred during a parent turn is delivered when the turn settles", async () => {
+    const root = await mkdtemp(join(tmpdir(), "pi-bg-extension-"));
+    temporaryDirectories.push(root);
+    const { handlers, operations, sentMessages, tools } = setup();
+    const { ctx } = context(root, false);
+
+    await execute(tools.get("bg_run"), { name: "Submit", command: "submit" }, ctx);
+    operations.complete(0);
+    await nextTurn();
+    expect(sentMessages).toEqual([]);
+
+    await handlers.get("agent_settled")?.({}, ctx);
+    expect(sentMessages).toHaveLength(1);
   });
 
   test("bg_wait claims completion and returns one task's output", async () => {

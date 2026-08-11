@@ -166,8 +166,8 @@ describe("BackgroundTaskRegistry", () => {
     expect(notifications).toMatchObject([{ id: task.id, status: "completed" }]);
   });
 
-  test("cancelling a wait does not cancel its task", async () => {
-    const { operations, registry } = setup();
+  test("cancelling a wait does not cancel its task or lose its completion notification", async () => {
+    const { notifications, operations, registry } = setup();
     const task = registry.run({ name: "Slow", command: "slow", cwd: "/repo" });
     const controller = new AbortController();
     const waiting = registry.wait({ taskIds: [task.id], signal: controller.signal });
@@ -176,6 +176,23 @@ describe("BackgroundTaskRegistry", () => {
     await expect(waiting).rejects.toThrow("Tasks continue running");
     expect(registry.get(task.id).status).toBe("running");
     expect(operations.pending[0]?.signal?.aborted).toBe(false);
+
+    operations.complete(0);
+    await nextTurn();
+    expect(notifications).toMatchObject([{ id: task.id, status: "completed" }]);
+  });
+
+  test("cancelling bg_kill returns control while preserving eventual task notification", async () => {
+    const { notifications, registry } = setup();
+    const task = registry.run({ name: "Server", command: "serve", cwd: "/repo" });
+    const controller = new AbortController();
+    controller.abort();
+
+    await expect(registry.kill(task.id, controller.signal)).rejects.toThrow("kill was cancelled");
+    await nextTurn();
+
+    expect(registry.get(task.id).status).toBe("killed");
+    expect(notifications).toMatchObject([{ id: task.id, status: "killed" }]);
   });
 
   test("kill is idempotent and aborts the owned command", async () => {

@@ -17,15 +17,15 @@ export const runSchema = Type.Object({
 });
 
 export const statusSchema = Type.Object({
-  taskId: Type.Optional(Type.String({ description: "Task ID. Omit to list all retained tasks." })),
+  taskId: Type.Optional(Type.String({ description: "Task ID. Omit to list all retained tasks.", minLength: 1 })),
 });
 
 export const taskIdSchema = Type.Object({
-  taskId: Type.String({ description: "Background task ID returned by bg_run." }),
+  taskId: Type.String({ description: "Background task ID returned by bg_run.", minLength: 1 }),
 });
 
 export const waitSchema = Type.Object({
-  taskIds: Type.Optional(Type.Array(Type.String({ description: "Background task ID returned by bg_run." }), {
+  taskIds: Type.Optional(Type.Array(Type.String({ description: "Background task ID returned by bg_run.", minLength: 1 }), {
     description: "Tasks to wait for. Omit or pass an empty array to snapshot all tasks currently running.",
     uniqueItems: true,
   })),

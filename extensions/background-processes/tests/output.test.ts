@@ -1,4 +1,5 @@
-import { access, readFile } from "node:fs/promises";
+import { access, readFile, stat } from "node:fs/promises";
+import { dirname } from "node:path";
 import { DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES } from "@earendil-works/pi-coding-agent";
 import { afterEach, describe, expect, test } from "vitest";
 import { TaskOutput } from "../src/output.js";
@@ -39,9 +40,12 @@ describe("TaskOutput", () => {
     const snapshot = output.snapshot({ persistIfTruncated: true });
 
     expect(snapshot.truncation.truncated).toBe(true);
+    expect(snapshot.truncation.truncatedBy).toBe("bytes");
     expect(snapshot.truncation.maxBytes).toBe(DEFAULT_MAX_BYTES);
     expect(snapshot.content).toBe("end");
     expect(snapshot.fullOutputPath).toBeDefined();
+    expect((await stat(snapshot.fullOutputPath!)).mode & 0o077).toBe(0);
+    expect((await stat(dirname(snapshot.fullOutputPath!))).mode & 0o077).toBe(0);
     expect(await readFile(snapshot.fullOutputPath!, "utf8")).toBe(full);
   });
 

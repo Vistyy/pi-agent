@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { createWriteStream, type WriteStream } from "node:fs";
+import { createWriteStream, mkdtempSync, type WriteStream } from "node:fs";
 import { rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -32,8 +32,9 @@ export interface OutputSnapshotOptions {
   readonly persistIfTruncated?: boolean;
 }
 
-function temporaryOutputPath(): string {
-  return join(tmpdir(), `pi-background-${randomBytes(8).toString("hex")}.log`);
+function temporaryOutputLocation(): { directory: string; path: string } {
+  const directory = mkdtempSync(join(tmpdir(), "pi-background-"));
+  return { directory, path: join(directory, `${randomBytes(8).toString("hex")}.log`) };
 }
 
 function utf8Bytes(text: string): number {
@@ -60,6 +61,7 @@ export class TaskOutput {
   private currentLineBytes = 0;
   private hasOpenLine = false;
   private finished = false;
+  private outputDirectory: string | undefined;
   private outputPath: string | undefined;
   private outputStream: WriteStream | undefined;
   private outputBytes = 0;
@@ -93,6 +95,8 @@ export class TaskOutput {
     const maxLines = options.maxLines ?? DEFAULT_MAX_LINES;
     const truncation = truncateTail(this.snapshotText(), { maxBytes, maxLines });
     const truncated = this.totalLines > maxLines || this.totalDecodedBytes > maxBytes;
+    const truncatedBy = truncation.truncatedBy
+      ?? (this.totalLines > maxLines ? "lines" : this.totalDecodedBytes > maxBytes ? "bytes" : null);
 
     if (options.persistIfTruncated && truncated) this.ensureOutputFile();
 
@@ -101,6 +105,7 @@ export class TaskOutput {
       truncation: {
         ...truncation,
         truncated,
+        truncatedBy,
         totalBytes: this.totalDecodedBytes,
         totalLines: this.totalLines,
         maxBytes,
@@ -135,8 +140,8 @@ export class TaskOutput {
 
   async dispose(): Promise<void> {
     await this.close();
-    if (!this.outputPath) return;
-    await rm(this.outputPath, { force: true });
+    if (!this.outputDirectory) return;
+    await rm(this.outputDirectory, { recursive: true, force: true });
   }
 
   private appendDecodedText(text: string): void {
@@ -200,8 +205,15 @@ export class TaskOutput {
   private ensureOutputFile(): void {
     if (this.outputPath) return;
 
-    this.outputPath = temporaryOutputPath();
-    const stream = createWriteStream(this.outputPath);
+    try {
+      const location = temporaryOutputLocation();
+      this.outputDirectory = location.directory;
+      this.outputPath = location.path;
+    } catch (error) {
+      this.outputError = error instanceof Error ? error.message : String(error);
+      return;
+    }
+    const stream = createWriteStream(this.outputPath, { flags: "wx", mode: 0o600 });
     this.outputStream = stream;
     stream.on("error", (error) => {
       this.outputError = error.message;

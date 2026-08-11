@@ -52,9 +52,9 @@ export function outputText(task: TaskView, output: OutputSnapshot): string {
       `(${formatSize(output.truncation.outputBytes)} of ${formatSize(output.truncation.totalBytes)}).`,
     );
   }
-  if (output.fullOutputPath) notices.push(`Full output: ${output.fullOutputPath}`);
+  if (output.fullOutputPath) notices.push(`Captured output: ${output.fullOutputPath}`);
   if (output.fullOutputCapped) {
-    notices.push("The temporary full-output file reached its background-process size limit.");
+    notices.push("The temporary captured-output file reached its background-process size limit.");
   }
   if (output.fullOutputError) notices.push(`Temporary output file error: ${output.fullOutputError}`);
   const suffix = notices.length > 0 ? `\n\n[${notices.join(" ")}]` : "";

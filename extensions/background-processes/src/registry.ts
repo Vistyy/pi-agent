@@ -4,6 +4,7 @@ import { TaskOutput, type OutputSnapshot } from "./output.js";
 export const MAX_ACTIVE_TASKS = 8;
 export const MAX_RETAINED_TASKS = 32;
 const SHUTDOWN_WAIT_MS = 2_000;
+const KILL_WAIT_MS = 5_000;
 
 export type TaskStatus =
   | "starting"
@@ -92,6 +93,8 @@ export class BackgroundTaskRegistry {
     private readonly operations: BashOperations,
     private readonly onUnclaimedCompletion: CompletionSink,
     private readonly onTasksChanged?: () => void,
+    private readonly onCompletionClaimed?: CompletionSink,
+    private readonly onCompletionReleased?: CompletionSink,
   ) {}
 
   run(input: RunTaskInput): TaskView {
@@ -146,19 +149,23 @@ export class BackgroundTaskRegistry {
     return this.requireTask(taskId).output.snapshot({ persistIfTruncated: true });
   }
 
-  async kill(taskId: string): Promise<TaskView> {
+  async kill(taskId: string, signal?: AbortSignal): Promise<TaskView> {
     const task = this.requireTask(taskId);
     if (isTerminal(task.status)) return this.view(task);
 
     task.waitClaims += 1;
+    let claimed = false;
     try {
       if (!task.finalizing) {
         task.killReason = "user";
         task.controller.abort();
       }
-      return this.view(await task.completion);
+      const completed = await this.waitForKill(task, signal);
+      claimed = true;
+      return this.view(completed);
     } finally {
       task.waitClaims = Math.max(0, task.waitClaims - 1);
+      if (!claimed) void task.completion.then((completed) => this.notifyIfEligible(completed));
       this.prune();
     }
   }
@@ -171,11 +178,14 @@ export class BackgroundTaskRegistry {
       : this.activeTasks();
 
     if (selected.length === 0) return { tasks: [], outputs: [], timedOut: false };
+    for (const task of selected) this.onCompletionClaimed?.(this.view(task));
 
     const pending = selected.filter((task) => !isTerminal(task.status));
+    const terminalAtSelection = selected.filter((task) => isTerminal(task.status));
     for (const task of pending) task.waitClaims += 1;
 
     let timedOut = false;
+    let aborted = false;
     let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
     let abortHandler: (() => void) | undefined;
     try {
@@ -196,6 +206,7 @@ export class BackgroundTaskRegistry {
         }
         const outcome = await Promise.race(outcomes);
         if (outcome === "aborted") {
+          aborted = true;
           throw new Error("Background wait was cancelled. Tasks continue running.");
         }
         timedOut = outcome === "timed_out";
@@ -212,7 +223,13 @@ export class BackgroundTaskRegistry {
     } finally {
       if (timeoutHandle) clearTimeout(timeoutHandle);
       if (input.signal && abortHandler) input.signal.removeEventListener("abort", abortHandler);
-      for (const task of pending) task.waitClaims = Math.max(0, task.waitClaims - 1);
+      for (const task of pending) {
+        task.waitClaims = Math.max(0, task.waitClaims - 1);
+        if (aborted) void task.completion.then((completed) => this.notifyIfEligible(completed));
+      }
+      if (aborted) {
+        for (const task of terminalAtSelection) this.onCompletionReleased?.(this.view(task));
+      }
       this.prune();
     }
   }
@@ -286,15 +303,41 @@ export class BackgroundTaskRegistry {
       task.completedAt = Date.now();
       this.notifyTasksChanged();
       task.resolveCompletion(task);
-      if (!this.shuttingDown && task.waitClaims === 0 && !task.notificationSent) {
-        task.notificationSent = true;
-        try {
-          this.onUnclaimedCompletion(this.view(task));
-        } catch {
-          // Completion state remains available through bg_status and bg_logs.
-        }
-      }
+      this.notifyIfEligible(task);
       this.prune();
+    }
+  }
+
+  private waitForKill(task: TaskRecord, signal?: AbortSignal): Promise<TaskRecord> {
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const finish = (operation: () => void) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        signal?.removeEventListener("abort", abort);
+        operation();
+      };
+      const abort = () => finish(() => reject(new Error("Background kill was cancelled. The task remains inspectable.")));
+      const timer = setTimeout(() => finish(() => reject(new Error(
+        `Background task ${task.id} did not settle within ${KILL_WAIT_MS / 1_000} seconds after cancellation. It remains inspectable.`,
+      ))), KILL_WAIT_MS);
+
+      if (signal?.aborted) abort();
+      else {
+        signal?.addEventListener("abort", abort, { once: true });
+        void task.completion.then((completed) => finish(() => resolve(completed)));
+      }
+    });
+  }
+
+  private notifyIfEligible(task: TaskRecord): void {
+    if (this.shuttingDown || !isTerminal(task.status) || task.waitClaims > 0 || task.notificationSent) return;
+    task.notificationSent = true;
+    try {
+      this.onUnclaimedCompletion(this.view(task));
+    } catch {
+      // Completion state remains available through bg_status and bg_logs.
     }
   }
 
