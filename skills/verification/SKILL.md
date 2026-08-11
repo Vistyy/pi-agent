@@ -20,6 +20,11 @@ Prefer evidence that observes the relevant behavior directly, would reveal the m
 A broader, slower, or more durable mechanism is not inherently stronger.
 Evidence establishes only what it actually observes.
 For example, evidence produced with a test double does not establish integration with the real dependency.
+
+When work changes an integration, run a normal operation through the changed boundary using the implemented revision.
+Do not replace that boundary with a test double.
+Tests of components, interruption, cleanup, or failure behavior do not prove that the normal operation works.
+If no supported operation can establish this, report the integration behavior that remains unverified.
 Treat missing, malformed, unavailable, or ambiguous observations as unknown rather than success.
 
 Use this reasoning to guide judgment.
