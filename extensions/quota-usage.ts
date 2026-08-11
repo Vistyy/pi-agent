@@ -3,22 +3,32 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 const CODEX_PROVIDER = "openai-codex";
 const CODEX_STATUS_ID = "quota-codex";
 const CODEX_USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
-const OPENCODE_GO_DASHBOARD = "https://opencode.ai/workspace";
+const OPENCODE_GO_PROVIDER = "opencode-go";
+const OPENCODE_GO_USAGE_URL = "https://opencode.ai/zen/go/v1/usage";
 const TTL_MS = 5 * 60 * 1000;
 const TIMEOUT_MS = 15_000;
-const MAX_DASHBOARD_BYTES = 2_000_000;
 
 type PiModel = NonNullable<ExtensionContext["model"]>;
 type Window = { usedPercent: number; resetAt?: number };
 type CodexSnapshot = { id: string; name?: string; primary?: Window; secondary?: Window };
 type CodexReport = { capturedAt: number; snapshots: CodexSnapshot[] };
 type GoReport = {
-	capturedAt: number;
 	rolling?: Window;
 	weekly?: Window;
 	monthly?: Window;
 };
-type GoConfig = { workspaceId: string; authCookie: string };
+type GoPayload = {
+	usage?: {
+		rolling?: GoWindow;
+		weekly?: GoWindow;
+		monthly?: GoWindow;
+	};
+};
+
+type GoWindow = {
+	percent?: unknown;
+	resetsAt?: unknown;
+};
 
 type BackendPayload = {
 	rate_limit?: unknown;
@@ -93,28 +103,13 @@ export default function quotaUsageExtension(pi: ExtensionAPI) {
 			}
 
 			const force = normalizedArgs === "--refresh";
-			let goConfig: GoConfig | undefined;
-			let goConfigError: Error | undefined;
-			try {
-				goConfig = resolveGoConfig();
-			} catch (error) {
-				goConfigError = asError(error);
-			}
+			const goApiKey = await ctx.modelRegistry.getApiKeyForProvider(OPENCODE_GO_PROVIDER);
 			const [codexResult, goResult] = await Promise.allSettled([
 				loadCodexReport(ctx, force),
-				goConfig ? loadGoReport(goConfig, force) : Promise.resolve(undefined),
+				goApiKey ? loadGoReport(goApiKey, force) : Promise.resolve(undefined),
 			]);
 
-			ctx.ui.notify(
-				formatUsageReport(
-					codexResult,
-					goResult,
-					goConfig,
-					goConfigError,
-					ctx.model,
-				),
-				"info",
-			);
+			ctx.ui.notify(formatUsageReport(codexResult, goResult, goApiKey, ctx.model), "info");
 		},
 	});
 }
@@ -126,9 +121,9 @@ async function loadCodexReport(ctx: ExtensionContext, force: boolean): Promise<C
 	return report;
 }
 
-async function loadGoReport(config: GoConfig, force: boolean): Promise<GoReport> {
+async function loadGoReport(apiKey: string, force: boolean): Promise<GoReport> {
 	if (!force && goCache && Date.now() - goCache.createdAt < TTL_MS) return goCache.report;
-	const report = await fetchGoUsage(config);
+	const report = await fetchGoUsage(apiKey);
 	goCache = { createdAt: Date.now(), report };
 	return report;
 }
@@ -161,8 +156,7 @@ function clearCodexStatus(ctx: ExtensionContext): void {
 function formatUsageReport(
 	codexResult: PromiseSettledResult<CodexReport>,
 	goResult: PromiseSettledResult<GoReport | undefined>,
-	goConfig: GoConfig | undefined,
-	goConfigError: Error | undefined,
+	goApiKey: string | undefined,
 	model: PiModel | undefined,
 ): string {
 	const lines = ["Quota usage", ""];
@@ -173,13 +167,11 @@ function formatUsageReport(
 		lines.push("Codex", `Unavailable: ${formatError(codexResult.reason)}`, "");
 	}
 
-	if (goConfigError) {
-		lines.push("OpenCode Go", `Configuration error: ${goConfigError.message}`);
-	} else if (!goConfig) {
+	if (!goApiKey) {
 		lines.push(
 			"OpenCode Go",
 			"Not configured for quota lookup.",
-			"Set OPENCODE_GO_WORKSPACE_ID and OPENCODE_GO_AUTH_COOKIE, then run /usage --refresh.",
+			"Configure the opencode-go provider in Pi, then run /usage --refresh.",
 		);
 	} else if (goResult.status === "fulfilled" && goResult.value) {
 		lines.push("OpenCode Go", formatGoDetails(goResult.value));
@@ -216,7 +208,7 @@ function formatGoDetails(report: GoReport): string {
 		formatGoWindow("Rolling", report.rolling),
 		formatGoWindow("Weekly", report.weekly),
 		formatGoWindow("Monthly", report.monthly),
-		`Source: ${OPENCODE_GO_DASHBOARD}/<workspace>/go`,
+		`Source: ${OPENCODE_GO_USAGE_URL}`,
 	].join("\n");
 }
 
@@ -270,97 +262,41 @@ function selectCodexSnapshot(report: CodexReport, model: PiModel | undefined): C
 	return exact ?? primary ?? report.snapshots[0];
 }
 
-function resolveGoConfig(): GoConfig | undefined {
-	const workspaceId = process.env.OPENCODE_GO_WORKSPACE_ID?.trim();
-	const authCookie = process.env.OPENCODE_GO_AUTH_COOKIE?.trim();
-	if (!workspaceId && !authCookie) return undefined;
-	if (!workspaceId || !authCookie) {
-		throw new Error("Set both OPENCODE_GO_WORKSPACE_ID and OPENCODE_GO_AUTH_COOKIE.");
-	}
-	return { workspaceId, authCookie };
-}
-
-async function fetchGoUsage(config: GoConfig): Promise<GoReport> {
+async function fetchGoUsage(apiKey: string): Promise<GoReport> {
 	const controller = new AbortController();
 	const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 	try {
-		const url = `${OPENCODE_GO_DASHBOARD}/${encodeURIComponent(config.workspaceId)}/go`;
-		const response = await fetch(url, {
+		const response = await fetch(OPENCODE_GO_USAGE_URL, {
 			headers: {
-				Accept: "text/html",
-				Cookie: `auth=${config.authCookie}`,
+				Accept: "application/json",
+				Authorization: `Bearer ${apiKey}`,
 			},
 			signal: controller.signal,
 		});
 		const text = await response.text();
 		if (!response.ok) {
-			throw new Error(`OpenCode Go dashboard returned HTTP ${response.status}: ${redact(text)}`);
+			throw new Error(`OpenCode Go usage returned HTTP ${response.status}: ${redact(text)}`);
 		}
-		if (text.length > MAX_DASHBOARD_BYTES) {
-			throw new Error("OpenCode Go dashboard response was unexpectedly large.");
-		}
-		return parseGoDashboard(text);
+		return normalizeGoPayload(JSON.parse(text) as GoPayload);
 	} finally {
 		clearTimeout(timeout);
 	}
 }
 
-function parseGoDashboard(html: string): GoReport {
-	const report: GoReport = { capturedAt: Date.now() };
-	const rolling = parseGoWindow(html, "rollingUsage");
-	const weekly = parseGoWindow(html, "weeklyUsage");
-	const monthly = parseGoWindow(html, "monthlyUsage");
-	if (rolling) report.rolling = rolling;
-	if (weekly) report.weekly = weekly;
-	if (monthly) report.monthly = monthly;
+function normalizeGoPayload(payload: GoPayload): GoReport {
+	const rolling = normalizeGoWindow(payload.usage?.rolling);
+	const weekly = normalizeGoWindow(payload.usage?.weekly);
+	const monthly = normalizeGoWindow(payload.usage?.monthly);
 	if (!rolling && !weekly && !monthly) {
-		throw new Error("OpenCode Go dashboard did not contain quota data. The cookie may be expired or the page changed.");
+		throw new Error("OpenCode Go usage returned no quota windows.");
 	}
-	return report;
+	return { rolling, weekly, monthly };
 }
 
-function parseGoWindow(html: string, key: string): Window | undefined {
-	const body = findObjectBody(html, key);
-	if (!body) return undefined;
-	const usedPercent = findNumber(body, "usagePercent");
+function normalizeGoWindow(window: GoWindow | undefined): Window | undefined {
+	const usedPercent = asNumber(window?.percent);
 	if (usedPercent === undefined) return undefined;
-	const resetInSec = findNumber(body, "resetInSec");
-	return {
-		usedPercent,
-		resetAt: resetInSec === undefined ? undefined : Date.now() + Math.max(0, resetInSec) * 1000,
-	};
-}
-
-function findObjectBody(text: string, key: string): string | undefined {
-	const marker = new RegExp(`(?:["']${key}["']|${key})\\s*:\\s*(?:\\$R\\[\\d+\\]\\s*=\\s*)?\\{`, "g");
-	let match: RegExpExecArray | null;
-	while ((match = marker.exec(text)) !== null) {
-		const openIndex = text.indexOf("{", match.index);
-		if (openIndex < 0) continue;
-		const closeIndex = matchingBrace(text, openIndex);
-		if (closeIndex < 0) continue;
-		const body = text.slice(openIndex + 1, closeIndex);
-		if (findNumber(body, "usagePercent") !== undefined) return body;
-		marker.lastIndex = closeIndex + 1;
-	}
-	return undefined;
-}
-
-function matchingBrace(text: string, openIndex: number): number {
-	let depth = 0;
-	for (let index = openIndex; index < text.length; index++) {
-		if (text[index] === "{") depth++;
-		if (text[index] === "}") {
-			depth--;
-			if (depth === 0) return index;
-		}
-	}
-	return -1;
-}
-
-function findNumber(text: string, key: string): number | undefined {
-	const match = text.match(new RegExp(`(?:["']${key}["']|${key})\\s*:\\s*["']?(-?\\d+(?:\\.\\d+)?)`));
-	return match?.[1] === undefined ? undefined : asNumber(match[1]);
+	return { usedPercent, resetAt: asTimestampMs(window?.resetsAt) };
 }
 
 async function fetchCodexUsage(ctx: ExtensionContext): Promise<CodexReport> {
@@ -515,7 +451,6 @@ function formatError(error: unknown): string {
 function redact(text: string): string {
 	return text
 		.replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer <redacted>")
-		.replace(/auth=[^;\s]+/gi, "auth=<redacted>")
 		.replace(/"access_token"\s*:\s*"[^"]+"/gi, '"access_token":"<redacted>"')
 		.slice(0, 600);
 }
