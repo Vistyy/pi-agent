@@ -1,0 +1,20 @@
+{
+  "maxAgents": 10,
+  "defaults": {
+    "provider": "openai-codex",
+    "model": "gpt-5.6-luna",
+    "thinking": "medium",
+    "extensions": [
+      "!background-processes",
+      "!pi-lavish",
+      "!pi-session-recall"
+    ],
+    "skills": [
+      "!but-why",
+      "!grilling",
+      "!herdr",
+      "!lavish",
+      "!session-routing"
+    ]
+  }
+}

@@ -12,16 +12,11 @@
 !models.json
 !keybindings.json
 !session-recall.json
-!pi-auto-permissions/
-!pi-auto-permissions/config.json
-!pi-auto-permissions/guardian-prompt.md
-!pi-codex-subagents/
-!pi-codex-subagents/config.json
-!pi-codex-subagents/agents/
-!pi-codex-subagents/agents/**
-!pi-codex-subagents/extensions/
-!pi-codex-subagents/extensions/**
-!pi-codex-subagents/SYSTEM.md
+!pi-herdr-agents/
+!pi-herdr-agents/config.json
+!pi-herdr-agents/agents/
+!pi-herdr-agents/agents/**
+pi-herdr-agents/sessions/
 
 # Track resource directories
 !agents/

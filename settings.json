@@ -11,11 +11,8 @@
   "packages": [
     "../../projects/but-why",
     "npm:@ogulcancelik/pi-session-recall@1.0.6",
-    "npm:@ogulcancelik/pi-codex-subagents@0.3.2",
-    "git:github.com/Vistyy/pi-lavish@v0.4.4"
-  ],
-  "extensions": [
-    "extensions/named-subagent-policy/index.ts"
+    "git:github.com/Vistyy/pi-lavish@v0.4.4",
+    "git:github.com/Vistyy/pi-herdr-agents@v0.1.1"
   ],
   "enabledModels": [
     "openai-codex/gpt-5.6-sol",
