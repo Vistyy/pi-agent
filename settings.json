@@ -12,7 +12,7 @@
     "../../projects/but-why",
     "npm:@ogulcancelik/pi-session-recall@1.0.6",
     "git:github.com/Vistyy/pi-lavish@v0.4.4",
-    "git:github.com/Vistyy/pi-herdr-agents@v0.1.4",
+    "git:github.com/Vistyy/pi-herdr-agents@v0.1.5",
     "git:github.com/Vistyy/pi-background-processes@v0.1.0"
   ],
   "enabledModels": [
