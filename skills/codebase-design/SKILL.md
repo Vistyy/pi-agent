@@ -36,6 +36,9 @@ Locality lets maintainers make and verify a change in one place.
 
 Name the behavior, rule, or dependency under consideration.
 Name its current owner and the callers whose knowledge or coordination can affect the decision.
+When behavior gains a second current consumer, re-evaluate whether its name, owner, accepted inputs, and interface still describe its complete current responsibility.
+Treat the second consumer as a trigger for inspection, not as proof that the behavior should be generalized.
+Share only mechanics and invariants that the current consumers demonstrably have in common, and keep distinct policy, lifecycle, results, and persistence with their owners.
 When relationships, ownership, flow, state, or coordination affect the decision, represent the relevant relationships in the smallest form that makes them inspectable.
 When the decision spans multiple modules, trace one representative operation through the complete relevant path and evaluate how the modules compose rather than judging each one in isolation.
 For each layer on that path, identify the behavior or boundary it owns, what its callers must know or coordinate, and what knowledge it removes from adjacent callers.
