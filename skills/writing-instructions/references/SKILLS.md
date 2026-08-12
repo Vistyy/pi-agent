@@ -6,12 +6,14 @@ A skill makes an agent follow a predictable process while allowing task-specific
 
 Use a model-invoked skill when the agent must select the capability without user action:
 
+- Store it under `~/.pi/agent/skills/<name>/SKILL.md`.
 - Omit `disable-model-invocation`.
 - Describe each distinct trigger once in the frontmatter description.
 - Keep behavior and background information out of the description.
 
 Use a user-invoked skill when explicit user choice is part of the behavior:
 
+- Store it under `~/.pi/agent/user-skills/<name>/SKILL.md`.
 - Set `disable-model-invocation: true`.
 - Prefix the human-facing description with `[M] `.
 
