@@ -1,12 +1,14 @@
 # ADR Format
 
-An ADR records an accepted architectural decision that is stable enough to guide implementation.
-Keep proposals and unresolved choices in the applicable task, specification, or open-questions document.
+An ADR records an accepted architectural decision implemented by the current system.
+Keep planned decisions, proposals, and unresolved choices in the applicable Task, plan, specification, or open-questions document.
+Plan approval does not make a decision current architecture.
 
 ## Decide whether an ADR is required
 
-Before creating an ADR, inspect the applicable repository instructions, `CONTEXT.md`, and existing ADRs.
-Create an ADR only when evidence supports all three conditions:
+Before creating an ADR, inspect the applicable repository instructions, `CONTEXT.md`, implementation, and existing ADRs.
+Do not create or accept an ADR before the functionality that establishes the decision is implemented.
+Create an ADR only when implementation evidence supports all three conditions:
 
 1. **Hard to reverse**: Changing the decision later has a meaningful replacement, migration, or compatibility cost.
 2. **Surprising without context**: A future maintainer needs the reason because the implementation does not explain the choice.
@@ -19,7 +21,7 @@ A configuration field, schema member, module split, implementation detail, or se
 Record it in the applicable task or specification unless the decision itself satisfies all three conditions.
 Do not create an ADR when an existing ADR already owns the rationale.
 
-This step is complete when each condition has concrete evidence and no existing ADR owns the decision.
+This step is complete when implementation establishes the decision, each condition has concrete evidence, and no existing ADR owns the decision.
 
 ## Maintain existing ADRs
 

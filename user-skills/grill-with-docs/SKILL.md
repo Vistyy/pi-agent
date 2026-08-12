@@ -5,12 +5,14 @@ disable-model-invocation: true
 ---
 
 Stress-test the plan until its consequential assumptions and trade-offs are explicit.
-Record a resolved domain term in the applicable `CONTEXT.md` only when the user has authorized that domain-model edit.
-Otherwise, keep the proposed definition in the plan and state the authorization needed to record it.
-Keep provisional and implementation-level decisions in the plan while the user evaluates it.
-After the user explicitly approves the plan, apply the accepted ADR qualification and lifecycle rules.
-Record only accepted architectural decisions that pass the ADR gate and whose durable recording is authorized.
+Keep planned domain terms, architectural decisions, and implementation choices in the plan or applicable Task until the functionality is implemented.
+Plan approval does not make those terms or decisions part of the current system.
 
-If the user stops planning, report the plan's current approval status, unresolved points, and unrecorded proposed definitions.
+After implementation, record a resolved domain term in the applicable `CONTEXT.md` only when it describes the implemented domain model and the user has authorized that domain-model edit.
+Apply ADR qualification and lifecycle rules only to architectural decisions implemented by the current system.
+Record only implemented decisions that pass the ADR gate and whose durable recording is authorized.
+
+If the user stops planning, report the plan's current approval status, unresolved points, and plan-only proposed definitions.
 Stopping preserves the current approval status unless the user explicitly abandons the plan or withdraws approval.
-The session is complete when the user approves the plan, each authorized record is in the smallest applicable artifact, and each unrecorded proposal and its needed authorization remain explicit, or when the user stops and the reported state is explicit.
+The planning session is complete when the user approves or stops the plan and its status, unresolved points, and plan-only proposals are explicit.
+Implemented documentation work is complete when each authorized current-system record is in the smallest applicable artifact.

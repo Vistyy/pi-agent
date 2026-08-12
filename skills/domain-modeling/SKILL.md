@@ -59,18 +59,22 @@ Code verification is complete when the applicable implementation agrees with the
 
 ### Record resolved terms
 
-When domain-model changes are authorized, update the applicable `CONTEXT.md` after the user resolves a term.
-Otherwise, report the proposed canonical definition and the authorization needed to record it.
+Use each `CONTEXT.md` only for the implemented, supported domain model in its scope.
+Keep a term for planned functionality in the applicable plan or Task until that functionality is implemented.
+Plan approval does not make the term part of the current domain model.
+
+After implementation, update the applicable `CONTEXT.md` only when the user has authorized that domain-model edit.
+Otherwise, report the proposed canonical definition, owning context, implementation status, and authorization needed to record it.
 Use [CONTEXT-FORMAT.md](references/CONTEXT-FORMAT.md).
 
-Use each `CONTEXT.md` only for domain terms and definitions in its scope.
 Record specifications and implementation details in the applicable technical documentation.
 
-Term handling is complete when an authorized definition is recorded in its owning `CONTEXT.md`, or when the unrecorded proposed definition, owning context, and needed authorization are explicit.
+Term handling is complete when an implemented authorized definition is recorded in its owning `CONTEXT.md`, or when the unrecorded proposed definition, owning context, implementation status, and needed authorization are explicit.
 
 ### Offer an ADR
 
 When a decision may require an ADR, load [ADR-FORMAT.md](references/ADR-FORMAT.md).
 Apply its qualification and lifecycle rules before creating or changing an ADR.
 
-ADR evaluation is complete when the accepted decision is recorded in an applicable authorized artifact without duplicating an existing authority, or when the unrecorded qualifying decision and needed authorization are explicit.
+Keep an accepted decision for planned functionality in the applicable plan or Task until implementation.
+ADR evaluation is complete when an implemented qualifying decision is recorded in an applicable authorized artifact without duplicating an existing authority, or when its implementation status and needed authorization are explicit.
