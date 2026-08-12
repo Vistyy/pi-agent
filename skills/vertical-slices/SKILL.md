@@ -15,13 +15,19 @@ description: Use when decomposing approved requirements into vertical tasks or r
 
 1. Establish the approved outcome and its authoritative sources.
    Do not infer approval from brainstorming or provisional planning.
-2. Use one Task unless the work contains more than one independently acceptable bounded supported result and separating those results helps delivery or review.
-   Do not omit or weaken approved behavior to make a Task smaller.
-3. Keep work together when an intermediate state has no independent value or would leave the repository unsupported.
-   Do not split merely by files, modules, layers, commands, test categories, implementation steps, or effort.
-4. Describe each Task clearly enough to communicate its outcome and consequential constraints.
+2. Find the smallest coherent vertical slices that each leave a bounded supported result.
+   Each slice must be independently understandable, implementable, reviewable, and verifiable.
+   A slice need not deliver standalone end-user value when it is acceptable progress toward the approved outcome.
+   Do not omit or weaken approved behavior from the complete Task set to make an individual Task smaller.
+3. Split separable behavior when doing so reduces material review or verification reasoning without leaving the repository unsupported.
+   Split signals include separate observable behaviors, external integrations, lifecycle or recovery rules, durable state changes, or materially different verification environments.
+   Do not combine separable behavior only because it contributes to one product outcome.
+4. Keep work together when a narrower result would leave the repository unsafe or unsupported, require temporary duplicated interfaces, or have no independently verifiable behavior.
+   Do not split merely by files, modules, layers, test categories, implementation steps, line count, estimated effort, or difficulty.
+   Use one Task only when no narrower bounded supported result exists.
+5. Describe each Task clearly enough to communicate its outcome and consequential constraints.
    Use whatever structure communicates that intent without requiring a complete graph, requirement allocation, review-path inventory, or standard Task Context format.
-5. Add a Task Dependency only when its definition applies.
+6. Add a Task Dependency only when its definition applies.
    Related work, shared files, likely conflicts, priority, or preferred sequence do not establish a dependency.
 
 Use prior implementation evidence when it materially changes a proposed boundary.
