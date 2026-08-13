@@ -24,6 +24,15 @@ Context discovery is complete when each affected term and decision has one ownin
 
 ## Maintain the model during the session
 
+### Choose natural terms
+
+Start with words that users and maintainers already use.
+Prefer the shortest familiar term that distinguishes the concept.
+Do not add names such as Authority, Manager, Service, Engine, Coordinator, or System unless they identify a separate concept that users must name.
+For example, prefer "Orders own these rules" to "Order Authority owns these rules", and prefer "payment coordination" to "Payment Composition Service".
+If a user would not naturally use the proposed term, choose a simpler term or ask the user.
+Preserve an established canonical term until the applicable authority approves its replacement.
+
 ### Resolve inconsistent terms
 
 If the user uses a term that conflicts with the applicable `CONTEXT.md`:
