@@ -1,6 +1,7 @@
 ---
 name: chrome-devtools-axi
 description: "Use when interacting with a rendered web page, inspecting browser state, capturing screenshots, debugging console or network activity, auditing performance, or extracting page content."
+disable-model-invocation: true
 ---
 
 # chrome-devtools-axi
