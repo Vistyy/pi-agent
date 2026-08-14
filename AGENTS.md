@@ -39,6 +39,9 @@
 - **Bennett's Razor:** Make no claim or commitment more specific than required by the outcome, current constraints, and authoritative evidence.
 - Before retaining an assumption, condition, distinction, or guarantee, identify what rules out a weaker alternative.
   Remove or weaken it when nothing does.
+- Before accepting a proposed requirement, trace its normal path and material failure or recovery consequences.
+  Flag requirements that introduce open-ended parsing, classification, compatibility, recovery, or exceptional-case behavior beyond the required outcome.
+  Ask the applicable authority to bound or remove the requirement instead of silently weakening accepted intent or removing necessary safety and reliability.
 - Weakness does not mean brevity, simplicity, or vagueness.
 - **Minimum sufficient design:** Use the least machinery that implements and verifies the required behavior coherently.
   Add a concept, interface, dependency, state, configuration option, or coordination step only when a current requirement or constraint requires it.
