@@ -18,9 +18,10 @@
 
 ## Responses
 
-- Answer the user's exact question first at the user's abstraction level.
-- Include the context the user needs to understand, decide, or act.
-- Choose the form that best helps the user understand, decide, or act.
+- Answer the user's exact question first at the user's abstraction level, then provide the context and form needed to understand, decide, or act.
+- Prefer brief, plain explanations, and briefly explain unfamiliar terms.
+  Add detail when needed to preserve meaning or help the user act.
+- When structure, flow, or change is clearer visually, use the smallest useful diagram, tree, pseudocode, or diff.
 
 ## Repository safety
 
@@ -37,16 +38,13 @@
 - A request to investigate, discuss, explain, compare, review, or plan authorizes evidence gathering only.
   Do not edit files, mutate durable state, dispatch implementation, or create work records unless the user also authorizes that action.
 - **Bennett's Razor:** Make no claim or commitment more specific than required by the outcome, current constraints, and authoritative evidence.
-- Before retaining an assumption, condition, distinction, or guarantee, identify what rules out a weaker alternative.
-  Remove or weaken it when nothing does.
+  Retain an assumption, condition, distinction, or guarantee only when something rules out a weaker alternative.
 - Before accepting a proposed requirement, trace its normal path and material failure or recovery consequences.
   Flag requirements that introduce open-ended parsing, classification, compatibility, recovery, or exceptional-case behavior beyond the required outcome.
   Ask the applicable authority to bound or remove the requirement instead of silently weakening accepted intent or removing necessary safety and reliability.
-- Weakness does not mean brevity, simplicity, or vagueness.
-- **Minimum sufficient design:** Use the least machinery that implements and verifies the required behavior coherently.
-  Add a concept, interface, dependency, state, configuration option, or coordination step only when a current requirement or constraint requires it.
-- Sufficiency includes required reliability, safety, compatibility, and coverage of material risks.
-  Neither principle means minimum effort or minimum verification.
+- **Minimum sufficient design:** Retain only the machinery, edge cases, abstractions, generality, and future flexibility required by a current need established by authority or concrete evidence.
+  Keep other choices local.
+- A weaker commitment or smaller design must still satisfy required reliability, safety, compatibility, verification, and coverage of material risks.
 - Do not discard an otherwise valid approach because its unaided-human implementation estimate is long.
   When effort is material to a decision, evaluate it for coding-agent execution and separate coding from planning, review, validation, and external waits.
 
@@ -54,20 +52,16 @@
 
 - At each runtime boundary, rely on its enforced contract and validate only required facts that the contract does not guarantee.
   Do not inspect unrelated data for corruption.
-  Before a destructive action, derive or verify the exact target.
-  Reconcile an uncertain mutation before retry unless retry is documented as idempotent.
-- An unruled-out possibility is not supported behavior.
-  Retain an edge case, abstraction, generality, or future flexibility only for a current need established by authority or concrete evidence, and keep other choices local.
+- Before a destructive action, derive or verify the exact target.
+- Reconcile an uncertain mutation before retry unless retry is documented as idempotent.
 - Use canonical project terms from the applicable `CONTEXT.md` in public and domain-facing names, instructions, documentation, and user communication.
   Read the applicable `CONTEXT.md` before naming or describing domain behavior.
   If the audience cannot access that context, provide the required meaning directly or through a reliable reference.
   Ask the user when a required canonical term is missing or ambiguous.
 - Navigate with precise search anchors built from canonical terms and the applicable operation or role; search for the precise anchor before widening the search.
-- Every durable repository artifact must implement, verify, or explain the current supported system.
-  When a change retires a concept, remove that concept from current implementation, compatibility behavior, tests, checks, comments, current documentation, names, paths, configuration, and generated artifacts.
-  Retain a representation only when an accepted current boundary requires it, and identify that boundary.
-  Use targeted diff, search, and inspection as one-time removal evidence.
-  Do not add durable evidence whose only purpose is to prove that a retired concept is absent.
+- Durable repository artifacts must represent the currently supported system.
+  When retiring a concept, remove all of its representations unless a current boundary requires one, and identify that boundary.
+  Verify removal with targeted diff, search, and inspection, but do not add durable evidence whose only purpose is to prove absence.
 
 ## Verification
 
