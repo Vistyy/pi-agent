@@ -7,6 +7,8 @@ disable-model-invocation: true
 Help the user understand the current topic of conversation visually.
 Skip the preamble and keep prose brief.
 Pick the smallest view that makes the key point clear.
+Default to one visual and no more than two short supporting paragraphs.
+Use multiple visuals or additional prose only when one view cannot preserve a material relationship or the user asks for more.
 
 - Show logic or an algorithm as pseudocode:
 
@@ -125,6 +127,6 @@ function expandSkill(command: string): string {
 Place each visual next to the short text it supports.
 Keep only the calls, files, props, states, and boundaries needed to answer the user's current question or resolve the current discussion point.
 
-You may use one format or several formats.
-It is unlikely that you will use all of them.
-Use your judgment and do not overwhelm the user.
+Use one format by default.
+Use several formats only when each answers a distinct question that the user currently needs resolved.
+Do not overwhelm the user.

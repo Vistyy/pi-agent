@@ -22,6 +22,10 @@
 - Prefer brief, plain explanations, and briefly explain unfamiliar terms.
   Add detail when needed to preserve meaning or help the user act.
 - When structure, flow, or change is clearer visually, use the smallest useful diagram, tree, pseudocode, or diff.
+- Use progressive disclosure for reports.
+  Lead with the result and any action required from the user.
+  State material changes from the previous understanding before supporting detail.
+  Do not begin with an inventory of findings, alternatives, or implementation details.
 
 ## Repository safety
 
