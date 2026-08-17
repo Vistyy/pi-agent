@@ -39,7 +39,9 @@ Default to a subagent when one bounded deliverable can be stated compactly and i
 A subagent can explore, analyze, implement, verify, experiment, or review within that boundary.
 Delegate before gathering the detailed context that the subagent will own.
 
-Keep work in the main session only when it uses context already present without tools, requires direct user interaction, or cannot be assigned with a compact result contract.
+Use main-session tools for outcome framing, authoritative project context, cross-cutting synthesis, conflict resolution, and checking material result evidence.
+Do not use them to duplicate delegated execution or detailed working context.
+Keep a bounded deliverable in the main session only when it requires direct user interaction or cannot be assigned with a compact result contract.
 Do not keep an otherwise eligible deliverable in the main session only because its evidence gathering is small or tightly coupled to the main decision.
 
 Use a Session transfer when work has an independent outcome or the user transfers the current outcome.
