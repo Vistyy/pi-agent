@@ -35,12 +35,12 @@ This step is complete when the owned outcome and retained decisions are explicit
 
 ## 2. Choose the route
 
-Keep work in the main session when it uses context already present or when the evidence gathering is small and tightly coupled to the main decision.
-
-Use a subagent when one bounded deliverable can be stated compactly and its detailed working context can be compressed into a result sufficient for the main-session decision.
+Default to a subagent when one bounded deliverable can be stated compactly and its detailed working context can be compressed into a result sufficient for the main-session decision.
 A subagent can explore, analyze, implement, verify, experiment, or review within that boundary.
-Do not delegate only because work involves multiple files, sources, or commands.
 Delegate before gathering the detailed context that the subagent will own.
+
+Keep work in the main session only when it uses context already present without tools, requires direct user interaction, or cannot be assigned with a compact result contract.
+Do not keep an otherwise eligible deliverable in the main session only because its evidence gathering is small or tightly coupled to the main decision.
 
 Use a Session transfer when work has an independent outcome or the user transfers the current outcome.
 For an agent-proposed transfer, obtain user approval before launching it.
