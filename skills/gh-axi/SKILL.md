@@ -19,8 +19,9 @@ If authentication fails, ask the user to run `gh auth login`.
    Completion: the first command addresses the identified object or discovers the missing identifier.
 
 2. Set the repository for cross-repository operations.
-   Add `--repo=owner/name` after the command, such as `pnpm dlx gh-axi issue list --repo=owner/name`.
-   Completion: every cross-repository command contains the repository flag.
+   For dedicated commands, add `--repo=owner/name` after the command, such as `pnpm dlx gh-axi issue list --repo=owner/name`.
+   Do not use `--repo` or `-R` with `api`; put the repository identity in the explicit REST API path.
+   Completion: every cross-repository dedicated command contains the repository flag.
 
 3. Follow relevant `help:` hints.
    Run a hinted command when it produces evidence or completes an operation within the requested GitHub scope.
@@ -45,12 +46,18 @@ For a multiline body, comment, or release note:
 1. Write the UTF-8 content to a file.
 2. Pass the file with `--body-file <path>`.
 
-### Operations without a dedicated command
+### API operations
 
 Use `api` when no dedicated command supports the operation.
-For example:
+For REST, put the repository identity in the explicit API path, such as:
 
 `pnpm dlx gh-axi api repos/{owner}/{repo}/topics`
+
+Do not use the global `--repo` or `-R` flags with `api`.
+For GraphQL, `graphql` is the API path, not a nested command.
+Use an explicit POST and provide the query with `--field`:
+
+`pnpm dlx gh-axi api POST graphql --field 'query=...'`
 
 ## Help
 
