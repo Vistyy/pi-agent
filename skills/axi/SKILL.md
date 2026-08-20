@@ -9,15 +9,15 @@ AXI defines ergonomic standards for CLI tools that autonomous agents run through
 
 ## Completion criterion
 
-An AXI pass is complete when each command behavior materially in scope follows the applicable sections below and the applicable verification claims are established through the supported CLI interface.
+An AXI pass is complete when each command behavior materially in scope follows the applicable sections below, with evidence from the supported CLI interface establishing that behavior.
 Do not change behavior or collect new evidence solely to satisfy an inapplicable section.
 Reuse existing evidence for unchanged behavior.
 
 Read [Session Integrations](references/SESSION-INTEGRATIONS.md) only when the change includes session integration, such as a hook, plugin, setup command that installs or repairs it, or an approved installable Agent Skill delivery option.
 When session integration applies, verify opt-in setup, idempotence, directory scoping, lifecycle capture, and token budget.
 
-For implemented changes, capture only the command observations required by the applicable verification claims, including stdout, stderr, or the exit code as relevant.
-Reuse one observation when it covers equivalent paths or multiple claims.
+For implemented changes, capture only the command observations needed to establish the applicable supported behavior, including stdout, stderr, or the exit code as relevant.
+Reuse one observation when it covers equivalent paths or multiple supported behaviors.
 
 ## Output format
 

@@ -1,27 +1,23 @@
 # Manage Project Verification Strategy
 
-## Decide whether strategy is needed
+Project strategy records only approved, durable project-wide decisions that change future verification.
 
-Use project strategy for durable verification decisions that apply across work and are not already sufficiently clear from a more authoritative source.
-The absence of a strategy artifact does not create a need for one.
-Do not use strategy to repeat generic verification guidance, list routine commands, restate executable configuration, preserve work history, or hold unapproved proposals.
+## Admission contract
 
-A separate strategy is justified only when it closes a durable cross-work knowledge gap.
+Admit only:
 
-## Establish the current facts
+- approved project-wide risks that future work must verify;
+- non-obvious evidence boundaries or supported mechanism limits; and
+- durable portfolio, runtime, or stability decisions that change future verification.
 
-Inspect relevant instructions, accepted decisions, executable configuration, maintained documentation, representative verification mechanisms, and known operational constraints.
-Distinguish accepted policy from historical test conventions and prior plans.
-Resolve a consequential conflict before recording strategy.
+Exclude generic advice, work-specific requirements, commands, inventories, executable configuration, duplicated authority, history, and proposals.
 
-## Approve and record the strategy
+## Content contract
 
-Present the proposed durable decision and obtain its applicable approval before recording it as project strategy.
-Record only current decisions that future work must know, such as non-obvious evidence constraints, mandatory gates, supported mechanism limits, intentionally retained broad evidence, or accepted runtime and stability constraints.
-
-Use the project's established strategy artifact when one exists.
-Otherwise, use `VERIFICATION.md` when repository-local Markdown is an appropriate authoritative medium.
-Use the artifact's established structure.
-When no structure exists, use only the structure needed to communicate the accepted decisions.
-Remove replaced guidance in the same change.
-If no project-specific strategy remains, remove the artifact after approval.
+Record current decisions in the project's established strategy artifact.
+If none exists, create `VERIFICATION.md` after approval when repository-local Markdown is an appropriate authoritative medium.
+The project authority must approve strategy content before it is recorded or changed.
+Routine verification reads and applies accepted strategy but does not change it.
+Keep each decision concise and state the future verification behavior it changes.
+Remove replaced guidance in the same approved change.
+If no project-specific strategy remains, remove the optional `VERIFICATION.md` after project-authority approval.

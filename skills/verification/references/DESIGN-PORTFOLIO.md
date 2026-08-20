@@ -23,6 +23,5 @@ Remove or consolidate evidence when the remaining portfolio still detects the me
 Add evidence only for a material confidence gap that the retained portfolio does not address sufficiently.
 Consider execution time, stability, diagnosis, coupling, and maintenance as part of portfolio quality.
 
-Do not require a risk matrix, claim inventory, complete test mapping, or standard proposal format.
+Do not require a risk matrix, an inventory of supported behavior, complete test mapping, or standard proposal format.
 Present the consequential additions, removals, retained protections, and trade-offs in the clearest form for the decision.
-Record an accepted durable project decision through the project verification strategy workflow only when future work must know it.

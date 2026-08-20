@@ -10,73 +10,78 @@ Implementation creates that result.
 Verification establishes justified confidence that the result exists, and review judges whether the result and its evidence are sufficient.
 A test is one possible source of evidence, not the default output.
 
-## Philosophy
+## Project-specific strategy and workflow routing
 
-Start from the specific work rather than a preferred verification mechanism.
-Consider what could materially be wrong and what observation would distinguish the accepted result from that failure.
-Choose evidence after understanding the implementation, the boundaries on which its behavior depends, retained evidence, and mandatory gates.
+When the repository contains `VERIFICATION.md`, discover and read it before applying project-specific verification rules.
+Treat that file as the source of truth for the repository's accepted project-specific verification strategy.
+Read [DESIGN-PORTFOLIO](references/DESIGN-PORTFOLIO.md) only when the user asks to design or reduce maintained verification across a project.
+Read [PROJECT-STRATEGY](references/PROJECT-STRATEGY.md) only when considering creation or change of a durable project-wide verification strategy.
 
-Prefer evidence that observes the relevant behavior directly, would reveal the meaningful failure, and has proportionate creation and maintenance cost.
-A broader, slower, or more durable mechanism is not inherently stronger.
-Evidence establishes only what it actually observes.
-For example, evidence produced with a test double does not establish integration with the real dependency.
+## Authority and context
 
-When work changes an integration, run a normal operation through the changed boundary using the implemented revision.
-Do not replace that boundary with a test double.
-Tests of components, interruption, cleanup, or failure behavior do not prove that the normal operation works.
-If no supported operation can establish this, report the integration behavior that remains unverified.
-Treat missing, malformed, unavailable, or ambiguous observations as unknown rather than success.
+Use requirements to determine the accepted result.
+When present, the repository verification strategy owns project-wide evidence constraints.
+Executable workflows own mandatory gates; complete each mandatory gate through its owner.
+Expose material authority conflicts instead of silently resolving them.
 
-Use this reasoning to guide judgment.
-Do not require a verification plan, inventory, or standard output structure unless the user requests one or software must parse it.
+## 1. Understand what must be true
 
-## Understand the result
+Read the exact work, requirements, and authority, then decide what must be true.
+Do not strengthen the guarantee to make checking easier.
+Confirm the result and required checks are observable, feasible, and capable.
+If no supported observation can establish it, report the unresolved requirement, design, or capability.
 
-Read the accepted requirements and only the instructions, decisions, project strategy, and repository mechanisms relevant to the work.
-Use requirements to determine what must be true.
-Use applicable verification policy to determine mandatory gates and accepted constraints.
-Do not strengthen the product guarantee merely to make verification easier or more comprehensive.
+Identify supported behavior that should continue to work.
+Exact-work evidence checks the current implementation or a transition.
+Durable coverage is evidence kept to protect supported behavior that should continue to work.
 
-Identify the observations needed for justified confidence without turning every requirement, branch, or scenario into a separate verification record.
-If no supported observation can establish a required result, expose the unresolved requirement, design, or capability instead of inventing confidence.
+## 2. Identify a realistic important mistake
 
-## Select and produce evidence
+Understand the implementation, dependent boundaries, retained evidence, and owning gates.
+Identify a plausible important failure and the observation that distinguishes it from the accepted result.
+A useful check catches that failure without rejecting a correct implementation.
+Treat rejection or recovery as protection only when evidence shows that it prevents, contains, or recovers from the important consequence.
 
-An agent may use any supported evidence that establishes the relevant behavior reliably.
-Use a broader system boundary only when the behavior being established depends on that boundary.
-When several mechanisms are credible, prefer the reliable one with lower execution, diagnosis, coupling, and maintenance cost.
-Do not preserve or add a mechanism merely because it already exists, is familiar, or appears stronger by being broader.
+## 3. Use the simplest reliable check
 
-Produce evidence for the exact work and relevant environment.
-Record only the command or procedure, relevant environment, and observation needed to interpret the result.
-Complete mandatory gates through their owning workflow instead of duplicating them manually.
-If an evidence mechanism fails, report the failed mechanism and remaining uncertainty.
-Do not interpret inability to collect evidence as either success or a product failure.
+Choose direct supported evidence at the lowest reasonable execution, diagnosis, coupling, and maintenance cost.
+Do not keep or add a check merely because it is broader, slower, familiar, or present.
+Use the relevant environment and record only procedure, environment, and observation.
+Evidence supports only what it observed.
+Prefer evidence independent enough from implementation logic under review that a wrong implementation can fail it.
+Evidence must cross the real boundary when behavior depends on it.
 
-## Review verification
+For a changed integration, run one normal operation through the exact implementation and real dependency, not a test double.
+Component or failure checks do not prove normal operation.
+If no supported operation can establish the integration, report it unverified.
 
-Before implementation, review whether the accepted outcome is observable and whether any prescribed verification constraint is feasible and capable of observing that outcome.
-The absence of a prescribed mechanism is not itself a problem.
+Complete each mandatory gate through its owner.
+Missing, malformed, unavailable, or ambiguous evidence is unknown, not success.
+Inability to collect evidence is neither success nor product failure.
+Report failed mechanisms and uncertainty.
+Do not require plans or standard output unless requested or parsed.
 
-After implementation, review the exact work against the accepted result and available evidence.
-Ask whether the evidence could distinguish a materially incorrect result from the accepted result, observes the boundaries on which that judgment depends, and corresponds to the relevant revision and environment.
-Do not reject sufficient evidence merely because another mechanism is more familiar or broader.
-Report only material confidence gaps and state what remains unsupported.
-Distinguish insufficient evidence from a tooling or capability failure that prevents a trustworthy review.
+## 4. Decide separately whether the check belongs permanently
 
-## Durable regression coverage
-
+Durable coverage protects enduring behavior, not implementation or transition constraints.
 Do not require a test by default.
-Add durable automation when it can repeatedly reveal a plausible meaningful regression that other retained or proportionate one-time evidence would miss, and when that protection justifies its authoring and maintenance cost.
-A requirement, branch, scenario, fixture, assertion, or changed line does not create that need by itself.
-Prefer updating, reusing, consolidating, or removing retained coverage when that gives sufficient confidence at lower cost.
+Add automation only when it repeatedly catches a plausible important regression missed by retained or one-time evidence and is worth its cost.
 
-For a reproduced defect, demonstrating that a regression test fails against the defective behavior can strengthen the evidence when the supported environment makes that practical.
-Do not require historical execution, mutation, or sensitivity experiments by convention.
-Do not create durable evidence whose only purpose is to prove exact documentation wording or the absence of a retired concept unless that fact is itself an executable supported contract.
+Keep the smallest sufficient set.
+Update, reuse, consolidate, or remove checks when that gives sufficient confidence at lower cost.
+Remove an affected check that protects no enduring supported behavior when its maintenance cost or coupling is material.
+Decide that coverage is justified before choosing its boundary.
+Do not broaden a boundary to justify coverage.
 
-## Project-level activities
+Treat retirement and removal as work-specific by default.
+A retired concept is not enduring behavior merely because work required its removal or preservation during transition.
+Verify retirement and leave-untouched constraints with exact-work evidence without retaining that concept as product knowledge.
+Only an independently authorized ongoing compatibility, safety, or security prohibition is an exception.
+That prohibition remains enduring, including as an absence; evidence cannot create its authority.
+A deliberate hypothetical reintroduction is not a plausible regression.
+Do not require historical, mutation, or sensitivity experiments by convention.
+Do not retain durable evidence only to prove documentation wording or a retired concept's absence.
 
-Read [Design a Verification Portfolio](references/DESIGN-PORTFOLIO.md) only when the user explicitly asks to design, reduce, or substantially reorganize maintained verification across a project.
-Read [Manage Project Verification Strategy](references/PROJECT-STRATEGY.md) only when considering a durable verification decision that applies across work.
-Routine verification does not require either reference.
+After implementation, compare work with the result and evidence.
+Report only material confidence gaps and state what remains unsupported.
+Distinguish insufficient evidence from a tooling or capability failure that prevents trustworthy review.

@@ -6,6 +6,9 @@ description: Use when writing, revising, or auditing instructions or technical d
 # Writing Instructions
 
 Write technical prose that produces the required behavior or understanding without adding unsupported meaning.
+When an instruction conditionally directs the reader to another file, state the loading condition before or with the reference in the referring file.
+Do not introduce or repeat that condition inside the referenced file because discovery is already too late.
+For a nested reference, its direct referring file owns the loading condition.
 When the artifact's purpose is to explain or help readers operate the supported technical system, read [Documentation](references/DOCUMENTATION.md) completely.
 Do not load that reference only because an instruction artifact uses Markdown or includes rationale.
 When writing or reviewing a skill, also read [Writing skills](references/SKILLS.md) completely.
@@ -28,7 +31,6 @@ Leave local and reversible choices to the actor's judgment.
 Put each rule or claim at the lowest reliable delivery boundary.
 Put interface-specific behavior where the actor encounters the interface.
 Keep ordered actions and universally required rules in the primary artifact.
-Move branch-specific detail to a reference only when the primary artifact states exactly when to load it.
 Keep required detail inline when a loading instruction would be unreliable.
 Make required external guidance available, or state the dependency and what to do when it is unavailable.
 
