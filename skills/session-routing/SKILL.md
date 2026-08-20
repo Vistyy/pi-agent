@@ -1,6 +1,6 @@
 ---
 name: session-routing
-description: Use when deciding whether work stays in the current session, goes to a subagent, or transfers to a separate Pi session.
+description: Use when deciding whether work stays in the current session, goes to a temporary managed agent, or transfers to a separate Pi session.
 ---
 
 # Session Routing
@@ -12,8 +12,8 @@ Do not route by an arbitrary turn count.
 
 **Main session**: Owns the user outcome, problem framing, cross-cutting decisions, synthesis, and user communication.
 
-**Subagent**: Owns one bounded deliverable and the detailed working context needed to produce it.
-It returns a compact result to the main session without owning the holistic judgment.
+**Temporary managed agent**: Investigates one bounded read-only deliverable and returns a compact result without owning holistic judgment.
+It may stop with partial evidence or a question when continuing would require guessing, broader scope, mutation, or a parent decision.
 
 **Session transfer**: Gives an independent outcome or the current outcome to a new Pi session with its own user dialogue.
 
@@ -35,14 +35,11 @@ This step is complete when the owned outcome and retained decisions are explicit
 
 ## 2. Choose the route
 
-Default to a subagent when one bounded deliverable can be stated compactly and its detailed working context can be compressed into a result sufficient for the main-session decision.
-A subagent can explore, analyze, implement, verify, experiment, or review within that boundary.
-Delegate before gathering the detailed context that the subagent will own.
+Use a temporary managed agent only when a bounded read-only deliverable materially reduces main-session context load, enables useful independent progress, or provides justified corroboration.
+Delegate before gathering the detailed context that the temporary managed agent will own.
 
-Use main-session tools for outcome framing, authoritative project context, cross-cutting synthesis, conflict resolution, and checking material result evidence.
-Do not use them to duplicate delegated execution or detailed working context.
-Keep a bounded deliverable in the main session only when it requires direct user interaction or cannot be assigned with a compact result contract.
-Do not keep an otherwise eligible deliverable in the main session only because its evidence gathering is small or tightly coupled to the main decision.
+Keep direct user interaction, implementation, mutation, outcome framing, authoritative project context, cross-cutting synthesis, conflict resolution, and evidence integration in the main session.
+Do not duplicate an active delegated investigation or delegate work that provides no material benefit.
 
 Use a Session transfer when work has an independent outcome or the user transfers the current outcome.
 For an agent-proposed transfer, obtain user approval before launching it.
