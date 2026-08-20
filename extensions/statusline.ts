@@ -6,6 +6,7 @@ type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | s
 type GitCache = { cwd: string; createdAt: number; value: string | undefined };
 
 const GIT_CACHE_MS = 1000;
+const COMPACT_BRANCH_WIDTH = 20;
 
 export default function statusline(pi: ExtensionAPI) {
   let thinkingLevel: ThinkingLevel = "low";
@@ -90,16 +91,19 @@ export default function statusline(pi: ExtensionAPI) {
             ? theme.fg(contextColor, `${Math.round(contextUsage.percent ?? 0)}%/${fmt(contextUsage.contextWindow)}`)
             : ctxPct;
           const cwdSeg = theme.fg("muted", formatCwd(ctx.cwd));
-          const gitFull = branch ? theme.fg("success", `${branch}${git ? ` ${git}` : ""}`) : undefined;
-          const gitCompact = branch ? theme.fg("success", branch) : undefined;
+          const gitFull = branch ? theme.fg("success", gitText(branch, git)) : undefined;
+          const branchTrimmed = branch ? truncateToWidth(branch, COMPACT_BRANCH_WIDTH, "…") : null;
+          const gitTrimmed = branchTrimmed ? theme.fg("success", gitText(branchTrimmed, git)) : undefined;
           const tokFull = theme.fg("muted", `${fmt(usage.total)} (${fmt(usage.input)}↑/${fmt(usage.output)}↓)`);
           const tokCompact = theme.fg("muted", fmt(usage.total));
           const costSeg = usage.cost > 0 ? theme.fg("warning", `$${usage.cost.toFixed(3)}`) : undefined;
           const codexSeg = codex ? theme.fg("accent", stripAnsi(codex)) : undefined;
           const tiers: Array<{ chunks: string[] }> = [
             { chunks: [model, ctxFull, cwdSeg, gitFull, tokFull, costSeg, codexSeg].filter(Boolean) as string[] },
-            { chunks: [model, ctxPct, cwdSeg, gitCompact, tokFull, costSeg, codexSeg].filter(Boolean) as string[] },
-            { chunks: [model, ctxPct, cwdSeg, gitCompact, tokCompact, costSeg, codexSeg].filter(Boolean) as string[] },
+            { chunks: [model, ctxPct, cwdSeg, gitFull, tokFull, costSeg, codexSeg].filter(Boolean) as string[] },
+            { chunks: [model, ctxPct, gitFull, tokFull, costSeg, codexSeg].filter(Boolean) as string[] },
+            { chunks: [model, ctxPct, gitTrimmed, tokFull, costSeg, codexSeg].filter(Boolean) as string[] },
+            { chunks: [model, ctxPct, gitTrimmed, tokCompact, costSeg, codexSeg].filter(Boolean) as string[] },
           ];
 
           for (const tier of tiers) {
@@ -108,9 +112,14 @@ export default function statusline(pi: ExtensionAPI) {
           }
 
           return renderCompactStatus(
-            [model, ctxPct, cwdSeg, gitCompact, tokCompact, costSeg].filter(Boolean) as string[],
+            model,
+            ctxPct,
+            branchTrimmed,
+            git,
+            [tokCompact, costSeg, codexSeg].filter(Boolean) as string[],
             width,
             divider,
+            (value) => theme.fg("success", value),
           );
         },
       };
@@ -142,16 +151,30 @@ async function gitSummary(pi: ExtensionAPI, cwd: string, signal: AbortSignal): P
   };
 
   try {
-    const [upstream, diffOutput, untrackedOutput] = await Promise.all([
+    const [upstream, originHead, baseRefs] = await Promise.all([
       run(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"]),
-      run(["diff", "--numstat", "HEAD"]),
-      run(["ls-files", "--others", "--exclude-standard"]),
+      run(["symbolic-ref", "--quiet", "--short", "refs/remotes/origin/HEAD"]),
+      run([
+        "for-each-ref",
+        "--format=%(refname:short)",
+        "refs/remotes/origin/main",
+        "refs/remotes/origin/master",
+        "refs/heads/main",
+        "refs/heads/master",
+      ]),
     ]);
     if (signal.aborted) return undefined;
 
-    const divergenceOutput = upstream
-      ? await run(["rev-list", "--left-right", "--count", `${upstream}...HEAD`])
-      : undefined;
+    const baseCandidates = baseRefs?.split("\n").filter(Boolean) ?? [];
+    const base = originHead
+      ?? ["origin/main", "origin/master", "main", "master"].find((candidate) => baseCandidates.includes(candidate));
+    const [divergenceOutput, mergeBase] = await Promise.all([
+      upstream ? run(["rev-list", "--left-right", "--count", `${upstream}...HEAD`]) : undefined,
+      base ? run(["merge-base", base, "HEAD"]) : undefined,
+    ]);
+    if (signal.aborted) return undefined;
+
+    const diffOutput = mergeBase ? await run(["diff", "--numstat", `${mergeBase}..HEAD`]) : undefined;
     if (signal.aborted) return undefined;
 
     const parts: string[] = [];
@@ -161,34 +184,69 @@ async function gitSummary(pi: ExtensionAPI, cwd: string, signal: AbortSignal): P
       if (divergence) parts.push(divergence);
     }
     const diff = parseDiffNumstat(diffOutput ?? "");
-    const untracked = untrackedOutput?.split("\n").filter(Boolean).length ?? 0;
     if (diff.files || diff.added || diff.removed) parts.push(`${diff.files}f +${diff.added} -${diff.removed}`);
-    if (untracked) parts.push(`?${untracked}`);
     return parts.length ? parts.join(" ") : undefined;
   } catch {
     return undefined;
   }
 }
 
-function renderCompactStatus(chunks: string[], width: number, divider: string): string[] {
+function renderCompactStatus(
+  model: string,
+  context: string | undefined,
+  branch: string | null,
+  gitDetails: string | undefined,
+  optionalChunks: string[],
+  width: number,
+  divider: string,
+  styleGit: (value: string) => string,
+): string[] {
   const availableWidth = Math.max(1, width);
-  const model = chunks[0] ?? "";
   if (visibleWidth(model) > availableWidth) return [truncateToWidth(model, availableWidth, "")];
 
   let line = model;
-  const context = chunks[1];
   if (context) {
     const candidate = `${line}${divider}${context}`;
     if (visibleWidth(candidate) > availableWidth) return [line];
     line = candidate;
   }
 
-  for (const chunk of chunks.slice(2)) {
-    const candidate = `${line}${divider}${chunk}`;
-    if (visibleWidth(candidate) <= availableWidth) line = candidate;
+  if (branch) {
+    const gitWidth = availableWidth - visibleWidth(line) - visibleWidth(divider);
+    const fittedGit = fitGitText(branch, gitDetails, gitWidth);
+    if (fittedGit) line += `${divider}${styleGit(fittedGit)}`;
+  }
+
+  const retained = optionalChunks.map(() => false);
+  let retainedWidth = visibleWidth(line);
+  for (let index = optionalChunks.length - 1; index >= 0; index--) {
+    const candidateWidth = retainedWidth + visibleWidth(divider) + visibleWidth(optionalChunks[index]);
+    if (candidateWidth <= availableWidth) {
+      retained[index] = true;
+      retainedWidth = candidateWidth;
+    }
+  }
+  for (let index = 0; index < optionalChunks.length; index++) {
+    if (retained[index]) line += `${divider}${optionalChunks[index]}`;
   }
 
   return [line];
+}
+
+function gitText(branch: string, details: string | undefined): string {
+  return `${branch}${details ? ` ${details}` : ""}`;
+}
+
+function fitGitText(branch: string, details: string | undefined, width: number): string | undefined {
+  if (width <= 0) return undefined;
+  const full = gitText(branch, details);
+  if (visibleWidth(full) <= width) return full;
+  if (!details) return truncateToWidth(branch, width, "…");
+
+  const detailsWidth = visibleWidth(details);
+  if (detailsWidth >= width) return truncateToWidth(details, width, "…");
+  const branchWidth = width - detailsWidth - 1;
+  return branchWidth > 0 ? gitText(truncateToWidth(branch, branchWidth, "…"), details) : details;
 }
 function summarizeUsage(entries: Array<{ type: string; message?: unknown }>) {
   let input = 0; let output = 0; let cost = 0;
