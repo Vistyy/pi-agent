@@ -8,7 +8,7 @@ import test from "node:test";
 const script = new URL("./start-separate-session.mjs", import.meta.url);
 
 async function fixture() {
-  const root = await mkdtemp(path.join(tmpdir(), "session-routing-test-"));
+  const root = await mkdtemp(path.join(tmpdir(), "session-transfer-test-"));
   const bin = path.join(root, "bin");
   const log = path.join(root, "herdr-args.jsonl");
   const transfer = path.join(root, "transfer.md");

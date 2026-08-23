@@ -3,7 +3,7 @@
   "defaults": {
     "provider": "openai-codex",
     "model": "gpt-5.6-luna",
-    "thinking": "xhigh",
+    "thinking": "high",
     "extensions": [
       "!pi-background-processes",
       "!pi-lavish",

@@ -30,7 +30,7 @@ This step is complete when the brief gives the new session sufficient context to
 Run the session launcher:
 
 ```sh
-node "${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/skills/session-routing/scripts/start-separate-session.mjs" \
+node "${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}/skills/session-transfer/scripts/start-separate-session.mjs" \
   --name <session-name> \
   --cwd <destination-directory> \
   --transfer-file <transfer-file>
