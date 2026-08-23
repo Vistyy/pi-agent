@@ -12,8 +12,9 @@ Do not route by an arbitrary turn count.
 
 **Main session**: Owns the user outcome, problem framing, cross-cutting decisions, synthesis, and user communication.
 
-**Temporary managed agent**: Investigates one bounded read-only deliverable and returns a compact result without owning holistic judgment.
-It may stop with partial evidence or a question when continuing would require guessing, broader scope, mutation, or a parent decision.
+**Temporary managed agent**: Performs one bounded, read-only supporting task and returns evidence for parent evaluation.
+Its scope is defined by the question, not the number of sources it inspects.
+The main session retains consequential decisions and synthesis.
 
 **Session transfer**: Gives an independent outcome or the current outcome to a new Pi session with its own user dialogue.
 
@@ -35,11 +36,19 @@ This step is complete when the owned outcome and retained decisions are explicit
 
 ## 2. Choose the route
 
-Use a temporary managed agent only when a bounded read-only deliverable materially reduces main-session context load, enables useful independent progress, or provides justified corroboration.
-Delegate before gathering the detailed context that the temporary managed agent will own.
+When the main session needs factual evidence, choose its collection route before consuming detailed context.
+Inspect directly when the required evidence is small and local.
+Use a temporary managed agent when the evidence question is independently answerable and its retrieval is source-heavy, specialized, parallelizable, or likely to crowd the main session with details that its reasoning does not need.
 
-Keep direct user interaction, implementation, mutation, outcome framing, authoritative project context, cross-cutting synthesis, conflict resolution, and evidence integration in the main session.
-Do not duplicate an active delegated investigation or delegate work that provides no material benefit.
+Give each temporary agent one bounded factual evidence question about how a specific component, operation, invariant, or source relationship behaves.
+Partition work by behavior or claim, never into implementation, test, and documentation branches.
+Do not bundle unrelated concerns or ask an agent to assess, plan, or recommend for the overall outcome.
+Use one batch for non-overlapping local questions whose reports are needed for the same parent reasoning step.
+Keep direct user interaction, implementation, final verification, outcome framing, consequential decisions, cross-cutting synthesis, conflict resolution, evidence integration, and the final response in the main session.
+Do not duplicate delegated work, inspect another evidence branch for the same outcome, or poll helper status.
+When the reports contribute to the current answer, plan, decision, or implementation, end the turn after dispatch.
+Continue only a separate user-requested outcome that cannot affect or be affected by the reports.
+After reports arrive, inspect an exact delegated source only when an exact conflict or synthesis question requires it.
 
 Use a Session transfer when work has an independent outcome or the user transfers the current outcome.
 For an agent-proposed transfer, obtain user approval before launching it.
@@ -57,7 +66,8 @@ For current-session work, continue without loading a branch reference.
 
 ## 4. Integrate results
 
-Integrate delegated results and explicit evidence limits into the main-session decision.
+Evaluate and connect delegated evidence to make the main-session decision.
+Do not merely repeat an agent report.
 When new work introduces a different outcome or working set, choose its route before gathering detailed context.
 
 This workflow is complete when the main session has made the required integrated decision and every unresolved material gap and its evidence limit are explicit.

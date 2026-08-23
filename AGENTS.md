@@ -37,7 +37,11 @@
 
 ## Decision principles
 
-- First establish the required outcome, current constraints, and authoritative evidence.
+- First establish the required outcome and current constraints.
+- Before relying on an externally checkable factual claim that could materially affect an answer, plan, review, decision, or implementation, obtain current evidence from an authoritative source or sufficiently direct observation.
+- Distinguish direct observations, supported inferences, and unknowns.
+  Do not present an unsupported assumption as fact.
+  When sufficient evidence is unavailable, state how that uncertainty limits the result.
 - Treat mechanisms, examples, alternatives, checklists, and preventive ideas raised during exploration as candidates, not requirements or constraints, unless the applicable authority accepts them as such.
 - A request to investigate, discuss, explain, compare, review, or plan authorizes evidence gathering only.
   Do not edit files, mutate durable state, dispatch implementation, or create work records unless the user also authorizes that action.
@@ -69,5 +73,5 @@
 
 ## Verification
 
-- Verify checkable claims before stating them.
-  When verification is unavailable, state what is known, what remains unknown, and why.
+- Verify changed or produced behavior against its requirements at the applicable boundary.
+  State what remains unverified and why.

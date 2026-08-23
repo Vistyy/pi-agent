@@ -1,6 +1,6 @@
 ---
 name: verification
-description: Use whenever work has requirements whose satisfaction should be established or makes claims that should be supported with evidence.
+description: Use when establishing whether requirements are satisfied, whether changed or produced behavior works, or whether retained checks provide justified confidence.
 ---
 
 # Verification
