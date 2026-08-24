@@ -20,6 +20,8 @@ Do not treat a proposed structure, generic quality concern, future possibility, 
 
 ## Produce the simplest supported result
 
+Optimize for the simplest supported final state of the system, not the smallest or easiest immediate change.
+Prefer a larger change when it removes unnecessary structure and leaves the resulting system simpler.
 Identify the assumptions, distinctions, guarantees, scope choices, and proposed elements that make the target more specific or complex.
 For each one, ask what rules out a weaker explanation, direct solution, or existing owner.
 Remove or weaken it when nothing does.
