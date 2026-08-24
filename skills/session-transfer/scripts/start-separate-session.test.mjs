@@ -39,8 +39,8 @@ if [ "$1 $2" = "workspace focus" ]; then
   printf '%s\\n' '{"id":"cli:workspace:focus","result":{"type":"ok"}}'
   exit 0
 fi
-if [ "$1 $2" = "pane send-text" ] || [ "$1 $2" = "pane send-keys" ]; then
-  printf '%s\\n' '{"id":"cli:pane:input","result":{"type":"ok"}}'
+if [ "$1 $2" = "agent prompt" ]; then
+  printf '%s\\n' '{"id":"cli:agent:prompt","result":{"agent":{"name":"docs-audit","terminal_id":"term_123"},"type":"agent_prompted"}}'
   exit 0
 fi
 if [ "$1 $2" = "agent get" ]; then
@@ -136,14 +136,13 @@ test("starts default Pi through Herdr and verifies the detected session", async 
 
     const calls = (await readFile(f.log, "utf8")).trim().split("\n");
     assert.equal(calls[0], `workspace create --cwd ${f.root} --label docs-audit --no-focus`);
-    assert.equal(
+    assert.match(
       calls[1],
-      "agent start docs-audit --kind pi --pane w99:p1 -- --name docs-audit",
+      /^agent start docs-audit --kind pi --pane w99:p1 --timeout \d+ -- --name docs-audit$/,
     );
     assert.doesNotMatch(calls[1], /--model|--continue|--resume|--fork/);
-    assert.equal(calls[2], `pane send-text w99:p1 @${f.transfer}`);
-    assert.equal(calls[3], "pane send-keys w99:p1 Enter");
-    assert.equal(calls[4], "agent get docs-audit");
+    assert.equal(calls[2], `agent prompt docs-audit @${f.transfer}`);
+    assert.equal(calls[3], "agent get docs-audit");
   } finally {
     await f.cleanup();
   }
@@ -162,18 +161,22 @@ test("waits for a newly created pane to become an interactive shell", async () =
     );
     assert.equal(result.status, 0, result.stdout + result.stderr);
     const calls = (await readFile(f.log, "utf8")).trim().split("\n");
-    assert.deepEqual(calls.slice(0, 4), [
-      `workspace create --cwd ${f.root} --label docs-audit --no-focus`,
-      "agent start docs-audit --kind pi --pane w99:p1 -- --name docs-audit",
-      "agent start docs-audit --kind pi --pane w99:p1 -- --name docs-audit",
-      `pane send-text w99:p1 @${f.transfer}`,
-    ]);
+    assert.equal(calls[0], `workspace create --cwd ${f.root} --label docs-audit --no-focus`);
+    assert.match(
+      calls[1],
+      /^agent start docs-audit --kind pi --pane w99:p1 --timeout \d+ -- --name docs-audit$/,
+    );
+    assert.match(
+      calls[2],
+      /^agent start docs-audit --kind pi --pane w99:p1 --timeout \d+ -- --name docs-audit$/,
+    );
+    assert.equal(calls[3], `agent prompt docs-audit @${f.transfer}`);
   } finally {
     await f.cleanup();
   }
 });
 
-test("fails when a pane does not become a shell before the timeout", async () => {
+test("rejects a readiness budget too short for Herdr before creating a workspace", async () => {
   const f = await fixture();
   try {
     const result = run(
@@ -185,21 +188,13 @@ test("fails when a pane does not become a shell before the timeout", async () =>
         "--transfer-file",
         f.transfer,
         "--timeout-ms",
-        "0",
+        "3000",
       ],
-      {
-        ...f.env,
-        HERDR_TEST_NOT_READY_ONCE: "1",
-        HERDR_TEST_READY_FILE: path.join(f.root, "shell-ready"),
-      },
+      f.env,
     );
-    assert.equal(result.status, 1);
-    assert.match(result.stdout, /agent target pane w99:p1 is not an available shell/);
-    const calls = (await readFile(f.log, "utf8")).trim().split("\n");
-    assert.equal(
-      calls.filter((call) => call.startsWith("agent start docs-audit")).length,
-      1,
-    );
+    assert.equal(result.status, 2);
+    assert.match(result.stdout, /must be an integer greater than 3000/);
+    await assert.rejects(readFile(f.log, "utf8"));
   } finally {
     await f.cleanup();
   }

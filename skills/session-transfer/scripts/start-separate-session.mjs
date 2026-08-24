@@ -23,7 +23,7 @@ function homeView() {
 }
 
 function help() {
-  process.stdout.write(`${usage}\n\nRequired:\n  --name <name>           Descriptive Herdr workspace and Pi session name\n  --cwd <path>            Working directory for the new session\n  --transfer-file <path>  Compact transfer brief used as the initial Pi prompt\n\nOptional:\n  --timeout-ms <number>   Shell readiness and Pi verification timeout in milliseconds (default: 10000)\n  --help                  Show this help\n\nEnvironment:\n  HERDR_BIN               Override the Herdr executable\n\nExamples:\n  start-separate-session --name audit-agent-instructions --cwd ~/.pi/agent --transfer-file /tmp/transfer.md\n`);
+  process.stdout.write(`${usage}\n\nRequired:\n  --name <name>           Descriptive Herdr workspace and Pi session name\n  --cwd <path>            Working directory for the new session\n  --transfer-file <path>  Compact transfer brief used as the initial Pi prompt\n\nOptional:\n  --timeout-ms <number>   Shell readiness and Pi verification timeout greater than 3000 ms (default: 10000)\n  --help                  Show this help\n\nEnvironment:\n  HERDR_BIN               Override the Herdr executable\n\nExamples:\n  start-separate-session --name audit-agent-instructions --cwd ~/.pi/agent --transfer-file /tmp/transfer.md\n`);
 }
 
 function fail(message, suggestion, code = 1) {
@@ -102,21 +102,30 @@ function parseJsonOutput(result, operation, cleanup) {
   return parsed;
 }
 
-function requireSuccess(result, operation, cleanup) {
-  if (!result.error && result.status === 0) return;
-  cleanup?.();
-  let detail;
-  try {
-    detail = JSON.parse(result.stdout.trim() || result.stderr.trim())?.error?.message;
-  } catch {
-    // Use the generic failure below.
-  }
-  fail(detail ? `${operation} failed: ${detail}` : `${operation} failed`, "Inspect `herdr agent list` and retry");
-}
-
 function startAgentWhenShellReady({ herdr, name, paneId, deadline, cleanup }) {
-  const args = ["agent", "start", name, "--kind", "pi", "--pane", paneId, "--", "--name", name];
   while (true) {
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 3_000) {
+      cleanup?.();
+      fail(
+        "session launch did not have enough time remaining for Herdr agent readiness",
+        "Retry with --timeout-ms greater than 3000",
+      );
+    }
+    const args = [
+      "agent",
+      "start",
+      name,
+      "--kind",
+      "pi",
+      "--pane",
+      paneId,
+      "--timeout",
+      String(Math.min(remainingMs, 300_000)),
+      "--",
+      "--name",
+      name,
+    ];
     const result = run(herdr, args);
     if (result.error) {
       cleanup?.();
@@ -169,7 +178,8 @@ if (options.name.length > 32 || !/^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$/.test(options.
     2,
   );
 }
-if (!Number.isFinite(options.timeoutMs) || options.timeoutMs < 0) fail("--timeout-ms must be a non-negative number", usage, 2);
+if (!Number.isInteger(options.timeoutMs) || options.timeoutMs <= 3_000)
+  fail("--timeout-ms must be an integer greater than 3000", usage, 2);
 
 const cwd = path.resolve(options.cwd);
 try {
@@ -218,16 +228,15 @@ const start = startAgentWhenShellReady({
   deadline,
   cleanup: cleanupWorkspace,
 });
-requireSuccess(
-  run(herdr, ["pane", "send-text", rootPane.pane_id, `@${transferFile}`]),
-  "transfer entry",
-  cleanupWorkspace,
-);
-requireSuccess(
-  run(herdr, ["pane", "send-keys", rootPane.pane_id, "Enter"]),
+const prompted = parseJsonOutput(
+  run(herdr, ["agent", "prompt", options.name, `@${transferFile}`]),
   "transfer submission",
   cleanupWorkspace,
 );
+if (prompted?.result?.type !== "agent_prompted") {
+  cleanupWorkspace();
+  fail("transfer submission returned an incomplete result", "Inspect `herdr agent get` and retry");
+}
 
 let agent = start?.result?.agent;
 while (Date.now() <= deadline) {
