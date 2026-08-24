@@ -42,7 +42,9 @@ Make each requirement observable.
 Use `must` for requirements, `should` for recommendations, `may` for permission, and `can` for capability or possible results.
 State supported behavior before a prohibition that limits it.
 Keep requirements and instructions distinct from rationale and examples.
-Use examples to clarify boundaries, not as the only definition of supported behavior.
+Explain the rule that determines whether something is included.
+Use a list as the complete definition only when an authoritative source confirms that the list contains every possible item.
+Otherwise, explain the general rule first and clearly identify the listed items as examples.
 
 ## 3. Remove unnecessary content
 
