@@ -50,7 +50,16 @@ Use observed changes, defects, or verification friction when available.
 This step is complete when the behavior, current owner, material caller knowledge, and coordination cost are explicit enough to compare structures.
 If no structural problem remains, keep the current structure.
 
-## 2. Compare the credible structures
+## 2. Develop independent designs for consequential decisions
+
+Treat a decision as consequential when selecting the wrong structure could materially change ownership, caller knowledge, an interface, a seam, dependency direction, lifecycle, persistence, migration, or verification, or when reversal would be non-local or costly.
+For every consequential decision, read and follow [Design It Twice](references/DESIGN-IT-TWICE.md) before selecting a structure, even when the first inspected structure appears sufficient.
+When established requirements and evidence support fewer than two credible designs, preserve that conclusion instead of inventing an alternative.
+Select directly only when the choice is local and reversible and cannot materially affect those structural dimensions, and state the controlling reason.
+
+This step is complete when independently developed designs have been compared or evidence establishes why fewer than two credible designs exist.
+
+## 3. Compare the credible structures
 
 Before selecting custom work, check whether the current platform, an installed dependency, or a specifically identified external solution can provide the required behavior.
 Research only named candidates or candidates found through a precise capability search tied to the current outcome.
@@ -78,7 +87,7 @@ Among the remaining structures, prefer the simplest one that satisfies those con
 
 This step is complete when named evidence supports one structure and its structural and maintenance trade-offs are explicit.
 
-## 3. Define ownership and interfaces
+## 4. Define ownership and interfaces
 
 State which modules or callers own each rule and where coordination is intentional.
 Use an interface only when it reduces the knowledge or coordination that callers must carry.
@@ -94,7 +103,7 @@ Verification of externally observable behavior must use the supported interface.
 
 This step is complete when callers can use the interface without implementation knowledge and each seam created, retained, or materially evaluated by the design has a named justification.
 
-## 4. Verify the design
+## 5. Verify the design
 
 For a proposed design, show one representative caller and a practical verification path.
 State the migration and removal work required by the proposal.
@@ -107,7 +116,3 @@ Treat an unsafe cast needed to construct a verification Adapter as evidence of a
 Remove the replaced structural path after its callers and verification migrate.
 
 An implemented design is complete when the required behavior is verified and no replaced path remains.
-
-## Conditional guidance
-
-When the user requests independent alternative interfaces or structural designs, read [DESIGN-IT-TWICE.md](references/DESIGN-IT-TWICE.md).
