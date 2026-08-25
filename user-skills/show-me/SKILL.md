@@ -5,10 +5,35 @@ disable-model-invocation: true
 ---
 
 Help the user understand the current topic of conversation visually.
-Skip the preamble and keep prose brief.
-Pick the smallest view that makes the key point clear.
-Default to one visual and no more than two short supporting paragraphs.
-Use multiple visuals or additional prose only when one view cannot preserve a material relationship or the user asks for more.
+Skip the preamble and keep prose brief and subordinate to the visual.
+Pick the smallest view that makes the key point clear, where "smallest" means the least unnecessary information rather than the smallest physical output.
+Prefer terminal-native visualization, including rendered Mermaid.
+Use enough space to make structure, scale, sequence, causality, or contrast perceptible.
+Compose the visual deliberately with alignment, containment, labeled connectors, lanes, grouping, scale, or other encodings that carry meaning.
+Use one coherent view when it is sufficient.
+Use multiple coordinated views when each answers a distinct question needed to understand the topic.
+
+Choose any terminal-native encoding that makes the important relationship directly visible.
+The formats below are non-exhaustive examples.
+
+- Use a composed text diagram when spatial arrangement, containment, ownership, or labeled connections matter:
+
+```text
+                       request path
+┌──────────┐      ┌──────────────┐      ┌────────────┐
+│  Client  │─────▶│    Router    │─────▶│  Handler   │
+└──────────┘      │ auth + match │      └─────┬──────┘
+                  └──────────────┘            │
+                                              ▼
+                                      ┌──────────────┐
+                                      │  Repository  │
+                                      └──────┬───────┘
+                                             │ SQL
+                                             ▼
+                                      ┌──────────────┐
+                                      │   Database   │
+                                      └──────────────┘
+```
 
 - Show logic or an algorithm as pseudocode:
 
@@ -48,7 +73,8 @@ src/
 └── transport/      # sends API requests
 ```
 
-- Show component interaction, control flow, or data flow with Mermaid:
+- Use Mermaid when its automatic layout makes a flowchart, state diagram, sequence diagram, class diagram, or entity-relationship diagram clearer.
+Pi renders supported Mermaid fences as themed Unicode terminal diagrams, so keep the graph within a practical terminal width:
 
 ```mermaid
 sequenceDiagram
@@ -120,13 +146,17 @@ function expandSkill(command: string): string {
 }
 ```
 
-- For a visual UI, layout, state comparison, or concept too dense for a terminal-native diagram, follow the `lavish` skill's selection and review workflow.
+- Use proportional bars, aligned values, a comparison matrix, a timeline, or parallel lanes when magnitude, ordering, tradeoffs, chronology, concurrency, or responsibility is the point.
+Include labels and a scale or legend when the encoding would otherwise be ambiguous.
+
+- Follow the `lavish` skill's selection and review workflow only when interaction, responsive layout, dense spatial relationships, or required visual fidelity cannot be preserved clearly in the terminal.
+Do not use Lavish merely because the terminal visual is substantial.
 
 ## Guidance
 
 Place each visual next to the short text it supports.
-Keep only the calls, files, props, states, and boundaries needed to answer the user's current question or resolve the current discussion point.
-
-Use one format by default.
-Use several formats only when each answers a distinct question that the user currently needs resolved.
+Build the visual around the question the user is trying to answer, not around a preferred notation.
+Keep only the calls, files, props, states, values, and boundaries needed to answer that question or resolve the current discussion point.
+A visual may be physically large when the space communicates a material relationship.
+Use several formats or coordinated panels only when each contributes distinct necessary understanding.
 Do not overwhelm the user.
