@@ -20,7 +20,7 @@ Report no findings only after every criterion passes.
 ## 1. Establish the target
 
 Identify the artifact, audience, and behavior or question the prose must address.
-Identify the applicable scope, authority, invariants, and local conventions.
+Identify the authorities and constraints that govern the artifact.
 Inspect the environment when correct content depends on existing behavior or conventions.
 Resolve conflicting authorities before drafting.
 Ask the user when no authority determines a consequential choice.
@@ -42,16 +42,17 @@ Make each requirement observable.
 Use `must` for requirements, `should` for recommendations, `may` for permission, and `can` for capability or possible results.
 State supported behavior before a prohibition that limits it.
 Keep requirements and instructions distinct from rationale and examples.
-Explain the rule that determines whether something is included.
-Use a list as the complete definition only when an authoritative source confirms that the list contains every possible item.
-Otherwise, explain the general rule first and clearly identify the listed items as examples.
+State the general rule that determines what is included.
+Do not represent an open-ended rule or judgment with a bare list, including a list embedded in a sentence.
+When examples help, state the rule first and explicitly mark the examples as non-exhaustive.
+Use a list as the complete definition only when an authoritative source establishes that it contains every possible item.
 
 ## 3. Remove unnecessary content
 
 Keep each meaning in one authoritative location.
-For each claim, assumption, condition, distinction, required step, guarantee, and output constraint, identify which required behavior, current constraint, or evidence rules out a weaker alternative.
+For every retained statement or instruction, identify what established need rules out a weaker alternative.
 Remove or weaken it when none does.
-Remove obsolete, duplicate, and irrelevant content.
+Remove content that serves no current purpose.
 Remove an instruction that does not change what the actor would otherwise do.
 Disclose conditional detail when keeping it inline makes the active instructions difficult to use.
 
@@ -60,7 +61,7 @@ Disclose conditional detail when keeping it inline makes the active instructions
 Trace every applicable path from entry to completion.
 For linear instructions, trace at least one representative case.
 Test consequential or disputed behavior with the intended actor when the environment supports it.
-Confirm that the result preserves its intended behavior, scope, conditions, technical claims, and necessary relationships.
+Confirm that the result preserves all intended meaning and necessary relationships.
 Record assumptions that cannot be tested.
 
 The work is complete when the artifact addresses its intended behavior or question, each meaning has one authority, every applicable path satisfies its observable completion conditions, and each untested assumption is explicit.
