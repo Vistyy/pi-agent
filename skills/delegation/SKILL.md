@@ -50,6 +50,10 @@ For coverage work, define the parent's area and each agent's distinct area befor
 Continue the parent's non-overlapping investigation while agents work.
 Use the batch completion follow-up rather than polling `list_agents`.
 Use `list_agents` only to diagnose missing completion or blocked lifecycle state.
+After starting an agent whose report will inform the current answer, wait for its completion notification and use its report.
+Do not ask it to finish early or interrupt it because the parent investigation finished first.
+Interrupt it only if it risks changing something it should not, starts consuming unapproved paid resources, cannot continue, is working on the wrong task, or the user asks you to stop it.
+If you need to answer before the agent can finish, do not start the agent.
 
 Read every required result and inspect the cited evidence needed to evaluate it.
 Treat failed or incomplete contributions as visible gaps.
