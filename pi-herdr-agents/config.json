@@ -1,5 +1,6 @@
 {
   "maxAgents": 10,
+  "instructionsFile": "./instructions.md",
   "defaults": {
     "provider": "openai-codex",
     "model": "gpt-5.6-luna",
