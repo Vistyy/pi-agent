@@ -14,7 +14,8 @@
     "git:github.com/Vistyy/pi-lavish@v0.4.4",
     "git:github.com/Vistyy/pi-background-processes@v0.2.1",
     "npm:@syzom/nopus@1.1.0",
-    "git:github.com/Vistyy/pi-herdr-agents@v0.4.1"
+    "git:github.com/Vistyy/pi-herdr-agents@v0.4.1",
+    "npm:@ff-labs/pi-fff@0.10.5"
   ],
   "enabledModels": [
     "openai-codex/gpt-5.6-sol",
