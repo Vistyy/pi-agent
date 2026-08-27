@@ -9,8 +9,6 @@
   "doubleEscapeAction": "tree",
   "theme": "rose-pine-moon",
   "packages": [
-    "npm:@ogulcancelik/pi-session-recall@1.0.6",
-    "git:github.com/Vistyy/pi-lavish@v0.4.4",
     "npm:@ff-labs/pi-fff@0.10.5"
   ],
   "enabledModels": [
