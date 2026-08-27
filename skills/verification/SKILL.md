@@ -48,7 +48,8 @@ Choose direct supported evidence at the lowest reasonable execution, diagnosis, 
 Do not keep or add a check merely because it is broader, slower, familiar, or present.
 Use the relevant environment and record only procedure, environment, and observation.
 Evidence supports only what it observed.
-Prefer evidence independent enough from implementation logic under review that a wrong implementation can fail it.
+Reject tautological evidence: a check must be independent enough from the implementation logic under review that a wrong implementation can fail it, and it must not derive its expected result from the same logic or representation it evaluates.
+An exact-output check may use a matching representation only when the expected representation comes from an independent supported contract, not from the implementation under review.
 Evidence must cross the real boundary when behavior depends on it.
 
 For a changed integration, run one normal operation through the exact implementation and real dependency, not a test double.
