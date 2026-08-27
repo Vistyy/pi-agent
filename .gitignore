@@ -12,12 +12,6 @@
 !models.json
 !keybindings.json
 !session-recall.json
-!pi-herdr-agents/
-!pi-herdr-agents/config.json
-!pi-herdr-agents/instructions.md
-!pi-herdr-agents/agents/
-!pi-herdr-agents/agents/**
-pi-herdr-agents/sessions/
 
 # Track resource directories
 !agents/
