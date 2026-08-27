@@ -48,9 +48,10 @@ Start independent contributions together when their scopes do not overlap.
 For coverage work, define the parent's area and each agent's distinct area before dispatch.
 
 Continue the parent's non-overlapping investigation while agents work.
-Use the batch completion follow-up rather than polling `list_agents`.
-Use `list_agents` only to diagnose missing completion or blocked lifecycle state.
-After starting an agent whose report will inform the current answer, wait for its completion notification and use its report.
+Use the grouped batch completion report rather than polling `list_agents`.
+The report is steered into the parent at the next turn boundary after the whole batch settles, or starts a turn immediately when the parent is idle.
+Use `list_agents` only to diagnose a missing completion report or blocked lifecycle state.
+After starting an agent whose report will inform the current answer, continue non-overlapping work and use the grouped report when it arrives.
 Do not ask it to finish early or interrupt it because the parent investigation finished first.
 Interrupt it only if it risks changing something it should not, starts consuming unapproved paid resources, cannot continue, is working on the wrong task, or the user asks you to stop it.
 If you need to answer before the agent can finish, do not start the agent.
