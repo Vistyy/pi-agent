@@ -39,21 +39,23 @@ If the user uses a term that conflicts with the applicable `CONTEXT.md`:
 
 1. State the existing definition.
 2. State how the user's meaning differs.
-3. Ask which meaning is correct.
+3. Apply the meaning established by accepted requirements or another applicable authority.
+4. Ask which meaning is correct only when the unresolved difference would materially affect the work.
 
 ### Clarify vague terms
 
-If a term has multiple possible meanings, identify the possible concepts.
-Propose one canonical term for each concept and ask the user to confirm it.
+If a term has multiple possible meanings, identify the possible concepts that would materially change the work.
+Use the meaning established by the applicable context, accepted requirements, or implementation evidence.
+When those authorities do not resolve a material ambiguity, propose one canonical term for each remaining concept and ask the user to confirm it.
 
 ### Test domain relationships
 
 When the user describes a relationship between concepts, test it with specific scenarios.
-Include edge cases that clarify the boundary between each concept.
-Ask the user to resolve any ambiguous result.
+Include edge cases that clarify the boundary between each concept when those boundaries affect supported behavior.
+Ask the user to resolve only an ambiguity that materially affects the model and remains unresolved by applicable authority.
 
-Relationship testing is complete when normal and boundary scenarios produce an unambiguous relationship.
-If ambiguity remains, keep the affected model change incomplete until the user resolves it.
+Relationship testing is complete when the scenarios material to supported behavior produce an unambiguous relationship.
+If a material ambiguity remains, keep the affected model change incomplete until the applicable authority resolves it.
 
 ### Verify statements against the code
 
@@ -62,9 +64,10 @@ If the code and the statement conflict:
 
 1. Describe the behavior in the code.
 2. Describe the conflicting statement.
-3. Ask which behavior defines the current domain model.
+3. Apply the behavior established by accepted requirements or another applicable authority.
+4. Ask which behavior defines the current domain model only when the conflict remains material and unresolved.
 
-Code verification is complete when the applicable implementation agrees with the domain statement or the user resolves each identified conflict.
+Code verification is complete when the applicable implementation agrees with the domain statement or the applicable authority resolves each material conflict.
 
 ### Record resolved terms
 
@@ -72,7 +75,7 @@ Use each `CONTEXT.md` only for the implemented, supported domain model in its sc
 Keep a term for planned functionality in the applicable plan or Task until that functionality is implemented.
 Plan approval does not make the term part of the current domain model.
 
-After implementation, update the applicable `CONTEXT.md` only when the user has authorized that domain-model edit.
+After implementation, update the applicable `CONTEXT.md` when the authorized task includes maintaining the domain model or when the update is required to keep affected documentation accurate.
 Otherwise, report the proposed canonical definition, owning context, implementation status, and authorization needed to record it.
 Use [CONTEXT-FORMAT.md](references/CONTEXT-FORMAT.md).
 

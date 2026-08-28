@@ -14,8 +14,8 @@ Do not load that reference only because an instruction artifact uses Markdown or
 When writing or reviewing a skill, also read [Writing skills](references/SKILLS.md) completely.
 
 When the user requests an audit, do not change files.
-Check every applicable criterion and report each failure with its evidence and impact.
-Report no findings only after every criterion passes.
+Check every criterion applicable to the requested scope and report each material failure with its evidence and impact.
+Report no material findings only after every applicable criterion has been checked.
 
 ## 1. Establish the target
 
@@ -50,7 +50,7 @@ Use a list as the complete definition only when an authoritative source establis
 ## 3. Remove unnecessary content
 
 Keep each meaning in one authoritative location.
-For every retained statement or instruction, identify what established need rules out a weaker alternative.
+For every materially constraining or repeated statement, identify what established need rules out a weaker alternative.
 Remove or weaken it when none does.
 Remove content that serves no current purpose.
 Remove an instruction that does not change what the actor would otherwise do.
@@ -58,7 +58,7 @@ Disclose conditional detail when keeping it inline makes the active instructions
 
 ## 4. Validate the result
 
-Trace every applicable path from entry to completion.
+Trace every materially distinct applicable path from entry to completion.
 For linear instructions, trace at least one representative case.
 Test consequential or disputed behavior with the intended actor when the environment supports it.
 Confirm that the result preserves all intended meaning and necessary relationships.

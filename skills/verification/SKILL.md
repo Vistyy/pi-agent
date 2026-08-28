@@ -52,9 +52,9 @@ Reject tautological evidence: a check must be independent enough from the implem
 An exact-output check may use a matching representation only when the expected representation comes from an independent supported contract, not from the implementation under review.
 Evidence must cross the real boundary when behavior depends on it.
 
-For a changed integration, run one normal operation through the exact implementation and real dependency, not a test double.
+For a changed integration, run one normal operation through the exact implementation and real dependency when the operation is supported and stays within the task's authority, acceptable cost, and safety constraints.
 Component or failure checks do not prove normal operation.
-If no supported operation can establish the integration, report it unverified.
+When a real operation is unavailable or would require an unapproved external effect, use the strongest authorized evidence and report the remaining integration uncertainty.
 
 Complete each mandatory gate through its owner.
 Missing, malformed, unavailable, or ambiguous evidence is unknown, not success.

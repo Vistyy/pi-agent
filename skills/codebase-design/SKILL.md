@@ -50,14 +50,15 @@ Use observed changes, defects, or verification friction when available.
 This step is complete when the behavior, current owner, material caller knowledge, and coordination cost are explicit enough to compare structures.
 If no structural problem remains, keep the current structure.
 
-## 2. Develop independent designs for consequential decisions
+## 2. Develop independent designs when they can change the decision
 
 Treat a decision as consequential when selecting the wrong structure could materially change ownership, caller knowledge, an interface, a seam, dependency direction, lifecycle, persistence, migration, or verification, or when reversal would be non-local or costly.
-For every consequential decision, read and follow [Design It Twice](references/DESIGN-IT-TWICE.md) before selecting a structure, even when the first inspected structure appears sufficient.
+For a consequential decision, read and follow [Design It Twice](references/DESIGN-IT-TWICE.md) when evidence supports at least two credible structures, ownership or interface selection remains materially uncertain, or the user requests alternatives.
+Do not require independent designs solely because a decision is consequential.
 When established requirements and evidence support fewer than two credible designs, preserve that conclusion instead of inventing an alternative.
-Select directly only when the choice is local and reversible and cannot materially affect those structural dimensions, and state the controlling reason.
+Select directly when evidence establishes one credible structure or when the choice is local and reversible, and state the controlling reason.
 
-This step is complete when independently developed designs have been compared or evidence establishes why fewer than two credible designs exist.
+This step is complete when the credible alternatives that could change the decision have been compared, or evidence establishes why an independent alternative would not be useful.
 
 ## 3. Compare the credible structures
 

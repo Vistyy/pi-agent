@@ -73,11 +73,12 @@ If the applicable context is unclear, ask the user.
 
 Create a second context only when two areas use distinct domain language or rules that must remain independent.
 Separate directories or modules do not establish separate contexts.
-When the evidence suggests a second context, state the distinct language or rules and ask the user to confirm the split.
+When the evidence suggests a second context, state the distinct language or rules.
+Ask the user to confirm the split only when the current authorized outcome and applicable project authority do not already establish it.
 
-After the user confirms the split and authorizes the domain-model changes:
+After the split and domain-model changes are authorized:
 
-1. Propose each context's canonical name, purpose, and repository location from the accepted domain language and repository structure, then ask the user to confirm them.
+1. Propose each context's canonical name, purpose, and repository location from the accepted domain language and repository structure, and ask the user to resolve only material choices that the applicable authority leaves open.
 2. Create each context-specific `CONTEXT.md` with its confirmed name and purpose.
 3. Move each term from the root `CONTEXT.md` to its applicable context.
 4. If a term's context is ambiguous, ask the user to resolve it before continuing the transition.

@@ -21,7 +21,7 @@
 - When a repository's `CONTEXT.md` describes the domain involved in the task, read it before naming or describing domain behavior.
   Use its canonical terms in domain-facing code, instructions, documentation, and responses.
   When the audience cannot access that context, define the term or provide a reliable reference.
-  Ask the user when the required term is missing or ambiguous.
+  Ask the user when a missing or ambiguous term would materially affect behavior, scope, or communication and the available authority does not resolve it.
 
 ## Responses
 
@@ -52,7 +52,8 @@
 - A request to investigate, discuss, explain, compare, review, or plan permits read-only evidence gathering.
   It does not permit repository edits or other lasting changes.
   Make a lasting change only when the user requests or approves it.
-- When choosing between designs that all provide the required behavior, do not favor a design because it takes less work to implement.
+- When choosing between designs that all provide the required behavior, do not choose one solely because it takes less work to implement.
+  Treat implementation cost as one material trade-off alongside correctness, maintenance, reversibility, and verification.
 
 ## Design and implementation
 
