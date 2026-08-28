@@ -9,7 +9,6 @@
   "doubleEscapeAction": "tree",
   "theme": "rose-pine-moon",
   "packages": [
-    "npm:@ff-labs/pi-fff@0.10.5",
     "npm:pi-web-access@0.14.0"
   ],
   "enabledModels": [
