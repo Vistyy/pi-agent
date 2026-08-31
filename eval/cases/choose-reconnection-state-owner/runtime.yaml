@@ -13,6 +13,13 @@ preflight:
       - path: src/session-coordinator.ts
         contains:
           - class SessionCoordinator
+  lifecycle-requirement-present:
+    checker: files-contain
+    files:
+      - path: test/session-coordinator.test.ts
+        contains:
+          - reconnection state survives workspace replacement
+          - assert.equal(coordinator.reconnect(), "resume-token")
   lifecycle-evidence-present:
     checker: files-contain
     files:
@@ -25,3 +32,4 @@ collectors:
   repository-inspection: pi-tool-trajectory-collector
 graders:
   relevant-evidence-before-recommendation: semantic-criterion
+  accurate-lifecycle-model: semantic-criterion

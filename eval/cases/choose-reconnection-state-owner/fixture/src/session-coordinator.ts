@@ -21,6 +21,10 @@ export class SessionCoordinator {
     this.runtime = new WorkspaceRuntime(workspace, this.reconnectionState);
   }
 
+  reconnect(): string | undefined {
+    return this.runtime.reconnect();
+  }
+
   updateReconnectionState(resumeToken: string, sequence: number): void {
     this.reconnectionState.resumeToken = resumeToken;
     this.reconnectionState.lastAcknowledgedSequence = sequence;

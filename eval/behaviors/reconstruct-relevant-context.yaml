@@ -20,3 +20,7 @@ failure_modes:
     description: >
       The agent exposes substantially more repository detail than the decision
       requires and obscures the relevant model.
+  - id: incorrect-system-model
+    description: >
+      The agent retrieves relevant evidence but explains ownership, lifecycle,
+      state, or flow in a way that contradicts the accepted project behavior.

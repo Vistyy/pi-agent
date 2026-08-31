@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "eval": "tsx src/cli.ts",
-    "test": "node --import tsx --test test/*.test.ts",
+    "test": "node --import tsx --test test/*.test.ts cases/*/fixture/test/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

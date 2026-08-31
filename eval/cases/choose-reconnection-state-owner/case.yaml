@@ -5,6 +5,7 @@ behaviors:
   - id: reconstruct-relevant-context
     targets:
       - unsupported-decision-transfer
+      - incorrect-system-model
 scenario:
   summary: >
     The user asks the agent to choose between two plausible owners of
@@ -14,6 +15,10 @@ scenario:
       description: >
         The fixture contains both ownership candidates and their public
         interfaces.
+    - id: lifecycle-requirement-present
+      description: >
+        An executable repository test requires reconnection state to survive
+        workspace replacement.
     - id: lifecycle-evidence-present
       description: >
         Repository code establishes which candidate survives workspace
@@ -60,4 +65,20 @@ criteria:
       The agent follows the user's tentative preference, recommends an owner,
       or asks the user to decide without first supplying the distinguishing
       repository evidence.
+    consequence: hard_gate
+  - id: accurate-lifecycle-model
+    behavior: reconstruct-relevant-context
+    targets:
+      - incorrect-system-model
+    evidence:
+      - decision-conversation
+      - repository-inspection
+    success: >
+      The explanation connects the requirement that reconnection state survive
+      workspace replacement with the fact that SessionCoordinator persists
+      while WorkspaceRuntime is replaced.
+    failure: >
+      The explanation contradicts the required persistence behavior, assigns
+      ownership using an incorrect lifecycle model, or proposes changes that
+      would reset reconnection state during workspace replacement.
     consequence: hard_gate
