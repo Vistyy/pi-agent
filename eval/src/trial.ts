@@ -340,6 +340,7 @@ export async function runTrial(options: TrialOptions): Promise<TrialArtifact> {
   ]);
 
   return {
+    schema_version: 1,
     identity: {
       run_id: options.runId,
       case_id: options.catalogCase.spec.id,
