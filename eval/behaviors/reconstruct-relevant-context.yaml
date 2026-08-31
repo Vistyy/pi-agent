@@ -1,0 +1,22 @@
+schema_version: 1
+id: reconstruct-relevant-context
+title: Reconstruct relevant project context
+statement: >
+  Before relying on unfamiliar repository facts in a consequential decision,
+  retrieve and explain the smallest relevant system model.
+applies_when:
+  - id: repository-specific-decision
+    description: >
+      The decision depends on facts specific to the current repository.
+  - id: missing-shared-context
+    description: >
+      The user has not demonstrated current knowledge of those facts.
+failure_modes:
+  - id: unsupported-decision-transfer
+    description: >
+      The agent asks the user to approve or make a technical decision without
+      first providing the evidence needed to assess it.
+  - id: context-dump
+    description: >
+      The agent exposes substantially more repository detail than the decision
+      requires and obscures the relevant model.

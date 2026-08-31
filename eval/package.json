@@ -1,0 +1,21 @@
+{
+  "name": "pi-behavior-eval",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "eval": "tsx src/cli.ts",
+    "test": "node --import tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "0.84.3",
+    "ajv": "8.17.1",
+    "yaml": "2.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "25.0.3",
+    "tsx": "4.21.0",
+    "typescript": "6.0.2"
+  }
+}

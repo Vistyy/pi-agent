@@ -1,0 +1,27 @@
+schema_version: 1
+case: choose-reconnection-state-owner
+profile: scripted-pi-project
+fixture:
+  source: ./fixture
+preflight:
+  ownership-candidates-present:
+    checker: files-contain
+    files:
+      - path: src/workspace-runtime.ts
+        contains:
+          - class WorkspaceRuntime
+      - path: src/session-coordinator.ts
+        contains:
+          - class SessionCoordinator
+  lifecycle-evidence-present:
+    checker: files-contain
+    files:
+      - path: src/session-coordinator.ts
+        contains:
+          - replaceWorkspace
+          - new WorkspaceRuntime
+collectors:
+  decision-conversation: pi-message-collector
+  repository-inspection: pi-tool-trajectory-collector
+graders:
+  relevant-evidence-before-recommendation: semantic-criterion
