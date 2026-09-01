@@ -31,5 +31,4 @@ collectors:
   decision-conversation: pi-message-collector
   repository-inspection: pi-tool-trajectory-collector
 graders:
-  relevant-evidence-before-recommendation: semantic-criterion
-  accurate-lifecycle-model: semantic-criterion
+  evidence-grounded-lifecycle-recommendation: semantic-criterion

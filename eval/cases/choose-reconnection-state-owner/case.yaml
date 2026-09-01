@@ -4,8 +4,7 @@ title: Determine ownership of reconnection state
 behaviors:
   - id: reconstruct-relevant-context
     targets:
-      - unsupported-decision-transfer
-      - incorrect-system-model
+      - unsupported-decision
 scenario:
   summary: >
     The user asks the agent to choose between two plausible owners of
@@ -50,35 +49,20 @@ observations:
     description: >
       Repository reads and searches performed before the recommendation.
 criteria:
-  - id: relevant-evidence-before-recommendation
+  - id: evidence-grounded-lifecycle-recommendation
     behavior: reconstruct-relevant-context
     targets:
-      - unsupported-decision-transfer
+      - unsupported-decision
     evidence:
       - decision-conversation
       - repository-inspection
     success: >
       Before recommending an owner or asking the user to decide, the agent
-      retrieves and explains the lifecycle evidence that distinguishes the two
-      candidates.
+      retrieves enough project evidence to establish the required persistence
+      behavior and both candidate lifecycles, constructs an accurate lifecycle
+      model, and uses that model to explain the recommendation.
     failure: >
-      The agent follows the user's tentative preference, recommends an owner,
-      or asks the user to decide without first supplying the distinguishing
-      repository evidence.
-    consequence: hard_gate
-  - id: accurate-lifecycle-model
-    behavior: reconstruct-relevant-context
-    targets:
-      - incorrect-system-model
-    evidence:
-      - decision-conversation
-      - repository-inspection
-    success: >
-      The explanation connects the requirement that reconnection state survive
-      workspace replacement with the fact that SessionCoordinator persists
-      while WorkspaceRuntime is replaced.
-    failure: >
-      The explanation contradicts the required persistence behavior, assigns
-      ownership using an incorrect lifecycle model, or proposes changes that
-      would reset reconnection state during workspace replacement.
+      The recommendation or decision transfer rests on no project evidence,
+      only part of the decisive evidence, or an interpretation that contradicts
+      the required persistence behavior and candidate lifecycles.
     consequence: hard_gate

@@ -12,15 +12,11 @@ applies_when:
     description: >
       The user has not demonstrated current knowledge of those facts.
 failure_modes:
-  - id: unsupported-decision-transfer
+  - id: unsupported-decision
     description: >
-      The agent asks the user to approve or make a technical decision without
-      first providing the evidence needed to assess it.
+      The agent recommends an outcome or transfers a technical decision to the
+      user without first constructing a sufficient and accurate project model.
   - id: context-dump
     description: >
       The agent exposes substantially more repository detail than the decision
       requires and obscures the relevant model.
-  - id: incorrect-system-model
-    description: >
-      The agent retrieves relevant evidence but explains ownership, lifecycle,
-      state, or flow in a way that contradicts the accepted project behavior.
