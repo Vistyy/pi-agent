@@ -5,28 +5,28 @@ Other providers keep normal Pi behavior unless the active branch contains a remo
 
 ## Behavior
 
-The extension proactively compacts a compatible Codex request at or above 90% of Pi's reported context window before sending that request.
-It rewrites that pending request with the returned remote checkpoint, so the active model and tool loop continues without a synthetic user message.
-Pi's normal compaction triggers and `compaction.keepRecentTokens` setting remain supported.
+Pi owns compaction thresholds, scheduling, retained-tail selection, persistence, and continuation.
+When Pi requests compaction, the extension builds a fresh Codex request from the current branch, model, system prompt, active tools, and reasoning level.
 It authenticates with the Codex OAuth credential managed by Pi.
-It stores OpenAI's opaque remote checkpoint in the Pi session instead of generating a second plaintext summary.
+It stores OpenAI's opaque remote checkpoint in a normal Pi compaction entry instead of generating a second plaintext summary.
+No completed provider request or in-memory request cache is required.
 
 Compatible Codex models can continue the remote checkpoint chain.
 The extension follows Codex model metadata and alias resolution for `comp_hash` compatibility.
 A missing hash is unknown compatibility and does not block checkpoint reuse.
 Only known differing hashes establish incompatibility.
 An incompatible model receives the plaintext marker and visible tail after a warning.
-Switching back to a compatible model restores access to the remote checkpoint if no later compaction ended the chain.
+Switching back to a compatible Codex model restores access to the remote checkpoint if no later compaction ended the chain.
 
 If remote compaction fails, the extension leaves the session and remote checkpoint chain unchanged.
 Use `/compact-pi` to confirm an ordinary Pi compaction that ends the remote checkpoint chain.
 Custom `/compact` instructions are not supported while remote compaction applies.
 
 Remote usage is recorded in both Pi's compaction entry and the shared `pi.usage.recorded` format used by `/cost`.
-Inline checkpoints use a persisted custom entry and the same usage format.
-After successful inline or Pi-managed remote compaction, the extension emits `openai-remote-compaction:completed` through `pi.events` with an `undefined` payload.
-The event is not emitted for ordinary Pi compaction or failed remote compaction.
-Successful inline compaction shows a brief start notice and a completion notice before the current run continues.
+After successful remote compaction, the extension emits `openai-remote-compaction:completed` through `pi.events` with an `undefined` payload.
+
+Remote checkpoints created by the former implementation are not supported.
+Create a handoff and continue in a new session before reloading this implementation into a session that depends on one.
 
 ## Documentation
 

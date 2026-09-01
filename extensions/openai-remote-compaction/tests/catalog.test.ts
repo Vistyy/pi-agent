@@ -1,17 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 import { CodexModelCatalog, checkpointIsCompatible } from "../src/catalog.js";
-import type { OpenAIRemoteCompactionDetailsV1 } from "../src/types.js";
+import type { OpenAIRemoteCheckpoint } from "../src/types.js";
 
 function checkpoint(
   creatingModelId: string,
   compactionCompatibilityHash?: string,
-): OpenAIRemoteCompactionDetailsV1 {
+): OpenAIRemoteCheckpoint {
   return {
-    version: 1,
     replacementHistory: [{ type: "compaction", encrypted_content: "opaque" }],
     creatingModelId,
     ...(compactionCompatibilityHash ? { compactionCompatibilityHash } : {}),
-    continuationSettings: {},
   };
 }
 

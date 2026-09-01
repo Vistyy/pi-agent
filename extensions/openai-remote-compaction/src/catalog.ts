@@ -1,6 +1,6 @@
 import { buildCodexHeaders, type CodexAuth } from "./auth.js";
 import { MODELS_URL } from "./constants.js";
-import type { OpenAIRemoteCompactionDetailsV1 } from "./types.js";
+import type { OpenAIRemoteCheckpoint } from "./types.js";
 
 export const CODEX_CATALOG_CLIENT_VERSION = "0.145.0";
 
@@ -140,7 +140,7 @@ export class CodexModelCatalog {
 }
 
 export function checkpointIsCompatible(
-  checkpoint: OpenAIRemoteCompactionDetailsV1,
+  checkpoint: OpenAIRemoteCheckpoint,
   currentHash: string | undefined,
 ): boolean {
   if (currentHash && checkpoint.compactionCompatibilityHash) {

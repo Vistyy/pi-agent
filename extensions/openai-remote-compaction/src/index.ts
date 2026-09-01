@@ -1,8 +1,5 @@
-import { createHash } from "node:crypto";
 import {
-  buildSessionContext,
   convertToLlm,
-  sessionEntryToContextMessages,
   type ExtensionAPI,
   type ExtensionContext,
   type SessionEntry,
@@ -12,33 +9,30 @@ import { CodexModelCatalog, checkpointIsCompatible } from "./catalog.js";
 import {
   CODEX_PROVIDER,
   COMPACTION_MARKER,
-  INLINE_REMOTE_COMPACTION_ENTRY,
-  PROACTIVE_COMPACTION_RATIO,
   REMOTE_COMPACTION_COMPLETED_EVENT,
 } from "./constants.js";
-import {
-  buildRemoteCompactionRequest,
-  captureContinuationSettings,
-  isCodexRequestTemplate,
-  replaceMarkerWithRemoteCheckpoint,
-} from "./request.js";
 import { convertCodexMessages } from "./messages.js";
 import { requestRemoteCompaction } from "./remote.js";
 import {
-  findActiveRemoteCheckpoint,
-  findActiveRemoteCheckpointEntry,
-  isRemoteCompactionDetails,
-} from "./session-state.js";
-import type {
-  CodexRequestTemplate,
-  OpenAIRemoteCompactionEntryDetails,
-  ResponseItem,
-} from "./types.js";
+  buildRemoteCompactionRequest,
+  buildToolsPayload,
+  compactionSummaryItem,
+  isCodexResponsesPayload,
+  replaceMarkerWithRemoteCheckpoint,
+} from "./request.js";
+import { findActiveRemoteCheckpoint, isRemoteCheckpoint } from "./session-state.js";
+import type { OpenAIRemoteCheckpointEntryDetails } from "./types.js";
 import { createUsageRecord } from "./usage.js";
 
-function currentCodexModel(ctx: { model?: { provider: string; id: string; input?: readonly string[] } }):
-  | { provider: string; id: string; input?: readonly string[] }
-  | undefined {
+type CodexModel = {
+  provider: string;
+  id: string;
+  input?: readonly string[];
+  reasoning?: boolean;
+  thinkingLevelMap?: Partial<Record<string, string | null>>;
+};
+
+function currentCodexModel(ctx: { model?: CodexModel }): CodexModel | undefined {
   return ctx.model?.provider === CODEX_PROVIDER ? ctx.model : undefined;
 }
 
@@ -57,96 +51,12 @@ async function resolveCodexAuth(ctx: Pick<ExtensionContext, "modelRegistry">): P
   }
 }
 
-interface ScopedTemplate {
-  template: CodexRequestTemplate;
-  modelId: string;
-  branchAnchorId: string | null;
-}
-
 function sessionKey(ctx: { sessionManager: { getSessionId(): string } }): string {
   return ctx.sessionManager.getSessionId();
 }
 
-function modelTemplateKey(sessionId: string, modelId: string): string {
-  return `${sessionId}\u0000${modelId}`;
-}
-
-function belongsToBranch(scoped: ScopedTemplate, branch: readonly SessionEntry[]): boolean {
-  return scoped.branchAnchorId === null || branch.some((entry) => entry.id === scoped.branchAnchorId);
-}
-
-function hasSuccessfulAssistantAfterCheckpoint(
-  branch: readonly SessionEntry[],
-  checkpoint: ReturnType<typeof findActiveRemoteCheckpointEntry>,
-): boolean {
-  if (!checkpoint) return true;
-  return branch.slice(checkpoint.entryIndex + 1).some(
-    (entry) =>
-      entry.type === "message" &&
-      entry.message.role === "assistant" &&
-      entry.message.stopReason !== "error" &&
-      entry.message.stopReason !== "aborted",
-  );
-}
-
-function responseItemHash(item: ResponseItem): string {
-  return createHash("sha256").update(JSON.stringify(item)).digest("hex");
-}
-
-function inlineInputAnchor(input: readonly ResponseItem[]): {
-  inlineCoveredInputItemHash: string;
-  inlineCoveredInputItemOccurrence: number;
-} | undefined {
-  const coveredItem = input.at(-1);
-  if (!coveredItem) return undefined;
-  const inlineCoveredInputItemHash = responseItemHash(coveredItem);
-  return {
-    inlineCoveredInputItemHash,
-    inlineCoveredInputItemOccurrence: input.filter(
-      (item) => responseItemHash(item) === inlineCoveredInputItemHash,
-    ).length,
-  };
-}
-
-function inlineCheckpointInput(
-  model: { id: string; input?: readonly string[] },
-  branch: readonly SessionEntry[],
-  checkpoint: ReturnType<typeof findActiveRemoteCheckpointEntry>,
-  providerInput: readonly ResponseItem[],
-): ResponseItem[] | undefined {
-  if (!checkpoint || branch[checkpoint.entryIndex]?.type !== "custom") return undefined;
-  const coveredHash = checkpoint.details.inlineCoveredInputItemHash;
-  if (coveredHash) {
-    let remainingOccurrence = checkpoint.details.inlineCoveredInputItemOccurrence ?? 1;
-    let coveredIndex = -1;
-    for (let index = 0; index < providerInput.length; index += 1) {
-      if (responseItemHash(providerInput[index]) !== coveredHash) continue;
-      remainingOccurrence -= 1;
-      if (remainingOccurrence === 0) {
-        coveredIndex = index;
-        break;
-      }
-    }
-    if (coveredIndex >= 0) {
-      return [
-        ...checkpoint.details.replacementHistory,
-        ...providerInput.slice(coveredIndex + 1),
-      ];
-    }
-  }
-  const messages = branch
-    .slice(checkpoint.entryIndex + 1)
-    .flatMap((entry) => sessionEntryToContextMessages(entry));
-  return [
-    ...checkpoint.details.replacementHistory,
-    ...convertCodexMessages(model, convertToLlm(messages)),
-  ];
-}
-
 export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
   const catalog = new CodexModelCatalog();
-  const pendingTemplates = new Map<string, ScopedTemplate>();
-  const completedTemplates = new Map<string, ScopedTemplate>();
   const piCompactionBypasses = new Set<string>();
 
   pi.registerCommand("compact-pi", {
@@ -172,80 +82,19 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
 
   pi.on("before_provider_request", async (event, ctx) => {
     const model = currentCodexModel(ctx);
-    if (!model || !isCodexRequestTemplate(event.payload)) return;
+    if (!model || !isCodexResponsesPayload(event.payload)) return;
 
-    const branch = ctx.sessionManager.getBranch();
-    const active = findActiveRemoteCheckpointEntry(branch);
-    const checkpoint = active?.details;
-    let auth: CodexAuth | undefined;
-    let currentHash: string | undefined;
-    let compatible = false;
-    if (checkpoint) {
-      auth = await resolveCodexAuth(ctx);
-      currentHash = auth ? await catalog.getHash(model.id, auth) : undefined;
-      compatible = checkpointIsCompatible(checkpoint, currentHash);
-    }
-    const checkpointInput =
-      checkpoint && compatible
-        ? inlineCheckpointInput(model, branch, active, event.payload.input ?? [])
-        : undefined;
-    const input =
-      checkpointInput ??
-      (checkpoint && compatible
-        ? replaceMarkerWithRemoteCheckpoint(event.payload.input ?? [], checkpoint)
-        : [...(event.payload.input ?? [])]);
-    let template = { ...event.payload, input };
+    const checkpoint = findActiveRemoteCheckpoint(ctx.sessionManager.getBranch());
+    if (!checkpoint) return;
 
-    const usage = ctx.getContextUsage();
-    const shouldProactivelyCompact =
-      usage?.percent !== null &&
-      usage?.percent !== undefined &&
-      usage.percent >= PROACTIVE_COMPACTION_RATIO * 100 &&
-      hasSuccessfulAssistantAfterCheckpoint(branch, active);
-    if (shouldProactivelyCompact) {
-      auth ??= await resolveCodexAuth(ctx);
-      if (!auth) {
-        ctx.ui.notify("Inline remote compaction could not resolve Codex OAuth.", "error");
-      } else {
-        currentHash ??= await catalog.getHash(model.id, auth);
-        try {
-          const body = buildRemoteCompactionRequest(template, input);
-          ctx.ui.notify("Compacting remote context...", "info");
-          const remote = await requestRemoteCompaction({
-            token: auth.token,
-            authHeaders: auth.headers,
-            body,
-            signal: ctx.signal,
-            sessionId: ctx.sessionManager.getSessionId(),
-          });
-          const details: OpenAIRemoteCompactionEntryDetails = {
-            openaiRemoteCompaction: {
-              version: 1,
-              replacementHistory: remote.replacementHistory,
-              creatingModelId: model.id,
-              ...(currentHash ? { compactionCompatibilityHash: currentHash } : {}),
-              continuationSettings: captureContinuationSettings(template),
-              ...(inlineInputAnchor(input) ?? {}),
-            },
-          };
-          pi.appendEntry(INLINE_REMOTE_COMPACTION_ENTRY, details);
-          pi.appendEntry("pi.usage.recorded", createUsageRecord(model.id, remote.usage));
-          pi.events.emit(REMOTE_COMPACTION_COMPLETED_EVENT, undefined);
-          ctx.ui.notify("Remote context compacted. Continuing the current run.", "info");
-          template = { ...template, input: remote.replacementHistory };
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          ctx.ui.notify(`Inline remote compaction failed: ${message}`, "error");
-        }
-      }
-    }
+    const auth = await resolveCodexAuth(ctx);
+    const currentHash = auth ? await catalog.getHash(model.id, auth) : undefined;
+    if (!checkpointIsCompatible(checkpoint, currentHash)) return;
 
-    pendingTemplates.set(sessionKey(ctx), {
-      template,
-      modelId: model.id,
-      branchAnchorId: ctx.sessionManager.getLeafId(),
-    });
-    return template;
+    return {
+      ...event.payload,
+      input: replaceMarkerWithRemoteCheckpoint(event.payload.input, checkpoint),
+    };
   });
 
   pi.on("model_select", (event, ctx) => {
@@ -279,22 +128,12 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
       .catch(() => notifyIfIncompatible(undefined));
   });
 
-  pi.on("turn_end", (event, ctx) => {
-    if (event.message.role !== "assistant") return;
-    if (event.message.stopReason === "error" || event.message.stopReason === "aborted") return;
-    const key = sessionKey(ctx);
-    const pending = pendingTemplates.get(key);
-    if (!pending || !belongsToBranch(pending, ctx.sessionManager.getBranch())) return;
-    completedTemplates.set(modelTemplateKey(key, pending.modelId), pending);
-    pendingTemplates.delete(key);
-  });
-
   pi.on("session_compact", (event) => {
     const container = event.compactionEntry.details as
-      | Partial<OpenAIRemoteCompactionEntryDetails>
+      | Partial<OpenAIRemoteCheckpointEntryDetails>
       | undefined;
-    const details = container?.openaiRemoteCompaction;
-    if (!isRemoteCompactionDetails(details)) return;
+    const details = container?.openaiRemoteCheckpoint;
+    if (!isRemoteCheckpoint(details)) return;
     pi.appendEntry(
       "pi.usage.recorded",
       createUsageRecord(details.creatingModelId, event.compactionEntry.usage),
@@ -307,8 +146,7 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
     if (piCompactionBypasses.delete(key)) return;
 
     const branch = event.branchEntries as SessionEntry[];
-    const activeCheckpointEntry = findActiveRemoteCheckpointEntry(branch);
-    const activeCheckpoint = activeCheckpointEntry?.details;
+    const activeCheckpoint = findActiveRemoteCheckpoint(branch);
     const model = currentCodexModel(ctx);
     if (event.customInstructions?.trim() && (model || activeCheckpoint)) {
       ctx.ui.notify("Custom instructions are not supported by OpenAI remote compaction.", "error");
@@ -323,7 +161,7 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
       return { cancel: true };
     }
 
-    let auth = await resolveCodexAuth(ctx);
+    const auth = await resolveCodexAuth(ctx);
     const currentHash = auth ? await catalog.getHash(model.id, auth) : undefined;
     if (activeCheckpoint && !checkpointIsCompatible(activeCheckpoint, currentHash)) {
       ctx.ui.notify(
@@ -332,38 +170,32 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
       );
       return { cancel: true };
     }
-
-    const completedTemplate = completedTemplates.get(modelTemplateKey(key, model.id));
-    const scopedTemplate =
-      event.reason === "overflow" ? pendingTemplates.get(key) ?? completedTemplate : completedTemplate;
-    if (
-      !scopedTemplate ||
-      scopedTemplate.modelId !== model.id ||
-      !belongsToBranch(scopedTemplate, branch)
-    ) {
-      ctx.ui.notify(
-        "Remote compaction needs one completed Codex request on this branch before it can run.",
-        "error",
-      );
-      return { cancel: true };
-    }
-    const latestTemplate = scopedTemplate.template;
-
     if (!auth) {
       ctx.ui.notify("Remote compaction could not resolve Codex OAuth.", "error");
       return { cancel: true };
     }
 
     try {
-      const sessionContext = buildSessionContext(event.branchEntries as SessionEntry[]);
-      const messages = convertToLlm(sessionContext.messages);
-      const converted = convertCodexMessages(model, messages);
-      const input =
-        inlineCheckpointInput(model, branch, activeCheckpointEntry, converted) ??
-        (activeCheckpoint
-          ? replaceMarkerWithRemoteCheckpoint(converted, activeCheckpoint)
-          : converted);
-      const body = buildRemoteCompactionRequest(latestTemplate, input);
+      const messagesToCompact = [
+        ...(event.preparation.messagesToSummarize ?? []),
+        ...(event.preparation.turnPrefixMessages ?? []),
+      ];
+      const converted = convertCodexMessages(model, convertToLlm(messagesToCompact));
+      const input = activeCheckpoint
+        ? [...activeCheckpoint.replacementHistory, ...converted]
+        : event.preparation.previousSummary
+          ? [compactionSummaryItem(event.preparation.previousSummary), ...converted]
+          : converted;
+      const body = buildRemoteCompactionRequest(
+        {
+          model,
+          instructions: ctx.getSystemPrompt(),
+          tools: buildToolsPayload(pi.getAllTools(), pi.getActiveTools()),
+          thinkingLevel: pi.getThinkingLevel(),
+          sessionId: ctx.sessionManager.getSessionId(),
+        },
+        input,
+      );
       const remote = await requestRemoteCompaction({
         token: auth.token,
         authHeaders: auth.headers,
@@ -371,13 +203,11 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
         signal: event.signal,
         sessionId: ctx.sessionManager.getSessionId(),
       });
-      const details: OpenAIRemoteCompactionEntryDetails = {
-        openaiRemoteCompaction: {
-          version: 1,
+      const details: OpenAIRemoteCheckpointEntryDetails = {
+        openaiRemoteCheckpoint: {
           replacementHistory: remote.replacementHistory,
           creatingModelId: model.id,
           ...(currentHash ? { compactionCompatibilityHash: currentHash } : {}),
-          continuationSettings: captureContinuationSettings(latestTemplate),
         },
       };
 

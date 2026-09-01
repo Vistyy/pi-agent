@@ -2,99 +2,49 @@
 
 ## Scope
 
-The extension handles remote compaction only for the `openai-codex` provider.
-It uses Pi's Codex subscription authentication and the official Codex model catalog.
-It does not support direct OpenAI API models, Azure OpenAI, custom WebSocket transport, or `previous_response_id`.
+The extension provides OpenAI Codex remote compaction for the `openai-codex` provider.
+Other providers use Pi's normal compaction behavior unless the active branch contains an unreadable remote checkpoint.
 
-## Compaction lifecycle
+## Ownership
 
-The extension observes completed Codex provider requests and retains the stable request settings required for compaction.
-These settings include instructions, tools, reasoning settings, and text settings.
-
-Before a compatible Codex provider request at or above 90% of Pi's reported context window, the extension sends the pending request input with a trailing `compaction_trigger` item.
-It persists the returned checkpoint as a custom session entry and replaces that same pending request input with the remote checkpoint.
-The active model and tool loop continues without a synthetic user message.
-
-When Pi prepares automatic or manual compaction, the extension builds a new request from the active session history.
-The request includes the active remote checkpoint, the visible tail, and a trailing `compaction_trigger` item.
-The request sets `store` to `false` and does not reuse response IDs, streaming settings, or previous input.
-
-The extension sends the request to `POST https://chatgpt.com/backend-api/codex/responses` with the `remote_compaction_v2` beta feature.
-It reads the returned compaction item and stores only its opaque encrypted content.
-
-The Pi compaction summary contains this marker:
+Pi owns compaction scheduling, the context split, checkpoint persistence, retained-tail reconstruction, overflow retry, and continuation of the active agent run.
+The extension owns remote checkpoint creation, Codex compatibility checks, and checkpoint injection into compatible provider requests.
 
 ```text
-Earlier context is stored in an OpenAI remote checkpoint and is unavailable to this model.
+Pi selects prefix + retained tail
+             |
+             v
+Extension remotely compacts prefix
+             |
+             v
+Pi stores remote checkpoint + retained tail
+             |
+             v
+Extension restores checkpoint for compatible Codex requests
 ```
 
-The extension stores versioned state under `details.openaiRemoteCompaction`.
-The state contains the replacement history, creating model ID, known compatibility hash, and continuation settings.
-Pi keeps the visible tail according to `compaction.keepRecentTokens`.
+## Context model
 
-The extension reconstructs the active remote checkpoint from the active Pi branch.
-This reconstruction supports resume, reload, tree navigation, native Pi session forks, and repeated remote compaction.
-Inline checkpoints are stored as `openai-remote-compaction.checkpoint` custom entries and are not sent to the model as Pi messages.
+The active Codex context consists of one remote checkpoint followed by Pi's visible tail.
 
-## Model compatibility
+```text
+remote checkpoint + visible tail
+```
 
-The extension ships the `comp_hash` metadata bundled with Codex 0.145.0 and refreshes it from the official Codex model catalog.
-The catalog request includes the Codex client version.
-The request keeps Pi's normal Codex authentication headers because Pi, rather than the Codex binary, is the calling client.
-A remote catalog containing a listed model becomes the source of truth.
-Otherwise, remote metadata overlays the bundled snapshot.
-Model lookup follows Codex longest-prefix matching and its single-namespace suffix fallback.
+During repeated compaction, the extension sends the previous remote checkpoint followed by the new prefix selected by Pi.
+It excludes the retained visible tail because Pi will append that tail after the new checkpoint.
+This boundary prevents duplicated context.
 
-Two known matching hashes establish compatibility.
-Two known differing hashes establish incompatibility.
-If either hash is missing, compatibility is unknown and checkpoint reuse remains enabled, matching Codex behavior.
-A later successful compaction stores any newly resolved hash.
+The extension stores the opaque checkpoint under `details.openaiRemoteCheckpoint` on a normal Pi compaction entry.
+Resume, reload, tree navigation, and session forks therefore use Pi's existing branch and persistence behavior.
+Before a compatible Codex request, the extension replaces Pi's plaintext compaction marker with the stored checkpoint.
 
-Selecting an incompatible model does not cancel or revert the selection.
-The extension warns the user and sends that model the plaintext marker and visible tail.
-The remote checkpoint remains active, so returning to a compatible Codex model restores the checkpoint and includes intervening plaintext messages.
+## Compatibility and failure
 
-The extension cancels compaction when an incompatible model is active over a remote checkpoint.
-The user must select a compatible Codex model or run `/compact-pi`.
+A Codex model can read a checkpoint when its known `comp_hash` matches the checkpoint's compatibility hash.
+Unknown compatibility remains allowed, while a known mismatch leaves the plaintext marker and visible tail in place.
+Compaction is blocked when the active model cannot read an existing remote checkpoint.
 
-## Failure behavior
-
-Remote compaction makes at most three total attempts.
-It retries network failures, rate limits, and retryable server errors.
-It respects `Retry-After` and Pi's abort signal.
-It does not retry authentication failures or invalid requests.
-
-A final Pi-managed compaction failure does not save a compaction entry or change the active branch.
-An inline compaction failure leaves the pending request unchanged, so normal provider execution and Pi's existing safeguards remain available.
-The existing remote checkpoint chain remains usable.
-The extension does not fall back automatically because ordinary Pi compaction cannot read history stored only in a remote checkpoint.
-
-The `/compact-pi` command provides an explicit fallback.
-The command warns about remote-only history, requires confirmation, bypasses remote handling once, and invokes normal Pi compaction.
-A successful Pi compaction ends the remote checkpoint chain.
-
-## Usage accounting
-
-When OpenAI reports usage, the extension maps it into `CompactionEntry.usage`.
-After Pi saves the compaction, the extension appends a schema-version-1 `pi.usage.recorded` custom entry.
-The entry identifies `openai-remote-compaction` as the extension and `remote-compaction` as the operation.
-
-## Validation
-
-Offline tests use Pi's public `AgentSession` and extension resource loader with deterministic models and mocked HTTP responses.
-They cover persistence, resume, request construction, compatibility, retries, commands, notifications, and usage records.
-
-Live validation is opt-in because it uses the configured Codex subscription.
-It covers initial and repeated compaction, resume, tree navigation, available compatibility paths, failure preservation, and `store: false`.
-Run live validation after material protocol changes or major Pi upgrades.
-
-## Updating Codex metadata
-
-The bundled compatibility snapshot and `CODEX_CATALOG_CLIENT_VERSION` come from OpenAI Codex release 0.145.0 at revision `808d3c2702ce8eae007c457aa930e7c3b68dd5f6`.
-When adopting a newer stable Codex release, compare `codex-rs/models-manager/models.json` and update the version, source revision, model slugs, and `comp_hash` values together.
-Run offline and live validation after each snapshot update.
-
-## Non-goals
-
-The extension does not provide continuous plaintext summaries, portable cross-provider handoff, cross-hash checkpoint migration, automatic fallback, custom remote-compaction instructions, or extension configuration.
-Provider-agnostic checkpoint ideas remain non-current; see [the open question](open-questions/provider-agnostic-checkpoint.md).
+A remote-compaction failure does not alter the branch or replace the active checkpoint.
+The extension retries only retryable failures and otherwise cancels that compaction attempt.
+The `/compact-pi` command provides an explicit ordinary-compaction fallback that ends the remote checkpoint chain.

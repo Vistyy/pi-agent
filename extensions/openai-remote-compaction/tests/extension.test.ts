@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import type { SessionEntry } from "@earendil-works/pi-coding-agent";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import remoteCompactionExtension from "../src/index.js";
@@ -25,6 +24,12 @@ function apiHarness() {
           commands.set(name, command),
       ),
       appendEntry: vi.fn(),
+      getAllTools: vi.fn(() => [
+        { name: "read", description: "Read a file", parameters: { type: "object" } },
+        { name: "write", description: "Write a file", parameters: { type: "object" } },
+      ]),
+      getActiveTools: vi.fn(() => ["read"]),
+      getThinkingLevel: vi.fn(() => "high"),
       events: { emit: vi.fn() },
     },
     handlers,
@@ -135,26 +140,6 @@ describe("remote compaction extension lifecycle", () => {
     const entries = branch();
     const ctx = context(entries);
 
-    await handlers.get("before_provider_request")?.(
-      {
-        payload: {
-          model: "gpt-test",
-          instructions: "Be precise.",
-          input: [{ role: "user", content: [{ type: "input_text", text: "hello" }] }],
-          reasoning: { effort: "high", summary: "auto" },
-          text: { verbosity: "low" },
-          store: false,
-          stream: true,
-        },
-      },
-      ctx,
-    );
-
-    await handlers.get("turn_end")?.(
-      { message: entries[1].type === "message" ? entries[1].message : undefined },
-      ctx,
-    );
-
     const result = await handlers.get("session_before_compact")?.(
       {
         branchEntries: entries,
@@ -170,8 +155,7 @@ describe("remote compaction extension lifecycle", () => {
       firstKeptEntryId: "assistant-1",
       tokensBefore: 14,
       details: {
-        openaiRemoteCompaction: {
-          version: 1,
+        openaiRemoteCheckpoint: {
           replacementHistory: [{ type: "compaction", encrypted_content: "opaque" }],
           creatingModelId: "gpt-test",
           compactionCompatibilityHash: "family-1",
@@ -291,14 +275,6 @@ describe("remote compaction extension lifecycle", () => {
     const original = structuredClone(entries);
     const ctx = context(entries);
 
-    await handlers.get("before_provider_request")?.(
-      { payload: { model: "gpt-test", input: [] } },
-      ctx,
-    );
-    await handlers.get("turn_end")?.(
-      { message: entries[1].type === "message" ? entries[1].message : undefined },
-      ctx,
-    );
     const result = await handlers.get("session_before_compact")?.(
       {
         branchEntries: entries,
@@ -330,14 +306,6 @@ describe("remote compaction extension lifecycle", () => {
     const original = structuredClone(entries);
     const ctx = context(entries);
 
-    await handlers.get("before_provider_request")?.(
-      { payload: { model: "gpt-test", input: [] } },
-      ctx,
-    );
-    await handlers.get("turn_end")?.(
-      { message: entries[1].type === "message" ? entries[1].message : undefined },
-      ctx,
-    );
     const result = await handlers.get("session_before_compact")?.(
       {
         branchEntries: entries,
@@ -357,32 +325,49 @@ describe("remote compaction extension lifecycle", () => {
     );
   });
 
-  it("does not compact manually from an uncompleted or different-branch request", async () => {
+  it("compacts without a prior provider request", async () => {
+    let compactionBody: Record<string, unknown> | undefined;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string, init?: RequestInit) => {
+        if (url.includes("/models?")) return new Response(JSON.stringify({ models: [] }));
+        compactionBody = JSON.parse(String(init?.body)) as Record<string, unknown>;
+        return successfulSSE();
+      }),
+    );
     const { api, handlers } = apiHarness();
     remoteCompactionExtension(api as any);
     const entries = branch();
     const ctx = context(entries);
 
-    await handlers.get("before_provider_request")?.(
-      { payload: { model: "gpt-test", input: [] } },
-      ctx,
-    );
-
     const result = await handlers.get("session_before_compact")?.(
       {
-        branchEntries: entries.slice(0, 1),
-        preparation: { firstKeptEntryId: "user-1", tokensBefore: 1 },
+        branchEntries: entries,
+        preparation: {
+          firstKeptEntryId: "assistant-1",
+          tokensBefore: 14,
+          messagesToSummarize: [{ role: "user", content: "hello", timestamp: 1 }],
+          turnPrefixMessages: [],
+        },
         reason: "manual",
         signal: new AbortController().signal,
       },
       ctx,
     );
 
-    expect(result).toEqual({ cancel: true });
-    expect(ctx.ui.notify).toHaveBeenCalledWith(
-      expect.stringContaining("completed Codex request on this branch"),
-      "error",
-    );
+    expect(result.compaction.details.openaiRemoteCheckpoint.replacementHistory).toEqual([
+      { type: "compaction", encrypted_content: "opaque" },
+    ]);
+    expect(compactionBody).toMatchObject({
+      instructions: "You are helpful.",
+      input: [
+        { role: "user", content: [{ type: "input_text", text: "hello" }] },
+        { type: "compaction_trigger" },
+      ],
+      tools: [{ type: "function", name: "read", description: "Read a file" }],
+      reasoning: { effort: "high", summary: "auto" },
+      prompt_cache_key: "session-1",
+    });
   });
 
   it("rejects custom remote-compaction instructions", async () => {
@@ -418,11 +403,9 @@ describe("remote compaction extension lifecycle", () => {
         firstKeptEntryId: "assistant-1",
         tokensBefore: 14,
         details: {
-          openaiRemoteCompaction: {
-            version: 1,
-            replacementHistory: [{ type: "compaction", encrypted_content: "opaque" }],
+          openaiRemoteCheckpoint: {
+              replacementHistory: [{ type: "compaction", encrypted_content: "opaque" }],
             creatingModelId: "gpt-test",
-            continuationSettings: {},
           },
         },
       },
@@ -484,12 +467,10 @@ describe("remote compaction extension lifecycle", () => {
         firstKeptEntryId: "assistant-1",
         tokensBefore: 14,
         details: {
-          openaiRemoteCompaction: {
-            version: 1,
-            replacementHistory: [{ type: "compaction", encrypted_content: "opaque" }],
+          openaiRemoteCheckpoint: {
+              replacementHistory: [{ type: "compaction", encrypted_content: "opaque" }],
             creatingModelId: "gpt-original",
             compactionCompatibilityHash: "family-1",
-            continuationSettings: {},
           },
         },
       },
@@ -527,9 +508,7 @@ describe("remote compaction extension lifecycle", () => {
       },
       incompatibleContext,
     );
-    expect(incompatible.input).toEqual([
-      { role: "user", content: [{ type: "input_text", text: markerText }] },
-    ]);
+    expect(incompatible).toBeUndefined();
     await incompatibleHarness.handlers.get("model_select")?.(
       { model: incompatibleContext.model },
       incompatibleContext,
@@ -560,11 +539,9 @@ describe("remote compaction extension lifecycle", () => {
         firstKeptEntryId: "assistant-1",
         tokensBefore: 14,
         details: {
-          openaiRemoteCompaction: {
-            version: 1,
-            replacementHistory: [{ type: "compaction", encrypted_content: "opaque-old" }],
+          openaiRemoteCheckpoint: {
+              replacementHistory: [{ type: "compaction", encrypted_content: "opaque-old" }],
             creatingModelId: "gpt-5.6-luna",
-            continuationSettings: {},
           },
         },
       },
@@ -590,7 +567,6 @@ describe("remote compaction extension lifecycle", () => {
       { type: "compaction", encrypted_content: "opaque-old" },
     ]);
     const assistantEntry = branch()[1] as Extract<SessionEntry, { type: "message" }>;
-    handlers.get("turn_end")?.({ message: assistantEntry.message }, ctx);
 
     const result = await handlers.get("session_before_compact")?.(
       {
@@ -601,7 +577,7 @@ describe("remote compaction extension lifecycle", () => {
       },
       ctx,
     );
-    expect(result.compaction.details.openaiRemoteCompaction).toMatchObject({
+    expect(result.compaction.details.openaiRemoteCheckpoint).toMatchObject({
       creatingModelId: "gpt-5.6-sol",
       compactionCompatibilityHash: "3000",
     });
@@ -628,12 +604,10 @@ describe("remote compaction extension lifecycle", () => {
         firstKeptEntryId: "compaction-1",
         tokensBefore: 14,
         details: {
-          openaiRemoteCompaction: {
-            version: 1,
-            replacementHistory: [{ type: "compaction", encrypted_content: "opaque" }],
+          openaiRemoteCheckpoint: {
+              replacementHistory: [{ type: "compaction", encrypted_content: "opaque" }],
             creatingModelId: "gpt-original",
             compactionCompatibilityHash: "family-1",
-            continuationSettings: {},
           },
         },
       },
@@ -692,12 +666,10 @@ describe("remote compaction extension lifecycle", () => {
         firstKeptEntryId: "compaction-1",
         tokensBefore: 14,
         details: {
-          openaiRemoteCompaction: {
-            version: 1,
-            replacementHistory: [{ type: "compaction", encrypted_content: "opaque" }],
+          openaiRemoteCheckpoint: {
+              replacementHistory: [{ type: "compaction", encrypted_content: "opaque" }],
             creatingModelId: "gpt-original",
             compactionCompatibilityHash: "family-1",
-            continuationSettings: {},
           },
         },
       },
@@ -738,11 +710,11 @@ describe("remote compaction extension lifecycle", () => {
       },
       ctx,
     );
-    expect(payload.input).toEqual(
-      expectedCompatible
-        ? [{ type: "compaction", encrypted_content: "opaque" }]
-        : [{ role: "user", content: [{ type: "input_text", text: markerText }] }],
-    );
+    if (expectedCompatible) {
+      expect(payload.input).toEqual([{ type: "compaction", encrypted_content: "opaque" }]);
+    } else {
+      expect(payload).toBeUndefined();
+    }
     },
   );
 
@@ -767,12 +739,10 @@ describe("remote compaction extension lifecycle", () => {
         firstKeptEntryId: "assistant-1",
         tokensBefore: 14,
         details: {
-          openaiRemoteCompaction: {
-            version: 1,
-            replacementHistory: [{ type: "compaction", encrypted_content: "opaque" }],
+          openaiRemoteCheckpoint: {
+              replacementHistory: [{ type: "compaction", encrypted_content: "opaque" }],
             creatingModelId: "gpt-original",
             compactionCompatibilityHash: "family-1",
-            continuationSettings: {},
           },
         },
       },
@@ -827,12 +797,10 @@ describe("remote compaction extension lifecycle", () => {
         firstKeptEntryId: "assistant-1",
         tokensBefore: 14,
         details: {
-          openaiRemoteCompaction: {
-            version: 1,
-            replacementHistory: [{ type: "compaction", encrypted_content: "opaque" }],
+          openaiRemoteCheckpoint: {
+              replacementHistory: [{ type: "compaction", encrypted_content: "opaque" }],
             creatingModelId: "gpt-test",
             compactionCompatibilityHash: "family-1",
-            continuationSettings: {},
           },
         },
       },
@@ -859,203 +827,18 @@ describe("remote compaction extension lifecycle", () => {
     ]);
   });
 
-  it("compacts a high-usage Codex request inline without adding a user turn", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async (url: string | URL) =>
-        String(url).includes("/models?")
-          ? new Response(
-              JSON.stringify({ models: [{ slug: "gpt-test", comp_hash: "family-1" }] }),
-            )
-          : successfulSSE(),
-      ),
-    );
-    const { api, handlers } = apiHarness();
-    remoteCompactionExtension(api as any);
-    const ctx = context(branch(), { tokens: 90, contextWindow: 100, percent: 90 });
-    const payload = {
-      model: "gpt-test",
-      input: [{ role: "user", content: [{ type: "input_text", text: "continue" }] }],
-    };
-
-    const rewritten = await handlers.get("before_provider_request")?.({ payload }, ctx);
-
-    expect(rewritten.input).toEqual([{ type: "compaction", encrypted_content: "opaque" }]);
-    expect(api.appendEntry).toHaveBeenCalledWith(
-      "openai-remote-compaction.checkpoint",
-      expect.objectContaining({
-        openaiRemoteCompaction: expect.objectContaining({
-          creatingModelId: "gpt-test",
-          inlineCoveredInputItemOccurrence: 1,
-        }),
-      }),
-    );
-    expect(api.events.emit).toHaveBeenCalledWith(
-      REMOTE_COMPACTION_COMPLETED_EVENT,
-      undefined,
-    );
-    expect(ctx.ui.notify).toHaveBeenNthCalledWith(1, "Compacting remote context...", "info");
-    expect(ctx.ui.notify).toHaveBeenNthCalledWith(
-      2,
-      "Remote context compacted. Continuing the current run.",
-      "info",
-    );
-    expect(JSON.stringify(rewritten)).not.toContain("continue the unfinished task");
-  });
-
-  it("does not compact an inline checkpoint again after a failed provider turn", async () => {
-    const entries = [
-      ...branch(),
-      {
-        type: "custom",
-        id: "inline-checkpoint",
-        parentId: "assistant-1",
-        timestamp: "2026-01-01T00:00:02.000Z",
-        customType: "openai-remote-compaction.checkpoint",
-        data: {
-          openaiRemoteCompaction: {
-            version: 1,
-            replacementHistory: [{ type: "compaction", encrypted_content: "opaque-inline" }],
-            creatingModelId: "gpt-test",
-            continuationSettings: {},
-          },
-        },
-      },
-      {
-        type: "message",
-        id: "failed-assistant",
-        parentId: "inline-checkpoint",
-        timestamp: "2026-01-01T00:00:03.000Z",
-        message: {
-          role: "assistant",
-          api: "openai-codex-responses",
-          provider: "openai-codex",
-          model: "gpt-test",
-          content: [],
-          usage: {
-            input: 90,
-            output: 0,
-            cacheRead: 0,
-            cacheWrite: 0,
-            totalTokens: 90,
-            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
-          },
-          stopReason: "error",
-          errorMessage: "temporary failure",
-          timestamp: 3,
-        },
-      },
-    ] as SessionEntry[];
-    const fetch = vi.fn(async (url: string | URL) =>
-      String(url).includes("/models?")
-        ? new Response(JSON.stringify({ models: [] }))
-        : new Response("unexpected compaction", { status: 500 }),
-    );
-    vi.stubGlobal("fetch", fetch);
-    const { api, handlers } = apiHarness();
-    remoteCompactionExtension(api as any);
-    const ctx = context(entries, { tokens: 90, contextWindow: 100, percent: 90 });
-
-    const rewritten = await handlers.get("before_provider_request")?.(
-      { payload: { model: "gpt-test", input: [] } },
-      ctx,
-    );
-
-    expect(rewritten.input).toEqual([
-      { type: "compaction", encrypted_content: "opaque-inline" },
-    ]);
-    expect(fetch.mock.calls.some(([url]) => String(url).endsWith("/responses"))).toBe(false);
-    expect(api.appendEntry).not.toHaveBeenCalled();
-    expect(api.events.emit).not.toHaveBeenCalled();
-    expect(ctx.ui.notify).not.toHaveBeenCalledWith(expect.any(String), "info");
-  });
-
-  it("preserves provider-bound tail items after an inline checkpoint", async () => {
-    const covered = {
-      role: "user",
-      content: [{ type: "input_text", text: "covered by the checkpoint" }],
-    };
-    const transientTail = {
-      role: "user",
-      content: [{ type: "input_text", text: "injected after the checkpoint" }],
-    };
-    const coveredHash = createHash("sha256")
-      .update(JSON.stringify(covered))
-      .digest("hex");
-    const entries = [
-      ...branch(),
-      {
-        type: "custom",
-        id: "inline-checkpoint",
-        parentId: "assistant-1",
-        timestamp: "2026-01-01T00:00:02.000Z",
-        customType: "openai-remote-compaction.checkpoint",
-        data: {
-          openaiRemoteCompaction: {
-            version: 1,
-            replacementHistory: [{ type: "compaction", encrypted_content: "opaque-inline" }],
-            creatingModelId: "gpt-test",
-            continuationSettings: {},
-            inlineCoveredInputItemHash: coveredHash,
-            inlineCoveredInputItemOccurrence: 1,
-          },
-        },
-      },
-    ] as SessionEntry[];
-    vi.stubGlobal("fetch", vi.fn(async () => new Response("unavailable", { status: 503 })));
-    const { api, handlers } = apiHarness();
-    remoteCompactionExtension(api as any);
-    const ctx = context(entries, { tokens: 1, contextWindow: 100, percent: 1 });
-
-    const rewritten = await handlers.get("before_provider_request")?.(
-      { payload: { model: "gpt-test", input: [covered, transientTail, covered] } },
-      ctx,
-    );
-
-    expect(rewritten.input).toEqual([
-      { type: "compaction", encrypted_content: "opaque-inline" },
-      transientTail,
-      covered,
-    ]);
-  });
-
-  it("keeps the pending request unchanged when inline compaction fails", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response("unauthorized", { status: 401 })));
-    const { api, handlers } = apiHarness();
-    remoteCompactionExtension(api as any);
-    const ctx = context(branch(), { tokens: 90, contextWindow: 100, percent: 90 });
-    const payload = {
-      model: "gpt-test",
-      input: [{ role: "user", content: [{ type: "input_text", text: "continue" }] }],
-    };
-
-    const unchanged = await handlers.get("before_provider_request")?.({ payload }, ctx);
-
-    expect(unchanged.input).toEqual(payload.input);
-    expect(api.appendEntry).not.toHaveBeenCalled();
-    expect(api.events.emit).not.toHaveBeenCalled();
-    expect(ctx.ui.notify).toHaveBeenNthCalledWith(1, "Compacting remote context...", "info");
-    expect(ctx.ui.notify).toHaveBeenNthCalledWith(
-      2,
-      expect.stringContaining("Inline remote compaction failed"),
-      "error",
-    );
-  });
-
-  it("does not proactively compact a Codex request below 90% usage", async () => {
+  it("leaves compaction scheduling to Pi", async () => {
     const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);
     const { api, handlers } = apiHarness();
     remoteCompactionExtension(api as any);
-    const ctx = context(branch(), { tokens: 89, contextWindow: 100, percent: 89 });
+    const ctx = context(branch(), { tokens: 99, contextWindow: 100, percent: 99 });
     const payload = {
       model: "gpt-test",
       input: [{ role: "user", content: [{ type: "input_text", text: "continue" }] }],
     };
 
-    const unchanged = await handlers.get("before_provider_request")?.({ payload }, ctx);
-
-    expect(unchanged.input).toEqual(payload.input);
+    expect(await handlers.get("before_provider_request")?.({ payload }, ctx)).toBeUndefined();
     expect(fetch).not.toHaveBeenCalled();
     expect(api.appendEntry).not.toHaveBeenCalled();
   });
