@@ -11,8 +11,7 @@
   },
   "files": [
     "index.ts",
-    "src/",
-    "herdr-plugin.toml"
+    "src/"
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -25,8 +24,5 @@
     "@types/node": "24.12.4",
     "typescript": "5.9.3",
     "vitest": "3.2.4"
-  },
-  "dependencies": {
-    "tsx": "4.23.4"
   }
 }

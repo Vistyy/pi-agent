@@ -49,6 +49,8 @@ describe("projectToolResults", () => {
       entry("limited-read-assistant", assistant({ id: "limited-read", name: "read", arguments: { path: "file.txt", limit: 5 } })),
       entry("limited-read-result", result("limited-read", "read", [{ type: "text", text: "line" }])),
     ])[0].invocation).toBe("file.txt:1-5");
+    expect(projectToolResults(branch)[0]).not.toHaveProperty("resultSummary");
+    expect(projectToolResults(branch)[0]).not.toHaveProperty("tokenUsage");
   });
 
   it("keeps failures and extension-owned tools, but excludes unmatched calls and user shell messages", () => {

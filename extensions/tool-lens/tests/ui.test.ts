@@ -28,8 +28,6 @@ function result(overrides: Partial<any> = {}): any {
     content: [{ type: "text", text: "line one\nline two" }],
     details: undefined,
     isError: false,
-    resultSummary: "2 lines",
-    tokenUsage: { input: 5, output: 8, total: 13 },
     ...overrides,
   };
 }
@@ -51,7 +49,7 @@ describe("ToolLensComponent", () => {
   it("shows the selected result beside the list and updates the preview with selection", () => {
     const close = vi.fn();
     const component = new ToolLensComponent(
-      [result({ content: [{ type: "text", text: "\u001b[31m1234567890\u001b[0m" }], resultSummary: "1 line" }), result({ toolCallId: "call-2", toolName: "custom", invocation: "run", isError: true, content: [], resultSummary: "failed" })],
+      [result({ content: [{ type: "text", text: "\u001b[31m1234567890\u001b[0m" }] }), result({ toolCallId: "call-2", toolName: "custom", invocation: "run", isError: true, content: [] })],
       theme,
       close,
       vi.fn(),
@@ -59,7 +57,7 @@ describe("ToolLensComponent", () => {
     const initial = component.render(88).join("\n");
     expect(initial).toContain("read  README.md");
     expect(initial).toContain("1234567890");
-    expect(initial).toContain("↑5 ↓8 (13)");
+    expect(initial).toContain("↑5 ↓12 (17)");
     expect(initial).toContain("Ctrl+U/D page");
     expect(initial).not.toContain("\\u001b");
     expect(component.render(40)[0]).toContain("╭");
@@ -69,7 +67,7 @@ describe("ToolLensComponent", () => {
     component.handleInput(KEY.escape);
     expect(close).toHaveBeenCalledOnce();
 
-    const image = new ToolLensComponent([result({ content: [{ type: "image", mimeType: "image/png", data: "AQID" }], resultSummary: "image/png" })], theme, close, vi.fn());
+    const image = new ToolLensComponent([result({ content: [{ type: "image", mimeType: "image/png", data: "AQID" }] })], theme, close, vi.fn());
     expect(image.render(88).join("\n")).toContain("Image: image/png");
     expect(image.render(88).join("\n")).not.toContain("(3 B)");
   });
@@ -87,9 +85,24 @@ describe("ToolLensComponent", () => {
     expect(component.render(80).join("\n")).toContain("line-0");
   });
 
-  it("fills the requested terminal-relative pane height", () => {
+  it("owns the fixed layout rows and fills the requested total height", () => {
     const component = new ToolLensComponent([result()], theme, vi.fn(), vi.fn(), undefined, () => 30);
-    expect(component.render(100)).toHaveLength(35);
+    expect(component.render(100)).toHaveLength(30);
+  });
+
+  it("caches completed preview rendering until invalidated", () => {
+    const preview = vi.fn(() => Array.from({ length: 40 }, (_, index) => `line-${index}`));
+    const component = new ToolLensComponent([result()], theme, vi.fn(), vi.fn(), preview, () => 20);
+
+    component.render(100);
+    component.render(100);
+    component.handleInput(KEY.ctrlD);
+    component.render(100);
+    expect(preview).toHaveBeenCalledOnce();
+
+    component.invalidate();
+    component.render(100);
+    expect(preview).toHaveBeenCalledTimes(2);
   });
 });
 

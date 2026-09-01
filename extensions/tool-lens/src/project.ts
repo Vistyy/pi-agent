@@ -11,8 +11,6 @@ export interface ToolLensResult {
   content: LensContent[];
   details: unknown;
   isError: boolean;
-  resultSummary: string;
-  tokenUsage: EstimatedTokenUsage;
   resultEntryId?: string;
   resultTimestamp?: string;
 }
@@ -31,11 +29,6 @@ interface ToolCallRecord {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
-}
-
-function clone<T>(value: T): T {
-  if (typeof structuredClone === "function") return structuredClone(value);
-  return JSON.parse(JSON.stringify(value)) as T;
 }
 
 function stringArg(args: Record<string, unknown>, key: string): string | undefined {
@@ -90,14 +83,24 @@ function countLabel(count: number, singular: string): string {
   return `${count} ${count === 1 ? singular : `${singular}s`}`;
 }
 
+function codePointCount(text: string): number {
+  let count = 0;
+  for (const _character of text) count += 1;
+  return count;
+}
+
 function tokenEstimate(text: string): number {
-  return text ? Math.max(1, Math.round(Array.from(text).length / 4)) : 0;
+  const length = codePointCount(text);
+  return length ? Math.max(1, Math.round(length / 4)) : 0;
 }
 
 export function estimateTokenUsage(toolName: string, args: Record<string, unknown>, content: readonly LensContent[]): EstimatedTokenUsage {
   const output = tokenEstimate(JSON.stringify({ name: toolName, arguments: args }));
-  const resultText = content.map((part) => part.type === "text" ? part.text : `[image:${part.mimeType}]`).join("\n");
-  const input = tokenEstimate(resultText);
+  const resultLength = content.reduce((total, part, index) => {
+    const text = part.type === "text" ? part.text : `[image:${part.mimeType}]`;
+    return total + codePointCount(text) + (index > 0 ? 1 : 0);
+  }, 0);
+  const input = resultLength ? Math.max(1, Math.round(resultLength / 4)) : 0;
   return { input, output, total: input + output };
 }
 
@@ -162,17 +165,15 @@ export function projectToolResults(branch: readonly SessionEntry[]): ToolLensRes
     const call = calls.get(result.toolCallId);
     if (!call) continue;
 
-    const content = clone(result.content);
+    const content = result.content;
     completed.push({
       toolCallId: result.toolCallId,
       toolName: call.toolName,
       invocation: compactInvocation(call.toolName, call.args),
-      args: clone(call.args),
+      args: call.args,
       content,
-      details: clone(result.details),
+      details: result.details,
       isError: result.isError,
-      resultSummary: summarizeResult(content, result.isError),
-      tokenUsage: estimateTokenUsage(call.toolName, call.args, content),
       resultEntryId: result.entry.id,
       resultTimestamp: result.entry.timestamp,
     });

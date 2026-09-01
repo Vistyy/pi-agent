@@ -1,5 +1,3 @@
-import { execFileSync } from "node:child_process";
-import { resolve } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
 import { initTheme, type Theme } from "@earendil-works/pi-coding-agent";
 import { createNativePreviewRenderer } from "../src/native-renderer.js";
@@ -19,8 +17,6 @@ function result(overrides: Record<string, unknown>): any {
     content: [{ type: "text", text: "Successfully replaced text in src/a.ts" }],
     details: { diff: "-1 old\n+1 new", firstChangedLine: 1 },
     isError: false,
-    resultSummary: "+1 -1",
-    tokenUsage: { input: 4, output: 8, total: 12 },
     ...overrides,
   };
 }
@@ -75,15 +71,6 @@ describe("native result previews", () => {
     }), 80).join("\n"));
     expect(output).toContain("Permission denied");
     expect(output).not.toContain("not written");
-  });
-
-  it("falls back instead of crashing when a native renderer lacks process-global state", () => {
-    const output = execFileSync(
-      resolve("node_modules/.bin/tsx"),
-      ["tests/fixtures/bash-render-without-global-theme.ts"],
-      { cwd: resolve("."), encoding: "utf8" },
-    );
-    expect(output).toContain("fallback output");
   });
 
   it("falls back to complete stored output for extension-owned tools", () => {

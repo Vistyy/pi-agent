@@ -1,11 +1,13 @@
-import { readFile, rm } from "node:fs/promises";
-import { dirname } from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { visibleWidth } from "@earendil-works/pi-tui";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import toolLensExtension from "../src/index.js";
 
 const theme = {
   name: "test",
+  bg: (_name: string, text: string) => text,
+  fg: (_name: string, text: string) => text,
+  bold: (text: string) => text,
   getFgAnsi: (_name: string) => "\u001b[37m",
   getBgAnsi: (_name: string) => "\u001b[40m",
 } as any;
@@ -31,108 +33,71 @@ function branch() {
         role: "toolResult",
         toolCallId: "call",
         toolName: "extension_tool",
-        content: [{ type: "text", text: "snapshot" }],
+        content: [{ type: "text", text: "overlay result" }],
         isError: false,
       },
     },
   ] as any;
 }
 
-afterEach(() => {
-  vi.unstubAllEnvs();
-});
+function registeredCommand() {
+  const commands = new Map<string, any>();
+  const pi = {
+    registerCommand: vi.fn((name: string, command: any) => commands.set(name, command)),
+  } as unknown as ExtensionAPI;
+  toolLensExtension(pi);
+  return { pi, command: commands.get("lens") };
+}
 
 describe("tool lens extension", () => {
   it("registers only /lens and reports the non-interactive mode requirement", async () => {
-    const commands = new Map<string, any>();
-    const pi = {
-      registerCommand: vi.fn((name: string, command: any) => commands.set(name, command)),
-      exec: vi.fn(),
-    } as unknown as ExtensionAPI;
-    toolLensExtension(pi);
-    expect([...commands.keys()]).toEqual(["lens"]);
+    const { pi, command } = registeredCommand();
+    expect((pi.registerCommand as any).mock.calls.map((call: any[]) => call[0])).toEqual(["lens"]);
 
     const notify = vi.fn();
-    await commands.get("lens").handler("", {
+    await command.handler("", {
       mode: "print",
-      hasUI: false,
       ui: { notify },
-      sessionManager: { getBranch: () => { throw new Error("must not project without UI"); } },
+      sessionManager: { getBranch: () => { throw new Error("must not project without TUI"); } },
     });
+
     expect(notify).toHaveBeenCalledWith("Tool Lens requires interactive mode.", "info");
-    expect(pi.exec).not.toHaveBeenCalled();
   });
 
-  it("reports when Pi is not running inside Herdr", async () => {
-    vi.stubEnv("HERDR_ENV", "");
-    vi.stubEnv("HERDR_SOCKET_PATH", "");
-    const commands = new Map<string, any>();
-    const pi = {
-      registerCommand: vi.fn((name: string, command: any) => commands.set(name, command)),
-      exec: vi.fn(),
-    } as unknown as ExtensionAPI;
-    toolLensExtension(pi);
-    const notify = vi.fn();
+  it("opens a terminal-sized Pi overlay during an active turn without clipping its rows", async () => {
+    const { command } = registeredCommand();
+    const requestRender = vi.fn();
+    const done = vi.fn();
+    let rendered: string[] = [];
+    let overlayOptions: any;
+    const custom = vi.fn(async (factory: any, options: any) => {
+      overlayOptions = options;
+      const component = factory(
+        { terminal: { rows: 24, columns: 100 }, requestRender },
+        theme,
+        {},
+        done,
+      );
+      rendered = component.render(96);
+      component.handleInput("\u001b");
+    });
 
-    await commands.get("lens").handler("", {
+    await command.handler("", {
       mode: "tui",
-      hasUI: true,
-      ui: { notify },
+      cwd: "/tmp/project",
+      isIdle: () => false,
+      hasPendingMessages: () => true,
+      ui: { custom, notify: vi.fn() },
       sessionManager: { getBranch: () => branch() },
     });
 
-    expect(notify).toHaveBeenCalledWith("Tool Lens requires Pi to run inside Herdr 0.7.4 or newer.", "error");
-    expect(pi.exec).not.toHaveBeenCalled();
-  });
-
-  it("takes a static snapshot and launches an 85% Herdr popup during an active turn", async () => {
-    vi.stubEnv("HERDR_ENV", "1");
-    vi.stubEnv("HERDR_SOCKET_PATH", "/tmp/herdr.sock");
-    const commands = new Map<string, any>();
-    const calls: string[][] = [];
-    let snapshotPath = "";
-    const exec = vi.fn(async (_command: string, args: string[]) => {
-      calls.push(args);
-      if (args[0] === "plugin" && args[1] === "list") {
-        return { stdout: JSON.stringify({ result: { plugins: [] } }), stderr: "", code: 0 };
-      }
-      if (args[0] === "plugin" && args[1] === "pane") {
-        snapshotPath = args[args.indexOf("--env") + 1]!.slice("TOOL_LENS_SNAPSHOT=".length);
-      }
-      return { stdout: "", stderr: "", code: 0 };
+    expect(overlayOptions).toMatchObject({
+      overlay: true,
+      overlayOptions: { anchor: "center", width: "96%", maxHeight: "94%", margin: 1 },
     });
-    const pi = {
-      registerCommand: vi.fn((name: string, command: any) => commands.set(name, command)),
-      exec,
-    } as unknown as ExtensionAPI;
-    toolLensExtension(pi);
-    const entries = branch();
-    const custom = vi.fn();
-
-    await commands.get("lens").handler("", {
-      mode: "tui",
-      hasUI: true,
-      isIdle: () => false,
-      hasPendingMessages: () => true,
-      cwd: "/tmp/project",
-      ui: { notify: vi.fn(), custom, theme },
-      sessionManager: { getBranch: () => entries },
-    });
-
-    expect(custom).not.toHaveBeenCalled();
-    expect(calls.map((args) => args.slice(0, 3))).toEqual([
-      ["plugin", "list", "--plugin"],
-      ["plugin", "link", expect.any(String)],
-      ["plugin", "pane", "open"],
-    ]);
-    const openArgs = calls[2]!;
-    expect(openArgs).toEqual(expect.arrayContaining(["--placement", "popup", "--width", "85%", "--height", "85%", "--focus"]));
-
-    entries[1].message.content[0].text = "changed-after-open";
-    const snapshot = JSON.parse(await readFile(snapshotPath, "utf8"));
-    expect(snapshot.cwd).toBe("/tmp/project");
-    expect(snapshot.results[0].content[0].text).toBe("snapshot");
-    expect(snapshot.theme.name).toBe("test");
-    await rm(dirname(snapshotPath), { recursive: true, force: true });
+    expect(rendered).toHaveLength(22);
+    expect(rendered.join("\n")).toContain("overlay result");
+    expect(rendered.every((line) => visibleWidth(line) === 96)).toBe(true);
+    expect(done).toHaveBeenCalledOnce();
   });
 });

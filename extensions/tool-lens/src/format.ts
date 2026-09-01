@@ -61,13 +61,12 @@ export function resultBodyLines(result: ToolLensResult, width: number): string[]
     if (part.type === "text") {
       lines.push(...softWrap(part.text, bodyWidth));
     } else {
-      lines.push(`Image: ${sanitizeTerminalText(part.mimeType)}`);
+      lines.push(...softWrap(`Image: ${part.mimeType}`, bodyWidth));
     }
   }
   if (!lines.length) lines.push(result.isError ? "Tool failed without output" : "No output");
-  const metadata = metadataLines(result.details);
-  const complete = metadata.length ? [...metadata, "", ...lines] : lines;
-  return complete.flatMap((line) => (line ? softWrap(line, bodyWidth) : [""]));
+  const metadata = metadataLines(result.details).flatMap((line) => softWrap(line, bodyWidth));
+  return metadata.length ? [...metadata, "", ...lines] : lines;
 }
 
 export function formatTokenCount(count: number): string {

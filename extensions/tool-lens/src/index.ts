@@ -1,36 +1,48 @@
-import { fileURLToPath } from "node:url";
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
-import { extensionCommandRunner, launchHerdrPopup } from "./herdr.js";
-import { serializeTheme } from "./popup-protocol.js";
+import { createNativePreviewRenderer } from "./native-renderer.js";
 import { projectToolResults } from "./project.js";
+import { ToolLensComponent } from "./ui.js";
 
-const PLUGIN_ROOT = fileURLToPath(new URL("../", import.meta.url));
+const OVERLAY_WIDTH = "96%" as const;
+const OVERLAY_HEIGHT_PERCENT = 94;
+const OVERLAY_HEIGHT: `${number}%` = `${OVERLAY_HEIGHT_PERCENT}%`;
+const OVERLAY_MARGIN = 1;
 
-export async function openToolLens(ctx: ExtensionCommandContext, pi: ExtensionAPI): Promise<void> {
-  if (ctx.mode !== "tui" || !ctx.hasUI) {
+function overlayRows(terminalRows: number): number {
+  const availableRows = Math.max(1, terminalRows - OVERLAY_MARGIN * 2);
+  return Math.max(1, Math.min(Math.floor(terminalRows * OVERLAY_HEIGHT_PERCENT / 100), availableRows));
+}
+
+export async function openToolLens(ctx: ExtensionCommandContext): Promise<void> {
+  if (ctx.mode !== "tui") {
     ctx.ui.notify("Tool Lens requires interactive mode.", "info");
     return;
   }
-  if (process.env.HERDR_ENV !== "1" || !process.env.HERDR_SOCKET_PATH) {
-    ctx.ui.notify("Tool Lens requires Pi to run inside Herdr 0.7.4 or newer.", "error");
-    return;
-  }
 
-  const snapshot = {
-    cwd: ctx.cwd,
-    results: projectToolResults(ctx.sessionManager.getBranch()),
-    theme: serializeTheme(ctx.ui.theme),
-  };
-  try {
-    await launchHerdrPopup(extensionCommandRunner(pi), PLUGIN_ROOT, snapshot);
-  } catch (error) {
-    ctx.ui.notify(error instanceof Error ? error.message : String(error), "error");
-  }
+  const results = projectToolResults(ctx.sessionManager.getBranch());
+  await ctx.ui.custom<void>((tui, theme, _keybindings, done) => {
+    return new ToolLensComponent(
+      results,
+      theme,
+      done,
+      () => tui.requestRender(),
+      createNativePreviewRenderer(ctx.cwd, theme),
+      () => overlayRows(tui.terminal.rows),
+    );
+  }, {
+    overlay: true,
+    overlayOptions: {
+      anchor: "center",
+      width: OVERLAY_WIDTH,
+      maxHeight: OVERLAY_HEIGHT,
+      margin: OVERLAY_MARGIN,
+    },
+  });
 }
 
 export default function toolLensExtension(pi: ExtensionAPI): void {
   pi.registerCommand("lens", {
     description: "Inspect completed tool results from the active session branch",
-    handler: async (_args, ctx) => openToolLens(ctx, pi),
+    handler: async (_args, ctx) => openToolLens(ctx),
   });
 }

@@ -12,11 +12,10 @@ _Avoid_: All tools, every tool
 **Tool Lens**:
 The operator extension opened with `/lens` that lists completed tool calls with session results from the current active session branch.
 It includes built-in and extension-owned tools without changing their presentation, execution, or model-visible results.
-Its Herdr-owned session-modal popup uses 85% of the terminal width and height, with a newest-first tool list on the left and the selected result preview on the right.
-The Pi extension takes a static active-branch snapshot, preserves the current theme's terminal colors, and launches a standalone event-driven terminal process through Herdr's plugin popup interface.
-The popup writes complete frames with absolute row positions and small terminal margins because Pi TUI's differential screen renderer caused progressive corruption inside the Herdr popup.
-Tool Lens remains available while the agent runs because Herdr composites the popup independently from Pi's transcript renderer.
-The popup requires Pi to run inside Herdr 0.7.4 or newer.
+Tool Lens opens as a centered Pi overlay that nearly fills the available terminal while leaving the underlying transcript visible around its edges.
+The overlay reads the active branch and uses the current Pi theme and renderer runtime directly in the Pi process.
+Its height is derived from the live terminal dimensions so Pi neither clips Tool Lens rows nor exposes underlying transcript text inside the overlay bounds.
+The newest-first tool list appears on the left and the selected result preview appears on the right.
 Typing filters list rows by tool name and invocation text without searching result bodies.
 Up and Down change the selected tool and update the preview immediately.
 Shift+Up and Shift+Down scroll the preview by one line, Ctrl+U and Ctrl+D scroll it by half a page, and Home and End jump to its bounds.
@@ -26,5 +25,5 @@ For extension-owned tools, the preview falls back to the complete stored result 
 The preview preserves content order, represents each stored image with its MIME type instead of rendering the image, and shows the result summary with compact input, output, and total token estimates.
 Token estimates use a simple character heuristic, exclude provider-specific image token costs, and are not billing measurements.
 A footer explains the available keybindings.
-Escape closes the popup process and restores the underlying Pi pane.
+Escape closes the overlay and restores focus to Pi's editor.
 _Avoid_: Tool output browser, Tool card, global expansion, `/outputs`

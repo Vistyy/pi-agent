@@ -1,6 +1,12 @@
 import { decodeKittyPrintable, matchesKey, type Component, type KeyId } from "@earendil-works/pi-tui";
 import type { Theme } from "@earendil-works/pi-coding-agent";
-import { filterToolResults, type ToolLensResult } from "./project.js";
+import {
+  estimateTokenUsage,
+  filterToolResults,
+  summarizeResult,
+  type EstimatedTokenUsage,
+  type ToolLensResult,
+} from "./project.js";
 import type { PreviewRenderer } from "./native-renderer.js";
 import {
   frameLines,
@@ -13,7 +19,8 @@ import {
   softWrap,
 } from "./format.js";
 
-const DEFAULT_PANE_ROWS = 18;
+const DEFAULT_TOTAL_ROWS = 23;
+const FRAME_AND_FIXED_CONTENT_ROWS = 5;
 
 function isKey(data: string, key: KeyId): boolean {
   return matchesKey(data, key);
@@ -24,28 +31,51 @@ export class ToolLensComponent implements Component {
   private selectedIndex = 0;
   private listOffset = 0;
   private detailOffset = 0;
+  private filteredCache?: { filter: string; results: ToolLensResult[] };
+  private readonly metricsCache = new Map<string, { summary: string; usage: EstimatedTokenUsage }>();
+  private readonly previewCache = new Map<string, { width: number; lines: string[] }>();
 
   constructor(
     private readonly results: readonly ToolLensResult[],
     private readonly theme: Theme,
     private readonly close: () => void,
     private readonly requestRender: () => void,
-    private previewRenderer: PreviewRenderer = (result, width) => resultBodyLines(result, width),
-    private readonly paneRowsProvider: () => number = () => DEFAULT_PANE_ROWS,
+    private readonly previewRenderer: PreviewRenderer = (result, width) => resultBodyLines(result, width),
+    private readonly heightProvider: () => number = () => DEFAULT_TOTAL_ROWS,
   ) {}
 
-  invalidate(): void {}
-
-  setPreviewRenderer(renderer: PreviewRenderer): void {
-    this.previewRenderer = renderer;
+  invalidate(): void {
+    this.previewCache.clear();
   }
 
   private paneRows(): number {
-    return Math.max(4, this.paneRowsProvider());
+    return Math.max(1, this.heightProvider() - FRAME_AND_FIXED_CONTENT_ROWS);
   }
 
   private filteredResults(): ToolLensResult[] {
-    return filterToolResults(this.results, this.filter);
+    if (this.filteredCache?.filter === this.filter) return this.filteredCache.results;
+    const results = filterToolResults(this.results, this.filter);
+    this.filteredCache = { filter: this.filter, results };
+    return results;
+  }
+
+  private metrics(result: ToolLensResult): { summary: string; usage: EstimatedTokenUsage } {
+    const cached = this.metricsCache.get(result.toolCallId);
+    if (cached) return cached;
+    const metrics = {
+      summary: summarizeResult(result.content, result.isError),
+      usage: estimateTokenUsage(result.toolName, result.args, result.content),
+    };
+    this.metricsCache.set(result.toolCallId, metrics);
+    return metrics;
+  }
+
+  private previewLines(result: ToolLensResult, width: number): string[] {
+    const cached = this.previewCache.get(result.toolCallId);
+    if (cached?.width === width) return cached.lines;
+    const lines = this.previewRenderer(result, width);
+    this.previewCache.set(result.toolCallId, { width, lines });
+    return lines;
   }
 
   private moveSelection(delta: number): void {
@@ -74,6 +104,7 @@ export class ToolLensComponent implements Component {
     else if (isKey(data, "down")) this.moveSelection(1);
     else if (isKey(data, "backspace")) {
       this.filter = this.filter.slice(0, -1);
+      this.filteredCache = undefined;
       this.selectedIndex = 0;
       this.listOffset = 0;
       this.detailOffset = 0;
@@ -81,6 +112,7 @@ export class ToolLensComponent implements Component {
       const printable = decodeKittyPrintable(data) ?? (data.length === 1 ? data : undefined);
       if (printable && printable.length === 1 && printable >= " ") {
         this.filter += printable;
+        this.filteredCache = undefined;
         this.selectedIndex = 0;
         this.listOffset = 0;
         this.detailOffset = 0;
@@ -107,9 +139,10 @@ export class ToolLensComponent implements Component {
   private previewRows(width: number): string[] {
     const result = this.filteredResults()[this.selectedIndex];
     if (!result) return [paintLine(this.theme, "No result selected.", width)];
-    const outcome = result.isError ? this.theme.fg("error", "failed") : this.theme.fg("muted", result.resultSummary);
-    const header = `${this.theme.fg("accent", this.theme.bold(sanitizeTerminalText(result.toolName)))}  ${outcome}  ${renderTokenUsage(this.theme, result.tokenUsage)}`;
-    const body = this.previewRenderer(result, width);
+    const metrics = this.metrics(result);
+    const outcome = result.isError ? this.theme.fg("error", "failed") : this.theme.fg("muted", metrics.summary);
+    const header = `${this.theme.fg("accent", this.theme.bold(sanitizeTerminalText(result.toolName)))}  ${outcome}  ${renderTokenUsage(this.theme, metrics.usage)}`;
+    const body = this.previewLines(result, width);
     const bodyRows = this.paneRows() - 1;
     const maxOffset = Math.max(0, body.length - bodyRows);
     this.detailOffset = Math.max(0, Math.min(maxOffset, this.detailOffset));
