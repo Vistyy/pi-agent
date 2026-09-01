@@ -1,8 +1,5 @@
 export const LEARNING_MODE_STATE_TYPE = "learning-mode.state";
 export const LEARNING_MODE_CONTRACT_MARKER = "<!-- learning-mode-contract -->";
-export const LEARNING_MODE_REMINDER_TYPE = "learning-mode.reminder";
-export const LEARNING_MODE_REMINDER =
-	"Learning mode is active. Follow the Learning Mode Mentoring Contract in the system prompt, own the teaching process, and do not assume shared repository context.";
 export const DEFAULT_LEARNING_MODE = true;
 
 type CustomEntryLike = {
@@ -48,32 +45,4 @@ export function appendMentoringContract(systemPrompt: string, contract: string):
 	const normalizedContract = contract.trim();
 	if (!normalizedContract) return systemPrompt;
 	return `${systemPrompt.trimEnd()}\n\n${LEARNING_MODE_CONTRACT_MARKER}\n${normalizedContract}`;
-}
-
-type ReminderMessage = {
-	role: "custom";
-	customType: typeof LEARNING_MODE_REMINDER_TYPE;
-	content: typeof LEARNING_MODE_REMINDER;
-	display: false;
-	timestamp: number;
-};
-
-export function appendLearningReminder<T>(
-	messages: readonly T[],
-	timestamp = Date.now(),
-): Array<T | ReminderMessage> {
-	const last = messages.at(-1) as { role?: unknown; customType?: unknown } | undefined;
-	if (last?.role === "custom" && last.customType === LEARNING_MODE_REMINDER_TYPE) {
-		return [...messages];
-	}
-	return [
-		...messages,
-		{
-			role: "custom",
-			customType: LEARNING_MODE_REMINDER_TYPE,
-			content: LEARNING_MODE_REMINDER,
-			display: false,
-			timestamp,
-		},
-	];
 }

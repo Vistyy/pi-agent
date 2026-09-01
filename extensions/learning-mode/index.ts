@@ -1,10 +1,8 @@
 import { readFileSync } from "node:fs";
 
-import type { AgentMessage } from "@earendil-works/pi-agent-core";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 import {
-	appendLearningReminder,
 	appendMentoringContract,
 	DEFAULT_LEARNING_MODE,
 	LEARNING_MODE_STATE_TYPE,
@@ -42,10 +40,5 @@ export default function learningMode(pi: ExtensionAPI): void {
 	pi.on("before_agent_start", (event) => {
 		if (!enabled) return;
 		return { systemPrompt: appendMentoringContract(event.systemPrompt, mentoringContract) };
-	});
-
-	pi.on("context", (event) => {
-		if (!enabled) return;
-		return { messages: appendLearningReminder(event.messages) as AgentMessage[] };
 	});
 }

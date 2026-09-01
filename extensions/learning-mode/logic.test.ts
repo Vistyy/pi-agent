@@ -2,11 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-	appendLearningReminder,
 	appendMentoringContract,
 	LEARNING_MODE_CONTRACT_MARKER,
-	LEARNING_MODE_REMINDER,
-	LEARNING_MODE_REMINDER_TYPE,
 	LEARNING_MODE_STATE_TYPE,
 	parseLearningCommand,
 	restoreLearningMode,
@@ -48,28 +45,4 @@ test("mentoring contract is appended exactly once", () => {
 
 test("an empty contract leaves the prompt unchanged", () => {
 	assert.equal(appendMentoringContract("Base prompt", "  \n"), "Base prompt");
-});
-
-test("learning reminder is appended without mutating stored messages", () => {
-	const messages = [{ role: "user", content: "Help me understand this system." }];
-	const result = appendLearningReminder(messages, 123);
-
-	assert.equal(messages.length, 1);
-	assert.deepEqual(result, [
-		messages[0],
-		{
-			role: "custom",
-			customType: LEARNING_MODE_REMINDER_TYPE,
-			content: LEARNING_MODE_REMINDER,
-			display: false,
-			timestamp: 123,
-		},
-	]);
-});
-
-test("learning reminder is not duplicated in a chained context", () => {
-	const once = appendLearningReminder([], 123);
-	const twice = appendLearningReminder(once, 456);
-
-	assert.deepEqual(twice, once);
 });
