@@ -94,7 +94,7 @@ export interface TrialError {
 }
 
 export interface TrialArtifact {
-  schema_version: 1;
+  schema_version: 2;
   identity: {
     run_id: string;
     case_id: string;

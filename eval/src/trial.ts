@@ -30,6 +30,7 @@ interface TrialOptions {
 
 interface TrajectoryEntry {
   type: "tool_execution_start" | "tool_execution_end";
+  interaction_turn: number;
   tool_call_id: string;
   tool_name: string;
   args?: unknown;
@@ -267,10 +268,12 @@ export async function runTrial(options: TrialOptions): Promise<TrialArtifact> {
     }
 
     if (sessionHandle && errors.length === 0) {
+      let interactionTurn = 0;
       const unsubscribe = sessionHandle.session.subscribe((event: AgentSessionEvent) => {
         if (event.type === "tool_execution_start") {
           trajectory.push({
             type: event.type,
+            interaction_turn: interactionTurn,
             tool_call_id: event.toolCallId,
             tool_name: event.toolName,
             args: jsonValue(event.args),
@@ -278,6 +281,7 @@ export async function runTrial(options: TrialOptions): Promise<TrialArtifact> {
         } else if (event.type === "tool_execution_end") {
           trajectory.push({
             type: event.type,
+            interaction_turn: interactionTurn,
             tool_call_id: event.toolCallId,
             tool_name: event.toolName,
             result: jsonValue(event.result),
@@ -286,7 +290,8 @@ export async function runTrial(options: TrialOptions): Promise<TrialArtifact> {
         }
       });
       try {
-        for (const message of options.catalogCase.spec.scenario.interaction.messages) {
+        for (const [index, message] of options.catalogCase.spec.scenario.interaction.messages.entries()) {
+          interactionTurn = index + 1;
           await promptWithTimeout(sessionHandle.session, message.content, options.timeoutMs);
         }
         messages = jsonValue(sessionHandle.session.messages) as unknown[];
@@ -340,7 +345,7 @@ export async function runTrial(options: TrialOptions): Promise<TrialArtifact> {
   ]);
 
   return {
-    schema_version: 1,
+    schema_version: 2,
     identity: {
       run_id: options.runId,
       case_id: options.catalogCase.spec.id,
