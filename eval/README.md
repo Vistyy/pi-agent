@@ -7,11 +7,12 @@ Configured systems select exact models, thinking levels, resources, and tools.
 
 ## Current boundary
 
-The walking skeleton supports closed-schema catalog validation, scripted read-only Pi sessions, transcript capture, tool-trajectory capture, sequential trials, cleanup, and local JSON artifacts.
-It deliberately records behavioral results as `unknown` with `pending_human` grading.
+The harness supports closed-schema catalog and calibration-dataset validation, scripted read-only Pi sessions, transcript capture, tool-trajectory capture, sequential trials, cleanup, and local JSON artifacts.
+The accepted calibration dataset contains human-labeled semantic samples and keeps invalid-trial samples separate.
+The harness still records trial behavior as `unknown` with `pending_human` grading.
 A run from this version cannot establish that a behavior passes or fails.
 
-Automatic semantic grading, grader calibration, adaptive interactions, state-changing cases, treatment comparison, parallel execution, and historical-result promotion remain outside the walking skeleton.
+Automatic semantic grading, judge calibration runs, adaptive interactions, state-changing cases, treatment comparison, parallel execution, and historical-result promotion remain outside the current boundary.
 
 ## Commands
 
@@ -40,8 +41,9 @@ A behavior manifest owns the accepted behavior, applicability, and important fai
 A case manifest owns the scenario, concrete interaction, required observations, and case-specific criteria.
 A runtime binding owns the fixture, preflight checks, collectors, and grader implementation references.
 A configured-system manifest owns the model, thinking level, resources, and tools.
+A calibration set freezes reviewed evidence packets and their human expected labels for one case criterion.
 
-The catalog validator rejects execution configuration in case manifests and requires every declared initial condition, observation, and criterion to have one runtime implementation.
+The validator rejects execution configuration in case manifests, requires every declared initial condition, observation, and criterion to have one runtime implementation, and rejects calibration data that drifts from its catalog references.
 
 ## Adding an ordinary case
 

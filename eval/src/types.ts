@@ -49,7 +49,18 @@ export interface RuntimeBinding {
     }
   >;
   collectors: Record<string, string>;
-  graders: Record<string, string>;
+  graders: Record<
+    string,
+    {
+      implementation: "evidence-gated-semantic-criterion";
+      evidence_gate: {
+        checker: "successful-tool-results-contain";
+        observation: string;
+        interaction_turn: number;
+        artifacts: Array<{ id: string; contains: string[] }>;
+      };
+    }
+  >;
 }
 
 export interface ConfiguredSystem {
@@ -72,6 +83,50 @@ export interface CatalogCase {
   spec: CaseSpec;
   binding: RuntimeBinding;
   directory: string;
+}
+
+export interface CalibrationTrajectoryEntry {
+  type: "tool_execution_start" | "tool_execution_end";
+  interaction_turn: number;
+  tool_call_id: string;
+  tool_name: string;
+  args?: unknown;
+  result?: unknown;
+  is_error?: boolean;
+}
+
+export interface CalibrationSet {
+  schema_version: 1;
+  behavior_id: string;
+  case_id: string;
+  criterion: {
+    id: string;
+    claim: string;
+    pass: string;
+    fail: string;
+  };
+  diagnostics: string[];
+  trajectory_fixtures: Record<string, CalibrationTrajectoryEntry[]>;
+  semantic_samples: Array<{
+    id: string;
+    origin:
+      | { kind: "captured"; run_id: string; trial_index: number }
+      | { kind: "synthetic" };
+    trajectory_fixture: string;
+    interaction: Array<{ role: "user" | "assistant"; text: string }>;
+    expected: { behavior: "pass" | "fail"; diagnostic: string };
+  }>;
+  validity_samples: Array<{
+    id: string;
+    origin: { kind: "synthetic" };
+    evidence: Evidence[];
+    expected_validity: "invalid";
+  }>;
+}
+
+export interface LoadedCalibrationSet {
+  set: CalibrationSet;
+  file: string;
 }
 
 export interface Catalog {

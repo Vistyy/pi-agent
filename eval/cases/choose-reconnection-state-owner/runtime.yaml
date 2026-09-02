@@ -31,4 +31,23 @@ collectors:
   decision-conversation: pi-message-collector
   repository-inspection: pi-tool-trajectory-collector
 graders:
-  evidence-grounded-lifecycle-recommendation: semantic-criterion
+  evidence-grounded-lifecycle-recommendation:
+    implementation: evidence-gated-semantic-criterion
+    evidence_gate:
+      checker: successful-tool-results-contain
+      observation: repository-inspection
+      interaction_turn: 1
+      artifacts:
+        - id: workspace-runtime-lifecycle
+          contains:
+            - class WorkspaceRuntime
+            - Workspace-scoped resources are released when the active workspace changes.
+        - id: session-coordinator-lifecycle
+          contains:
+            - class SessionCoordinator
+            - this.runtime.dispose()
+            - this.runtime = new WorkspaceRuntime(workspace, this.reconnectionState)
+        - id: reconnection-persistence-requirement
+          contains:
+            - reconnection state survives workspace replacement
+            - assert.equal(coordinator.reconnect(), "resume-token")

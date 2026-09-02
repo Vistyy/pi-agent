@@ -94,7 +94,7 @@ async function validateCaseSemantics(
 
   const supportedPreflights = new Set(["files-contain"]);
   const supportedCollectors = new Set(["pi-message-collector", "pi-tool-trajectory-collector"]);
-  const supportedGraders = new Set(["semantic-criterion"]);
+  const supportedGraders = new Set(["evidence-gated-semantic-criterion"]);
   for (const implementation of Object.values(runtime.preflight)) {
     if (!supportedPreflights.has(implementation.checker)) {
       throw new Error(`${file}: unsupported preflight implementation "${implementation.checker}"`);
@@ -103,8 +103,18 @@ async function validateCaseSemantics(
   for (const implementation of Object.values(runtime.collectors)) {
     if (!supportedCollectors.has(implementation)) throw new Error(`${file}: unsupported collector implementation "${implementation}"`);
   }
-  for (const implementation of Object.values(runtime.graders)) {
-    if (!supportedGraders.has(implementation)) throw new Error(`${file}: unsupported grader implementation "${implementation}"`);
+  for (const [criterionId, grader] of Object.entries(runtime.graders)) {
+    if (!supportedGraders.has(grader.implementation)) {
+      throw new Error(`${file}: unsupported grader implementation "${grader.implementation}"`);
+    }
+    const criterion = caseSpec.criteria.find((entry) => entry.id === criterionId);
+    const observation = caseSpec.observations.find((entry) => entry.id === grader.evidence_gate.observation);
+    if (!criterion?.evidence.includes(grader.evidence_gate.observation)) {
+      throw new Error(`${file}: grader "${criterionId}" gates on evidence not declared by its criterion`);
+    }
+    if (observation?.boundary !== "trajectory") {
+      throw new Error(`${file}: grader "${criterionId}" evidence gate requires a trajectory observation`);
+    }
   }
 
   const fixture = path.resolve(path.dirname(file), runtime.fixture.source);
