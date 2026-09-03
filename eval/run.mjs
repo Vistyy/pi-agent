@@ -16,11 +16,14 @@ const caseDefinition = JSON.parse(await readFile(join(caseDirectory, "case.json"
 const selectedModels = argumentsMap.models
   ? argumentsMap.models.split(",").filter(Boolean)
   : caseDefinition.models;
+const selectedCandidates = argumentsMap.candidates
+  ? argumentsMap.candidates.split(",").filter(Boolean)
+  : caseDefinition.candidates;
 const trials = argumentsMap.trials ? positiveInteger(argumentsMap.trials, "--trials") : caseDefinition.trials;
 const matrix = [];
 for (const model of selectedModels) {
   if (!catalog.models[model]) throw new Error(`Unknown model ${JSON.stringify(model)}.`);
-  for (const candidate of caseDefinition.candidates) {
+  for (const candidate of selectedCandidates) {
     if (!catalog.candidates[candidate]) throw new Error(`Unknown candidate ${JSON.stringify(candidate)}.`);
     for (let trial = 1; trial <= trials; trial += 1) matrix.push({ model, candidate, trial });
   }
@@ -68,11 +71,17 @@ async function executeTrial({ alias, condition, catalog, caseDefinition, caseDir
   const workspace = join(scratch, "repository");
   const sessionDirectory = join(scratch, ".sessions");
   const resourcesDirectory = join(scratch, ".resources");
+  const configDirectory = join(scratch, ".config");
   const artifactDirectory = join(runDirectory, alias);
   await mkdir(workspace, { recursive: true });
   await mkdir(sessionDirectory, { recursive: true });
   await mkdir(resourcesDirectory, { recursive: true });
+  await mkdir(configDirectory, { recursive: true });
   await mkdir(artifactDirectory, { recursive: true });
+  for (const file of ["AGENTS.md", "auth.json", "models.json"]) {
+    await cp(join(agentRoot(), file), join(configDirectory, file));
+  }
+  await writeFile(join(configDirectory, "settings.json"), `${JSON.stringify({ enableSkillCommands: true }, null, 2)}\n`);
 
   const archive = join(scratch, "source.tar");
   execFileSync("git", ["-C", caseDefinition.source.repository, "archive", "--format=tar", "-o", archive, caseDefinition.source.revision]);
@@ -100,26 +109,30 @@ async function executeTrial({ alias, condition, catalog, caseDefinition, caseDir
     copiedSkill = join(resourcesDirectory, "skill");
     await cp(dirname(sourceSkill), copiedSkill, { recursive: true });
     piArguments.push("--skill", join(copiedSkill, "SKILL.md"));
-    prompt = `/skill:${candidate.invocation}\n${prompt}`;
+    prompt = `/skill:${candidate.invocation} ${prompt}`;
   }
-  piArguments.push("--print", prompt);
+  piArguments.push("--mode", "rpc");
 
   const stdoutPath = join(artifactDirectory, "stdout.txt");
   const stderrPath = join(artifactDirectory, "stderr.txt");
   const startedAt = Date.now();
-  const processResult = await runProcess("pi", piArguments, {
+  const processResult = await runPiRpc(piArguments, prompt, {
     cwd: workspace,
     stdoutPath,
     stderrPath,
-    timeoutMs: caseDefinition.timeoutSeconds * 1000
+    timeoutMs: caseDefinition.timeoutSeconds * 1000,
+    env: { ...process.env, PI_CODING_AGENT_DIR: configDirectory },
+    expectedSkillCommand: candidate.kind === "skill" ? `skill:${candidate.invocation}` : undefined
   });
   const durationMs = Date.now() - startedAt;
   const sessionFile = join(sessionDirectory, "session.jsonl");
   const usage = await readUsage(sessionFile);
   const sessionText = await readFile(sessionFile, "utf8").catch(() => "");
+  const firstUserText = firstSessionUserText(sessionText);
   const treatmentDelivered = candidate.kind === "control"
     ? true
-    : sessionText.includes(candidate.deliveryMarker);
+    : firstUserText.startsWith(`<skill name="${candidate.invocation}" `)
+      && firstUserText.includes(candidate.deliveryMarker);
 
   const graderPath = join(caseDirectory, caseDefinition.grader);
   const gradeResult = await execFileResult("node", [graderPath, workspace, sessionFile], { cwd: workspace });
@@ -149,30 +162,69 @@ async function executeTrial({ alias, condition, catalog, caseDefinition, caseDir
   };
 }
 
-function runProcess(command, args, { cwd, stdoutPath, stderrPath, timeoutMs }) {
-  return new Promise(async (resolvePromise) => {
-    const stdoutFile = await import("node:fs").then(({ createWriteStream }) => createWriteStream(stdoutPath));
-    const stderrFile = await import("node:fs").then(({ createWriteStream }) => createWriteStream(stderrPath));
-    const child = spawn(command, args, { cwd, stdio: ["ignore", "pipe", "pipe"] });
-    child.stdout.pipe(stdoutFile);
-    child.stderr.pipe(stderrFile);
+async function runPiRpc(args, prompt, { cwd, stdoutPath, stderrPath, timeoutMs, env, expectedSkillCommand }) {
+  const { createWriteStream } = await import("node:fs");
+  return new Promise((resolvePromise) => {
+    const stdoutFile = createWriteStream(stdoutPath);
+    const stderrFile = createWriteStream(stderrPath);
+    const child = spawn("pi", args, { cwd, env, stdio: ["pipe", "pipe", "pipe"] });
+    let buffer = "";
     let timedOut = false;
+    let promptAccepted = false;
+    let settled = false;
+    let launchError;
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      stdoutFile.write(chunk);
+      buffer += chunk;
+      while (true) {
+        const newline = buffer.indexOf("\n");
+        if (newline < 0) break;
+        const line = buffer.slice(0, newline).replace(/\r$/, "");
+        buffer = buffer.slice(newline + 1);
+        if (!line.trim()) continue;
+        let event;
+        try { event = JSON.parse(line); } catch { continue; }
+        if (event.type === "response" && event.id === "command-preflight") {
+          const commands = event.data?.commands ?? [];
+          if (event.success !== true || (expectedSkillCommand && !commands.some((command) => command.name === expectedSkillCommand))) {
+            launchError = expectedSkillCommand
+              ? `required command ${expectedSkillCommand} was not loaded`
+              : "command preflight failed";
+            child.kill("SIGTERM");
+          } else {
+            child.stdin.write(`${JSON.stringify({ id: "trial-prompt", type: "prompt", message: prompt })}\n`);
+          }
+        }
+        if (event.type === "response" && event.id === "trial-prompt") promptAccepted = event.success === true;
+        if (event.type === "agent_settled") {
+          settled = true;
+          child.kill("SIGTERM");
+        }
+      }
+    });
+    child.stderr.pipe(stderrFile);
     const timer = setTimeout(() => {
       timedOut = true;
       child.kill("SIGTERM");
       setTimeout(() => child.kill("SIGKILL"), 5000).unref();
     }, timeoutMs);
-    child.on("error", (error) => {
-      clearTimeout(timer);
-      stdoutFile.end();
-      stderrFile.end();
-      resolvePromise({ code: 1, signal: null, timedOut, launchError: error.message });
+    child.on("spawn", () => {
+      child.stdin.write(`${JSON.stringify({ id: "command-preflight", type: "get_commands" })}\n`);
     });
+    child.on("error", (error) => { launchError = error.message; });
     child.on("close", (code, signal) => {
       clearTimeout(timer);
       stdoutFile.end();
       stderrFile.end();
-      resolvePromise({ code: code ?? 1, signal, timedOut });
+      resolvePromise({
+        code: settled && promptAccepted ? 0 : code ?? 1,
+        signal,
+        timedOut,
+        promptAccepted,
+        settled,
+        ...(launchError ? { launchError } : {})
+      });
     });
   });
 }
@@ -208,12 +260,28 @@ async function readUsage(sessionFile) {
   return usage;
 }
 
+function firstSessionUserText(sessionText) {
+  for (const line of sessionText.trim().split("\n").filter(Boolean)) {
+    let entry;
+    try { entry = JSON.parse(line); } catch { continue; }
+    if (entry.type !== "message" || entry.message?.role !== "user") continue;
+    const content = entry.message.content;
+    if (typeof content === "string") return content;
+    if (Array.isArray(content)) return content.filter((part) => part.type === "text").map((part) => part.text).join("\n");
+  }
+  return "";
+}
+
+function agentRoot() {
+  return dirname(evalRoot);
+}
+
 function parseArguments(values) {
   const parsed = {};
   for (let index = 0; index < values.length; index += 1) {
     const value = values[index];
     if (value === "--plan") parsed.plan = true;
-    else if (["--case", "--models", "--trials"].includes(value)) parsed[value.slice(2)] = values[++index];
+    else if (["--case", "--models", "--candidates", "--trials"].includes(value)) parsed[value.slice(2)] = values[++index];
     else usage();
   }
   return parsed;
@@ -237,6 +305,6 @@ function isJson(value) {
 }
 
 function usage() {
-  console.error("usage: node eval/run.mjs --case <id> [--models id,id] [--trials N] [--plan]");
+  console.error("usage: node eval/run.mjs --case <id> [--models id,id] [--candidates id,id] [--trials N] [--plan]");
   process.exit(64);
 }

@@ -44,7 +44,14 @@ Restrict an exploratory run when diagnosing the harness.
 node eval/run.mjs \
   --case but-why-create-verification \
   --models luna-high \
+  --candidates pstack-create-verification \
   --trials 1
+```
+
+Re-run deterministic grading after changing a grader without making model calls.
+
+```bash
+node eval/regrade.mjs eval/runs/<run-directory>
 ```
 
 Summarize a completed run.
@@ -60,6 +67,8 @@ Each run retains the exact configuration, transcript, output, repository status,
 
 A trial is valid only when the requested process completes within its limit, the actual model matches the configured model, the treatment is present when required, the transcript is readable, and the grader returns valid evidence.
 Invalid delivery or execution is not a behavioral failure.
+The runner uses Pi RPC mode because print mode does not expand skill commands.
+It verifies that the requested skill command is registered before making a model call and that Pi expanded the exact skill into the first user message afterward.
 
 The runner disables ambient skills, extensions, and prompt templates for isolated attribution.
 The normal global and repository instructions still apply equally to control and treatment.
