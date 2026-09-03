@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "models": {
+    "luna-high": {
+      "selector": "openai-codex/gpt-5.6-luna",
+      "thinking": "high"
+    },
+    "sol-high": {
+      "selector": "openai-codex/gpt-5.6-sol",
+      "thinking": "high"
+    }
+  },
+  "candidates": {
+    "control": {
+      "kind": "control"
+    },
+    "pstack-create-verification": {
+      "kind": "skill",
+      "path": "candidates/pstack/create-verification-skill/SKILL.md",
+      "invocation": "create-verification-skill",
+      "source": {
+        "repository": "/home/syzom/projects/pi-extensions/pi-pstack",
+        "commit": "f3bc8da",
+        "path": "skills/create-verification-skill",
+        "skillSha256": "c94124eb3add3c367ef2a58c812a3f84e0f410d90cfb82b35984c970835a3e64"
+      }
+    },
+    "current-verification": {
+      "kind": "skill",
+      "path": "../skills/verification/SKILL.md",
+      "invocation": "verification"
+    }
+  },
+  "portfolio": {
+    "verification": [
+      "current-verification",
+      "pstack-create-verification",
+      "pstack-maintain-verification"
+    ],
+    "understanding-and-evidence": [
+      "current-codebase-design",
+      "current-domain-modeling",
+      "pstack-how",
+      "pstack-why",
+      "pstack-teach",
+      "pstack-recall",
+      "pstack-blast-radius"
+    ],
+    "task-playbooks": [
+      "pstack-investigation",
+      "pstack-bug-fix",
+      "pstack-perf-issue",
+      "pstack-runtime-forensics",
+      "pstack-trace-forensics",
+      "pstack-feature",
+      "pstack-refactoring",
+      "pstack-prototype",
+      "pstack-visual-parity",
+      "pstack-hillclimb",
+      "pstack-session-pickup",
+      "pstack-pause-safely",
+      "pstack-worktree-cleanup"
+    ],
+    "code-and-prose": [
+      "current-writing-instructions",
+      "pstack-unslop",
+      "pstack-deslop",
+      "pstack-no-comments",
+      "pstack-technical-writing",
+      "pstack-typescript-best-practices"
+    ],
+    "orchestration": [
+      "pstack-architect",
+      "pstack-arena",
+      "pstack-swarm",
+      "pstack-interrogate",
+      "pstack-figure-it-out",
+      "pstack-orchestrate"
+    ]
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "id": "but-why-create-verification",
+  "question": "Does the exact P-Stack create-verification-skill improve the usefulness and trustworthiness of a generated project-local verification workflow over the same model without that skill?",
+  "source": {
+    "repository": "/home/syzom/projects/but-why",
+    "revision": "e4dfd53b90453c6239723b012889d2a31408a82f"
+  },
+  "prompt": "This repository needs a project-local procedure that future agents can use to exercise the primary by CLI through its real user-facing surface. Create it under .pi/skills with a small feature map. Discover the supported launch and isolation requirements from the repository, execute one mapped feature end to end in disposable state, preserve useful evidence, and clean up anything you start. Do not change product code.",
+  "models": ["luna-high", "sol-high"],
+  "candidates": ["control", "pstack-create-verification"],
+  "trials": 1,
+  "timeoutSeconds": 1200,
+  "allowedChanges": [".pi/skills/"],
+  "grader": "grade.mjs",
+  "criteria": [
+    "The generated workflow is discoverable as a valid Pi skill.",
+    "It derives launch, doctor, drive, evidence, and cleanup instructions from But Why rather than using placeholders.",
+    "It respects But Why's requirement that source and candidate executables use disposable repository state.",
+    "It seeds a navigable feature map grounded in real user-facing CLI behavior.",
+    "The trajectory contains an end-to-end execution of one mapped feature and cleanup evidence.",
+    "It does not modify product code or leave unrelated repository changes."
+  ]
+}
