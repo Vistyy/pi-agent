@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { createHash, randomBytes } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { execFile, execFileSync, spawn } from "node:child_process";
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
@@ -7,7 +7,6 @@ import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 
 const evalRoot = dirname(fileURLToPath(import.meta.url));
-const agentRoot = dirname(evalRoot);
 const argumentsMap = parseArguments(process.argv.slice(2));
 if (!argumentsMap.case) usage();
 
@@ -120,7 +119,7 @@ async function executeTrial({ alias, condition, catalog, caseDefinition, caseDir
   const sessionText = await readFile(sessionFile, "utf8").catch(() => "");
   const treatmentDelivered = candidate.kind === "control"
     ? true
-    : sessionText.includes("# Create a verification skill");
+    : sessionText.includes(candidate.deliveryMarker);
 
   const graderPath = join(caseDirectory, caseDefinition.grader);
   const gradeResult = await execFileResult("node", [graderPath, workspace, sessionFile], { cwd: workspace });

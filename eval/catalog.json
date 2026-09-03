@@ -18,6 +18,7 @@
       "kind": "skill",
       "path": "candidates/pstack/create-verification-skill/SKILL.md",
       "invocation": "create-verification-skill",
+      "deliveryMarker": "# Create a verification skill",
       "source": {
         "repository": "/home/syzom/projects/pi-extensions/pi-pstack",
         "commit": "f3bc8da",

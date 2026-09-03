@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFile, readdir } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 
 const runDirectory = resolve(process.argv[2] ?? "");
@@ -15,7 +15,12 @@ for (const run of manifest.runs) {
   rows.push({
     model: run.model,
     candidate: run.candidate,
-    valid: run.process.code === 0 && !run.process.timedOut && run.treatmentDelivered && run.grader.validJson,
+    valid: run.process.code === 0
+      && !run.process.timedOut
+      && run.treatmentDelivered
+      && run.grader.validJson
+      && run.usage.actualModels.length === 1
+      && run.usage.actualModels[0] === run.modelSelector,
     deterministicPass: grade.deterministicPass ?? null,
     semanticReviewRequired: grade.semanticReviewRequired?.length ?? null,
     turns: run.usage.assistantTurns,
