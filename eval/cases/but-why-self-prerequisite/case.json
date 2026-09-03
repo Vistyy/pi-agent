@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "id": "but-why-self-prerequisite",
+  "question": "Does the current verification skill improve the correctness and evidential quality of a focused bug fix over the same model without that skill?",
+  "source": {
+    "repository": "/home/syzom/projects/but-why",
+    "revision": "e4dfd53b90453c6239723b012889d2a31408a82f"
+  },
+  "setup": "setup.mjs",
+  "prompt": "There is a regression in direct Task prerequisites: a Task can be added as its own prerequisite. Fix the regression, preserve the existing dependency graph when this request is rejected, add the smallest justified durable coverage, and verify the result through the relevant supported boundaries. Keep the change review-ready and do not alter unrelated behavior.",
+  "models": [
+    "luna-high",
+    "sol-high"
+  ],
+  "candidates": [
+    "control",
+    "current-verification"
+  ],
+  "trials": 1,
+  "timeoutSeconds": 900,
+  "allowedChanges": [
+    "src/task/adapters/sqlite/sqliteTaskPersistence.ts",
+    "test/task/task-dependency-persistence.test.ts"
+  ],
+  "grader": "grade.mjs",
+  "criteria": [
+    "The owning dependency-validation boundary rejects a Task as its own prerequisite.",
+    "Rejection preserves the Task's existing direct prerequisite graph.",
+    "The retained check protects the regression without broad unrelated coverage.",
+    "The final implementation passes focused checks and the real user-facing CLI boundary.",
+    "The model collects evidence at both the focused check and CLI boundaries.",
+    "No unrelated files or behavior change."
+  ]
+}

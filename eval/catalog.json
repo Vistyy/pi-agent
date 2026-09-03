@@ -29,7 +29,8 @@
     "current-verification": {
       "kind": "skill",
       "path": "../skills/verification/SKILL.md",
-      "invocation": "verification"
+      "invocation": "verification",
+      "deliveryMarker": "# Verification"
     }
   },
   "portfolio": {

@@ -86,6 +86,7 @@ async function executeTrial({ alias, condition, catalog, caseDefinition, caseDir
   const archive = join(scratch, "source.tar");
   execFileSync("git", ["-C", caseDefinition.source.repository, "archive", "--format=tar", "-o", archive, caseDefinition.source.revision]);
   execFileSync("tar", ["-xf", archive, "-C", workspace]);
+  if (caseDefinition.setup) execFileSync("node", [join(caseDirectory, caseDefinition.setup), workspace]);
   execFileSync("git", ["init", "-q"], { cwd: workspace });
   execFileSync("git", ["config", "user.name", "Configured Agent"], { cwd: workspace });
   execFileSync("git", ["config", "user.email", "agent@example.invalid"], { cwd: workspace });
