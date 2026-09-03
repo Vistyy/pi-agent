@@ -87,8 +87,13 @@
             }
         },
         "opencode-go": {
+            "baseUrl": "https://opencode.ai/zen/go/v1",
+            "api": "openai-responses",
             "modelOverrides": {
                 "deepseek-v4-flash": {
+                    "contextWindow": 300000
+                },
+                "muse-spark-1.3-contributor": {
                     "contextWindow": 300000
                 }
             }
