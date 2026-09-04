@@ -19,12 +19,12 @@ This step is complete when the hypothesis, decision criteria, and applicable bas
 ## 2. Establish approval and scope
 
 Describe the experiment, its boundary, and any repository changes, external effects, material risk, or cost.
-Treat an explicit user request for an experiment as approval only for its requested boundary and explicitly named effects.
-Obtain separate approval before adding an unmentioned repository mutation, external effect, material cost, or material risk.
-An agent-proposed read-only local probe may proceed when the current authorized outcome requires its evidence, repository instructions permit it, and it has no material cost, risk, or external effect.
-Otherwise, obtain approval before modifying files, changing external state, incurring material cost, or introducing material risk for an agent-proposed spike.
-Obtain approval before materially expanding an approved experiment's scope, risk, cost, or external effects.
+Determine whether the current request or accepted plan already authorizes the experiment and its effects.
+An approved implementation can cover bounded local experiments needed to deliver and verify it; do not require separate permission merely because that work is called a spike.
+A read-only investigation does not by itself authorize repository changes or external effects.
+Obtain approval when the experiment is outside existing authority or materially expands scope, risk, cost, or external effects.
 If required approval is declined or unavailable, do not run the spike.
+Identify disposable setup and any prototype or evidence artifacts the user requested to retain.
 
 This step is complete when the experiment is either authorized within an explicit boundary or declined.
 
@@ -57,11 +57,11 @@ This step is complete when the decision-maker can understand what was tested, wh
 
 ## 5. Resolve spike-owned state
 
-On completion, failure, or interruption, remove spike-owned repository and external state unless its production implementation is separately authorized.
-Preserve pre-existing and unrelated state.
-Do not promote prototype code into production only by cleaning it up.
-When production implementation is authorized, implement it through the repository's normal development process.
+On completion, failure, or interruption, remove disposable spike-owned setup and restore temporary external state.
+Preserve pre-existing state, unrelated changes, and prototype or evidence artifacts whose retention is authorized.
+Retaining an experimental artifact does not make it a maintained product implementation.
+Promote it only when product implementation is authorized and it meets the repository's normal development and verification requirements.
 Verify cleanup with targeted diff and status inspection and with the applicable external-state check.
 When state cannot be restored or verified, report the remaining state, impact, responsible owner, and required action.
 
-This workflow is complete when the authorized production implementation remains or no spike-owned state remains, and every unresolved external effect has a responsible owner and explicit action.
+This workflow is complete when only authorized artifacts remain and every unresolved external effect has a responsible owner and explicit action.

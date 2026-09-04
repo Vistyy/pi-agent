@@ -1,6 +1,6 @@
 ---
 name: codebase-design
-description: Use when deciding where behavior belongs, selecting between existing capabilities and custom work, changing what callers must know, placing or removing a seam, representing relationships that affect structure, or defining how a module can be verified.
+description: Use when choosing or reviewing code structure, ownership, interfaces, dependencies, or structural simplification.
 ---
 
 # Codebase Design
@@ -46,6 +46,8 @@ Use the representation to identify avoidable coordination, duplicated representa
 Record only interface knowledge established and material to the decision, such as relevant invariants, ordering, errors, configuration, or performance constraints.
 State decision-blocking unknowns instead of filling them with conventional behavior.
 Use observed changes, defects, or verification friction when available.
+Treat existing code as evidence, not a requirement to reproduce its patterns.
+Preserve required behavior rather than incidental structure.
 
 This step is complete when the behavior, current owner, material caller knowledge, and coordination cost are explicit enough to compare structures.
 If no structural problem remains, keep the current structure.
@@ -83,6 +85,8 @@ Credible structures can include:
 Compare only structures supported by the problem.
 Compare each credible structure only by dimensions material to this decision, such as caller knowledge, edit locations, new concepts, interfaces, indirection, migration work, and verification setup.
 Compare those costs across the complete representative path because a locally simple interface can still increase aggregate translation or coordination.
+Do not choose a design solely because it takes less work to implement.
+Treat implementation cost alongside correctness, maintenance, reversibility, and verification.
 Reject structures that do not satisfy the required behavior or established ownership constraints.
 Among the remaining structures, prefer the simplest one that satisfies those constraints and minimizes the costs material to this decision.
 
@@ -91,6 +95,10 @@ This step is complete when named evidence supports one structure and its structu
 ## 4. Define ownership and interfaces
 
 State which modules or callers own each rule and where coordination is intentional.
+Treat a fact as an invariant only when an enforced contract guarantees it across the supported paths.
+Inspect unclear enforcement rather than assuming the guarantee.
+Assign each required invariant one owner, enforce it at that boundary, and expose a contract downstream callers can rely on.
+Do not repeat validation or normalization where that enforced contract already applies.
 Use an interface only when it reduces the knowledge or coordination that callers must carry.
 State the interface behavior, invariants, ordering constraints, errors, configuration, and relevant performance characteristics.
 Give each workflow only the operations it needs, and accept only caller inputs that the operation treats as authoritative or checks against an authoritative source.
@@ -113,7 +121,12 @@ When staging requires a temporary interface, Adapter, representation, or compati
 A proposed design is complete when named evidence supports simpler caller reasoning and the verification and migration paths are explicit.
 
 For an implemented design, update callers and affected verification through the supported interface.
+Make affected code and documentation support the replacement directly, removing representations no current requirement needs.
+Retain compatibility paths only when an accepted requirement or plan requires them.
 Treat an unsafe cast needed to construct a verification Adapter as evidence of an interface mismatch, and resolve the mismatch instead of hiding it.
 Remove the replaced structural path after its callers and verification migrate.
 
-An implemented design is complete when the required behavior is verified and no replaced path remains.
+Before completion, inspect how the resulting structure composes, not just whether individual changes pass their checks.
+Resolve actionable findings about ownership, types, failure handling, readability, dependencies, unnecessary abstraction, and avoidable computation or I/O where they affect the authorized work.
+Use those concerns as relevant review lenses, not a mandatory finding quota or a requirement to expand every task into a repository-wide review.
+An implemented design is complete when the required behavior is verified, no replaced path remains, and material findings are resolved or explicitly reported as limitations or decisions requiring authority.

@@ -9,7 +9,7 @@ Include a small caller example when it clarifies the problem.
 
 Map every evidence area that could materially change the selection.
 The parent must directly inspect the architecture spine: the entry point, one representative path, and each boundary that could change the conclusion.
-When relevant context spans multiple independently inspectable areas and owned agents are available, assign non-overlapping evidence areas to separate agents while the parent investigates the architecture spine.
+When independent investigation can materially improve the evidence at acceptable cost, assign non-overlapping areas to available workers while the coordinator investigates the architecture spine.
 Use direct investigation when the relevant evidence is compact, but do not narrow inspection merely because the first viable design appears early.
 
 This step is complete when the frame states the design problem without favoring a solution, every material evidence area is covered or reported as unresolved, and the parent understands the architecture spine directly.
@@ -21,12 +21,15 @@ Produce the materially different designs supported by the frame.
 Vary ownership, interface, or seam decisions only where the frame supports the variation.
 Do not create alternatives that differ only in names or file placement.
 
-When owned agents are available, send the same problem frame and comparison criteria to at least two agents before selecting a design.
-Keep their work independent, do not disclose another agent's conclusions, and develop enough parent-owned understanding to judge their claims.
-When delegation is unavailable, generate alternatives in separate passes without carrying a provisional selection into the later pass.
+Use independent workers when unresolved uncertainty and the consequences of a wrong choice justify their additional perspective and cost.
+Agent availability alone does not justify delegation or determine a worker count.
+Give independent designers the same problem frame and comparison criteria without disclosing each other's conclusions.
+Develop enough coordinator-owned understanding to judge their claims.
+Without delegation, consider credible alternatives in separate passes and disclose the limit on independence when it matters.
 
 When the constraints support fewer than two credible designs, report that result and its evidence instead of inventing another design.
-When owned agents are available, use their independent work to challenge that conclusion rather than treating the first investigation as sufficient.
+Seek an independent challenge only when a material uncertainty remains, not merely to satisfy a process.
+Coordination tools supply execution and result handling; this method owns design comparison, not runtime scheduling, lifecycle, or model-policy mechanics.
 
 For each design, state only the structural decisions and consequences material to comparison, such as ownership, caller knowledge, interfaces, seams, dependencies, migration, verification, and introduced complexity when supported by the frame.
 Mark decision-blocking unknowns instead of inventing details.

@@ -1,19 +1,26 @@
 # Writing Skills
 
-A skill makes an agent follow a predictable process while allowing task-specific judgment and different valid outputs.
+A skill supplies task-specific knowledge or methods that improve decisions without prescribing unnecessary steps.
+Keep requirements and method guidance separate from the tools that execute work.
+Do not create another owner for an existing method merely because a different coordination tool is available.
+
+## Select ownership and placement
+
+Choose the audience and owner before choosing invocation mode.
+Use a global skill for guidance intended across the user's projects, a project skill for repository-specific knowledge, and a package skill for capabilities distributed with that package.
+Follow the target harness's supported discovery paths and the repository's established layout.
+Do not write to user-global directories merely because a skill is model-invoked or manually invoked.
 
 ## Select the invocation mode
 
 Use a model-invoked skill when the agent must select the capability without user action:
 
-- Store it under `~/.pi/agent/skills/<name>/SKILL.md`.
 - Omit `disable-model-invocation`.
 - Describe each distinct trigger once in the frontmatter description.
 - Keep behavior and background information out of the description.
 
 Use a user-invoked skill when explicit user choice is part of the behavior:
 
-- Store it under `~/.pi/agent/user-skills/<name>/SKILL.md`.
 - Set `disable-model-invocation: true`.
 - Prefix the human-facing description with `[M] `.
 
@@ -39,12 +46,17 @@ When a skill repeatedly produces the same user-facing result, define a stable ou
 Fix only the fields and ordering that must remain predictable.
 Do not force task-dependent content into a uniform structure.
 
-## Split only when the split changes invocation or execution
+## Separate references from independent capabilities
 
-Split a capability when it must be invoked independently.
+Keep the entry document focused on choosing the applicable method and its essential constraints.
+Move supporting detail into references when a stated condition lets the reader avoid irrelevant material.
+Splitting reference files does not create another skill or require a separate actor.
+
+Create a separate skill when the capability must be invoked independently.
 Do not split shared guidance that has no independent invocation need.
-Split a sequence only after agents continue to stop early despite a precise completion condition.
-A sequence split must hide the later steps from the current actor, such as through a bounded subagent assignment or separate-session handoff.
+Split execution across actors only when independence, isolation, context, or another concrete boundary justifies the coordination cost.
+If early stopping is the problem, clarify completion before introducing another actor.
+Do not split an ordinary sequence into separately invoked skills merely to make the agent continue.
 
 ## Validate the skill
 

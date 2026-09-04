@@ -1,39 +1,12 @@
 ---
 name: show-me
-description: "[M] Explain the current topic visually with a focused diagram, sketch, diff, or HTML artifact."
+description: "[M] Help the user understand the current topic visually with concise diagrams, code-shape sketches, and focused HTML artifacts."
 disable-model-invocation: true
 ---
 
 Help the user understand the current topic of conversation visually.
-Skip the preamble and keep prose brief and subordinate to the visual.
-Pick the smallest view that makes the key point clear, where "smallest" means the least unnecessary information rather than the smallest physical output.
-Prefer terminal-native visualization, including rendered Mermaid.
-Use enough space to make structure, scale, sequence, causality, or contrast perceptible.
-Compose the visual deliberately with alignment, containment, labeled connectors, lanes, grouping, scale, or other encodings that carry meaning.
-Use one coherent view when it is sufficient.
-Use multiple coordinated views when each answers a distinct question needed to understand the topic.
-
-Choose any terminal-native encoding that makes the important relationship directly visible.
-The formats below are non-exhaustive examples.
-
-- Use a composed text diagram when spatial arrangement, containment, ownership, or labeled connections matter:
-
-```text
-                       request path
-┌──────────┐      ┌──────────────┐      ┌────────────┐
-│  Client  │─────▶│    Router    │─────▶│  Handler   │
-└──────────┘      │ auth + match │      └─────┬──────┘
-                  └──────────────┘            │
-                                              ▼
-                                      ┌──────────────┐
-                                      │  Repository  │
-                                      └──────┬───────┘
-                                             │ SQL
-                                             ▼
-                                      ┌──────────────┐
-                                      │   Database   │
-                                      └──────────────┘
-```
+Skip the preamble and keep prose brief.
+Pick the smallest view that makes the key point clear.
 
 - Show logic or an algorithm as pseudocode:
 
@@ -61,7 +34,8 @@ submitForm
 <SessionPage> (apps/example/src/routes/session.tsx)
   useSessionEvents()
   <SessionToolbar>
-    <RunSkillButton> (packages/ui)
+    <RunSkillButton /> (packages/ui)
+  <SessionTimeline>
 ```
 
 - Show file responsibility or a broad refactor as a shallow file tree:
@@ -73,8 +47,7 @@ src/
 └── transport/      # sends API requests
 ```
 
-- Use Mermaid when its automatic layout makes a flowchart, state diagram, sequence diagram, class diagram, or entity-relationship diagram clearer.
-Pi renders supported Mermaid fences as themed Unicode terminal diagrams, so keep the graph within a practical terminal width:
+- Show component interaction, control flow, or data flow with Mermaid:
 
 ```mermaid
 sequenceDiagram
@@ -87,13 +60,12 @@ sequenceDiagram
 ```
 
 - Use `diff` when the point is what changes and the surrounding shape already exists.
-Match the diff shape to the topic.
+  Match the diff shape to the topic.
 
 For a component change:
 
 ```diff
  <SessionPage>
-   useSessionEvents()
    <SessionToolbar>
 +    <RunSkillButton />
    <SessionTimeline>
@@ -123,7 +95,7 @@ For a call-tree or call-stack change:
      launchAgent
 -  navigateToSession
 +  navigateToSession
-+    subscribeToEvents
++    subscribeEvents
 ```
 
 For a state or control-flow change:
@@ -146,17 +118,16 @@ function expandSkill(command: string): string {
 }
 ```
 
-- Use proportional bars, aligned values, a comparison matrix, a timeline, or parallel lanes when magnitude, ordering, tradeoffs, chronology, concurrency, or responsibility is the point.
-Include labels and a scale or legend when the encoding would otherwise be ambiguous.
-
-- Follow the `lavish` skill's selection and review workflow only when interaction, responsive layout, dense spatial relationships, or required visual fidelity cannot be preserved clearly in the terminal.
-Do not use Lavish merely because the terminal visual is substantial.
+- For a visual UI, layout, state comparison, or concept too dense for Mermaid, write one focused HTML file: a diagram, an infographic, or a short slide deck, whichever fits the point.
+  Match the product's colors, type, spacing, and components; use real labels and data; support desktop and mobile.
+  Place the artifact outside product source unless the user requested a repository change.
+  Open it using an available presentation mechanism rather than assuming a platform-specific command.
+  If opening is unavailable, give the user its path and state that it was not opened.
 
 ## Guidance
 
 Place each visual next to the short text it supports.
-Build the visual around the question the user is trying to answer, not around a preferred notation.
-Keep only the calls, files, props, states, values, and boundaries needed to answer that question or resolve the current discussion point.
-A visual may be physically large when the space communicates a material relationship.
-Use several formats or coordinated panels only when each contributes distinct necessary understanding.
-Do not overwhelm the user.
+Keep only the calls, files, props, states, and boundaries needed to answer the user's current question or the options to resolve the current discussion point.
+
+You may use one of these, you may use several, it is unlikely you will use all of them.
+Use your judgment and don't overwhelm the user.
