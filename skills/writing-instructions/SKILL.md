@@ -1,6 +1,6 @@
 ---
 name: writing-instructions
-description: Use when writing, revising, or auditing instructions or technical documentation.
+description: Use when designing or materially changing behavioral rules, authority boundaries, or conditional workflows in instructions, or auditing those decisions. Skip straightforward copy edits, source-to-documentation updates, and audits against already-explicit requirements.
 ---
 
 # Writing Instructions

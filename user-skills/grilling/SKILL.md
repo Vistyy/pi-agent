@@ -1,6 +1,7 @@
 ---
 name: grilling
-description: Use when the user wants to stress-test a plan or design before implementation, or uses a `grill` trigger phrase.
+description: "[M] Run a guided stress-test of a consequential plan or design."
+disable-model-invocation: true
 ---
 
 # Grilling

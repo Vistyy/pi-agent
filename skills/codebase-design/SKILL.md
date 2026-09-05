@@ -1,6 +1,6 @@
 ---
 name: codebase-design
-description: Use when choosing or reviewing code structure, ownership, interfaces, dependencies, or structural simplification.
+description: Use when ownership is unclear, credible structural alternatives need comparison, or a change materially alters caller coordination or cross-domain boundaries. Skip local work with established owners; touching several files alone is not a trigger.
 ---
 
 # Codebase Design

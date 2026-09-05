@@ -1,6 +1,6 @@
 ---
 name: spike
-description: Use when a consequential feasibility, integration, or performance hypothesis can be resolved by a bounded real-system experiment.
+description: Use when designing a real-system experiment to resolve a technical unknown that could change the decision. Skip source explanations and executing experiments whose hypothesis, criteria, scope, and safeguards are already supplied.
 ---
 
 # Spike

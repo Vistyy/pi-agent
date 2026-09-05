@@ -6,31 +6,16 @@ disable-model-invocation: true
 
 # Underengineer
 
-Review the target identified by the user, or the most recent diagnosis, plan, or proposed solution.
+Review the user's target or the most recent diagnosis, plan, or proposed solution.
 If no target is clear, ask for one and stop.
-Do not implement it.
+Recommend a simpler result; do not implement it.
 
-## Derive the result
+Separate established requirements and facts from assumptions and proposed mechanisms.
+Inspect existing behavior only where it could materially change the choice, and expose unresolved decisions that could change the result.
 
-Separate what is established from what is assumed or merely proposed.
-Do not turn examples or possible future needs into requirements.
-Expose conflicts or missing decisions that could change the result.
+Choose the simplest maintainable completed result that preserves the requirements and removes unsupported complexity.
+Judge enduring knowledge and coordination alongside delivery cost, risk, maintenance, and reversibility; neither the smallest diff nor the cleanest final structure alone determines the choice.
+Prefer a broader change only when its reduction in lasting complexity justifies its transition costs and risks.
 
-Inspect only existing behavior and structure that could materially change the choice.
-Choose the simplest maintainable completed result that satisfies the established requirements.
-Judge simplicity by how much enduring knowledge and coordination the completed result requires.
-Do not use delivery convenience as a proxy for final simplicity.
-Consider delivery cost only when it makes the otherwise best result infeasible.
-
-Remove anything no established requirement needs.
-Prefer a broader change only when it eliminates lasting complexity instead of moving or adding it.
-
-## Present the result
-
-Return these sections in order:
-
-1. `Simplest version` - recommend one completed result and explain why it is simplest.
-2. `What must remain` - list only established considerations that determine the result.
-3. `Remove or reconsider` - include only material unsupported complexity or unresolved decisions, and omit the section when none remain.
-
-Keep implementation effort separate from the recommendation.
+Explain the recommended result, what must remain, what can be removed, and the material trade-offs.
+Do not manufacture removals when the current proposal is already the simplest supported choice.
