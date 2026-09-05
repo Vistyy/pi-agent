@@ -21,7 +21,7 @@ describe("Codex remote compaction transport", () => {
     expect(extractAccountId(token("account-1"))).toBe("account-1");
   });
 
-  it("returns the opaque compaction item and normalized usage", async () => {
+  it.each(["response.completed", "response.done"])("returns the opaque compaction item and normalized usage after %s", async (completionType) => {
     const fetch = vi.fn(async () =>
       sse([
         {
@@ -29,8 +29,9 @@ describe("Codex remote compaction transport", () => {
           item: { type: "compaction", id: "cmp_1", encrypted_content: "opaque" },
         },
         {
-          type: "response.completed",
+          type: completionType,
           response: {
+            status: "completed",
             output: [{ type: "compaction", id: "cmp_1", encrypted_content: "opaque" }],
             usage: {
               input_tokens: 100,
@@ -365,6 +366,41 @@ describe("Codex remote compaction transport", () => {
 
   it.each([
     ["malformed SSE", () => new Response("data: {bad json}\n\n", { status: 200 })],
+    [
+      "checkpoint without response completion",
+      () => sse([{
+        type: "response.output_item.done",
+        item: { type: "compaction", encrypted_content: "opaque" },
+      }]),
+    ],
+    [
+      "explicitly incomplete response",
+      () => sse([{
+        type: "response.incomplete",
+        response: {
+          status: "incomplete",
+          incomplete_details: { reason: "max_output_tokens" },
+          output: [{ type: "compaction", encrypted_content: "opaque" }],
+        },
+      }]),
+    ],
+    [
+      "legacy terminal event without successful status",
+      () => sse([{
+        type: "response.done",
+        response: { output: [{ type: "compaction", encrypted_content: "opaque" }] },
+      }]),
+    ],
+    [
+      "completion event with contradictory status",
+      () => sse([{
+        type: "response.completed",
+        response: {
+          status: "incomplete",
+          output: [{ type: "compaction", encrypted_content: "opaque" }],
+        },
+      }]),
+    ],
     [
       "missing checkpoint",
       () => sse([{ type: "response.completed", response: { output: [] } }]),

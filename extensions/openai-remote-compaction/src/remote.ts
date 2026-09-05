@@ -121,6 +121,7 @@ function applicationError(identifiers: unknown, message: string): RemoteApplicat
 function parseRemoteResponse(text: string): RemoteCompactionResult {
   let streamedItem: ResponseItem | undefined;
   let completedItem: ResponseItem | undefined;
+  let completed = false;
   let usage: Usage | undefined;
 
   for (const event of parseSSE(text)) {
@@ -144,12 +145,18 @@ function parseRemoteResponse(text: string): RemoteCompactionResult {
     if (event.type === "response.output_item.done") {
       streamedItem = compactionItem(event.item) ?? streamedItem;
     }
-    if (
-      event.type === "response.completed" ||
-      event.type === "response.done" ||
-      event.type === "response.incomplete"
-    ) {
+    if (event.type === "response.incomplete") {
+      throw new RemoteProtocolError("OpenAI remote compaction was incomplete");
+    }
+    if (event.type === "response.completed" || event.type === "response.done") {
       const response = asRecord(event.response);
+      if (
+        (event.type === "response.done" || response?.status !== undefined) &&
+        response?.status !== "completed"
+      ) {
+        throw new RemoteProtocolError("OpenAI remote compaction did not complete successfully");
+      }
+      completed = true;
       const output = Array.isArray(response?.output) ? response.output : [];
       const items = output.map(compactionItem).filter((item): item is ResponseItem => item !== undefined);
       if (items.length > 1) {
@@ -160,6 +167,9 @@ function parseRemoteResponse(text: string): RemoteCompactionResult {
     }
   }
 
+  if (!completed) {
+    throw new RemoteProtocolError("OpenAI remote compaction stream ended without response completion");
+  }
   const item = completedItem ?? streamedItem;
   if (!item) throw new RemoteProtocolError("OpenAI did not return a remote checkpoint");
   return { replacementHistory: [item], ...(usage ? { usage } : {}) };
