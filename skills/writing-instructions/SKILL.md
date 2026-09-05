@@ -1,68 +1,31 @@
 ---
 name: writing-instructions
-description: Use when designing or materially changing behavioral rules, authority boundaries, or conditional workflows in instructions, or auditing those decisions. Skip straightforward copy edits, source-to-documentation updates, and audits against already-explicit requirements.
+description: Use when designing or materially changing behavioral rules, authority boundaries, or skill invocation conditions, or auditing those decisions. Skip copy edits and ordinary technical documentation.
 ---
 
-# Writing Instructions
+# Writing instructions
 
-Write technical prose that produces the required behavior or understanding without adding unsupported meaning.
-When an instruction conditionally directs the reader to another file, state the loading condition before or with the reference in the referring file.
-Do not introduce or repeat that condition inside the referenced file because discovery is already too late.
-For a nested reference, its direct referring file owns the loading condition.
-When the artifact's purpose is to explain or help readers operate the supported technical system, read [Documentation](references/DOCUMENTATION.md) completely.
-Do not load that reference only because an instruction artifact uses Markdown or includes rationale.
-When writing or reviewing a skill, also read [Writing skills](references/SKILLS.md) completely.
+Write only the guidance needed to change behavior for the intended audience.
+Keep enforceable policy in executable configuration, and explain intent or exceptions in prose rather than repeating the rules.
 
-When the user requests an audit, do not change files.
-Check every criterion applicable to the requested scope and report each material failure with its evidence and impact.
-Report no material findings only after every applicable criterion has been checked.
+## Placement and scope
 
-## 1. Establish the target
+Put guidance where the reader needs it: global preferences in global instructions, task-specific knowledge in narrowly invoked skills, and project or tool details with their owner.
+State a reference's loading condition before or with the link, not only inside the destination.
+Keep each policy in one authoritative place and remove superseded instructions rather than adding another layer.
+Preserve explicit user preferences and project constraints when simplifying.
 
-Identify the artifact, audience, and behavior or question the prose must address.
-Identify the authorities and constraints that govern the artifact.
-Inspect the environment when correct content depends on existing behavior or conventions.
-Resolve conflicting authorities before drafting.
-Ask the user when no authority determines a consequential choice.
-Leave local and reversible choices to the actor's judgment.
+Distinguish requirements from recommendations and examples.
+Make conditions and authority clear without creating approval steps the user did not request.
+Prefer a short direct rule over a staged procedure when the order of actions is not essential.
 
-## 2. Place and write the content
+## Skills
 
-Put each rule or claim at the lowest reliable delivery boundary.
-Put interface-specific behavior where the actor encounters the interface.
-Keep ordered actions and universally required rules in the primary artifact.
-Keep required detail inline when a loading instruction would be unreliable.
-Make required external guidance available, or state the dependency and what to do when it is unavailable.
+Before configuring skill discovery or frontmatter, read the target harness's documentation.
+Use the description to distinguish tasks that need the skill from adjacent tasks that do not.
+Keep method details out of the description and avoid repeating its routing conditions in global instructions.
+Use a manual-only skill when invocation should depend on explicit user choice.
+Add references or scripts only when they reduce reading or repeated mechanical work.
 
-State each condition before the action or claim that depends on it.
-Give each ordered step one primary action.
-State an observable result when completion would otherwise be unclear.
-Name the actor or subject when responsibility could be unclear.
-Make each requirement observable.
-Use `must` for requirements, `should` for recommendations, `may` for permission, and `can` for capability or possible results.
-State supported behavior before a prohibition that limits it.
-Keep requirements and instructions distinct from rationale and examples.
-State the general rule that determines what is included.
-Do not represent an open-ended rule or judgment with a bare list, including a list embedded in a sentence.
-When examples help, state the rule first and explicitly mark the examples as non-exhaustive.
-Use a list as the complete definition only when an authoritative source establishes that it contains every possible item.
-
-## 3. Remove unnecessary content
-
-Keep each meaning in one authoritative location.
-For every materially constraining or repeated statement, identify what established need rules out a weaker alternative.
-Remove or weaken it when none does.
-Remove content that serves no current purpose.
-Remove an instruction that does not change what the actor would otherwise do.
-Disclose conditional detail when keeping it inline makes the active instructions difficult to use.
-
-## 4. Validate the result
-
-Trace every materially distinct applicable path from entry to completion.
-For linear instructions, trace at least one representative case.
-Test consequential or disputed behavior with the intended actor when the environment supports it.
-Confirm that the result preserves all intended meaning and necessary relationships.
-Record assumptions that cannot be tested.
-
-The work is complete when the artifact addresses its intended behavior or question, each meaning has one authority, every applicable path satisfies its observable completion conditions, and each untested assumption is explicit.
-An audit is complete when every failed criterion identifies its evidence and impact and no file has changed.
+Check that the rewritten guidance preserves its intended meaning and that representative matching and adjacent tasks have a clear routing outcome.
+Use an actual invocation experiment only when unresolved routing behavior warrants it.
