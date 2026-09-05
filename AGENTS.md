@@ -35,6 +35,9 @@
 
 ## Repository safety
 
+- When finishing repository changes, report whether your changes are uncommitted, committed but unpushed, or pushed.
+  Flag pending Git work and its reason.
+  Ask before committing or pushing unless already authorized, and never include unrelated changes without permission.
 - When changing generated output, change the generator source and regenerate the output.
   Do not manually edit generated files.
 - Do not reset, discard, overwrite, or revert changes that you did not make unless the user clearly tells you to do so.
