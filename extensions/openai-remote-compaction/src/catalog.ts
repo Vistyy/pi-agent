@@ -2,7 +2,7 @@ import { buildCodexHeaders, type CodexAuth } from "./auth.js";
 import { MODELS_URL } from "./constants.js";
 import type { OpenAIRemoteCheckpoint } from "./types.js";
 
-export const CODEX_CATALOG_CLIENT_VERSION = "0.145.0";
+export const CODEX_CATALOG_CLIENT_VERSION = "0.153.4";
 
 interface ModelMetadata {
   slug: string;
@@ -10,9 +10,11 @@ interface ModelMetadata {
   visibility?: string;
 }
 
-// Snapshot of the compatibility metadata bundled with OpenAI Codex 0.145.0.
-// Source: openai/codex codex-rs/models-manager/models.json at 808d3c2702ce8eae007c457aa930e7c3b68dd5f6.
+// Astra fallback: Codex 0.153.4 models-manager/models.json at
+// 3d2ee51ca2d5db578f328aa75e20aa22c0197c9a. Other entries retain the Codex 0.145.0
+// snapshot at 808d3c2702ce8eae007c457aa930e7c3b68dd5f6.
 const BUNDLED_MODELS: readonly ModelMetadata[] = [
+  { slug: "gpt-6-astra", compHash: "3000" },
   { slug: "gpt-5.6-sol", compHash: "3000" },
   { slug: "gpt-5.6-terra", compHash: "3000" },
   { slug: "gpt-5.6-luna", compHash: "3000" },

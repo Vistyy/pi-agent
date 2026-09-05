@@ -1,6 +1,8 @@
 # OpenAI Remote Compaction
 
-This local Pi extension uses OpenAI Codex remote compaction for `openai-codex` subscription models.
+This local Pi extension uses OpenAI Codex remote compaction for `openai-codex` subscription models, including Astra.
+There is no per-model opt-in list.
+Compaction compatibility hashes control checkpoint reuse, not whether remote compaction is enabled.
 Other providers keep normal Pi behavior unless the active branch contains a remote checkpoint.
 
 ## Behavior
@@ -15,6 +17,8 @@ Compatible Codex models can continue the remote checkpoint chain.
 The extension follows Codex model metadata and alias resolution for `comp_hash` compatibility.
 A missing hash is unknown compatibility and does not block checkpoint reuse.
 Only known differing hashes establish incompatibility.
+The catalog request uses Codex client version `0.153.4`, which exposes Astra's `comp_hash` as `3000`.
+Astra remote compaction and checkpoint continuation were also verified against the real backend.
 An incompatible model receives the plaintext marker and visible tail after a warning.
 Switching back to a compatible Codex model restores access to the remote checkpoint if no later compaction ended the chain.
 

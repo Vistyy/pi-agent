@@ -36,7 +36,7 @@ describe("Codex model catalog", () => {
     );
     expect(fetch).toHaveBeenCalledOnce();
     expect(fetch).toHaveBeenCalledWith(
-      "https://chatgpt.com/backend-api/codex/models?client_version=0.145.0",
+      "https://chatgpt.com/backend-api/codex/models?client_version=0.153.4",
       expect.objectContaining({
         headers: expect.objectContaining({ originator: "pi" }),
       }),
@@ -52,6 +52,7 @@ describe("Codex model catalog", () => {
     });
     const auth = { token: "token", accountId: "account" };
 
+    await expect(catalog.getHash("gpt-6-astra", auth)).resolves.toBe("3000");
     await expect(catalog.getHash("gpt-5.6-luna", auth)).resolves.toBe("3000");
     await expect(catalog.getHash("gpt-5.6-sol", auth)).resolves.toBe("3000");
     await expect(catalog.getHash("gpt-5.6-terra", auth)).resolves.toBe("3000");
@@ -107,7 +108,7 @@ describe("Codex model catalog", () => {
     expect(await catalog.getHash("gpt-a", auth)).toBe("family-1");
     expect(fetch).toHaveBeenCalledTimes(3);
     expect(fetch).toHaveBeenLastCalledWith(
-      "https://chatgpt.com/backend-api/codex/models?client_version=0.145.0",
+      "https://chatgpt.com/backend-api/codex/models?client_version=0.153.4",
       expect.objectContaining({ headers: expect.not.objectContaining({ "If-None-Match": expect.anything() }) }),
     );
   });
