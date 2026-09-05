@@ -5,11 +5,12 @@
   ],
   "defaultProvider": "openai-codex",
   "defaultModel": "gpt-6-astra",
-  "defaultThinkingLevel": "high",
+  "defaultThinkingLevel": "medium",
   "doubleEscapeAction": "tree",
   "theme": "rose-pine-moon",
   "packages": [
-    "npm:pi-web-access@0.14.0"
+    "npm:pi-web-access@0.14.0",
+    "../../projects/pi-extensions/pi-workgraph"
   ],
   "enabledModels": [
     "openai-codex/gpt-6-astra",

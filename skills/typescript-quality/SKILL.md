@@ -12,8 +12,8 @@ Prefer upstream Effect diagnostics and documentation over inventing another loca
 
 ## Shared configuration and local ownership
 
-Keep common rules in a separately versioned configuration package, not in global instructions or copied project templates.
-Read the shared package's README at the selected revision before adoption or upgrade; it owns supported tool versions and exact installation and checking commands.
+Use [`Vistyy/typescript-quality`](https://github.com/Vistyy/typescript-quality) as the shared configuration owner rather than copying rules into global instructions or project templates.
+Before adoption or upgrade, read its README at the selected revision for publication status, compatible tool versions, and exact installation and checking commands.
 Pin the package and its compatible toolchain so local checks and CI use the same policy.
 Use a template only to create the project's initial layout and configuration references.
 
