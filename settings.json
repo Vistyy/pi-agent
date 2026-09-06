@@ -5,7 +5,7 @@
   ],
   "defaultProvider": "openai-codex",
   "defaultModel": "gpt-6-astra",
-  "defaultThinkingLevel": "medium",
+  "defaultThinkingLevel": "low",
   "doubleEscapeAction": "tree",
   "theme": "rose-pine-moon",
   "packages": [
