@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { StringEnum } from "@earendil-works/pi-ai";
 import type { ExecResult, ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
@@ -94,19 +96,20 @@ function getSessionId(ctx: ExtensionContext): string | undefined {
 	}
 }
 
-function appendBaseline(pi: ExtensionAPI, sessionId: string, tab: ValidatedTab): void {
+function appendBaseline(pi: ExtensionAPI, sessionId: string, runId: string, tab: ValidatedTab): void {
 	pi.appendEntry(HERDR_RENAME_ENTRY, {
 		kind: "baseline",
 		sessionId,
+		runId,
 		tabId: tab.tabId,
 		workspaceId: tab.workspaceId,
 		label: tab.label,
 	});
 }
 
-function appendRenameMarker(pi: ExtensionAPI, sessionId: string | undefined, tabId: string): void {
-	if (!sessionId) return;
-	pi.appendEntry(HERDR_RENAME_ENTRY, { kind: "renamed", sessionId, tabId });
+function appendRenameMarker(pi: ExtensionAPI, sessionId: string | undefined, runId: string | undefined, tabId: string): void {
+	if (!sessionId || !runId) return;
+	pi.appendEntry(HERDR_RENAME_ENTRY, { kind: "renamed", sessionId, runId, tabId });
 }
 
 export default function herdrRenameExtension(pi: ExtensionAPI) {
@@ -115,7 +118,7 @@ export default function herdrRenameExtension(pi: ExtensionAPI) {
 	let sessionState: SessionTabState = { renamed: false };
 	let baselineReady: Promise<void> = Promise.resolve();
 
-	async function captureSessionBaseline(ctx: ExtensionContext): Promise<void> {
+	async function captureSessionBaseline(ctx: ExtensionContext, reason: "startup" | "reload" | "new" | "resume" | "fork"): Promise<void> {
 		sessionState = { renamed: false };
 		sessionId = getSessionId(ctx);
 		tabId = undefined;
@@ -130,26 +133,29 @@ export default function herdrRenameExtension(pi: ExtensionAPI) {
 		const currentTab = await getCurrentTab(pi, command, currentTabId, workspaceId, undefined);
 		tabId = currentTab.tabId;
 
-		const restored = restoreSessionTabState(
-			ctx.sessionManager.getEntries(),
-			sessionId,
-			currentTab.tabId,
-			currentTab.workspaceId,
-		);
-		sessionState = restored;
-		if (!restored.baseline) {
-			sessionState.baseline = {
+		if (reason === "reload") {
+			sessionState = restoreSessionTabState(
+				ctx.sessionManager.getEntries(),
 				sessionId,
-				tabId: currentTab.tabId,
-				workspaceId: currentTab.workspaceId,
-				label: currentTab.label,
-			};
-			appendBaseline(pi, sessionId, currentTab);
+				currentTab.tabId,
+				currentTab.workspaceId,
+			);
+			return;
 		}
+
+		const runId = randomUUID();
+		sessionState.baseline = {
+			sessionId,
+			runId,
+			tabId: currentTab.tabId,
+			workspaceId: currentTab.workspaceId,
+			label: currentTab.label,
+		};
+		appendBaseline(pi, sessionId, runId, currentTab);
 	}
 
-	pi.on("session_start", async (_event, ctx) => {
-		baselineReady = captureSessionBaseline(ctx).catch(() => {
+	pi.on("session_start", async (event, ctx) => {
+		baselineReady = captureSessionBaseline(ctx, event.reason).catch(() => {
 			// Automatic naming remains unavailable when the startup identity check fails.
 			sessionState = { renamed: false };
 			tabId = undefined;
@@ -228,7 +234,7 @@ export default function herdrRenameExtension(pi: ExtensionAPI) {
 
 			if (target === "tab") {
 				sessionState.renamed = true;
-				appendRenameMarker(pi, sessionId, id);
+				appendRenameMarker(pi, sessionId, sessionState.baseline?.runId, id);
 			}
 			return {
 				content: [{ type: "text", text: `Renamed current Herdr ${target} to ${JSON.stringify(name)}.` }],

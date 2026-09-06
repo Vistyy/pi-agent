@@ -2,6 +2,7 @@ export const HERDR_RENAME_ENTRY = "herdr-rename";
 
 export interface TabBaseline {
 	sessionId: string;
+	runId: string;
 	tabId: string;
 	workspaceId: string;
 	label: string;
@@ -25,6 +26,7 @@ type BaselineEntryData = TabBaseline & {
 type RenamedEntryData = {
 	kind: "renamed";
 	sessionId: string;
+	runId: string;
 	tabId: string;
 };
 
@@ -38,8 +40,11 @@ function isCustomEntry(value: unknown): value is CustomEntry {
 
 function readBaseline(value: unknown): BaselineEntryData | undefined {
 	if (!isRecord(value) || value.kind !== "baseline" ||
-		typeof value.sessionId !== "string" || typeof value.tabId !== "string" ||
-		typeof value.workspaceId !== "string" || typeof value.label !== "string") {
+		typeof value.sessionId !== "string" || value.sessionId.length === 0 ||
+		typeof value.runId !== "string" || value.runId.length === 0 ||
+		typeof value.tabId !== "string" || value.tabId.length === 0 ||
+		typeof value.workspaceId !== "string" || value.workspaceId.length === 0 ||
+		typeof value.label !== "string") {
 		return undefined;
 	}
 	return value as unknown as BaselineEntryData;
@@ -47,7 +52,9 @@ function readBaseline(value: unknown): BaselineEntryData | undefined {
 
 function readRenamed(value: unknown): RenamedEntryData | undefined {
 	if (!isRecord(value) || value.kind !== "renamed" ||
-		typeof value.sessionId !== "string" || typeof value.tabId !== "string") {
+		typeof value.sessionId !== "string" || value.sessionId.length === 0 ||
+		typeof value.runId !== "string" || value.runId.length === 0 ||
+		typeof value.tabId !== "string" || value.tabId.length === 0) {
 		return undefined;
 	}
 	return value as RenamedEntryData;
@@ -60,7 +67,6 @@ export function restoreSessionTabState(
 	workspaceId: string,
 ): SessionTabState {
 	let baseline: TabBaseline | undefined;
-	let renamed = false;
 
 	for (const entry of entries) {
 		if (!isCustomEntry(entry)) continue;
@@ -69,8 +75,16 @@ export function restoreSessionTabState(
 			restoredBaseline.workspaceId === workspaceId) {
 			baseline = restoredBaseline;
 		}
+	}
+
+	if (!baseline) return { renamed: false };
+
+	let renamed = false;
+	for (const entry of entries) {
+		if (!isCustomEntry(entry)) continue;
 		const restoredMarker = readRenamed(entry.data);
-		if (restoredMarker?.sessionId === sessionId && restoredMarker.tabId === tabId) {
+		if (restoredMarker?.sessionId === sessionId && restoredMarker.tabId === tabId &&
+			restoredMarker.runId === baseline.runId) {
 			renamed = true;
 		}
 	}
