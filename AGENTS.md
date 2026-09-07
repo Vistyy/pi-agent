@@ -25,6 +25,8 @@
 
 - Prefer the simplest maintainable design that satisfies the requirements, prioritizing low lasting complexity in the code, caller coordination, and ongoing maintenance over implementation effort.
   Substantial implementation or migration work is justified when it produces a materially simpler maintained system; do not preserve unnecessary layers or superseded paths merely to make the change easier.
+  Evaluate the whole maintained system, including production code, tests, fixtures, adapters, dependencies, and caller obligations; moving complexity is not removing it.
+  Question whether a responsibility is necessary before improving its implementation. Prefer established platform or library capabilities when they replace custom machinery with a materially simpler maintained solution.
   Keep rules and state with clear owners; introduce abstractions for concrete needs rather than speculative flexibility.
 - Organize files around cohesive responsibilities so a typical change can be understood without reading unrelated code.
   Split large files at meaningful responsibility boundaries, not arbitrary line counts, and keep closely related logic together.
@@ -62,8 +64,10 @@
   Small, low-risk changes may need only inspection.
 - Resolve uncertainty that could change the decision with the smallest meaningful observation or bounded experiment.
   Clean up disposable experiment setup.
-- Do not add tests that merely mirror the implementation or check low-impact details without protecting against a consequential failure.
-  Add maintained coverage only when its ongoing protection is worth its cost and existing checks are insufficient.
+- Maintain tests for consequential behavior at stable boundaries, not implementation details, duplicated scenarios, or guarantees already owned by a library.
+  Add maintained coverage only when its ongoing protection is worth its cost and existing checks are insufficient. Temporary verification does not automatically warrant a permanent test.
+  Behavior-preserving refactors should ordinarily leave behavioral tests unchanged; widespread test churn is a reason to examine coupling and boundary design, not a routine cost to accept.
+  Apply the same scrutiny to existing tests and machinery in the area being changed: remove or simplify low-value coverage and superseded scaffolding rather than preserving them by default.
 - Verify changed or produced behavior against its requirements at the applicable boundary and complete required checks.
   Once those pass, broaden or repeat verification only when new changes, failures, or specific unresolved concerns justify it; otherwise, finish the task.
   State what remains unverified and why.
