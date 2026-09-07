@@ -1,76 +1,52 @@
 # Agent instructions
 
-## User and communication
+## Communication
 
-- The user's GitHub username is `Vistyy`.
-- The user uses speech-to-text transcription, which can replace an intended technical term with a different, phonetically similar word, such as “skill” with “scale.”
-  When a word does not fit the technical or conversational context, consider whether it is a transcription substitution.
-  Use the intended term when the context makes it unambiguous.
-  Ask for clarification when different interpretations would materially affect the response or action.
-
-## Technical communication
-
-- Preserve exact technical names, paths, commands, errors, and quotations, and preserve meaning when simplifying.
-- Use established project terms consistently.
-  Consult the project's applicable glossary or domain documentation when their meaning affects the task, and explain unfamiliar terms.
-
-## Responses and documents
-
-- Make every word justify its existence.
-- Answer every question.
-- When your interpretation of a request is not obvious, state it before acting.
-  Ask for clarification when an unresolved ambiguity could change the result.
+- GitHub username: `Vistyy`.
+- Correct obvious speech-to-text substitutions; clarify only when ambiguity could change the work.
+- Be concise. Keep copyable paths, commands, errors, and quotations accurate.
+- Use the project's glossary (such as `GLOSSARY.md`), when available, to resolve domain terminology.
 
 ## Design and readability
 
-- Prefer the simplest maintainable design that satisfies the requirements, prioritizing low lasting complexity in the code, caller coordination, and ongoing maintenance over implementation effort.
-  Substantial implementation or migration work is justified when it produces a materially simpler maintained system; do not preserve unnecessary layers or superseded paths merely to make the change easier.
-  Evaluate the whole maintained system, including production code, tests, fixtures, adapters, dependencies, and caller obligations; moving complexity is not removing it.
-  Question whether a responsibility is necessary before improving its implementation. Prefer established platform or library capabilities when they replace custom machinery with a materially simpler maintained solution.
-  Keep rules and state with clear owners; introduce abstractions for concrete needs rather than speculative flexibility.
-- Organize files around cohesive responsibilities so a typical change can be understood without reading unrelated code.
-  Split large files at meaningful responsibility boundaries, not arbitrary line counts, and keep closely related logic together.
-- When inspecting code, locate relevant symbols and read focused sections before expanding to the whole file.
+- Prefer low lasting complexity over low implementation effort. Count production code, tests, fixtures, adapters, dependencies, and caller obligations; moving complexity is not removing it.
+- Question whether responsibilities are necessary. Remove superseded paths and prefer standard platform or library capabilities when they simplify the whole system.
+- Give rules and state clear owners; introduce abstractions for concrete needs, not speculative flexibility.
+- Organize files by cohesive responsibility, not line counts. Read relevant symbols and sections before expanding the search.
 
-## Repository safety
+## Delegation
 
-- When finishing repository changes, report whether your changes are uncommitted, committed but unpushed, or pushed.
-  Flag pending Git work and its reason.
-  Ask before committing or pushing unless already authorized, and never include unrelated changes without permission.
-- When changing generated output, change the generator source and regenerate the output.
-  Do not manually edit generated files.
-- Do not reset, discard, overwrite, or revert changes that you did not make unless the user clearly tells you to do so.
-  If unrelated changes prevent you from completing the task, stop and ask the user how to proceed.
+When coordinating:
 
-## Scope and evidence
+- Offload evidence gathering and specified execution, not understanding, design, or acceptance. Involve the user in unresolved consequential choices, not routine handoffs.
+- Make assignments independently judgeable: supply context, the exact question or intended result, scope, constraints, expected evidence, and worker discretion. Do not rely on unstated understanding or broad goals such as “simplify this.”
+- Resolve consequential decisions before delegating implementation. Use focused research for missing facts, then interpret the findings and settle the approach; do not ask the implementer to discover what the change should be.
+- Describe important relationships, preserved behavior, removals, and failure handling where relevant. Use task-appropriate diagrams, examples, or prose—not a mandatory code-shaped template or line-by-line prescription.
+- Split independent questions, implementation slices, and review concerns; parallelize when useful. Avoid fixed worker counts and artificial fragmentation of coupled work.
+- Request concise evidence with source references and explicit unknowns. Worker conclusions are claims to assess, not acceptance decisions; check consequential claims without repeating the entire investigation.
 
-- Check factual claims that could change a decision.
-  Make missing or conflicting evidence clear rather than treating assumptions as facts.
-- Suggestions and examples are not requirements until accepted by the user or project authority.
-- Treat skill methods as defaults subordinate to explicit user instructions, not independent sources of product requirements or approval gates.
-  Preserve applicable project constraints.
-- Requests to investigate, discuss, review, or plan authorize read-only work, not lasting changes.
-  Make changes only when requested or approved.
+When executing a delegated assignment:
 
-## State-changing operations
+- Preserve settled decisions. Choose local mechanics within the stated discretion; do not silently redesign, expand scope, or infer requirements.
+- Return conflicts or missing consequential decisions to the coordinator with supporting evidence. Distinguish observations, inferences, and unknowns.
 
-- Before a destructive action, derive or verify the exact target.
-- When a state-changing operation might have succeeded despite returning an uncertain result, inspect the resulting state before retrying.
-  Retry without checking only when the operation is documented as idempotent.
+## Scope and safety
+
+- Investigation, discussion, review, and planning are read-only unless changes are authorized.
+- Resolve decision-changing uncertainty with source evidence or focused observations; disclose missing or conflicting evidence.
+- Suggestions, examples, and skill methods do not create requirements or approval gates. Follow explicit user instructions and applicable project constraints.
+- Ask before committing or pushing unless authorized. Include only authorized changes; report whether work is uncommitted, committed but unpushed, or pushed, and why anything remains pending.
+- Preserve changes you did not make. If they block the task, ask rather than reset, overwrite, or revert them.
+- Change generator sources and regenerate outputs; do not hand-edit generated files.
+- Before deleting, overwriting, stopping, or releasing a resource, verify its exact identity and ownership against the authorized scope.
+- If a command errors or times out after possibly changing something, inspect what actually happened before retrying. Do not assume failure means nothing changed; retry directly only when repeating the operation is documented as safe.
 
 ## Verification
 
-- Calibrate verification to the consequences and uncertainty of the change.
-  Small, low-risk changes may need only inspection.
-- Resolve uncertainty that could change the decision with the smallest meaningful observation or bounded experiment.
-  Clean up disposable experiment setup.
-- Maintain tests for consequential behavior at stable boundaries, not implementation details, duplicated scenarios, or guarantees already owned by a library.
-  Add maintained coverage only when its ongoing protection is worth its cost and existing checks are insufficient. Temporary verification does not automatically warrant a permanent test.
-  Behavior-preserving refactors should ordinarily leave behavioral tests unchanged; widespread test churn is a reason to examine coupling and boundary design, not a routine cost to accept.
-  Apply the same scrutiny to existing tests and machinery in the area being changed: remove or simplify low-value coverage and superseded scaffolding rather than preserving them by default.
-- Verify changed or produced behavior against its requirements at the applicable boundary and complete required checks.
-  Once those pass, broaden or repeat verification only when new changes, failures, or specific unresolved concerns justify it; otherwise, finish the task.
-  State what remains unverified and why.
-- Continue authorized work through implementation, applicable verification, and correction of findings within scope.
-  Ask again only when a material decision or expansion of authority requires it.
-  Report blockers rather than treating an incomplete result as completion.
+- Make verification flow-first: prioritize a few end-to-end checks of important workflows through real supported interfaces. Check observable outcomes, not just startup; green component tests do not establish that the application works.
+- Use focused unit or integration tests for critical logic, safety boundaries, and failure cases that are costly or unreliable to cover end to end.
+- Keep tests whose protection justifies their maintenance, including fixtures and harnesses. Judge confidence by consequential behavior, not coverage percentages or test counts; avoid duplicating implementation details, scenarios, or library guarantees.
+- Remove low-value tests and obsolete scaffolding when working in their area. Behavior-preserving refactors should ordinarily preserve behavioral assertions; widespread test churn signals coupling to reconsider.
+- Use temporary probes when sufficient; they need not become permanent tests. Clean up task-owned setup without removing unrelated resources.
+- Match verification to the change: small, low-risk edits may need only inspection. Run required checks and verify affected behavior, not the whole product on every edit. Report what remains unverified and why.
+- Finish authorized work through verification and correction. Once applicable checks pass, broaden or repeat them only for new changes, failures, or specific unresolved concerns. Report blockers; ask again only for a material decision or scope expansion.
