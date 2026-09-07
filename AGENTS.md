@@ -43,10 +43,10 @@ When executing a delegated assignment:
 
 ## Verification
 
-- Make verification flow-first: prioritize a few end-to-end checks of important workflows through real supported interfaces. Check observable outcomes, not just startup; green component tests do not establish that the application works.
-- Use focused unit or integration tests for critical logic, safety boundaries, and failure cases that are costly or unreliable to cover end to end.
-- Keep tests whose protection justifies their maintenance, including fixtures and harnesses. Judge confidence by consequential behavior, not coverage percentages or test counts; avoid duplicating implementation details, scenarios, or library guarantees.
-- Remove low-value tests and obsolete scaffolding when working in their area. Behavior-preserving refactors should ordinarily preserve behavioral assertions; widespread test churn signals coupling to reconsider.
+- Make verification flow-first: start from the supported entry point and check the observable outcome through real supported interfaces; green component tests do not establish that the application works.
+- Assert forbidden effects and ordering where they matter, not just final state: what must never happen mid-flight and what must happen first at trust boundaries. Do not couple assertions to incidental wording or collection position unless that is the contract.
+- Choose cases from the behavior's consequential failure modes and bound waits that could hang. Keep tests whose protection justifies their maintenance; judge confidence by consequential behavior, not counts. Use targeted mutations when it is unclear whether an assertion detects the claimed failure.
+- Remove low-value tests and obsolete scaffolding when working in their area. Behavior-preserving refactors should ordinarily keep the suite green; widespread churn signals coupling to reconsider.
 - Use temporary probes when sufficient; they need not become permanent tests. Clean up task-owned setup without removing unrelated resources.
 - Match verification to the change: small, low-risk edits may need only inspection. Run required checks and verify affected behavior, not the whole product on every edit. Report what remains unverified and why.
 - Finish authorized work through verification and correction. Once applicable checks pass, broaden or repeat them only for new changes, failures, or specific unresolved concerns. Report blockers; ask again only for a material decision or scope expansion.
