@@ -23,7 +23,8 @@
 
 ## Design and readability
 
-- Prefer the simplest maintainable design that satisfies the requirements, considering delivery cost, caller coordination, and ongoing maintenance.
+- Prefer the simplest maintainable design that satisfies the requirements, prioritizing low lasting complexity in the code, caller coordination, and ongoing maintenance over implementation effort.
+  Substantial implementation or migration work is justified when it produces a materially simpler maintained system; do not preserve unnecessary layers or superseded paths merely to make the change easier.
   Keep rules and state with clear owners; introduce abstractions for concrete needs rather than speculative flexibility.
 - Organize files around cohesive responsibilities so a typical change can be understood without reading unrelated code.
   Split large files at meaningful responsibility boundaries, not arbitrary line counts, and keep closely related logic together.
