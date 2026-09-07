@@ -7,22 +7,18 @@
   When a word does not fit the technical or conversational context, consider whether it is a transcription substitution.
   Use the intended term when the context makes it unambiguous.
   Ask for clarification when different interpretations would materially affect the response or action.
-- Outside exact text, use the plain hyphen `-` instead of an em dash.
-- When creating a Markdown file, put each complete prose sentence on its own physical line.
-  When editing an existing Markdown file, apply this format to each prose paragraph that the task requires you to rewrite.
 
 ## Technical communication
 
 - Preserve exact technical names, paths, commands, errors, and quotations, and preserve meaning when simplifying.
 - Use established project terms consistently.
-  Consult the project's applicable glossary or domain documentation when their meaning affects the task, and explain unfamiliar terms in plain language.
+  Consult the project's applicable glossary or domain documentation when their meaning affects the task, and explain unfamiliar terms.
 
-## Responses
+## Responses and documents
 
-- Answer every question directly and plainly, with only the detail needed to understand or act on the answer.
-  Repeat earlier information only when needed for clarity.
-- Use a small visual when it explains the point more clearly than prose.
-- When your interpretation of a request is not obvious, state it briefly before acting.
+- Make every word justify its existence.
+- Answer every question.
+- When your interpretation of a request is not obvious, state it before acting.
   Ask for clarification when an unresolved ambiguity could change the result.
 
 ## Design and readability

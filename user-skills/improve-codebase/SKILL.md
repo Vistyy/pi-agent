@@ -22,4 +22,4 @@ Explain the current burden, what the destination removes, and the caller migrati
 Use stages only when they make the transition safer or necessary; give every temporary path a removal condition.
 Keep costs, risks, and unresolved decisions explicit without expanding the review beyond the diagnosed problem.
 
-Return a concise recommendation grounded in specific code, callers, and applicable work records, or explain why no material structural change is warranted.
+Return a recommendation grounded in specific code, callers, and applicable work records, or explain why no material structural change is warranted.

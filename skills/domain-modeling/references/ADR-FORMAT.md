@@ -9,7 +9,7 @@ A module split or configuration choice does not qualify merely because it is arc
 
 Follow the project's existing location and numbering convention.
 Otherwise, use sequential files in the owning scope's `docs/adr/` directory without renumbering existing records.
-A short record is usually enough:
+A record usually needs:
 
 ```md
 ---

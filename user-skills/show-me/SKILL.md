@@ -1,11 +1,10 @@
 ---
 name: show-me
-description: "[M] Help the user understand the current topic visually with concise diagrams, code-shape sketches, and focused HTML artifacts."
+description: "[M] Help the user understand the current topic visually with diagrams, code-shape sketches, and HTML artifacts."
 disable-model-invocation: true
 ---
 
 Help the user understand the current topic of conversation visually.
-Skip the preamble and keep prose brief.
 Pick the smallest view that makes the key point clear.
 
 - Show logic or an algorithm as pseudocode:
@@ -118,7 +117,7 @@ function expandSkill(command: string): string {
 }
 ```
 
-- For a visual UI, layout, state comparison, or concept too dense for Mermaid, write one focused HTML file: a diagram, an infographic, or a short slide deck, whichever fits the point.
+- For a visual UI, layout, state comparison, or concept too dense for Mermaid, write one focused HTML file: a diagram, an infographic, or a slide deck, whichever fits the point.
   Match the product's colors, type, spacing, and components; use real labels and data; support desktop and mobile.
   Place the artifact outside product source unless the user requested a repository change.
   Open it using an available presentation mechanism rather than assuming a platform-specific command.
@@ -126,8 +125,7 @@ function expandSkill(command: string): string {
 
 ## Guidance
 
-Place each visual next to the short text it supports.
+Place each visual next to the text it supports.
 Keep only the calls, files, props, states, and boundaries needed to answer the user's current question or the options to resolve the current discussion point.
 
-You may use one of these, you may use several, it is unlikely you will use all of them.
-Use your judgment and don't overwhelm the user.
+Choose the visual forms that fit the question.

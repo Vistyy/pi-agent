@@ -1,13 +1,10 @@
 ---
 name: say-less
-description: "[M] Re-explain the preceding assistant message briefly and plainly without changing its meaning."
+description: "[M] Revise the preceding assistant message so every word justifies its existence, without changing its meaning."
 disable-model-invocation: true
 ---
 
-Re-explain the assistant message immediately before this skill invocation in plain language.
-Preserve its meaning and the project's canonical terms, but briefly explain unfamiliar terms.
-Include only necessary context and keep the explanation short.
+Revise the assistant message immediately before this skill invocation using the writing rule in AGENTS.md.
+Preserve its meaning and the project's canonical terms, and explain unfamiliar terms.
 Do not perform unrelated work, introduce a new recommendation, or silently change the preceding response's conclusion.
 If preserving the meaning requires correcting the preceding response, identify the correction explicitly.
-
-Afterward, continue using brief, plain language until the user requests more detail.

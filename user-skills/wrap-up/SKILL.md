@@ -59,10 +59,9 @@ When open loops remain, list only the unresolved conversational matters under **
 For each one, state what was discussed, where the conversation lost its disposition, and the smallest question or decision that would close it.
 Finish with one focused question that addresses the most immediate open loop.
 
-Then provide **Session disposition** as a short account of the overall thread.
+Then provide **Session disposition** as an account of the overall thread.
 State the main conclusions, decisions, completed actions, explicit deferrals, and material handoffs needed for the user to understand where the session ended.
 Describe handed-off or separately running work as settled ownership, not as an open loop.
-Do not produce a detailed status inventory unless it is necessary to explain an unresolved matter.
 
 If useful, list explicit deferrals under **Deliberately deferred**.
 Omit that section when empty.

@@ -18,7 +18,7 @@ If no useful knowledge is missing, leave the existing arrangement alone.
 
 ## Choose its home
 
-Use a short section in existing project documentation when that is enough.
+Use a section in existing project documentation when that is enough.
 Use `VERIFICATION.md` when verification strategy needs a separate, discoverable home.
 Use a project-local `verify-<project>` skill when verification needs an on-demand operational recipe for driving the real application or interface.
 Give that skill a description naming the relevant surface and when the recipe is needed, rather than invoking it for every change.

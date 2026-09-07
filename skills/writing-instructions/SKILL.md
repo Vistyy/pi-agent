@@ -5,7 +5,7 @@ description: Use when designing or materially changing behavioral rules, authori
 
 # Writing instructions
 
-Write only the guidance needed to change behavior for the intended audience.
+Write guidance for the intended audience.
 Keep enforceable policy in executable configuration, and explain intent or exceptions in prose rather than repeating the rules.
 
 ## Placement and scope
@@ -17,7 +17,7 @@ Preserve explicit user preferences and project constraints when simplifying.
 
 Distinguish requirements from recommendations and examples.
 Make conditions and authority clear without creating approval steps the user did not request.
-Prefer a short direct rule over a staged procedure when the order of actions is not essential.
+Use a staged procedure only when the order of actions matters.
 
 ## Skills
 
