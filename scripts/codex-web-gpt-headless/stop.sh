@@ -8,14 +8,15 @@ if ! owned_session_running; then
   exit 0
 fi
 read -r pid _ < "$PID_FILE"
-process_tree() {
+# Isolate recursive variables: POSIX shell variables otherwise overwrite the caller's root.
+process_tree() (
   root=$1
   [ -d "/proc/$root" ] || return 0
   for child in $(ps -eo pid=,ppid= | awk -v parent="$root" '$2 == parent { print $1 }'); do
     process_tree "$child"
   done
   printf '%s\n' "$root"
-}
+)
 kill_tree() {
   signal=$1
   root=$2

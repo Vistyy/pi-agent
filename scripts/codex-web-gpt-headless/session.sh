@@ -9,14 +9,15 @@ xvfb_pid= x11vnc_pid= novnc_pid= launcher_pid=
 record_pid() {
   printf '%s\n' "$2" > "$RUNTIME_DIR/$1.pid"
 }
-process_tree() {
+# Recursive state must not overwrite the caller's root in POSIX shell.
+process_tree() (
   root=$1
   [ -d "/proc/$root" ] || return 0
   for child in $(ps -eo pid=,ppid= | awk -v parent="$root" '$2 == parent { print $1 }'); do
     process_tree "$child"
   done
   printf '%s\n' "$root"
-}
+)
 stop_tree() {
   root=$1
   [ -n "$root" ] || return 0

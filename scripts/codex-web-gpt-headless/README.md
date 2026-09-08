@@ -62,7 +62,16 @@ command.
 
 ## Install and start
 
-From this directory:
+From the retained checkout (not a temporary worker worktree):
+
+```sh
+cd ~/.pi/agent/scripts/codex-web-gpt-headless
+```
+
+These are standalone shell scripts, not Pi extensions. Keep them under `scripts/`, never
+`~/.pi/agent/tools/`, which Pi reserves for legacy custom tools. Start the runtime from this
+retained path so its supervisor identity and launcher restart callback survive worker cleanup.
+
 
 ```sh
 ./install.sh
@@ -107,7 +116,7 @@ identity and script command line before signaling only that supervisor; after a 
 it terminates only the supervisor's captured process tree if a shell is still waiting on Electron.
 It does not kill unrelated processes. Login state survives in `state/launcher`.
 
-## After human login (not performed here)
+## After human login
 
 When the human has confirmed the embedded browser is signed in, the isolated browser-only bridge
 can be initialized later:
@@ -122,8 +131,42 @@ can be initialized later:
 Those steps initialize only the isolated Codex home and loopback Responses bridge. Integrating the
 user's real Codex installation would require separate authorization and migration planning.
 
-No authenticated model request has been made. Actual ChatGPT Pro discovery, browser smoke behavior,
-model catalog installation, Responses/SSE compatibility, and end-to-end Codex behavior remain
-unverified until the human login and post-login checks are completed. Upstream describes this as
-unofficial browser automation that may break when ChatGPT changes and remains subject to OpenAI's
-terms and workspace policies.
+Verified on this dev box after authorized human login: the launcher's High smoke test passed,
+Pro was detected, models were installed only in the isolated Codex home, and a direct
+`chatgpt-web/pro` Responses/SSE request completed through `consult.py`. The bridge reported no
+active turns afterward. No full MCP harness, normal Codex integration, or Pi model registration
+was enabled. The response identifies the bridge route, not an independently attested underlying
+OpenAI model version. Real advisory quality and full end-to-end Codex operation remain untested.
+
+## Context-only consultation prototype
+
+Prepare one UTF-8 file containing the question, constraints, relevant local code/diffs/logs, and
+known gaps. Uncommitted file contents can be included; no push is needed. Do not include secrets.
+Then run:
+
+```sh
+python3 ~/.pi/agent/scripts/codex-web-gpt-headless/consult.py /path/to/prompt.md \\
+  --output ~/.local/share/codex-web-gpt-headless/consultations/unique-question-name
+```
+
+The output directory must not already exist. The client uses only the configured loopback
+browser-only bridge and the fixed `chatgpt-web/pro` route. It supplies a fresh thread/turn identity
+for each question, no local tools, and no intermediary model. An existing research worker can
+gather the evidence and invoke this command without Workgraph changes.
+
+Each private output directory retains `request.json`, `response.sse`, `response.json`,
+`answer.md`, and `status.json` when available. `answer.md` preserves the bridge's returned text,
+including its **Local tools unavailable** banner; that banner is expected in this design, not
+an instruction to enable MCP. The raw response is retained so worker interpretation can remain
+separate. The upstream browser may still provide native ChatGPT capabilities; this is not a
+provider-enforced no-web-search mode.
+
+There is no automatic retry, cancellation, conversation continuation, or durable background job
+manager in this prototype. On interruption or an incomplete response, inspect retained artifacts
+and the launcher's Activity view before another submission. Do not treat a local timeout as proof
+that the remote request did not run. The client rejects an already-busy bridge, but this is a
+readiness check, not a cross-process lock: run consultations serially. The socket timeout is
+30 minutes, not a total wall-clock deadline. Keep the owning process alive until completion.
+
+Upstream describes this as unofficial browser automation that may break when ChatGPT changes and
+remains subject to OpenAI's terms and workspace policies.
