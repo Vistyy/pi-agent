@@ -21,6 +21,7 @@ Use a staged procedure only when the order of actions matters.
 
 ## Skills
 
+Keep skills small and narrowly useful: supply missing operational knowledge or correct observed failure modes rather than restating a tutorial the agent already knows. Do not impose a generic workflow when task-specific judgment is needed; additional text and prescribed steps must earn their context and execution cost.
 Before configuring skill discovery or frontmatter, read the target harness's documentation.
 Use the description to distinguish tasks that need the skill from adjacent tasks that do not.
 Keep method details out of the description and avoid repeating its routing conditions in global instructions.
