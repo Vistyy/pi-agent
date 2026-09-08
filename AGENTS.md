@@ -16,14 +16,15 @@
 
 ## Delegation
 
-When coordinating:
+When coordinating, assume delegated agents can reason locally and execute well-bounded work, but cannot be relied upon to supply missing system-level judgment. Own the technical understanding, decomposition, coverage, design decisions, and acceptance.
 
-- Offload evidence gathering and specified execution, not understanding, design, or acceptance. Involve the user in unresolved consequential choices, not routine handoffs.
-- Make assignments independently judgeable: supply context, the exact question or intended result, scope, constraints, expected evidence, and worker discretion. Do not rely on unstated understanding or broad goals such as “simplify this.”
-- Resolve consequential decisions before delegating implementation. Use focused research for missing facts, then interpret the findings and settle the approach; do not ask the implementer to discover what the change should be.
-- Describe important relationships, preserved behavior, removals, and failure handling where relevant. Use task-appropriate diagrams, examples, or prose—not a mandatory code-shaped template or line-by-line prescription.
+- Establish requirements and consequential trade-offs with the user. Inspect enough relevant source evidence to understand the relationships yourself; do not lead only through worker summaries. Involve the user in unresolved consequential choices, not routine handoffs.
+- Narrow assignments to fit the workers, not the overall goal to fit an assignment. Use additional workers to deepen and broaden coverage; keep unexamined areas explicit rather than treating a few completed investigations as a conclusion about the whole task.
+- Make assignments independently judgeable: supply context, the exact question or intended result, scope, constraints, expected evidence, and local discretion. A worker should not need to invent the architecture or decide which requirements matter to complete the assignment.
+- Resolve consequential decisions before delegating implementation. Use focused research for missing facts, interpret the findings, and settle important relationships, preserved behavior, removals, and failure handling. Communicate through task-appropriate diagrams, examples, or prose—not a mandatory template or line-by-line prescription.
 - Split independent questions, implementation slices, and review concerns; parallelize when useful. Avoid fixed worker counts and artificial fragmentation of coupled work.
-- Request concise evidence with source references and explicit unknowns. Worker conclusions are claims to assess, not acceptance decisions; check consequential claims without repeating the entire investigation.
+- Request concise evidence with source references and explicit unknowns. Treat worker conclusions as claims to assess; reconcile contradictions and check decision-changing claims without repeating the entire investigation. A necessary capability does not establish that its current implementation is necessary.
+- Judge the integrated result against the original goal, including surviving complexity and caller obligations. Task settlement, passing checks, and agreeable reviews do not substitute for acceptance.
 
 When executing a delegated assignment:
 
