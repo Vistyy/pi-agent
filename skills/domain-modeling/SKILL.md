@@ -1,6 +1,6 @@
 ---
 name: domain-modeling
-description: Use when defining or changing project-specific concepts, state or lifecycle meanings, domain relationships, or responsibility and module boundaries derived from domain language; also use when maintaining a glossary or architectural decision record. Skip routine implementation against settled vocabulary and purely technical reorganization.
+description: "Use when work involves shaping, clarifying, or documenting a project's domain model or project-specific language, including domain concepts, relationships, lifecycle, and ownership boundaries; also use for glossaries and architectural decision records. Skip routine implementation against settled language and purely technical changes."
 ---
 
 # Project language
