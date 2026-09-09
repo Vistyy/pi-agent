@@ -19,12 +19,12 @@
         "get_search_content",
         "source_check",
         "web_search",
-        "rename_resource"
+        "name_session"
       ]
     },
     "worker": {
       "disabledTools": [
-        "rename_resource"
+        "name_session"
       ]
     }
   },

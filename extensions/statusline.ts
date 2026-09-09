@@ -108,23 +108,29 @@ export default function statusline(pi: ExtensionAPI) {
 
           for (const tier of tiers) {
             const line = tier.chunks.join(divider);
-            if (visibleWidth(line) <= width) return [line];
+            if (visibleWidth(line) <= width) return formatFooterLines([line], pi.getSessionName(), width);
           }
 
-          return renderCompactStatus(
-            model,
-            ctxPct,
-            branchTrimmed,
-            git,
-            [tokCompact, costSeg, codexSeg].filter(Boolean) as string[],
+          return formatFooterLines(
+            renderCompactStatus(
+              model,
+              ctxPct,
+              branchTrimmed,
+              git,
+              [tokCompact, costSeg, codexSeg].filter(Boolean) as string[],
+              width,
+              divider,
+              (value) => theme.fg("success", value),
+            ),
+            pi.getSessionName(),
             width,
-            divider,
-            (value) => theme.fg("success", value),
           );
         },
       };
     });
   });
+
+  pi.on("session_info_changed", () => requestRender?.());
 
   pi.on("thinking_level_select", (event) => {
     thinkingLevel = event.level;
@@ -231,6 +237,11 @@ function renderCompactStatus(
   }
 
   return [line];
+}
+
+export function formatFooterLines(metrics: string[], sessionName: string | undefined, width: number): string[] {
+  if (!sessionName?.trim()) return metrics;
+  return [...metrics, truncateToWidth(sessionName.trim(), Math.max(1, width), "…")];
 }
 
 function gitText(branch: string, details: string | undefined): string {
