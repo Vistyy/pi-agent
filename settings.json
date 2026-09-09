@@ -21,6 +21,11 @@
         "web_search",
         "rename_resource"
       ]
+    },
+    "worker": {
+      "disabledTools": [
+        "rename_resource"
+      ]
     }
   },
   "enabledModels": [
