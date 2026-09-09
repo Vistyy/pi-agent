@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { visibleWidth } from "@earendil-works/pi-tui";
 
-import statusline, { formatFooterLines } from "./statusline.ts";
+import statusline, { formatFooterLines } from "./index.ts";
 
 const stripAnsi = (value: string) => value.replace(/\x1b\[[0-9;]*m/g, "");
 
