@@ -1,41 +1,36 @@
 ---
 name: domain-modeling
-description: Use when defining or changing project-specific terms, resolving conflicting meanings or domain relationships, or maintaining a glossary or architectural decision record. Skip routine use of established terms.
+description: Use when defining or changing project-specific concepts, state or lifecycle meanings, domain relationships, or responsibility and module boundaries derived from domain language; also use when maintaining a glossary or architectural decision record. Skip routine implementation against settled vocabulary and purely technical reorganization.
 ---
 
 # Project language
 
-Use a glossary to make project-specific concepts and their distinctions easy to understand.
-Prefer familiar words used by users and maintainers rather than inventing a name for every mechanism.
-Keep ordinary programming vocabulary out unless it has a distinct project meaning.
+Actively clarify the project's domain model while its language, relationships, or ownership boundaries are being designed. Reading established vocabulary during routine implementation does not require this skill.
 
-## Find and clarify the meaning
+Before proceeding, read and follow [Glossary formats](references/GLOSSARY-FORMAT.md). It owns glossary discovery, single-versus-multiple glossary selection, entry format, and the root glossary-map format.
 
-Consult the applicable project instructions and existing domain documentation before defining a term.
-Use `GLOSSARY.md` for new glossaries; respect an existing project's naming and scope rather than automatically renaming its `CONTEXT.md` or other documentation.
-When several scopes use different meanings, identify the relevant scope without requiring a new context map or directory structure.
+## Find the owning language
 
-Resolve meanings from accepted requirements, established language, and implementation evidence.
-If these conflict, explain the material difference instead of silently treating the current code as the requirement.
-Use a concrete scenario to clarify a relationship when prose alone leaves an important ambiguity.
-Ask only when the unresolved meaning could change the work.
+Inspect applicable project instructions, domain documentation, and accepted requirements before defining a concept. Check implementation evidence when the discussion claims current behavior.
 
-## Record useful definitions
+Use `GLOSSARY.md` and `GLOSSARY-MAP.md` for new documentation. Respect an established project's differently named domain documents rather than creating a parallel glossary or renaming them without authority.
 
-Give each concept one canonical term within its scope.
-Define what it identifies and how it differs from closely related concepts.
-Mention aliases or relationships only when they prevent a real misunderstanding.
-A simple entry is enough:
+If a root glossary map exists, read it and the affected glossary before reasoning about a term. Use the map's relationships to choose the owning scope. Ask only when materially different scopes remain plausible.
 
-```md
-## Attempt
+## Clarify concepts and relationships
 
-One execution of an assignment.
-An assignment may have several attempts; retrying does not create a new assignment.
-```
+Prefer familiar words used by users and maintainers. Give each concept one canonical term within its scope, and identify genuinely competing aliases to avoid.
 
-Record implemented, supported concepts in the current glossary and keep planned concepts in the applicable plan until implemented.
-Update affected definitions when an authorized change alters their meaning.
-Keep specifications, implementation details, and decision rationale with their respective owners rather than turning the glossary into a specification store.
+Resolve meaning from accepted requirements, established language, and implementation evidence. When they conflict, explain the material difference instead of silently treating current code as the requirement. Use concrete scenarios to test relationships, lifecycle boundaries, and overloaded terms when prose leaves a consequential ambiguity.
 
-When creating or changing an architectural decision record, read [ADR guidance](references/ADR-FORMAT.md).
+When domain concepts determine APIs, responsibilities, or module boundaries, settle the concepts and their relationships first. Use the resulting language in those boundaries; do not manufacture domain terms for ordinary technical infrastructure.
+
+## Record terms as they crystallize
+
+When edits are authorized, create or update the owning glossary when an implemented, supported term becomes clear. Do not batch known definitions indefinitely. Create glossary files lazily—never create an empty glossary or map in anticipation of future concepts.
+
+Keep planned concepts in the applicable plan until implemented. During read-only work, report proposed definitions and their intended owner instead of editing files or presenting them as current.
+
+A glossary contains project-specific domain language and concise distinctions. It is not a specification, implementation guide, schema catalog, decision log, task tracker, or dumping ground for general programming terms.
+
+When creating or changing an architectural decision record, read and follow [ADR guidance](references/ADR-FORMAT.md).
