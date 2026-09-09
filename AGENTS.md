@@ -32,6 +32,7 @@
 
 ## Verification
 
+- When repository-specific verification guidance exists, use it to refine the applicable guarantees, evidence boundaries, and supported checks.
 - Start from the affected promises and consequential ways they could fail. Choose evidence that distinguishes those failures from correct behavior, not a testing technique or test-count target.
 - Make verification flow-first: exercise supported entry points and observe meaningful outcomes. Use the smallest real boundary that establishes the claim; green component tests do not establish that the application starts or a complete workflow works.
 - Use implementation knowledge to select risky cases, but ground expectations in intended behavior and independently justified results. Do not reproduce production logic as its own oracle. Use targeted mutations when it is unclear whether a check detects the claimed failure.
