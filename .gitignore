@@ -27,9 +27,6 @@
 !themes/**
 !docs/
 !docs/**
-!scripts/
-!scripts/codex-web-gpt-headless/
-!scripts/codex-web-gpt-headless/**
 !eval/
 !eval/**
 eval/fixtures/**/source.jsonl
