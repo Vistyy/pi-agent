@@ -1,7 +1,6 @@
 ---
 name: grilling
-description: "[M] Run a guided stress-test of a consequential plan or design."
-disable-model-invocation: true
+description: Stress-tests consequential plans and designs through progressive, evidence-informed decision rounds. Use when unresolved choices or assumptions could materially affect the outcome, behavior, interfaces, safety, or implementation authority. Skip settled work with only local, reversible implementation choices.
 ---
 
 # Grilling
