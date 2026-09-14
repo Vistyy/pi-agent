@@ -13,7 +13,6 @@ import {
   decodeWorkspace,
   makeAgentName,
   makePromptArgument,
-  makeWorkspaceLabel,
   type CommandResult,
   type SessionIdentity,
   type StartedSessionIdentity,
@@ -125,7 +124,6 @@ export async function launchSession(
     targetCwd,
   );
   const progress: Partial<StartedSessionIdentity> = { ...session, cwd: targetCwd };
-  const label = makeWorkspaceLabel(request.prompt);
   const agentName = makeAgentName();
   const herdr = process.env.HERDR_BIN_PATH ?? "herdr";
 
@@ -134,7 +132,7 @@ export async function launchSession(
     workspace = decodeWorkspace(
       await executor.exec(
         herdr,
-        ["workspace", "create", "--cwd", targetCwd, "--label", label, "--no-focus"],
+        ["workspace", "create", "--cwd", targetCwd, "--no-focus"],
         { signal, timeout: 10_000 },
       ),
     );
@@ -160,8 +158,6 @@ export async function launchSession(
           "--",
           "--session",
           session.sessionFile,
-          "--name",
-          label,
         ],
         { signal, timeout: 130_000 },
       ),

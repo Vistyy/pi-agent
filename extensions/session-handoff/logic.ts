@@ -49,13 +49,6 @@ export function makePromptArgument(prompt: string): string {
   return prompt.startsWith("-") ? ` ${prompt}` : prompt;
 }
 
-export function makeWorkspaceLabel(prompt: string): string {
-  const firstLine = prompt.trim().split("\n", 1)[0] ?? "";
-  const compact = firstLine.replaceAll(/\s+/g, " ");
-  const summary = compact.length > 52 ? `${compact.slice(0, 51)}…` : compact;
-  return summary ? `Handoff · ${summary}` : "Handoff";
-}
-
 export function decodeWorkspace(result: CommandResult): WorkspaceIdentity {
   const value = decodeResult(result, "herdr workspace create");
   const workspace = field(value, "workspace");

@@ -140,7 +140,13 @@ test("launch creates one workspace, starts Pi there, and submits one prompt", as
     assert.equal(identity.paneId, "w-new:p1");
     assert.equal(identity.cwd, targetCwd);
     assert.equal(calls.length, 3);
-    assert.deepEqual(calls[0]?.args.slice(0, 4), ["workspace", "create", "--cwd", targetCwd]);
+    assert.deepEqual(calls[0]?.args, ["workspace", "create", "--cwd", targetCwd, "--no-focus"]);
+    const startArgs = calls[1]?.args;
+    assert.ok(startArgs);
+    assert.equal(startArgs.includes("--name"), false);
+    assert.equal(calls[0]?.args.includes("--label"), false);
+    assert.equal(calls[0]?.args.includes("Investigate the other concern"), false);
+    assert.equal(startArgs.includes("Investigate the other concern"), false);
     assert.deepEqual(calls[2]?.args, ["agent", "prompt", "w-new:p1", "Investigate the other concern"]);
     assert.equal(calls.some((call) => call.args.includes("close")), false);
   } finally {

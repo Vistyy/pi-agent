@@ -5,7 +5,6 @@ import {
   decodeStartedAgent,
   decodeWorkspace,
   makePromptArgument,
-  makeWorkspaceLabel,
 } from "./logic.ts";
 
 const success = (result: unknown) => ({
@@ -84,9 +83,4 @@ test("command errors preserve Herdr's message", () => {
 test("leading-hyphen prompts remain positional CLI arguments", () => {
   assert.equal(makePromptArgument("--review this"), " --review this");
   assert.equal(makePromptArgument("review this"), "review this");
-});
-
-test("workspace labels are compact and single-line", () => {
-  assert.equal(makeWorkspaceLabel("  Investigate   session behavior\nmore detail"), "Handoff · Investigate session behavior");
-  assert.ok(makeWorkspaceLabel("x".repeat(100)).length <= 62);
 });
