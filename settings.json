@@ -10,7 +10,7 @@
   "theme": "rose-pine-moon",
   "packages": [
     "npm:pi-web-access@0.14.0",
-    "../../projects/pi-extensions/pi-workgraph"
+    "npm:@syzom/pi-workgraph@0.1.0"
   ],
   "pi-workgraph": {
     "calm": {
