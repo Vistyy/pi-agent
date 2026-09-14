@@ -12,6 +12,10 @@
 !models.json
 !keybindings.json
 
+# Workgraph model config
+!workgraph/
+!workgraph/models.json
+
 # Track resource directories
 !agents/
 !agents/**
