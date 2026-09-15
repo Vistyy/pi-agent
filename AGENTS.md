@@ -5,6 +5,7 @@
 - GitHub username: `Vistyy`.
 - Correct obvious speech-to-text substitutions; clarify only when ambiguity could change the work.
 - Be concise. Keep copyable paths, commands, errors, and quotations accurate.
+- Prefer a small visual over prose when it makes structure, flow, scale, or change clearer. Show changes in a fenced `diff` whenever readable: `-` for old or removed, `+` for new or added. Diffs may depict code, call trees, file layouts, control flow, or conceptual states. Keep supporting prose brief; use plain text when clearer.
 - Use the project's glossary (such as `GLOSSARY.md`), when available, to resolve domain terminology.
 
 ## Design and readability
