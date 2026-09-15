@@ -22,7 +22,6 @@ import {
 } from "./request.js";
 import { findActiveRemoteCheckpoint, isRemoteCheckpoint } from "./session-state.js";
 import type { OpenAIRemoteCheckpointEntryDetails } from "./types.js";
-import { createUsageRecord } from "./usage.js";
 
 type CodexModel = {
   provider: string;
@@ -134,10 +133,6 @@ export default function openAIRemoteCompaction(pi: ExtensionAPI): void {
       | undefined;
     const details = container?.openaiRemoteCheckpoint;
     if (!isRemoteCheckpoint(details)) return;
-    pi.appendEntry(
-      "pi.usage.recorded",
-      createUsageRecord(details.creatingModelId, event.compactionEntry.usage),
-    );
     pi.events.emit(REMOTE_COMPACTION_COMPLETED_EVENT, undefined);
   });
 

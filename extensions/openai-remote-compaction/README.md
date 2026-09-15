@@ -26,7 +26,7 @@ If remote compaction fails, the extension leaves the session and remote checkpoi
 Use `/compact-pi` to confirm an ordinary Pi compaction that ends the remote checkpoint chain.
 Custom `/compact` instructions are not supported while remote compaction applies.
 
-Remote usage is recorded in both Pi's compaction entry and the shared `pi.usage.recorded` format used by `/cost`.
+Remote usage is stored in Pi's compaction entry, where Pi includes it in normal session usage totals.
 After successful remote compaction, the extension emits `openai-remote-compaction:completed` through `pi.events` with an `undefined` payload.
 
 Remote checkpoints created by the former implementation are not supported.

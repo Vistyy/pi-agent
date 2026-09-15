@@ -23,7 +23,6 @@ function apiHarness() {
         (name: string, command: { handler: (args: string, ctx: any) => Promise<void> }) =>
           commands.set(name, command),
       ),
-      appendEntry: vi.fn(),
       getAllTools: vi.fn(() => [
         { name: "read", description: "Read a file", parameters: { type: "object" } },
         { name: "write", description: "Write a file", parameters: { type: "object" } },
@@ -177,16 +176,6 @@ describe("remote compaction extension lifecycle", () => {
       },
       ctx,
     );
-    expect(api.appendEntry).toHaveBeenCalledWith(
-      "pi.usage.recorded",
-      expect.objectContaining({
-        schemaVersion: 1,
-        extension: "openai-remote-compaction",
-        operation: "remote-compaction",
-        model: { provider: "openai-codex", id: "gpt-test" },
-        usage: expect.objectContaining({ input: 12, output: 2, totalTokens: 14, cost: 0 }),
-      }),
-    );
     expect(api.events.emit).toHaveBeenCalledWith(
       REMOTE_COMPACTION_COMPLETED_EVENT,
       undefined,
@@ -208,7 +197,6 @@ describe("remote compaction extension lifecycle", () => {
       },
       ctx,
     );
-    expect(api.appendEntry).toHaveBeenCalledOnce();
     expect(api.events.emit).toHaveBeenCalledOnce();
 
     await handlers.get("session_compact")?.(
@@ -226,12 +214,6 @@ describe("remote compaction extension lifecycle", () => {
         fromExtension: true,
       },
       ctx,
-    );
-    expect(api.appendEntry).toHaveBeenLastCalledWith(
-      "pi.usage.recorded",
-      expect.objectContaining({
-        usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: 0 },
-      }),
     );
     expect(api.events.emit).toHaveBeenCalledTimes(2);
 
@@ -840,7 +822,6 @@ describe("remote compaction extension lifecycle", () => {
 
     expect(await handlers.get("before_provider_request")?.({ payload }, ctx)).toBeUndefined();
     expect(fetch).not.toHaveBeenCalled();
-    expect(api.appendEntry).not.toHaveBeenCalled();
   });
 
   it("does not inspect or rewrite non-Codex provider requests", async () => {
@@ -853,7 +834,6 @@ describe("remote compaction extension lifecycle", () => {
     const payload = { model: "grok", messages: [{ role: "user", content: "continue" }] };
 
     expect(await handlers.get("before_provider_request")?.({ payload }, ctx)).toBeUndefined();
-    expect(api.appendEntry).not.toHaveBeenCalled();
   });
 
   it("does not replace Pi behavior for a fresh non-Codex branch", async () => {

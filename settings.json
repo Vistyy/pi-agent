@@ -12,6 +12,10 @@
     "npm:pi-web-access@0.14.0",
     "npm:@syzom/pi-workgraph@0.2.0"
   ],
+  "wrap-up": {
+    "model": "openai-codex/gpt-5.6-sol",
+    "thinkingLevel": "low"
+  },
   "pi-workgraph": {
     "calm": {
       "additionalHiddenTools": [
