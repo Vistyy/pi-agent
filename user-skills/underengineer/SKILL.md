@@ -1,21 +1,28 @@
 ---
 name: underengineer
-description: "[M] Simplify a diagnosis, plan, or proposed solution without losing established requirements."
+description: "[M] Put the current topic through a radical simplification thought experiment and show what survives."
 disable-model-invocation: true
 ---
 
 # Underengineer
 
-Review the user's target or the most recent diagnosis, plan, or proposed solution.
-If no target is clear, ask for one and stop.
-Recommend a simpler result; do not implement it.
+Use the current discussion as the target unless the user identifies another one.
+If no target or underlying desired outcome is clear, ask for it and stop.
+This is a thought experiment: do not implement its result or treat it as an approved scope change.
 
-Separate established requirements and facts from assumptions and proposed mechanisms.
-Inspect existing behavior only where it could materially change the choice, and expose unresolved decisions that could change the result.
+Restate the desired outcome without assuming the current solution, decomposition, or requirements are necessary.
+Treat every requirement, guarantee, feature, distinction, layer, and supporting mechanism as something that must justify its survival.
+Ask what can disappear, be weakened, be deferred, be handled by an existing owner or capability, or become an accepted limitation.
+Try removing whole capabilities before optimizing the machinery that supports them, and account for production code, tests, fixtures, documentation, dependencies, operations, and caller obligations rather than moving complexity elsewhere.
 
-Choose the simplest maintainable completed result that preserves the requirements and removes unsupported complexity.
-Judge enduring knowledge and coordination alongside delivery cost, risk, maintenance, and reversibility; neither the smallest diff nor the cleanest final structure alone determines the choice.
-Prefer a broader change only when its reduction in lasting complexity justifies its transition costs and risks.
+Facts remain facts, but even an established requirement may be challenged hypothetically.
+State exactly what would be lost by removing it; prior decisions remain authoritative unless the user changes them.
+Do not preserve something merely because it already exists, was previously agreed, might be useful later, or would be costly to remove.
+Do not manufacture removals when every part survives the challenge.
 
-Explain the recommended result, what must remain, what can be removed, and the material trade-offs.
-Do not manufacture removals when the current proposal is already the simplest supported choice.
+Return:
+
+- `Minimal core` — the smallest coherent version that still achieves the underlying outcome.
+- `What survives` — only the parts that re-earned their place and why.
+- `What does not` — what disappears, weakens, or moves out of scope.
+- `Cost of the simplification` — lost behavior, guarantees, or options, and any user decisions required before adopting it.
