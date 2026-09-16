@@ -17,9 +17,7 @@ Compatible Codex models can continue the remote checkpoint chain.
 The extension follows Codex model metadata and alias resolution for `comp_hash` compatibility.
 A missing hash is unknown compatibility and does not block checkpoint reuse.
 Only known differing hashes establish incompatibility.
-The catalog request uses Codex client version `0.153.4`, which exposes Astra's `comp_hash` as `3000`.
-Astra remote compaction and checkpoint continuation were also verified against the real backend.
-An incompatible model receives the plaintext marker and visible tail after a warning.
+Selecting a known-incompatible model warns that it will receive only the plaintext marker and visible tail.
 Switching back to a compatible Codex model restores access to the remote checkpoint if no later compaction ended the chain.
 
 If remote compaction fails, the extension leaves the session and remote checkpoint chain unchanged.
@@ -27,10 +25,6 @@ Use `/compact-pi` to confirm an ordinary Pi compaction that ends the remote chec
 Custom `/compact` instructions are not supported while remote compaction applies.
 
 Remote usage is stored in Pi's compaction entry, where Pi includes it in normal session usage totals.
-After successful remote compaction, the extension emits `openai-remote-compaction:completed` through `pi.events` with an `undefined` payload.
-
-Remote checkpoints created by the former implementation are not supported.
-Create a handoff and continue in a new session before reloading this implementation into a session that depends on one.
 
 ## Documentation
 

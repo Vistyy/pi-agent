@@ -5,6 +5,5 @@ description: Use when interacting with GitHub through the CLI. Skip local-only G
 
 # GitHub CLI preference
 
-Prefer the installed `gh-axi` for supported GitHub operations when its output is useful.
-Read its CLI help for commands and options.
-Use `gh` when it better fits the operation or AXI does not support it.
+Use the installed `gh-axi` for the command families it supports, and read its CLI help for current commands and options.
+Use `gh` directly when the operation is absent from `gh-axi` or requires raw `gh` behavior that the wrapper does not expose.

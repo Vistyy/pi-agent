@@ -1,6 +1,6 @@
-# PR follower
+# Pull-request following
 
-A generic Pi extension for following your GitHub pull requests across agent turns. It uses the authenticated `gh` CLI and starts no work until a PR is explicitly followed. A PR is eligible only when its author matches the authenticated account; ownership is revalidated during polling.
+A generic Pi extension for recurring observation of your GitHub pull requests across agent turns. It uses the authenticated `gh` CLI, stores follows on the active conversation branch, and starts no work until the agent explicitly calls `follow_pr`. A PR is eligible only when its author matches the authenticated account; eligibility is revalidated during polling.
 
 ## Interface
 
@@ -24,11 +24,11 @@ A check failure becomes actionable only after every currently visible check is t
 
 A merge conflict steers immediately. Merged and closed PRs steer once, then automatically leave the follow set.
 
-Steering reports an observation and grants no mutation or publication authority. The agent must re-read current GitHub state once before acting and remain within authority already established by its task. If the authenticated account changes or no longer matches the PR author, the extension stops following and notifies the user.
+Steering delivers the observed state to the same session and grants no mutation or publication authority. The agent must re-read current GitHub state once before acting and remain within the authority explicitly granted by the user for the current work. If the authenticated account changes or no longer matches the PR author, the extension stops following and notifies the user.
 
 ## Ownership and persistence
 
-The follow set, accepted URL aliases, and minimal transition fingerprint are stored as custom entries on the active conversation branch and owned by the exact Pi session ID. The fingerprint suppresses duplicate wakes across reload and resume; full GitHub snapshots remain ephemeral.
+The follow set, accepted URL aliases, and minimal transition fingerprint are stored as custom entries on the active conversation branch and keyed by the exact Pi session ID. The fingerprint suppresses duplicate wakes across reload and resume; full GitHub snapshots remain ephemeral.
 
 - `/tree` defers steering during navigation while polling and the widget remain active, then reconstructs follows from the newly selected branch.
 - Moving before a follow entry stops that follow; returning restores it.
@@ -37,4 +37,4 @@ The follow set, accepted URL aliases, and minimal transition fingerprint are sto
 
 The widget is hidden when nothing is followed. One PR gets a directly linked status; multiple PRs get aggregate failure, conflict, and stale counts.
 
-Temporary GitHub failures retain the last snapshot, mark the UI stale, and use exponential backoff. Authentication failures or three consecutive query failures notify the user once without waking the agent.
+Temporary GitHub failures retain the last snapshot, mark the UI stale, and use exponential backoff. Authentication failures or three consecutive query failures notify the user once without waking the agent. The agent is not expected to poll independently for observation recovery; a later delivered observation or user message can resume the pull-request work.

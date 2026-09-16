@@ -12,12 +12,6 @@ import {
 const custom = (customType: string, data: unknown) => ({ type: "custom", customType, data });
 const state = (data: unknown) => custom(SESSION_NAME_ENTRY, data);
 
-const legacyTab = (name: string) => state({
-	kind: "automatic-name",
-	target: "tab",
-	name,
-});
-
 test("branch-local state chooses the latest compact alias and ignores abandoned branches", () => {
 	const activeBranch = [state({ tabName: "Current Alias" }), { type: "message" }];
 	const abandonedBranch = [state({ tabName: "Abandoned Alias" })];
@@ -25,12 +19,6 @@ test("branch-local state chooses the latest compact alias and ignores abandoned 
 	assert.equal(findBranchTabName(activeBranch), "Current Alias");
 	assert.equal(findBranchTabName(abandonedBranch), "Abandoned Alias");
 	assert.equal(findBranchTabName(activeBranch), "Current Alias");
-});
-
-test("legacy successful automatic tab entries remain readable", () => {
-	assert.equal(findBranchTabName([legacyTab("Legacy Alias")]), "Legacy Alias");
-	assert.equal(findBranchTabName([state({ kind: "automatic-name", target: "pi", name: "ignored" })]), undefined);
-	assert.equal(findBranchTabName([state({ kind: "automatic-name", target: "tab", name: "  " })]), undefined);
 });
 
 test("tab restoration only claims its default numeric label", () => {

@@ -501,7 +501,7 @@ export class PrFollowRuntime {
 
   private assertCurrentContext(ctx: ExtensionContext): void {
     if (this.disposed || this.context?.sessionManager.getSessionId() !== ctx.sessionManager.getSessionId()) {
-      throw new Error("PR follower is not active for this session.");
+      throw new Error("Pull-request observation is not active for this session.");
     }
   }
 

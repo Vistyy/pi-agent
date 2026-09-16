@@ -3,7 +3,7 @@
 ## Scope
 
 The extension provides OpenAI Codex remote compaction for the `openai-codex` provider.
-Other providers use Pi's normal compaction behavior unless the active branch contains an unreadable remote checkpoint.
+Other providers use Pi's normal compaction behavior unless the active branch contains a remote checkpoint.
 
 ## Ownership
 

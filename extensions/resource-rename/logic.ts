@@ -21,18 +21,12 @@ function compactAlias(data: unknown): string | undefined {
 	return data.tabName.trim() || undefined;
 }
 
-function legacyAlias(data: unknown): string | undefined {
-	if (!isRecord(data) || data.kind !== "automatic-name" || data.target !== "tab" ||
-		typeof data.name !== "string" || !data.name.trim()) return undefined;
-	return data.name.trim();
-}
-
 /** Return the latest alias on the supplied active branch. */
 export function findBranchTabName(entries: readonly unknown[]): string | undefined {
 	let alias: string | undefined;
 	for (const entry of entries) {
 		if (!isOwnedEntry(entry)) continue;
-		alias = compactAlias(entry.data) ?? legacyAlias(entry.data) ?? alias;
+		alias = compactAlias(entry.data) ?? alias;
 	}
 	return alias;
 }
