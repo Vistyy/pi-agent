@@ -13,6 +13,8 @@
 - Prefer low lasting complexity over low implementation effort. Count production code, tests, fixtures, adapters, dependencies, and caller obligations; moving complexity is not removing it.
 - Question whether responsibilities are necessary. Remove superseded paths and prefer standard platform or library capabilities when they simplify the whole system.
 - Give rules and state clear owners; introduce abstractions for concrete needs, not speculative flexibility.
+- Compatibility is opt-in. Publication, installation, persisted state, prior behavior, or possible consumers do not create a support requirement. Preserve, recognize, migrate, test, or document old behavior only when explicitly required. If removal could cause material irreversible harm and authority is unsettled, ask; otherwise remove the old path and let obsolete input fail current validation.
+- Keep documentation current and owner-local. Put each contract at its narrowest owner; do not duplicate it or preserve delivery or migration history outside explicitly required release notes or changelogs.
 - Organize files by cohesive responsibility, not line counts. Read relevant symbols and sections before expanding the search.
 
 ## Delegated assignments
@@ -37,7 +39,7 @@
 - Start from the affected promises and consequential ways they could fail. Choose evidence that distinguishes those failures from correct behavior, not a testing technique or test-count target.
 - Make verification flow-first: exercise supported entry points and observe meaningful outcomes. Use the smallest real boundary that establishes the claim; green component tests do not establish that the application starts or a complete workflow works.
 - Use implementation knowledge to select risky cases, but ground expectations in intended behavior and independently justified results. Do not reproduce production logic as its own oracle. Use targeted mutations when it is unclear whether a check detects the claimed failure.
-- Assert forbidden effects and ordering where they matter, including mid-flight and at trust boundaries. Keep behavioral assertions stable across implementation changes; do not couple them to incidental wording, collection position, private structure, or helper calls.
+- Assert forbidden effects and ordering where they matter, including mid-flight and at trust boundaries. Keep behavioral assertions stable across implementation changes; do not couple them to exact instructional prose unless the literal text is a supported interface, or to incidental wording, collection position, private structure, or helper calls.
 - Evaluate the suite's overall approach, not just individual tests. Weak evidence or widespread fixture churn may call for different boundaries, fixtures, or a replacement harness—not more in-place rewrites. Existing test organization is not a requirement.
 - Verify relevant quality characteristics with suitable evidence: measurements for performance or cost claims, design and caller inspection for complexity, and real interaction for usability or operational claims. Tests need not establish everything. Resolve consequential expectations and trade-offs rather than inventing requirements for every characteristic.
 - Retain automated checks whose future protection justifies their total maintenance cost. Remove low-value tests and obsolete scaffolding when working in their area; use temporary probes for one-off uncertainty. Bound waits and clean up task-owned setup without removing unrelated resources.
