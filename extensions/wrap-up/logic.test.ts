@@ -3,8 +3,10 @@ import test from "node:test";
 import type { SessionEntry } from "@earendil-works/pi-coding-agent";
 import {
   AUDIT_SYSTEM_PROMPT,
+  PRESENTATION_INSTRUCTIONS,
   WRAP_UP_INVENTORY_MESSAGE,
   buildEvidencePrompt,
+  buildPresentationMessage,
   estimateTokens,
   extractConversationEvidence,
   parseWrapUpModelSelection,
@@ -131,10 +133,24 @@ test("parses provider/model and thinking level settings", () => {
   );
 });
 
-test("audit prompt inventories explicit evidence without making the final decision", () => {
-  assert.match(AUDIT_SYSTEM_PROMPT, /evidence for the final agent, not the final determination/);
-  assert.match(AUDIT_SYSTEM_PROMPT, /none found/);
+test("audit prompt separates temporary deferral from conversational closure", () => {
+  assert.match(AUDIT_SYSTEM_PROMPT, /A disposition is not necessarily conversational closure/);
+  assert.match(AUDIT_SYSTEM_PROMPT, /expected revisit.*“later,”.*“next phase,”/s);
+  assert.match(AUDIT_SYSTEM_PROMPT, /terminally excluded.*rejection, cancellation/s);
+  assert.match(AUDIT_SYSTEM_PROMPT, /phased parent topic retains expected continuation/);
+  assert.match(AUDIT_SYSTEM_PROMPT, /Continuation status:/);
   assert.doesNotMatch(AUDIT_SYSTEM_PROMPT, /\*\*Open loops remain\.\*\*/);
+});
+
+test("presentation requires retained future phases to remain open", () => {
+  assert.match(PRESENTATION_INSTRUCTIONS, /temporary deferral with an expected revisit is an open conversational loop/);
+  assert.match(PRESENTATION_INSTRUCTIONS, /Keep a parent topic open while any promised child phase/);
+  assert.match(PRESENTATION_INSTRUCTIONS, /terminal exclusion, cancellation, or accepted handoff is not open/);
+  assert.match(PRESENTATION_INSTRUCTIONS, /Never report that no material loops remain.*expected revisit/);
+
+  const message = buildPresentationMessage("## Discussion inventory\nRetained phase");
+  assert.match(message, /^A read-only full-history discussion inventory/);
+  assert.match(message, /<wrap-up-inventory>\n## Discussion inventory\nRetained phase\n<\/wrap-up-inventory>$/);
 });
 
 test("evidence prompt reports its exact source boundary and exclusions", () => {

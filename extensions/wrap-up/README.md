@@ -1,8 +1,10 @@
 # Wrap-up conversation audit
 
-`/wrap-up` audits the complete raw active conversation path for discussion threads that never received a clear disposition.
+`/wrap-up` audits the complete raw active conversation path for discussion threads that have not reached conversational closure.
 
-The command extracts visible user and assistant text, assistant error/abort endings, and displayed extension messages from the session, excluding thinking and operational tool payloads. It sends that normalized transcript through one direct, tool-free model request. This request is not an agent loop and does not create a Pi session. The model inventories discussion threads and explicit transcript dispositions without deciding the final session state.
+The command extracts visible user and assistant text, assistant error/abort endings, and displayed extension messages from the session, excluding thinking and operational tool payloads. It sends that normalized transcript through one direct, tool-free model request. This request is not an agent loop and does not create a Pi session. The model inventories discussion threads, explicit transcript dispositions, and whether each disposition retains an expected continuation without deciding the final session state.
+
+A temporary deferral is not closure. Matters explicitly parked for later, promised as a later phase, or otherwise retained for a future return remain open unless the user cancels or terminally excludes them, or accepts a handoff to another owner with a supported execution route. Completing one phase does not close its parent topic while promised child phases remain.
 
 The extension then triggers a normal turn in the current Pi session. That existing agent retains its normal tools so it can perform targeted read-only verification where needed and make the final wrap-up determination. The audit does not alter compaction, start another agent, inspect inactive `/tree` paths, continue implementation, or monitor work that already has an accepted owner and execution route.
 
@@ -41,4 +43,4 @@ The audit includes visible text from standard user and assistant messages, assis
 - compaction entries, whose original messages remain available on the raw path;
 - inactive session-tree paths.
 
-The inventory states these limitations and cites session entry IDs for explicit transcript evidence. Absence of explicit closure is reported as undetermined rather than declared open. The main agent owns final classification and may inspect current state read-only when the inventory identifies a concrete verification need.
+The inventory states these limitations and cites session entry IDs for explicit transcript evidence. Absence of explicit closure is reported as undetermined rather than declared open. It distinguishes an expected revisit from terminal exclusion, accepted handoff, and matters with no expected continuation. The main agent owns final classification and may inspect current state read-only when the inventory identifies a concrete verification need.

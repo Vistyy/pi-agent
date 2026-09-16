@@ -9,6 +9,7 @@ import {
   AUDIT_SYSTEM_PROMPT,
   WRAP_UP_INVENTORY_MESSAGE,
   buildEvidencePrompt,
+  buildPresentationMessage,
   estimateTokens,
   extractConversationEvidence,
   parseWrapUpModelSelection,
@@ -145,15 +146,7 @@ async function runAudit(
   pi.sendMessage(
     {
       customType: WRAP_UP_INVENTORY_MESSAGE,
-      content: [
-        "A read-only full-history discussion inventory has completed. It is evidence, not a final closure verdict.",
-        "Use the inventory together with the current conversation and targeted read-only inspection to make the final wrap-up determination. For items marked undetermined or needing verification, inspect current repository, task, worker, session, or process state only when that evidence can decide their disposition. Do not mutate files or external state, continue implementation, or monitor work that already has an accepted owner and execution route.",
-        "Then report either **Open loops remain.** or **No material open loops found in the reviewed conversation. This session can end.** List only genuine unresolved conversational matters as open loops, include the smallest closing question or decision, and summarize settled conclusions, decisions, completed actions, deferrals, cancellations, supersessions, and handoffs under **Session disposition**. State meaningful coverage limitations.",
-        "",
-        "<wrap-up-inventory>",
-        audit,
-        "</wrap-up-inventory>",
-      ].join("\n"),
+      content: buildPresentationMessage(audit),
       display: false,
     },
     { triggerTurn: true },
