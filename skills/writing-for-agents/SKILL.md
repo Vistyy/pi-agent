@@ -21,7 +21,9 @@ Do not copy easily inspected environment or configuration into prose unless the 
 
 Across a boundary, state the actor, responsibility, authority, triggering inputs or conditions, and required outcomes or guarantees. Leave providers, tools, commands, storage, polling, and other implementation mechanisms with their narrow owner unless the higher-level behavior inherently depends on the exact mechanism.
 
-## Write only the necessary procedure
+## State outcomes before methods
+
+State the required judgment, boundary, or observable outcome. Do not prescribe a reasoning process, checklist, or taxonomy unless following that method is itself necessary for correctness, safety, or reliable completion.
 
 Use an ordered procedure only when order matters. State an observable completion condition when ambiguity could cause the actor to stop too early or continue unsafely. Keep requirements direct; use rationale or examples only when they change how the boundary is understood.
 

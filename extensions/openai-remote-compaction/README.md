@@ -11,7 +11,6 @@ Pi owns compaction thresholds, scheduling, retained-tail selection, persistence,
 When Pi requests compaction, the extension builds a fresh Codex request from the current branch, model, system prompt, active tools, and reasoning level.
 It authenticates with the Codex OAuth credential managed by Pi.
 It stores OpenAI's opaque remote checkpoint in a normal Pi compaction entry instead of generating a second plaintext summary.
-No completed provider request or in-memory request cache is required.
 
 Compatible Codex models can continue the remote checkpoint chain.
 The extension follows Codex model metadata and alias resolution for `comp_hash` compatibility.
