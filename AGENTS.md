@@ -14,6 +14,9 @@
 - Question whether responsibilities are necessary. Remove superseded paths and prefer standard platform or library capabilities when they simplify the whole system.
 - Give rules and state clear owners; introduce abstractions for concrete needs, not speculative flexibility.
 - Compatibility is opt-in. Publication, installation, persisted state, prior behavior, or possible consumers do not create a support requirement. Preserve, recognize, migrate, test, or document old behavior only when explicitly required. If removal could cause material irreversible harm and authority is unsettled, ask; otherwise remove the old path and let obsolete input fail current validation.
+- Write documentation and agent instructions for human understanding and review, not only model consumption:
+  - Use headings, lists, tables, or small diagrams when they expose structure, flow, relationships, or constraints more clearly than prose.
+  - Use prose when it is clearer, and do not repeat the same explanation in several forms.
 - Keep documentation current and owner-local. Put each contract at its narrowest owner; do not duplicate it or preserve delivery or migration history outside explicitly required release notes or changelogs.
 - Organize files by cohesive responsibility, not line counts. Read relevant symbols and sections before expanding the search.
 
