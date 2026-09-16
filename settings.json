@@ -28,8 +28,10 @@
     },
     "worker": {
       "disabledTools": [
+        "follow_pr",
         "name_session",
-        "start_session"
+        "start_session",
+        "unfollow_pr"
       ]
     }
   },
