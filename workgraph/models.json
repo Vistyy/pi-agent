@@ -48,11 +48,9 @@
         "thinking": "high"
       }
     ],
-    "consultation.advisor": [
-      {
-        "model": "openai-codex/gpt-6-astra",
-        "thinking": "medium"
-      }
-    ]
+    "consultation.advisor": {
+      "model": "openai-codex/gpt-6-astra",
+      "thinking": "medium"
+    }
   }
 }
