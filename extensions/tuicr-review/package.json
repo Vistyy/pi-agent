@@ -1,0 +1,11 @@
+{
+  "name": "pi-tuicr-review",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}

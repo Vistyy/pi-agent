@@ -1,0 +1,216 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { COORDINATOR_AUTHOR, STATE_ENTRY, type PersistedState, type StoredComment } from "./logic.ts";
+import { TuicrReviewRuntime, type ReviewBackend } from "./runtime.ts";
+
+const resources = { workspaceId: "w1", tabId: "w1:t9", paneId: "w1:p9" };
+const session = { slug: "repo@main/worktree", path: "/reviews/exact.json", active: true };
+
+function harness(options: { launchError?: Error; addFailure?: (payload: Record<string, unknown>) => boolean } = {}) {
+  const branch: unknown[] = [];
+  const messages: any[] = [];
+  const widgets: any[] = [];
+  const closes: typeof resources[] = [];
+  const additions: Record<string, unknown>[] = [];
+  const waits: Array<() => void> = [];
+  let comments: StoredComment[] = [];
+  let exists = true;
+  let exitCode: number | undefined;
+  let listCount = 0;
+  const backend: ReviewBackend = {
+    async preflight() {},
+    async listSessions() { return listCount++ === 0 ? [] : [session]; },
+    async createTab() { return resources; },
+    async launch() { if (options.launchError) throw options.launchError; },
+    async comments() { return comments; },
+    async add(_cwd, _session, payload) {
+      additions.push(payload);
+      if (options.addFailure?.(payload)) throw new Error("anchor rejected");
+      const comment: StoredComment = {
+        id: `c${comments.length + 1}`,
+        author: String(payload.username),
+        content: String(payload.content),
+        ...(typeof payload.file === "string" ? { path: payload.file } : {}),
+        ...(typeof payload.line === "number" ? { start_line: payload.line, end_line: payload.line } : {}),
+        ...(typeof payload.start_line === "number" ? { start_line: payload.start_line } : {}),
+        ...(typeof payload.end_line === "number" ? { end_line: payload.end_line } : {}),
+        ...(payload.side === "old" || payload.side === "new" ? { side: payload.side } : {}),
+        ...(typeof payload.type === "string" ? { comment_type: payload.type } : { comment_type: "none" }),
+      };
+      comments = [...comments, comment];
+      return comment;
+    },
+    async completion() { return exitCode; },
+    async resourceExists() { return exists; },
+    async closeTab(identity) { closes.push(identity); exists = false; },
+    async removeCompletionFile() {},
+    delay() { return new Promise<void>((resolve) => waits.push(resolve)); },
+    completionFile() { return "/tmp/review.exit"; },
+  };
+  const pi = {
+    appendEntry(customType: string, data: unknown) { branch.push({ type: "custom", customType, data }); },
+    sendMessage(message: unknown, delivery: unknown) { messages.push({ message, delivery }); },
+  };
+  const context = {
+    cwd: "/repo",
+    hasUI: true,
+    sessionManager: { getSessionId: () => "pi-session", getBranch: () => branch },
+    ui: {
+      theme: { fg: (_color: string, value: string) => value },
+      setWidget: (...args: unknown[]) => widgets.push(args),
+    },
+  } as any;
+  const runtime = new TuicrReviewRuntime(pi as any, backend);
+  return {
+    runtime, backend, context, branch, messages, widgets, closes, additions,
+    setComments(value: StoredComment[]) { comments = value; },
+    setExists(value: boolean) { exists = value; },
+    setExit(value: number | undefined) { exitCode = value; },
+    tick() { waits.splice(0).forEach((resolve) => resolve()); },
+  };
+}
+
+const request = {
+  target: { kind: "workingTree" as const },
+  annotations: [
+    { kind: "line" as const, file: "src/a.ts", line: 4, content: "Fix this" },
+  ],
+};
+
+async function settle() {
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+test("opens once, persists exact ownership, seeds annotations, and reuses without duplicates", async () => {
+  const h = harness();
+  await h.runtime.restore(h.context);
+  const opened = await h.runtime.ensure(request, h.context);
+  assert.equal(opened.reused, false);
+  assert.deepEqual(opened.acceptedCommentIds, ["c1"]);
+  assert.equal(h.additions.length, 1);
+  const active = (h.branch.at(-1) as any).data as PersistedState;
+  assert.deepEqual(active.resources, resources);
+  assert.deepEqual(active.tuicrSession, { slug: session.slug, path: session.path });
+  assert.equal(active.status, "active");
+  assert.equal((h.branch.at(-1) as any).customType, STATE_ENTRY);
+
+  const reused = await h.runtime.ensure(request, h.context);
+  assert.equal(reused.reused, true);
+  assert.deepEqual(reused.acceptedCommentIds, ["c1"]);
+  assert.equal(h.additions.length, 1, "accepted exact annotation must not be duplicated");
+  assert.ok(h.widgets.some((entry) => String(entry[1]).includes("Review open")));
+  h.runtime.stop();
+});
+
+test("retries failed annotations and accepts a revised annotation", async () => {
+  let failures = 0;
+  const h = harness({ addFailure: () => failures++ === 0 });
+  await h.runtime.restore(h.context);
+  const first = await h.runtime.ensure(request, h.context);
+  assert.equal(first.failures.length, 1);
+  assert.deepEqual(first.acceptedCommentIds, []);
+  const retry = await h.runtime.ensure(request, h.context);
+  assert.deepEqual(retry.acceptedCommentIds, ["c1"]);
+  const revised = await h.runtime.ensure({
+    ...request,
+    annotations: [{ ...request.annotations[0], content: "Fix this differently" }],
+  }, h.context);
+  assert.deepEqual(revised.acceptedCommentIds, ["c1", "c2"]);
+  assert.equal(h.additions.length, 3);
+  h.runtime.stop();
+});
+
+test("rejects a different target while the exact review is active", async () => {
+  const h = harness();
+  await h.runtime.restore(h.context);
+  await h.runtime.ensure(request, h.context);
+  await assert.rejects(h.runtime.ensure({
+    target: { kind: "revisions", revset: "main..HEAD" },
+  }, h.context), /different Tuicr review/);
+  h.runtime.stop();
+});
+
+test("launch failure closes only the proven newly owned tab", async () => {
+  const h = harness({ launchError: new Error("launch failed") });
+  await h.runtime.restore(h.context);
+  await assert.rejects(h.runtime.ensure(request, h.context), /launch failed/);
+  assert.deepEqual(h.closes, [resources]);
+  assert.equal(h.messages.length, 0);
+  h.runtime.stop();
+});
+
+test("discovery failure closes the exact newly owned tab, but uncertain ownership is preserved", async () => {
+  const failedDiscovery = harness();
+  failedDiscovery.backend.listSessions = async () => [];
+  failedDiscovery.backend.delay = async () => {};
+  await failedDiscovery.runtime.restore(failedDiscovery.context);
+  await assert.rejects(failedDiscovery.runtime.ensure(request, failedDiscovery.context), /newly active Tuicr session/);
+  assert.deepEqual(failedDiscovery.closes, [resources]);
+  failedDiscovery.runtime.stop();
+
+  const uncertain = harness({ launchError: new Error("launch failed") });
+  uncertain.backend.resourceExists = async () => { throw new Error("Herdr unavailable"); };
+  await uncertain.runtime.restore(uncertain.context);
+  await assert.rejects(
+    uncertain.runtime.ensure(request, uncertain.context),
+    /could not be proven safe to close; it was preserved/,
+  );
+  assert.equal(uncertain.closes.length, 0);
+  uncertain.runtime.stop();
+});
+
+test("normal exit reads exact session, persists before one follow-up delivery, and closes owned tab", async () => {
+  const h = harness();
+  await h.runtime.restore(h.context);
+  await h.runtime.ensure(request, h.context);
+  h.setComments([
+    { id: "c1", author: COORDINATOR_AUTHOR, content: "Fix this", path: "src/a.ts", start_line: 4, end_line: 4, side: "new" },
+    { id: "m1", author: "Maintainer", content: "Looks good", location: "review" },
+  ]);
+  h.setExit(0);
+  h.tick();
+  await settle();
+  const final = (h.branch.at(-1) as any).data as PersistedState;
+  assert.equal(final.status, "completed");
+  assert.equal(final.delivered, true);
+  assert.deepEqual(h.closes, [resources]);
+  assert.equal(h.messages.length, 1);
+  assert.deepEqual(h.messages[0].delivery, { deliverAs: "followUp", triggerTurn: true });
+  assert.match(h.messages[0].message.content, /Seeded Coordinator comments \(1\)/);
+  assert.match(h.messages[0].message.content, /Maintainer comments \(1\)/);
+  assert.match(h.messages[0].message.content, /not Human sign-off/);
+  assert.equal(h.widgets.at(-1)?.[1], undefined);
+  h.runtime.stop();
+});
+
+test("reload restores active identity but suppresses already delivered completion", async () => {
+  const h = harness();
+  const completed: PersistedState = {
+    version: 1, ownerSessionId: "pi-session", status: "completed", targetKey: "x", cwd: "/repo",
+    resources, tuicrSession: session, completionFile: "/tmp/x", accepted: [], delivered: true,
+  };
+  h.branch.push({ type: "custom", customType: STATE_ENTRY, data: completed });
+  await h.runtime.restore(h.context);
+  await settle();
+  assert.equal(h.messages.length, 0);
+  assert.equal(h.closes.length, 0);
+  h.runtime.stop();
+});
+
+test("nonzero exit and manual resource closure produce bounded failed/cancelled completion", async () => {
+  for (const mode of ["nonzero", "closed"] as const) {
+    const h = harness();
+    await h.runtime.restore(h.context);
+    await h.runtime.ensure(request, h.context);
+    if (mode === "nonzero") h.setExit(7);
+    else h.setExists(false);
+    h.tick();
+    await settle();
+    const final = (h.branch.at(-1) as any).data as PersistedState;
+    assert.equal(final.status, mode === "nonzero" ? "failed" : "cancelled");
+    assert.equal(h.messages.length, 1);
+    assert.equal(h.closes.length, 0);
+    h.runtime.stop();
+  }
+});
