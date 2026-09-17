@@ -1,4 +1,5 @@
-import { resolve } from "node:path";
+import { tmpdir } from "node:os";
+import { isAbsolute, join, resolve } from "node:path";
 
 export const STATE_ENTRY = "tuicr-review-state";
 export const COORDINATOR_AUTHOR = "Pi Coordinator";
@@ -82,8 +83,8 @@ export function normalizeRequest(originCwd: string, input: ReviewRequest): Norma
   const target = normalizeTarget(input.target);
   const annotations = (input.annotations ?? []).map(normalizeAnnotation);
   const launchArgs = target.kind === "workingTree"
-    ? ["--working-tree", "--stdout"]
-    : ["--revisions", target.revset, ...(target.includeWorkingTree ? ["--working-tree"] : []), "--stdout"];
+    ? ["--working-tree", "--stdout", "--no-update-check"]
+    : ["--revisions", target.revset, ...(target.includeWorkingTree ? ["--working-tree"] : []), "--stdout", "--no-update-check"];
   return {
     cwd,
     target,
@@ -186,22 +187,77 @@ export function discoverNewActive(before: readonly SessionSummary[], after: read
   return candidates[0]!;
 }
 
+export function completionFilePath(ownerSessionId: string, uniqueId: string): string {
+  return join(tmpdir(), `pi-tuicr-review-${ownerSessionId}-${uniqueId}.exit`);
+}
+
+export function isOwnedCompletionFile(path: string, ownerSessionId: string): boolean {
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const prefix = join(tmpdir(), `pi-tuicr-review-${ownerSessionId}-`);
+  if (!path.startsWith(prefix) || !path.endsWith(".exit")) return false;
+  const uniqueId = path.slice(prefix.length, -5);
+  return uuid.test(uniqueId) && path === completionFilePath(ownerSessionId, uniqueId);
+}
+
 export function restoreState(entries: readonly unknown[], ownerSessionId: string): PersistedState | undefined {
   for (let index = entries.length - 1; index >= 0; index -= 1) {
     const entry = entries[index] as { type?: unknown; customType?: unknown; data?: unknown };
-    if (entry?.type !== "custom" || entry.customType !== STATE_ENTRY || !isState(entry.data)) continue;
-    if (entry.data.ownerSessionId === ownerSessionId) return entry.data;
+    if (entry?.type !== "custom" || entry.customType !== STATE_ENTRY) continue;
+    if (!isRecord(entry.data) || entry.data.ownerSessionId !== ownerSessionId) continue;
+    // A malformed latest transition for this owner is preserved but blocks fallback
+    // to older state, so no resource effect can be replayed from uncertain identity.
+    return isState(entry.data, ownerSessionId) ? entry.data : undefined;
   }
   return undefined;
 }
 
-function isState(value: unknown): value is PersistedState {
-  if (!value || typeof value !== "object") return false;
-  const item = value as Partial<PersistedState>;
-  return item.version === 1 && typeof item.ownerSessionId === "string" && typeof item.targetKey === "string"
-    && typeof item.cwd === "string" && typeof item.completionFile === "string" && typeof item.delivered === "boolean"
-    && !!item.resources && !!item.tuicrSession && Array.isArray(item.accepted)
-    && ["active", "completed", "failed", "cancelled"].includes(item.status as string);
+function isState(value: Record<string, unknown>, ownerSessionId: string): value is Record<string, unknown> & PersistedState {
+  if (!exactKeys(value, [
+    "version", "ownerSessionId", "status", "targetKey", "cwd", "resources", "tuicrSession",
+    "completionFile", "accepted", "delivered",
+  ])) return false;
+  if (value.version !== 1 || value.ownerSessionId !== ownerSessionId || !nonEmpty(value.targetKey)
+    || !nonEmpty(value.cwd) || !isAbsolute(value.cwd) || typeof value.delivered !== "boolean"
+    || !nonEmpty(value.completionFile) || !isOwnedCompletionFile(value.completionFile, ownerSessionId)) return false;
+  if (!isStatus(value.status) || value.delivered !== (value.status !== "active")) return false;
+  if (!isResourceIdentity(value.resources) || !isTuicrSessionIdentity(value.tuicrSession)) return false;
+  if (!Array.isArray(value.accepted) || !value.accepted.every(isAcceptedAnnotation)) return false;
+  const accepted = value.accepted as AcceptedAnnotation[];
+  return new Set(accepted.map((item) => item.fingerprint)).size === accepted.length
+    && new Set(accepted.map((item) => item.commentId)).size === accepted.length;
+}
+
+function isResourceIdentity(value: unknown): value is ResourceIdentity {
+  return isRecord(value) && exactKeys(value, ["workspaceId", "tabId", "paneId"])
+    && nonEmpty(value.workspaceId) && nonEmpty(value.tabId) && nonEmpty(value.paneId);
+}
+
+function isTuicrSessionIdentity(value: unknown): value is TuicrSessionIdentity {
+  return isRecord(value) && exactKeys(value, ["slug", "path"])
+    && nonEmpty(value.slug) && nonEmpty(value.path) && isAbsolute(value.path);
+}
+
+function isAcceptedAnnotation(value: unknown): value is AcceptedAnnotation {
+  return isRecord(value) && exactKeys(value, ["fingerprint", "commentId"])
+    && nonEmpty(value.fingerprint) && nonEmpty(value.commentId);
+}
+
+function isStatus(value: unknown): value is PersistedState["status"] {
+  return value === "active" || value === "completed" || value === "failed" || value === "cancelled";
+}
+
+function exactKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {
+  const actual = Object.keys(value).sort();
+  const expected = [...keys].sort();
+  return actual.length === expected.length && actual.every((key, index) => key === expected[index]);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function nonEmpty(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
 }
 
 function identityKey(item: TuicrSessionIdentity): string {

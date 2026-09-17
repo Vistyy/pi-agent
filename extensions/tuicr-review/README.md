@@ -6,11 +6,11 @@
 
 - Herdr available on `PATH`
 - Tuicr 0.26.0 or newer available on `PATH`
-- Pi running inside a Herdr-managed pane
+- Pi running inside a Herdr-managed pane (the target workspace is read from the live current pane)
 - A Git working tree at the requested `cwd` (or Pi's current working directory)
 
 Pass `target.kind: "workingTree"` for uncommitted changes, or `target.kind: "revisions"` with a `revset` and optional `includeWorkingTree`. Optional annotations may target the whole review, a file, a line, or a line range. Their `type` is optional; the extension does not impose a taxonomy.
 
 The active review is reused only for the same target; exact accepted annotations are deduplicated and failed or revised annotations may be retried. Only one review can be active per conversation branch.
 
-The extension owns only the exact Herdr tab/pane and persisted Tuicr session it creates. It does not provide a same-terminal or non-Herdr fallback. Completion feedback distinguishes seeded Coordinator annotations from Maintainer comments; review feedback is not Human sign-off or delivery authority.
+The extension owns only the exact Herdr tab/pane and persisted Tuicr session it creates. It launches the declaratively pinned Tuicr with `--no-update-check` and does not provide a same-terminal or non-Herdr fallback. Completion feedback preserves all seeded Coordinator and Maintainer comment text while distinguishing their sources; review feedback is not Human sign-off or delivery authority.

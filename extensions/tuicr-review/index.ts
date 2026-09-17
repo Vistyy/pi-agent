@@ -1,12 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { readFile, rm } from "node:fs/promises";
-import { join, resolve } from "node:path";
-import { tmpdir } from "node:os";
+import { resolve } from "node:path";
 import { StringEnum } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type, type Static } from "typebox";
 import { TuicrReviewRuntime, type ReviewBackend } from "./runtime.ts";
-import type { ResourceIdentity, SessionSummary, StoredComment, TuicrSessionIdentity } from "./logic.ts";
+import { completionFilePath, type ResourceIdentity, type SessionSummary, type StoredComment, type TuicrSessionIdentity } from "./logic.ts";
 
 const Side = StringEnum(["old", "new"] as const);
 const WorkingTreeTarget = Type.Object(
@@ -50,6 +49,10 @@ export default function tuicrReview(pi: ExtensionAPI): void {
     description:
       "Ensure one exact asynchronous Tuicr review is open in a dedicated unfocused Herdr tab and ensure Coordinator-authored review/file/line/range annotations are present. Reuses only the same target, deduplicates accepted annotations, and returns when ready. Review feedback is not Human sign-off or delivery authority.",
     promptSnippet: "Open or update the current conversation's Tuicr review",
+    promptGuidelines: [
+      "tuicr_review is the user's designated local Maintainer-inspection capability. When the delivery procedure classifies Human sign-off as Required, use tuicr_review before recommending a delivery route unless the user directs otherwise.",
+      "Treat feedback delivered by tuicr_review as non-authoritative: it is not Human sign-off and grants no delivery authority.",
+    ],
     parameters: TuicrReviewParameters,
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
       const result = await runtime.ensure(params, ctx, signal);
@@ -78,15 +81,20 @@ interface CommandResult {
   readonly stderr: string;
 }
 
-function commandBackend(pi: Pick<ExtensionAPI, "exec">): ReviewBackend {
+export function commandBackend(pi: Pick<ExtensionAPI, "exec">): ReviewBackend {
   const herdr = process.env.HERDR_BIN_PATH ?? "herdr";
   const tuicr = process.env.TUICR_BIN_PATH ?? "tuicr";
   return {
     async preflight(cwd, signal) {
-      if (process.env.HERDR_ENV !== "1" || !process.env.HERDR_WORKSPACE_ID || !process.env.HERDR_PANE_ID) {
+      if (process.env.HERDR_ENV !== "1") {
         throw new Error("tuicr_review requires an interactive Pi session inside Herdr.");
       }
-      decodeHerdr(await pi.exec(herdr, ["pane", "current", "--current"], { signal, timeout: 5_000 }), "Herdr preflight");
+      const current = decodeHerdr(
+        await pi.exec(herdr, ["pane", "current", "--current"], { signal, timeout: 5_000 }),
+        "Herdr preflight",
+      );
+      const pane = object(current.pane, "current pane");
+      const workspaceId = string(pane.workspace_id, "current pane workspace id");
       const version = await pi.exec(tuicr, ["--version"], { signal, timeout: 5_000 });
       if (version.code !== 0) throw new Error(`Tuicr preflight failed: ${singleLine(version.stderr || version.stdout)}`);
       const match = /tuicr\s+(\d+)\.(\d+)\.(\d+)/i.exec(version.stdout);
@@ -95,14 +103,15 @@ function commandBackend(pi: Pick<ExtensionAPI, "exec">): ReviewBackend {
       }
       const check = await pi.exec("git", ["-C", cwd, "rev-parse", "--show-toplevel"], { signal, timeout: 5_000 });
       if (check.code !== 0) throw new Error(`The review cwd is not a Git working tree: ${cwd}`);
+      return { workspaceId };
     },
     async listSessions(cwd, signal) {
       const result = await pi.exec(tuicr, ["review", "list", "--repo", cwd], { signal, timeout: 10_000 });
       return decodeSessions(result);
     },
-    async createTab(cwd, signal) {
+    async createTab(cwd, workspaceId, signal) {
       const value = decodeHerdr(
-        await pi.exec(herdr, ["tab", "create", "--workspace", process.env.HERDR_WORKSPACE_ID!, "--cwd", cwd, "--label", "Tuicr review", "--no-focus"], { signal, timeout: 10_000 }),
+        await pi.exec(herdr, ["tab", "create", "--workspace", workspaceId, "--cwd", cwd, "--label", "Tuicr review", "--no-focus"], { signal, timeout: 10_000 }),
         "create Herdr review tab",
       );
       const tab = object(value.tab, "tab");
@@ -172,7 +181,7 @@ function commandBackend(pi: Pick<ExtensionAPI, "exec">): ReviewBackend {
     removeCompletionFile: (path) => rm(path, { force: true }),
     delay: (milliseconds, signal) => delay(milliseconds, signal),
     completionFile(ownerSessionId) {
-      return join(tmpdir(), `pi-tuicr-review-${ownerSessionId}-${randomUUID()}.exit`);
+      return completionFilePath(ownerSessionId, randomUUID());
     },
   };
 }

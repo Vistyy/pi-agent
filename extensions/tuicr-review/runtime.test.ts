@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { COORDINATOR_AUTHOR, STATE_ENTRY, type PersistedState, type StoredComment } from "./logic.ts";
+import { COORDINATOR_AUTHOR, STATE_ENTRY, completionFilePath, type PersistedState, type StoredComment } from "./logic.ts";
 import { TuicrReviewRuntime, type ReviewBackend } from "./runtime.ts";
 
 const resources = { workspaceId: "w1", tabId: "w1:t9", paneId: "w1:p9" };
@@ -17,8 +17,10 @@ function harness(options: { launchError?: Error; addFailure?: (payload: Record<s
   let exists = true;
   let exitCode: number | undefined;
   let listCount = 0;
+  let completionReads = 0;
+  let resourceChecks = 0;
   const backend: ReviewBackend = {
-    async preflight() {},
+    async preflight() { return { workspaceId: resources.workspaceId }; },
     async listSessions() { return listCount++ === 0 ? [] : [session]; },
     async createTab() { return resources; },
     async launch() { if (options.launchError) throw options.launchError; },
@@ -40,12 +42,12 @@ function harness(options: { launchError?: Error; addFailure?: (payload: Record<s
       comments = [...comments, comment];
       return comment;
     },
-    async completion() { return exitCode; },
-    async resourceExists() { return exists; },
+    async completion() { completionReads += 1; return exitCode; },
+    async resourceExists() { resourceChecks += 1; return exists; },
     async closeTab(identity) { closes.push(identity); exists = false; },
     async removeCompletionFile() {},
     delay() { return new Promise<void>((resolve) => waits.push(resolve)); },
-    completionFile() { return "/tmp/review.exit"; },
+    completionFile(ownerSessionId) { return completionFilePath(ownerSessionId, "123e4567-e89b-42d3-a456-426614174000"); },
   };
   const pi = {
     appendEntry(customType: string, data: unknown) { branch.push({ type: "custom", customType, data }); },
@@ -66,6 +68,7 @@ function harness(options: { launchError?: Error; addFailure?: (payload: Record<s
     setComments(value: StoredComment[]) { comments = value; },
     setExists(value: boolean) { exists = value; },
     setExit(value: number | undefined) { exitCode = value; },
+    effects() { return { completionReads, resourceChecks }; },
     tick() { waits.splice(0).forEach((resolve) => resolve()); },
   };
 }
@@ -188,13 +191,57 @@ test("reload restores active identity but suppresses already delivered completio
   const h = harness();
   const completed: PersistedState = {
     version: 1, ownerSessionId: "pi-session", status: "completed", targetKey: "x", cwd: "/repo",
-    resources, tuicrSession: session, completionFile: "/tmp/x", accepted: [], delivered: true,
+    resources, tuicrSession: { slug: session.slug, path: session.path },
+    completionFile: completionFilePath("pi-session", "123e4567-e89b-42d3-a456-426614174000"), accepted: [], delivered: true,
   };
   h.branch.push({ type: "custom", customType: STATE_ENTRY, data: completed });
   await h.runtime.restore(h.context);
   await settle();
   assert.equal(h.messages.length, 0);
   assert.equal(h.closes.length, 0);
+  h.runtime.stop();
+});
+
+test("completion preserves multiline, long, and more than 50 comments in model-visible feedback", async () => {
+  const h = harness();
+  await h.runtime.restore(h.context);
+  await h.runtime.ensure(request, h.context);
+  const longMultiline = `first line\n${"x".repeat(800)}\nlast line`;
+  const maintainers = Array.from({ length: 55 }, (_, index): StoredComment => ({
+    id: `m${index + 1}`, author: "Maintainer", content: index === 0 ? longMultiline : `feedback ${index + 1}`,
+    location: "review",
+  }));
+  h.setComments([
+    { id: "c1", author: COORDINATOR_AUTHOR, content: "seeded\nfull text", location: "review" },
+    ...maintainers,
+  ]);
+  h.setExit(0);
+  h.tick();
+  await settle();
+  const completion = h.messages[0].message;
+  assert.ok(completion.content.includes("seeded\nfull text"));
+  assert.ok(completion.content.includes(longMultiline));
+  assert.ok(completion.content.includes("feedback 55"));
+  assert.equal(completion.details.seeded.length, 1);
+  assert.equal(completion.details.maintainer.length, 55);
+  h.runtime.stop();
+});
+
+test("malformed restored ownership state causes no monitoring or cleanup effects", async () => {
+  const h = harness();
+  h.branch.push({
+    type: "custom", customType: STATE_ENTRY,
+    data: {
+      version: 1, ownerSessionId: "pi-session", status: "active", targetKey: "x", cwd: "/repo",
+      resources, tuicrSession: { slug: session.slug, path: session.path },
+      completionFile: "/tmp/not-owned.exit", accepted: [], delivered: false,
+    },
+  });
+  await h.runtime.restore(h.context);
+  await settle();
+  assert.deepEqual(h.effects(), { completionReads: 0, resourceChecks: 0 });
+  assert.equal(h.closes.length, 0);
+  assert.equal(h.messages.length, 0);
   h.runtime.stop();
 });
 

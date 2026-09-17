@@ -6,6 +6,7 @@ import {
   annotationFingerprint,
   annotationPayload,
   commentFingerprint,
+  completionFilePath,
   discoverNewActive,
   normalizeRequest,
   restoreState,
@@ -13,13 +14,13 @@ import {
 } from "./logic.ts";
 
 test("constructs exact working-tree and revision launch targets", () => {
-  assert.deepEqual(normalizeRequest("/repo", { target: { kind: "workingTree" } }).launchArgs, ["--working-tree", "--stdout"]);
+  assert.deepEqual(normalizeRequest("/repo", { target: { kind: "workingTree" } }).launchArgs, ["--working-tree", "--stdout", "--no-update-check"]);
   const revision = normalizeRequest("/repo", {
     cwd: "nested/..",
     target: { kind: "revisions", revset: " main..HEAD ", includeWorkingTree: true },
   });
   assert.equal(revision.cwd, "/repo");
-  assert.deepEqual(revision.launchArgs, ["--revisions", "main..HEAD", "--working-tree", "--stdout"]);
+  assert.deepEqual(revision.launchArgs, ["--revisions", "main..HEAD", "--working-tree", "--stdout", "--no-update-check"]);
   assert.throws(() => normalizeRequest("/repo", { target: { kind: "revisions", revset: "  " } }), /non-empty revset/);
 });
 
@@ -71,7 +72,7 @@ test("restores only the latest state owned by the exact Pi session branch", () =
   const state = (ownerSessionId: string, status: PersistedState["status"]): PersistedState => ({
     version: 1, ownerSessionId, status, targetKey: "target", cwd: "/repo",
     resources: { workspaceId: "w", tabId: "t", paneId: "p" }, tuicrSession: { slug: "s", path: "/s" },
-    completionFile: "/exit", accepted: [], delivered: status !== "active",
+    completionFile: completionFilePath(ownerSessionId, "123e4567-e89b-42d3-a456-426614174000"), accepted: [], delivered: status !== "active",
   });
   const branch = [
     { type: "custom", customType: STATE_ENTRY, data: state("session-a", "active") },
@@ -81,4 +82,44 @@ test("restores only the latest state owned by the exact Pi session branch", () =
   assert.equal(restoreState(branch, "session-a")?.status, "completed");
   assert.equal(restoreState(branch, "session-b")?.status, "active");
   assert.equal(restoreState(branch, "fork")?.status, undefined);
+});
+
+test("rejects malformed persisted identities, transitions, accepted entries, and completion paths", () => {
+  const owner = "session-a";
+  const valid: PersistedState = {
+    version: 1, ownerSessionId: owner, status: "active", targetKey: "target", cwd: "/repo",
+    resources: { workspaceId: "w", tabId: "t", paneId: "p" },
+    tuicrSession: { slug: "s", path: "/reviews/s.json" },
+    completionFile: completionFilePath(owner, "123e4567-e89b-42d3-a456-426614174000"),
+    accepted: [{ fingerprint: "fingerprint", commentId: "comment" }], delivered: false,
+  };
+  const corruptions: unknown[] = [
+    { ...valid, resources: { workspaceId: "w", tabId: "t" } },
+    { ...valid, tuicrSession: { slug: "s", path: 4 } },
+    { ...valid, completionFile: "/tmp/other.exit" },
+    { ...valid, completionFile: completionFilePath("another-owner", "123e4567-e89b-42d3-a456-426614174000") },
+    { ...valid, status: "running" },
+    { ...valid, status: "completed", delivered: false },
+    { ...valid, accepted: [{ fingerprint: "fingerprint" }] },
+    { ...valid, accepted: [{ fingerprint: "fingerprint", commentId: "comment", extra: true }] },
+    { ...valid, extra: true },
+  ];
+  for (const data of corruptions) {
+    assert.equal(restoreState([{ type: "custom", customType: STATE_ENTRY, data }], owner), undefined);
+  }
+});
+
+test("a latest malformed owned transition blocks replay of older valid resource state", () => {
+  const owner = "session-a";
+  const valid: PersistedState = {
+    version: 1, ownerSessionId: owner, status: "active", targetKey: "target", cwd: "/repo",
+    resources: { workspaceId: "w", tabId: "t", paneId: "p" },
+    tuicrSession: { slug: "s", path: "/reviews/s.json" },
+    completionFile: completionFilePath(owner, "123e4567-e89b-42d3-a456-426614174000"), accepted: [], delivered: false,
+  };
+  const branch = [
+    { type: "custom", customType: STATE_ENTRY, data: valid },
+    { type: "custom", customType: STATE_ENTRY, data: { ...valid, completionFile: "/tmp/attacker.exit" } },
+  ];
+  assert.equal(restoreState(branch, owner), undefined);
 });

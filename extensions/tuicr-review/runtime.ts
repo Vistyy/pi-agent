@@ -25,9 +25,9 @@ const POLL_MS = 250;
 const MAX_FAILURES = 8;
 
 export interface ReviewBackend {
-  preflight(cwd: string, signal?: AbortSignal): Promise<void>;
+  preflight(cwd: string, signal?: AbortSignal): Promise<{ readonly workspaceId: string }>;
   listSessions(cwd: string, signal?: AbortSignal): Promise<readonly SessionSummary[]>;
-  createTab(cwd: string, signal?: AbortSignal): Promise<ResourceIdentity>;
+  createTab(cwd: string, workspaceId: string, signal?: AbortSignal): Promise<ResourceIdentity>;
   launch(resources: ResourceIdentity, cwd: string, args: readonly string[], completionFile: string, signal?: AbortSignal): Promise<void>;
   comments(cwd: string, session: TuicrSessionIdentity, signal?: AbortSignal): Promise<readonly StoredComment[]>;
   add(cwd: string, session: TuicrSessionIdentity, payload: Record<string, unknown>, signal?: AbortSignal): Promise<StoredComment>;
@@ -88,9 +88,9 @@ export class TuicrReviewRuntime {
         return { reused: true, session: this.state.tuicrSession, ...seeded };
       }
 
-      await this.backend.preflight(request.cwd, signal);
+      const { workspaceId } = await this.backend.preflight(request.cwd, signal);
       const before = await this.backend.listSessions(request.cwd, signal);
-      const resources = await this.backend.createTab(request.cwd, signal);
+      const resources = await this.backend.createTab(request.cwd, workspaceId, signal);
       const completionFile = this.backend.completionFile(ctx.sessionManager.getSessionId());
       let session: SessionSummary;
       try {
@@ -232,13 +232,14 @@ export class TuicrReviewRuntime {
       `Maintainer comments (${maintainer.length}):${formatComments(maintainer)}`,
       "This feedback is not Human sign-off and does not grant delivery, publication, or repository mutation authority.",
     ].join("\n");
-    await this.finish("completed", outcome, true);
+    await this.finish("completed", outcome, true, { seeded, maintainer });
   }
 
   private async finish(
     status: "completed" | "failed" | "cancelled",
     outcome: string,
     closeOwned = status === "completed",
+    comments?: { readonly seeded: readonly StoredComment[]; readonly maintainer: readonly StoredComment[] },
   ): Promise<void> {
     const state = this.state;
     if (!state || state.status !== "active") return;
@@ -256,7 +257,7 @@ export class TuicrReviewRuntime {
     }
     await this.backend.removeCompletionFile(state.completionFile).catch(() => undefined);
     this.pi.sendMessage(
-      { customType: "tuicr-review-completion", content: outcome, display: true, details: { status, session: state.tuicrSession } },
+      { customType: "tuicr-review-completion", content: outcome, display: true, details: { status, session: state.tuicrSession, ...comments } },
       { deliverAs: "followUp", triggerTurn: true },
     );
   }
@@ -307,7 +308,10 @@ function describe(annotation: Annotation): string {
 
 function formatComments(comments: readonly StoredComment[]): string {
   if (comments.length === 0) return " none";
-  return `\n${comments.slice(0, 50).map((comment) => `- [${comment.id}] ${comment.location ?? "review"}: ${singleLine(comment.content)}`).join("\n")}`;
+  return `\n${comments.map((comment) => [
+    `- [${comment.id}] ${comment.location ?? comment.path ?? "review"}`,
+    comment.content,
+  ].join("\n")).join("\n")}`;
 }
 
 function singleLine(value: string): string {
