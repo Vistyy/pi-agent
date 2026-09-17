@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import test from "node:test";
 import extension, { TuicrReviewParameters, commandBackend } from "./index.ts";
+import { STATE_ENTRY, completionFilePath, dataDirectoryPath, type PersistedState } from "./logic.ts";
 
 test("registers exactly one agent-facing tool and no command or shortcut", () => {
   const tools: any[] = [];
@@ -27,7 +28,69 @@ test("registers exactly one agent-facing tool and no command or shortcut", () =>
   assert.ok(tools[0].promptGuidelines.some((guideline: string) => guideline.includes("non-authoritative")));
   assert.equal(commands, 0);
   assert.equal(shortcuts, 0);
-  assert.deepEqual(Object.keys(handlers).sort(), ["session_shutdown", "session_start", "session_tree"]);
+  assert.deepEqual(Object.keys(handlers).sort(), [
+    "session_before_fork",
+    "session_before_switch",
+    "session_before_tree",
+    "session_shutdown",
+    "session_start",
+    "session_tree",
+  ]);
+});
+
+test("session new, fork, and tree events cancel while a review is active", async () => {
+  const handlers: Record<string, Function> = {};
+  const notices: string[] = [];
+  const ownerSessionId = "pi-session";
+  const dataDir = dataDirectoryPath(ownerSessionId, "123e4567-e89b-42d3-a456-426614174011");
+  const active: PersistedState = {
+    version: 1,
+    ownerSessionId,
+    status: "active",
+    targetKey: "working-tree",
+    cwd: "/repo",
+    resources: { workspaceId: "w1", tabId: "w1:t1", paneId: "w1:p1" },
+    tuicrSession: { slug: "review", path: `${dataDir}/tuicr/review.json` },
+    completionFile: completionFilePath(ownerSessionId, "123e4567-e89b-42d3-a456-426614174010"),
+    dataDir,
+    accepted: [],
+    notification: null,
+    delivered: false,
+  };
+  const branch = [{ type: "custom", customType: STATE_ENTRY, data: active }];
+  extension({
+    registerTool() {},
+    on(name: string, handler: Function) { handlers[name] = handler; },
+    exec: async (_command: string, args: string[]) => {
+      if (args[0] === "tab" && args[1] === "get") {
+        return { code: 0, stdout: JSON.stringify({ result: { tab_id: "w1:t1" } }), stderr: "" };
+      }
+      if (args[0] === "pane" && args[1] === "get") {
+        return { code: 0, stdout: JSON.stringify({ result: { pane_id: "w1:p1", tab_id: "w1:t1" } }), stderr: "" };
+      }
+      return { code: 1, stdout: "", stderr: "unexpected command" };
+    },
+    appendEntry() {},
+    sendMessage() {},
+  } as any);
+  const context = {
+    cwd: "/repo",
+    hasUI: true,
+    sessionManager: { getSessionId: () => ownerSessionId, getBranch: () => branch },
+    ui: {
+      theme: { fg: (_color: string, value: string) => value },
+      setWidget() {},
+      notify(message: string) { notices.push(message); },
+    },
+  } as any;
+
+  await handlers.session_start({ reason: "startup" }, context);
+  assert.deepEqual(handlers.session_before_switch({ reason: "new" }, context), { cancel: true });
+  assert.deepEqual(handlers.session_before_fork({ entryId: "e1", position: "before" }, context), { cancel: true });
+  assert.deepEqual(handlers.session_before_tree({}, context), { cancel: true });
+  assert.equal(notices.length, 3);
+  assert.ok(notices.every((notice) => notice.includes("Finish it or manually close")));
+  await handlers.session_shutdown({ reason: "reload" }, context);
 });
 
 test("public schema is strict at every object boundary", () => {

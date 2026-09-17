@@ -71,8 +71,18 @@ export default function tuicrReview(pi: ExtensionAPI): void {
   });
 
   pi.on("session_start", async (_event, ctx) => runtime.restore(ctx));
+  pi.on("session_before_switch", (_event, ctx) => blockNavigation(runtime, ctx));
+  pi.on("session_before_fork", (_event, ctx) => blockNavigation(runtime, ctx));
+  pi.on("session_before_tree", (_event, ctx) => blockNavigation(runtime, ctx));
   pi.on("session_tree", async (_event, ctx) => runtime.restore(ctx));
-  pi.on("session_shutdown", () => runtime.stop());
+  pi.on("session_shutdown", async (event) => runtime.shutdown(event.reason));
+}
+
+function blockNavigation(runtime: TuicrReviewRuntime, ctx: { readonly hasUI: boolean; readonly ui: { notify(message: string, level: "warning"): void } }): { cancel: true } | undefined {
+  const reason = runtime.navigationBlockReason();
+  if (!reason) return undefined;
+  if (ctx.hasUI) ctx.ui.notify(reason, "warning");
+  return { cancel: true };
 }
 
 interface CommandResult {

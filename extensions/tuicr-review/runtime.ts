@@ -78,10 +78,28 @@ export class TuicrReviewRuntime {
     }
   }
 
+  navigationBlockReason(): string | undefined {
+    if (this.state?.status === "active") {
+      return "A Tuicr review is open. Finish it or manually close its Herdr tab before changing sessions or navigating the conversation tree.";
+    }
+    if (this.state && this.state.status !== "recovery-blocked" && !this.state.delivered) {
+      return "Tuicr review completion is still being delivered. Wait for its notification before changing sessions or navigating the conversation tree.";
+    }
+    return undefined;
+  }
+
+  async shutdown(reason: "quit" | "reload" | "new" | "resume" | "fork"): Promise<void> {
+    if (reason !== "reload") {
+      this.generation += 1;
+      await this.enqueue(() => this.cancelForShutdown(reason));
+    }
+    this.detach();
+    this.state = undefined;
+    this.recoveryError = undefined;
+  }
+
   stop(): void {
-    this.generation += 1;
-    this.context?.ui.setWidget(WIDGET_ID, undefined);
-    this.context = undefined;
+    this.detach();
     this.state = undefined;
     this.recoveryError = undefined;
   }
@@ -127,6 +145,55 @@ export class TuicrReviewRuntime {
       }
       return this.launchAndSeed(request, before, resources, dataDir, ownerSessionId, signal);
     });
+  }
+
+  private async cancelForShutdown(reason: "quit" | "new" | "resume" | "fork"): Promise<void> {
+    const state = this.state;
+    if (!state || state.status !== "active") return;
+
+    try {
+      const signal = AbortSignal.timeout(10_000);
+      if (await untilAbort(this.backend.resourceExists(state.resources, signal), signal)) {
+        await untilAbort(this.backend.closeTab(state.resources, signal), signal);
+      }
+      await untilAbort(this.backend.removeCompletionFile(state.completionFile), signal);
+      await untilAbort(this.backend.removeDataDirectory(state.dataDir), signal);
+    } catch (error) {
+      if (this.state === state) {
+        this.state = {
+          ...state,
+          status: "recovery-blocked",
+          reason: `Session shutdown cleanup is uncertain; exact resources were preserved: ${singleLine(message(error))}`,
+          notification: null,
+          delivered: false,
+        };
+        this.persist();
+        this.render();
+      }
+      return;
+    }
+
+    if (this.state !== state) return;
+    const deliveryId = randomUUID();
+    const content = `Tuicr review was cancelled because the Pi session shut down (${reason}). No review feedback was collected. This is not Human sign-off and grants no delivery authority.`;
+    this.state = {
+      ...state,
+      status: "cancelled",
+      notification: {
+        deliveryId,
+        content,
+        details: { status: "cancelled", session: state.tuicrSession, deliveryId, reason: `session-${reason}` },
+      },
+      delivered: false,
+    };
+    this.persist();
+    this.render();
+  }
+
+  private detach(): void {
+    this.generation += 1;
+    this.context?.ui.setWidget(WIDGET_ID, undefined);
+    this.context = undefined;
   }
 
   private async launchAndSeed(
@@ -444,4 +511,13 @@ function singleLine(value: string): string {
 
 function message(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function untilAbort<T>(operation: Promise<T>, signal: AbortSignal): Promise<T> {
+  if (signal.aborted) return Promise.reject(signal.reason ?? new Error("Shutdown cleanup timed out."));
+  return new Promise<T>((resolve, reject) => {
+    const abort = () => reject(signal.reason ?? new Error("Shutdown cleanup timed out."));
+    signal.addEventListener("abort", abort, { once: true });
+    operation.then(resolve, reject).finally(() => signal.removeEventListener("abort", abort));
+  });
 }

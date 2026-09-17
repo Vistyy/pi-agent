@@ -21,6 +21,7 @@ function harness(options: {
   const widgets: any[] = [];
   const closes: typeof resources[] = [];
   const additions: Record<string, unknown>[] = [];
+  const removedCompletionFiles: string[] = [];
   const removedDataDirs: string[] = [];
   const reviewDataDirs: string[] = [];
   const waits: Array<() => void> = [];
@@ -61,7 +62,7 @@ function harness(options: {
     async completion() { completionReads += 1; return exitCode; },
     async resourceExists() { resourceChecks += 1; return exists; },
     async closeTab(identity) { if (options.closeError) throw options.closeError; closes.push(identity); exists = false; },
-    async removeCompletionFile() {},
+    async removeCompletionFile(path) { removedCompletionFiles.push(path); },
     async removeDataDirectory(path) { if (options.removeDataError) throw options.removeDataError; removedDataDirs.push(path); },
     delay() { return new Promise<void>((resolve) => waits.push(resolve)); },
     completionFile(ownerSessionId) { return completionFilePath(ownerSessionId, "123e4567-e89b-42d3-a456-426614174000"); },
@@ -85,7 +86,7 @@ function harness(options: {
   } as any;
   const runtime = new TuicrReviewRuntime(pi as any, backend);
   return {
-    runtime, backend, context, branch, messages, widgets, closes, additions, removedDataDirs, reviewDataDirs,
+    runtime, backend, context, branch, messages, widgets, closes, additions, removedCompletionFiles, removedDataDirs, reviewDataDirs,
     setComments(value: StoredComment[]) { comments = value; },
     failComments(count = 1) { commentFailures = count; },
     setExists(value: boolean) { exists = value; },
@@ -491,6 +492,92 @@ test("malformed restored ownership state causes no monitoring or cleanup effects
   assert.equal(h.closes.length, 0);
   assert.equal(h.messages.length, 0);
   h.runtime.stop();
+});
+
+test("active and terminal-delivery-pending reviews block navigation, but recovery-blocked does not", async () => {
+  const active = harness({ deferDelivery: true });
+  await active.runtime.restore(active.context);
+  await active.runtime.ensure(request, active.context);
+  assert.match(active.runtime.navigationBlockReason() ?? "", /Finish it or manually close/);
+
+  active.setExit(9);
+  active.tick();
+  await settle();
+  assert.match(active.runtime.navigationBlockReason() ?? "", /completion is still being delivered/);
+  active.runtime.stop();
+
+  const blocked = harness({ closeError: new Error("Herdr unavailable") });
+  await blocked.runtime.restore(blocked.context);
+  await blocked.runtime.ensure(request, blocked.context);
+  blocked.setExit(9);
+  blocked.tick();
+  await settle();
+  assert.equal((blocked.branch.at(-1) as any).data.status, "recovery-blocked");
+  assert.equal(blocked.runtime.navigationBlockReason(), undefined);
+  blocked.runtime.stop();
+});
+
+test("reload shutdown preserves the active review for the replacement runtime", async () => {
+  const h = harness();
+  await h.runtime.restore(h.context);
+  await h.runtime.ensure(request, h.context);
+  const persistedBeforeReload = h.branch.length;
+
+  await h.runtime.shutdown("reload");
+
+  assert.deepEqual(h.closes, []);
+  assert.deepEqual(h.removedCompletionFiles, []);
+  assert.deepEqual(h.removedDataDirs, []);
+  assert.equal(h.branch.length, persistedBeforeReload);
+
+  const replacement = new TuicrReviewRuntime({
+    appendEntry: (customType: string, data: unknown) => h.branch.push({ type: "custom", customType, data }),
+    sendMessage: () => {},
+  } as any, h.backend);
+  await replacement.restore(h.context);
+  assert.match(replacement.navigationBlockReason() ?? "", /Tuicr review is open/);
+  replacement.stop();
+});
+
+test("quit shutdown cleans exact owned resources and persists cancellation for later delivery", async () => {
+  const h = harness();
+  await h.runtime.restore(h.context);
+  await h.runtime.ensure(request, h.context);
+
+  await h.runtime.shutdown("quit");
+  await h.runtime.shutdown("quit");
+
+  assert.deepEqual(h.closes, [resources]);
+  assert.equal(h.removedCompletionFiles.length, 1);
+  assert.deepEqual(h.removedDataDirs, [dataDir]);
+  const cancelled = (h.branch.at(-1) as any).data as PersistedState;
+  assert.equal(cancelled.status, "cancelled");
+  assert.equal(cancelled.delivered, false);
+  assert.equal((cancelled.notification!.details as any).reason, "session-quit");
+  assert.equal(h.messages.length, 0, "shutdown must defer notification to a later resume");
+
+  await h.runtime.restore(h.context);
+  await settle();
+  assert.equal(h.messages.length, 1);
+  assert.match(h.messages[0].message.content, /not Human sign-off/);
+  h.runtime.stop();
+});
+
+test("uncertain shutdown cleanup preserves recovery-blocked identity and does not continue cleanup", async () => {
+  const h = harness({ closeError: new Error("close timed out") });
+  await h.runtime.restore(h.context);
+  await h.runtime.ensure(request, h.context);
+
+  await h.runtime.shutdown("new");
+
+  const blocked = (h.branch.at(-1) as any).data;
+  assert.equal(blocked.status, "recovery-blocked");
+  assert.deepEqual(blocked.resources, resources);
+  assert.equal(blocked.dataDir, dataDir);
+  assert.match(blocked.reason, /Session shutdown cleanup is uncertain.*close timed out/);
+  assert.deepEqual(h.removedCompletionFiles, []);
+  assert.deepEqual(h.removedDataDirs, []);
+  assert.equal(h.messages.length, 0);
 });
 
 test("nonzero exit and manual resource closure produce bounded failed/cancelled completion", async () => {

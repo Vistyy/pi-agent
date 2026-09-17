@@ -13,8 +13,12 @@ Pass `target.kind: "workingTree"` for uncommitted changes, or `target.kind: "rev
 
 The active review is reused only for the same target; exact accepted annotations are deduplicated and failed or revised annotations may be retried. Only one review can be active per conversation branch.
 
+While a review is open, Pi cancels session new/resume, fork/clone, and conversation-tree navigation with a short UI notice: finish Tuicr or manually close its Herdr tab first. Navigation is also held briefly while a terminal notification is pending so required feedback cannot be stranded. A separately reported recovery-blocked state does not trap navigation.
+
 The extension owns only the exact Herdr tab/pane, Tuicr session, and temporary data directory it creates. Each review gets a private `XDG_DATA_HOME`; the Herdr tab and all `tuicr review` CLI operations use it, so unrelated concurrent Tuicr sessions cannot be discovered or adopted. `XDG_CONFIG_HOME` is unchanged. It launches Tuicr with `--no-update-check` and does not provide a same-terminal or non-Herdr fallback.
 
 Known completion (including a nonzero exit) closes the owned tab. Manual tab/pane absence is reported as cancellation. The private data directory is removed only after terminal feedback is durably recorded and tab closure or absence is known. Any ownership, cleanup, or monitoring uncertainty becomes a persistent recovery-blocked state that preserves exact identities and prevents another review until a human resolves it; malformed identity is never acted upon.
 
 Terminal feedback, including every seeded Coordinator and Maintainer comment, is persisted before delivery. Interrupted delivery is retried after reload, while an already-appended matching delivery is not duplicated. Completion feedback distinguishes seeded and Maintainer comments; review feedback is not Human sign-off or delivery authority.
+
+Pi reload preserves an open review for the replacement extension instance. On unavoidable quit or session replacement, shutdown closes only a proven active owned tab, removes the owned completion marker and private data, and records a cancelled notification for later resume. Cleanup uncertainty preserves the exact identity as recovery-blocked instead of guessing or closing anything else.
