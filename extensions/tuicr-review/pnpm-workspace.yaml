@@ -1,0 +1,8 @@
+pmOnFail: error
+
+allowBuilds:
+  '@google/genai': false
+  esbuild: true
+  protobufjs: false
+minimumReleaseAgeExclude:
+  - tsx@4.23.4
