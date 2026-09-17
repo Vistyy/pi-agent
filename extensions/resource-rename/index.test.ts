@@ -148,8 +148,10 @@ test("/rename queues the normal naming pass and rejects arguments", async () => 
 		const fake = makeFake();
 		await fake.commands.rename.handler("", context([], true));
 		assert.equal(fake.messages.length, 1);
-		assert.match(fake.messages[0]!.text, /name_session exactly once/);
+		assert.match(fake.messages[0]!.text, /enduring umbrella topic/);
+		assert.match(fake.messages[0]!.text, /not the current phase/);
 		assert.match(fake.messages[0]!.text, /2-4 word/);
+		assert.match(fake.messages[0]!.text, /only when the user asks/);
 
 		const notifications: string[] = [];
 		await fake.commands.rename.handler("pi Old Name", {
