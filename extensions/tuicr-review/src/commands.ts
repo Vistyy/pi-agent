@@ -10,11 +10,8 @@ interface Result { code: number; stdout: string; stderr: string }
 export class ReviewCommands {
   private readonly herdr = process.env.HERDR_BIN_PATH ?? "herdr";
   private readonly tuicr = process.env.TUICR_BIN_PATH ?? "tuicr";
-  private readonly pi: Pick<ExtensionAPI, "exec">;
 
-  constructor(pi: Pick<ExtensionAPI, "exec">) {
-    this.pi = pi;
-  }
+  constructor(private readonly pi: Pick<ExtensionAPI, "exec">) {}
 
   async launch(request: NormalizedReview, ownerSessionId: string, signal?: AbortSignal): Promise<OwnedReview> {
     if (process.env.HERDR_ENV !== "1") throw new Error("tuicr_review requires Pi to run inside Herdr.");

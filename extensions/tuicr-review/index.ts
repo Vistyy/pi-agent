@@ -48,6 +48,11 @@ export default function tuicrReview(pi: ExtensionAPI): void {
       "Choose the narrowest useful review, file, line, or range scope; any number of annotations, including none, is valid.",
     ].join(" "),
     promptSnippet: "Open or add useful context to a guided Tuicr review",
+    promptGuidelines: [
+      "Inspect the target change before opening the review. Use annotations as an authored review layer when colocated context will help the Maintainer judge intent, constraints, risks, trade-offs, non-obvious decisions, or focused questions.",
+      "Place each annotation at the narrowest useful review, file, line, or range scope. Add as many as materially improve the review, including none; do not treat scopes or annotation counts as a checklist.",
+      "When structure clarifies an annotation, use the smallest fitting form: pseudocode for logic, a call tree for runtime flow, a shallow file tree for ownership, Mermaid for interactions or data movement, or a fenced diff for changes. Use prose when clearer and do not repeat the same point in multiple forms.",
+    ],
     parameters: TuicrReviewParameters,
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
       const result = await review.ensure(params, ctx, signal);
