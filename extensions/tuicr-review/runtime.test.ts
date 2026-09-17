@@ -1,13 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { COORDINATOR_AUTHOR, STATE_ENTRY, completionFilePath, type PersistedState, type StoredComment } from "./logic.ts";
+import { COORDINATOR_AUTHOR, STATE_ENTRY, completionFilePath, dataDirectoryPath, type PersistedState, type StoredComment } from "./logic.ts";
 import { TuicrReviewRuntime, type ReviewBackend } from "./runtime.ts";
 
 const resources = { workspaceId: "w1", tabId: "w1:t9", paneId: "w1:p9" };
-const session = { slug: "repo@main/worktree", path: "/reviews/exact.json", active: true };
+const dataDir = dataDirectoryPath("pi-session", "123e4567-e89b-42d3-a456-426614174001");
+const session = { slug: "repo@main/worktree", path: `${dataDir}/tuicr/reviews/exact.json`, active: true };
 
 function harness(options: {
   launchError?: Error;
+  closeError?: Error;
+  removeDataError?: Error;
+  sendError?: Error;
+  deferDelivery?: boolean;
   addFailure?: (payload: Record<string, unknown>) => boolean;
   commentFailures?: number;
 } = {}) {
@@ -16,6 +21,8 @@ function harness(options: {
   const widgets: any[] = [];
   const closes: typeof resources[] = [];
   const additions: Record<string, unknown>[] = [];
+  const removedDataDirs: string[] = [];
+  const reviewDataDirs: string[] = [];
   const waits: Array<() => void> = [];
   let comments: StoredComment[] = [];
   let exists = true;
@@ -28,11 +35,13 @@ function harness(options: {
   let commentFailures = options.commentFailures ?? 0;
   const backend: ReviewBackend = {
     async preflight() { preflights += 1; return { workspaceId: resources.workspaceId }; },
-    async listSessions() { return listCount++ === 0 ? [] : [session]; },
-    async createTab() { creates += 1; return resources; },
+    async createDataDirectory() { return dataDir; },
+    async listSessions(_cwd, ownedDataDir) { reviewDataDirs.push(ownedDataDir); return listCount++ === 0 ? [] : [session]; },
+    async createTab(_cwd, _workspace, ownedDataDir) { creates += 1; reviewDataDirs.push(ownedDataDir); return resources; },
     async launch() { if (options.launchError) throw options.launchError; },
-    async comments() { if (commentFailures-- > 0) throw new Error("comments unavailable"); return comments; },
-    async add(_cwd, _session, payload) {
+    async comments(_cwd, ownedDataDir) { reviewDataDirs.push(ownedDataDir); if (commentFailures-- > 0) throw new Error("comments unavailable"); return comments; },
+    async add(_cwd, ownedDataDir, _session, payload) {
+      reviewDataDirs.push(ownedDataDir);
       additions.push(payload);
       if (options.addFailure?.(payload)) throw new Error("anchor rejected");
       const comment: StoredComment = {
@@ -51,14 +60,19 @@ function harness(options: {
     },
     async completion() { completionReads += 1; return exitCode; },
     async resourceExists() { resourceChecks += 1; return exists; },
-    async closeTab(identity) { closes.push(identity); exists = false; },
+    async closeTab(identity) { if (options.closeError) throw options.closeError; closes.push(identity); exists = false; },
     async removeCompletionFile() {},
+    async removeDataDirectory(path) { if (options.removeDataError) throw options.removeDataError; removedDataDirs.push(path); },
     delay() { return new Promise<void>((resolve) => waits.push(resolve)); },
     completionFile(ownerSessionId) { return completionFilePath(ownerSessionId, "123e4567-e89b-42d3-a456-426614174000"); },
   };
   const pi = {
     appendEntry(customType: string, data: unknown) { branch.push({ type: "custom", customType, data }); },
-    sendMessage(message: unknown, delivery: unknown) { messages.push({ message, delivery }); },
+    sendMessage(message: any, delivery: unknown) {
+      messages.push({ message, delivery });
+      if (!options.deferDelivery) branch.push({ type: "custom_message", ...message });
+      if (options.sendError) throw options.sendError;
+    },
   };
   const context = {
     cwd: "/repo",
@@ -71,7 +85,7 @@ function harness(options: {
   } as any;
   const runtime = new TuicrReviewRuntime(pi as any, backend);
   return {
-    runtime, backend, context, branch, messages, widgets, closes, additions,
+    runtime, backend, context, branch, messages, widgets, closes, additions, removedDataDirs, reviewDataDirs,
     setComments(value: StoredComment[]) { comments = value; },
     failComments(count = 1) { commentFailures = count; },
     setExists(value: boolean) { exists = value; },
@@ -103,6 +117,9 @@ test("opens once, persists exact ownership, seeds annotations, and reuses withou
   const active = (h.branch.at(-1) as any).data as PersistedState;
   assert.deepEqual(active.resources, resources);
   assert.deepEqual(active.tuicrSession, { slug: session.slug, path: session.path });
+  assert.equal(active.dataDir, dataDir);
+  assert.ok(h.reviewDataDirs.length >= 4);
+  assert.ok(h.reviewDataDirs.every((path) => path === dataDir), "all Tuicr review operations must use the private data directory");
   assert.equal(active.status, "active");
   assert.equal((h.branch.at(-1) as any).customType, STATE_ENTRY);
 
@@ -196,7 +213,7 @@ test("discovery failure closes the exact newly owned tab, but uncertain ownershi
   await uncertain.runtime.restore(uncertain.context);
   await assert.rejects(
     uncertain.runtime.ensure(request, uncertain.context),
-    /could not be proven closed.*recovery is blocked/,
+    /could not be proven cleaned.*recovery is blocked/,
   );
   assert.equal(uncertain.closes.length, 0);
   assert.equal((uncertain.branch.at(-1) as any).data.status, "recovery-blocked");
@@ -205,6 +222,18 @@ test("discovery failure closes the exact newly owned tab, but uncertain ownershi
   await assert.rejects(uncertain.runtime.ensure(request, uncertain.context), /recovery is blocked/i);
   assert.equal(uncertain.effects().creates, 1, "reload must not create another review");
   uncertain.runtime.stop();
+});
+
+test("never adopts a concurrently discovered session outside the private data directory", async () => {
+  const h = harness();
+  let calls = 0;
+  h.backend.listSessions = async () => calls++ === 0 ? [] : [{ ...session, slug: "external", path: "/shared/tuicr/external.json" }];
+  h.backend.delay = async () => {};
+  await h.runtime.restore(h.context);
+  await assert.rejects(h.runtime.ensure(request, h.context), /outside the exact owned data directory/);
+  assert.deepEqual(h.closes, [resources]);
+  assert.deepEqual(h.removedDataDirs, [dataDir]);
+  h.runtime.stop();
 });
 
 test("launch cleanup uses a fresh signal when the tool signal is already aborted", async () => {
@@ -281,6 +310,8 @@ test("normal exit reads exact session, persists before one follow-up delivery, a
   const final = (h.branch.at(-1) as any).data as PersistedState;
   assert.equal(final.status, "completed");
   assert.equal(final.delivered, true);
+  assert.deepEqual((final.notification!.details as any).seeded.map((comment: StoredComment) => comment.id), ["c1"]);
+  assert.deepEqual((final.notification!.details as any).maintainer.map((comment: StoredComment) => comment.id), ["m1"]);
   assert.deepEqual(h.closes, [resources]);
   assert.equal(h.messages.length, 1);
   assert.deepEqual(h.messages[0].delivery, { deliverAs: "followUp", triggerTurn: true });
@@ -291,12 +322,94 @@ test("normal exit reads exact session, persists before one follow-up delivery, a
   h.runtime.stop();
 });
 
+test("terminal cleanup uncertainty becomes durable recovery-blocked and preserves private storage", async () => {
+  for (const exitCode of [0, 9]) {
+    const h = harness({ closeError: new Error("Herdr close uncertain") });
+    await h.runtime.restore(h.context);
+    await h.runtime.ensure(request, h.context);
+    h.setExit(exitCode);
+    h.tick();
+    await settle();
+    const blocked = (h.branch.filter((entry: any) => entry.customType === STATE_ENTRY).at(-1) as any).data;
+    assert.equal(blocked.status, "recovery-blocked");
+    assert.match(blocked.reason, /Terminal review cleanup is uncertain/);
+    assert.equal(blocked.notification.details.status, exitCode === 0 ? "completed" : "failed");
+    assert.equal(h.messages.length, 0);
+    assert.deepEqual(h.removedDataDirs, []);
+    await assert.rejects(h.runtime.ensure(request, h.context), /recovery is blocked/i);
+    h.runtime.stop();
+  }
+});
+
+test("marks delivery complete only after the queued custom message is appended", async () => {
+  const h = harness({ deferDelivery: true });
+  await h.runtime.restore(h.context);
+  await h.runtime.ensure(request, h.context);
+  h.setExit(0);
+  h.tick();
+  await settle();
+  const pending = (h.branch.filter((entry: any) => entry.customType === STATE_ENTRY).at(-1) as any).data as PersistedState;
+  assert.equal(pending.delivered, false);
+  assert.equal(h.messages.length, 1);
+
+  h.branch.push({ type: "custom_message", ...h.messages[0].message });
+  h.tick();
+  await settle();
+  const delivered = (h.branch.filter((entry: any) => entry.customType === STATE_ENTRY).at(-1) as any).data as PersistedState;
+  assert.equal(delivered.delivered, true);
+  h.runtime.stop();
+});
+
+test("reload completes an interrupted pending delivery exactly once", async () => {
+  const h = harness({ sendError: new Error("crash after append") });
+  await h.runtime.restore(h.context);
+  await h.runtime.ensure(request, h.context);
+  h.setExit(0);
+  h.tick();
+  await settle();
+  const pending = (h.branch.filter((entry: any) => entry.customType === STATE_ENTRY).at(-1) as any).data as PersistedState;
+  assert.equal(pending.delivered, false);
+  assert.equal(h.messages.length, 1);
+  assert.ok(h.branch.some((entry: any) => entry.type === "custom_message" && entry.details.deliveryId === pending.notification!.deliveryId));
+
+  h.runtime.stop();
+  await h.runtime.restore(h.context);
+  await settle();
+  const delivered = (h.branch.filter((entry: any) => entry.customType === STATE_ENTRY).at(-1) as any).data as PersistedState;
+  assert.equal(delivered.delivered, true);
+  assert.equal(h.messages.length, 1, "matching already-appended completion must not be duplicated");
+  h.runtime.stop();
+});
+
+test("reload retries a terminal notification that was persisted before send", async () => {
+  const h = harness();
+  const deliveryId = "123e4567-e89b-42d3-a456-426614174003";
+  const pending: PersistedState = {
+    version: 1, ownerSessionId: "pi-session", status: "failed", targetKey: "x", cwd: "/repo",
+    resources, tuicrSession: { slug: session.slug, path: session.path },
+    completionFile: completionFilePath("pi-session", "123e4567-e89b-42d3-a456-426614174000"), dataDir,
+    accepted: [], notification: { deliveryId, content: "Tuicr failed", details: { status: "failed", deliveryId } }, delivered: false,
+  };
+  h.branch.push({ type: "custom", customType: STATE_ENTRY, data: pending });
+  h.setExists(false);
+  await h.runtime.restore(h.context);
+  await settle();
+  assert.equal(h.messages.length, 1);
+  assert.equal(h.messages[0].message.details.deliveryId, deliveryId);
+  assert.equal((h.branch.at(-1) as any).data.delivered, true);
+  assert.deepEqual(h.removedDataDirs, [dataDir]);
+  h.runtime.stop();
+});
+
 test("reload restores active identity but suppresses already delivered completion", async () => {
   const h = harness();
   const completed: PersistedState = {
     version: 1, ownerSessionId: "pi-session", status: "completed", targetKey: "x", cwd: "/repo",
     resources, tuicrSession: { slug: session.slug, path: session.path },
-    completionFile: completionFilePath("pi-session", "123e4567-e89b-42d3-a456-426614174000"), accepted: [], delivered: true,
+    completionFile: completionFilePath("pi-session", "123e4567-e89b-42d3-a456-426614174000"), dataDir,
+    accepted: [], notification: {
+      deliveryId: "123e4567-e89b-42d3-a456-426614174002", content: "done", details: { deliveryId: "123e4567-e89b-42d3-a456-426614174002" },
+    }, delivered: true,
   };
   h.branch.push({ type: "custom", customType: STATE_ENTRY, data: completed });
   await h.runtime.restore(h.context);
@@ -338,7 +451,7 @@ test("malformed restored ownership state causes no monitoring or cleanup effects
     data: {
       version: 1, ownerSessionId: "pi-session", status: "active", targetKey: "x", cwd: "/repo",
       resources, tuicrSession: { slug: session.slug, path: session.path },
-      completionFile: "/tmp/not-owned.exit", accepted: [], delivered: false,
+      completionFile: "/tmp/not-owned.exit", dataDir, accepted: [], notification: null, delivered: false,
     },
   });
   await h.runtime.restore(h.context);
@@ -364,7 +477,8 @@ test("nonzero exit and manual resource closure produce bounded failed/cancelled 
     const final = (h.branch.at(-1) as any).data as PersistedState;
     assert.equal(final.status, mode === "nonzero" ? "failed" : "cancelled");
     assert.equal(h.messages.length, 1);
-    assert.equal(h.closes.length, 0);
+    assert.equal(h.closes.length, mode === "nonzero" ? 1 : 0);
+    assert.deepEqual(h.removedDataDirs, [dataDir]);
     h.runtime.stop();
   }
 });

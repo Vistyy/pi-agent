@@ -7,6 +7,7 @@ import {
   annotationPayload,
   commentFingerprint,
   completionFilePath,
+  dataDirectoryPath,
   discoverNewActive,
   normalizeRequest,
   restoreState,
@@ -69,11 +70,21 @@ test("discovers only one exact newly active session", () => {
 });
 
 test("restores only the latest state owned by the exact Pi session branch", () => {
-  const state = (ownerSessionId: string, status: PersistedState["status"]): PersistedState => ({
-    version: 1, ownerSessionId, status, targetKey: "target", cwd: "/repo",
-    resources: { workspaceId: "w", tabId: "t", paneId: "p" }, tuicrSession: { slug: "s", path: "/s" },
-    completionFile: completionFilePath(ownerSessionId, "123e4567-e89b-42d3-a456-426614174000"), accepted: [], delivered: status !== "active",
-  });
+  const state = (ownerSessionId: string, status: PersistedState["status"]): PersistedState => {
+    const dataDir = dataDirectoryPath(ownerSessionId, "123e4567-e89b-42d3-a456-426614174001");
+    return {
+      version: 1, ownerSessionId, status, targetKey: "target", cwd: "/repo",
+      resources: { workspaceId: "w", tabId: "t", paneId: "p" },
+      tuicrSession: { slug: "s", path: `${dataDir}/tuicr/reviews/s.json` },
+      completionFile: completionFilePath(ownerSessionId, "123e4567-e89b-42d3-a456-426614174000"),
+      dataDir, accepted: [],
+      notification: status === "active" ? null : {
+        deliveryId: "123e4567-e89b-42d3-a456-426614174002", content: "done",
+        details: { deliveryId: "123e4567-e89b-42d3-a456-426614174002" },
+      },
+      delivered: status !== "active",
+    };
+  };
   const branch = [
     { type: "custom", customType: STATE_ENTRY, data: state("session-a", "active") },
     { type: "custom", customType: STATE_ENTRY, data: state("session-b", "active") },
@@ -88,20 +99,28 @@ test("restores only the latest state owned by the exact Pi session branch", () =
 
 test("rejects malformed persisted identities, transitions, accepted entries, and completion paths", () => {
   const owner = "session-a";
+  const dataDir = dataDirectoryPath(owner, "123e4567-e89b-42d3-a456-426614174001");
   const valid: PersistedState = {
     version: 1, ownerSessionId: owner, status: "active", targetKey: "target", cwd: "/repo",
     resources: { workspaceId: "w", tabId: "t", paneId: "p" },
-    tuicrSession: { slug: "s", path: "/reviews/s.json" },
+    tuicrSession: { slug: "s", path: `${dataDir}/tuicr/reviews/s.json` },
     completionFile: completionFilePath(owner, "123e4567-e89b-42d3-a456-426614174000"),
+    dataDir, notification: null,
     accepted: [{ fingerprint: "fingerprint", commentId: "comment" }], delivered: false,
   };
   const corruptions: unknown[] = [
     { ...valid, resources: { workspaceId: "w", tabId: "t" } },
     { ...valid, tuicrSession: { slug: "s", path: 4 } },
+    { ...valid, tuicrSession: { slug: "s", path: "/tmp/external-review.json" } },
     { ...valid, completionFile: "/tmp/other.exit" },
     { ...valid, completionFile: completionFilePath("another-owner", "123e4567-e89b-42d3-a456-426614174000") },
+    { ...valid, dataDir: "/tmp/shared-tuicr" },
+    { ...valid, dataDir: dataDirectoryPath("another-owner", "123e4567-e89b-42d3-a456-426614174001") },
     { ...valid, status: "running" },
-    { ...valid, status: "completed", delivered: false },
+    { ...valid, status: "completed", notification: null, delivered: false },
+    { ...valid, status: "completed", notification: {
+      deliveryId: "123e4567-e89b-42d3-a456-426614174002", content: "done", details: { deliveryId: "mismatch" },
+    }, delivered: false },
     { ...valid, accepted: [{ fingerprint: "fingerprint" }] },
     { ...valid, accepted: [{ fingerprint: "fingerprint", commentId: "comment", extra: true }] },
     { ...valid, extra: true },
@@ -113,11 +132,13 @@ test("rejects malformed persisted identities, transitions, accepted entries, and
 
 test("a latest malformed owned transition blocks replay of older valid resource state", () => {
   const owner = "session-a";
+  const dataDir = dataDirectoryPath(owner, "123e4567-e89b-42d3-a456-426614174001");
   const valid: PersistedState = {
     version: 1, ownerSessionId: owner, status: "active", targetKey: "target", cwd: "/repo",
     resources: { workspaceId: "w", tabId: "t", paneId: "p" },
-    tuicrSession: { slug: "s", path: "/reviews/s.json" },
-    completionFile: completionFilePath(owner, "123e4567-e89b-42d3-a456-426614174000"), accepted: [], delivered: false,
+    tuicrSession: { slug: "s", path: `${dataDir}/tuicr/reviews/s.json` },
+    completionFile: completionFilePath(owner, "123e4567-e89b-42d3-a456-426614174000"),
+    dataDir, accepted: [], notification: null, delivered: false,
   };
   const branch = [
     { type: "custom", customType: STATE_ENTRY, data: valid },

@@ -1,5 +1,5 @@
 import { tmpdir } from "node:os";
-import { isAbsolute, join, resolve } from "node:path";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
 export const STATE_ENTRY = "tuicr-review-state";
 export const COORDINATOR_AUTHOR = "Pi Coordinator";
@@ -49,6 +49,12 @@ export interface AcceptedAnnotation {
   readonly commentId: string;
 }
 
+export interface CompletionNotification {
+  readonly deliveryId: string;
+  readonly content: string;
+  readonly details: Record<string, unknown>;
+}
+
 export interface PersistedState {
   readonly version: 1;
   readonly ownerSessionId: string;
@@ -58,7 +64,9 @@ export interface PersistedState {
   readonly resources: ResourceIdentity;
   readonly tuicrSession: TuicrSessionIdentity;
   readonly completionFile: string;
+  readonly dataDir: string;
   readonly accepted: readonly AcceptedAnnotation[];
+  readonly notification: CompletionNotification | null;
   readonly delivered: boolean;
 }
 
@@ -72,7 +80,9 @@ export interface RecoveryBlockedState {
   readonly resources: ResourceIdentity;
   readonly tuicrSession: TuicrSessionIdentity | null;
   readonly completionFile: string;
+  readonly dataDir: string;
   readonly accepted: readonly AcceptedAnnotation[];
+  readonly notification: CompletionNotification | null;
   readonly delivered: false;
 }
 
@@ -206,16 +216,54 @@ export function discoverNewActive(before: readonly SessionSummary[], after: read
   return candidates[0]!;
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export function completionFilePath(ownerSessionId: string, uniqueId: string): string {
   return join(tmpdir(), `pi-tuicr-review-${ownerSessionId}-${uniqueId}.exit`);
 }
 
+export function dataDirectoryPath(ownerSessionId: string, uniqueId: string): string {
+  return join(tmpdir(), `pi-tuicr-review-${ownerSessionId}-${uniqueId}.data`);
+}
+
 export function isOwnedCompletionFile(path: string, ownerSessionId: string): boolean {
-  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return isOwnedTemporaryPath(path, ownerSessionId, ".exit", completionFilePath);
+}
+
+export function isOwnedDataDirectory(path: string, ownerSessionId: string): boolean {
+  return isOwnedTemporaryPath(path, ownerSessionId, ".data", dataDirectoryPath);
+}
+
+export function isSessionInDataDirectory(session: TuicrSessionIdentity, dataDir: string): boolean {
+  const child = relative(dataDir, session.path);
+  return child.length > 0 && child !== ".." && !child.startsWith(`..${sep}`) && !isAbsolute(child);
+}
+
+function isOwnedTemporaryPath(
+  path: string,
+  ownerSessionId: string,
+  suffix: string,
+  construct: (owner: string, uniqueId: string) => string,
+): boolean {
   const prefix = join(tmpdir(), `pi-tuicr-review-${ownerSessionId}-`);
-  if (!path.startsWith(prefix) || !path.endsWith(".exit")) return false;
-  const uniqueId = path.slice(prefix.length, -5);
-  return uuid.test(uniqueId) && path === completionFilePath(ownerSessionId, uniqueId);
+  if (!path.startsWith(prefix) || !path.endsWith(suffix)) return false;
+  const uniqueId = path.slice(prefix.length, -suffix.length);
+  return UUID.test(uniqueId) && path === construct(ownerSessionId, uniqueId);
+}
+
+export function hasCompletionDelivery(entries: readonly unknown[], deliveryId: string): boolean {
+  return entries.some((entry) => {
+    if (!isRecord(entry)) return false;
+    if (entry.type === "custom_message") {
+      return entry.customType === "tuicr-review-completion"
+        && isRecord(entry.details) && entry.details.deliveryId === deliveryId;
+    }
+    // Accept the materialized AgentMessage shape used by in-memory test/session adapters.
+    if (entry.type !== "message" || !isRecord(entry.message)) return false;
+    const message = entry.message;
+    return message.role === "custom" && message.customType === "tuicr-review-completion"
+      && isRecord(message.details) && message.details.deliveryId === deliveryId;
+  });
 }
 
 export function restoreState(entries: readonly unknown[], ownerSessionId: string): RestoredState {
@@ -236,13 +284,16 @@ export function restoreState(entries: readonly unknown[], ownerSessionId: string
 function isState(value: Record<string, unknown>, ownerSessionId: string): value is Record<string, unknown> & PersistedState {
   if (!exactKeys(value, [
     "version", "ownerSessionId", "status", "targetKey", "cwd", "resources", "tuicrSession",
-    "completionFile", "accepted", "delivered",
+    "completionFile", "dataDir", "accepted", "notification", "delivered",
   ])) return false;
   if (value.version !== 1 || value.ownerSessionId !== ownerSessionId || !nonEmpty(value.targetKey)
     || !nonEmpty(value.cwd) || !isAbsolute(value.cwd) || typeof value.delivered !== "boolean"
-    || !nonEmpty(value.completionFile) || !isOwnedCompletionFile(value.completionFile, ownerSessionId)) return false;
-  if (!isStatus(value.status) || value.delivered !== (value.status !== "active")) return false;
-  if (!isResourceIdentity(value.resources) || !isTuicrSessionIdentity(value.tuicrSession)) return false;
+    || !nonEmpty(value.completionFile) || !isOwnedCompletionFile(value.completionFile, ownerSessionId)
+    || !nonEmpty(value.dataDir) || !isOwnedDataDirectory(value.dataDir, ownerSessionId)) return false;
+  if (!isStatus(value.status)) return false;
+  if (value.status === "active" ? value.delivered || value.notification !== null : !isNotification(value.notification)) return false;
+  if (!isResourceIdentity(value.resources) || !isTuicrSessionIdentity(value.tuicrSession)
+    || !isSessionInDataDirectory(value.tuicrSession, value.dataDir)) return false;
   if (!Array.isArray(value.accepted) || !value.accepted.every(isAcceptedAnnotation)) return false;
   const accepted = value.accepted as AcceptedAnnotation[];
   return new Set(accepted.map((item) => item.fingerprint)).size === accepted.length
@@ -252,14 +303,17 @@ function isState(value: Record<string, unknown>, ownerSessionId: string): value 
 function isRecoveryBlockedState(value: Record<string, unknown>, ownerSessionId: string): value is Record<string, unknown> & RecoveryBlockedState {
   if (!exactKeys(value, [
     "version", "ownerSessionId", "status", "reason", "targetKey", "cwd", "resources", "tuicrSession",
-    "completionFile", "accepted", "delivered",
+    "completionFile", "dataDir", "accepted", "notification", "delivered",
   ])) return false;
   return value.version === 1 && value.ownerSessionId === ownerSessionId && value.status === "recovery-blocked"
     && nonEmpty(value.reason) && nonEmpty(value.targetKey) && nonEmpty(value.cwd) && isAbsolute(value.cwd)
     && isResourceIdentity(value.resources)
-    && (value.tuicrSession === null || isTuicrSessionIdentity(value.tuicrSession))
     && nonEmpty(value.completionFile) && isOwnedCompletionFile(value.completionFile, ownerSessionId)
-    && Array.isArray(value.accepted) && value.accepted.every(isAcceptedAnnotation) && value.delivered === false;
+    && nonEmpty(value.dataDir) && isOwnedDataDirectory(value.dataDir, ownerSessionId)
+    && (value.tuicrSession === null || (isTuicrSessionIdentity(value.tuicrSession)
+      && isSessionInDataDirectory(value.tuicrSession, value.dataDir)))
+    && Array.isArray(value.accepted) && value.accepted.every(isAcceptedAnnotation)
+    && (value.notification === null || isNotification(value.notification)) && value.delivered === false;
 }
 
 function isResourceIdentity(value: unknown): value is ResourceIdentity {
@@ -275,6 +329,13 @@ function isTuicrSessionIdentity(value: unknown): value is TuicrSessionIdentity {
 function isAcceptedAnnotation(value: unknown): value is AcceptedAnnotation {
   return isRecord(value) && exactKeys(value, ["fingerprint", "commentId"])
     && nonEmpty(value.fingerprint) && nonEmpty(value.commentId);
+}
+
+function isNotification(value: unknown): value is CompletionNotification {
+  return isRecord(value) && exactKeys(value, ["deliveryId", "content", "details"])
+    && nonEmpty(value.deliveryId) && UUID.test(value.deliveryId)
+    && nonEmpty(value.content) && isRecord(value.details)
+    && value.details.deliveryId === value.deliveryId;
 }
 
 function isStatus(value: unknown): value is PersistedState["status"] {

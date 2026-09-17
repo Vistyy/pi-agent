@@ -77,16 +77,40 @@ test("uses the live current pane workspace and ignores stale inherited identity"
       },
     } as any);
     const preflight = await backend.preflight("/repo");
-    await backend.createTab("/repo", preflight.workspaceId);
+    await backend.createTab("/repo", preflight.workspaceId, "/tmp/private-tuicr-data");
     assert.deepEqual(calls[0], { command: "herdr", args: ["pane", "current", "--current"] });
     const create = calls.find((call) => call.command === "herdr" && call.args[0] === "tab")!;
     assert.deepEqual(create.args.slice(0, 5), ["tab", "create", "--workspace", "live-workspace", "--cwd"]);
+    assert.ok(create.args.includes("XDG_DATA_HOME=/tmp/private-tuicr-data"));
+    assert.ok(!create.args.some((arg) => arg.startsWith("XDG_CONFIG_HOME=")));
     assert.ok(!create.args.includes("stale-workspace"));
   } finally {
     for (const [name, value] of Object.entries(previous)) {
       if (value === undefined) delete process.env[name];
       else process.env[name] = value;
     }
+  }
+});
+
+test("runs every review CLI operation in the exact private XDG data directory", async () => {
+  const calls: Array<{ command: string; args: string[] }> = [];
+  const backend = commandBackend({
+    async exec(command: string, args: string[]) {
+      calls.push({ command, args });
+      const operation = args.includes("list") ? "list" : args.includes("comments") ? "comments" : "add";
+      return { code: 0, stdout: operation === "add" ? JSON.stringify({ id: "c1", content: "x" }) : "[]", stderr: "" };
+    },
+  } as any);
+  const owned = "/tmp/private-tuicr-data";
+  const exact = { slug: "s", path: "/tmp/private-tuicr-data/tuicr/s.json" };
+  await backend.listSessions("/repo", owned);
+  await backend.comments("/repo", owned, exact);
+  await backend.add("/repo", owned, exact, { content: "x" });
+  assert.equal(calls.length, 3);
+  for (const call of calls) {
+    assert.equal(call.command, "env");
+    assert.deepEqual(call.args.slice(0, 2), [`XDG_DATA_HOME=${owned}`, "tuicr"]);
+    assert.ok(!call.args.some((arg) => arg.startsWith("XDG_CONFIG_HOME=")));
   }
 });
 

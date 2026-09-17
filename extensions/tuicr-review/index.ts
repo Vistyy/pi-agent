@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { readFile, rm } from "node:fs/promises";
+import { mkdir, readFile, rm } from "node:fs/promises";
 import { resolve } from "node:path";
 import { StringEnum } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type, type Static } from "typebox";
 import { TuicrReviewRuntime, type ReviewBackend } from "./runtime.ts";
-import { completionFilePath, type ResourceIdentity, type SessionSummary, type StoredComment, type TuicrSessionIdentity } from "./logic.ts";
+import { completionFilePath, dataDirectoryPath, type ResourceIdentity, type SessionSummary, type StoredComment, type TuicrSessionIdentity } from "./logic.ts";
 
 const Side = StringEnum(["old", "new"] as const);
 const WorkingTreeTarget = Type.Object(
@@ -105,13 +105,21 @@ export function commandBackend(pi: Pick<ExtensionAPI, "exec">): ReviewBackend {
       if (check.code !== 0) throw new Error(`The review cwd is not a Git working tree: ${cwd}`);
       return { workspaceId };
     },
-    async listSessions(cwd, signal) {
-      const result = await pi.exec(tuicr, ["review", "list", "--repo", cwd], { signal, timeout: 10_000 });
+    async createDataDirectory(ownerSessionId) {
+      const path = dataDirectoryPath(ownerSessionId, randomUUID());
+      await mkdir(path, { mode: 0o700 });
+      return path;
+    },
+    async listSessions(cwd, dataDir, signal) {
+      const result = await pi.exec("env", [`XDG_DATA_HOME=${dataDir}`, tuicr, "review", "list", "--repo", cwd], { signal, timeout: 10_000 });
       return decodeSessions(result);
     },
-    async createTab(cwd, workspaceId, signal) {
+    async createTab(cwd, workspaceId, dataDir, signal) {
       const value = decodeHerdr(
-        await pi.exec(herdr, ["tab", "create", "--workspace", workspaceId, "--cwd", cwd, "--label", "Tuicr review", "--no-focus"], { signal, timeout: 10_000 }),
+        await pi.exec(herdr, [
+          "tab", "create", "--workspace", workspaceId, "--cwd", cwd, "--label", "Tuicr review",
+          "--env", `XDG_DATA_HOME=${dataDir}`, "--no-focus",
+        ], { signal, timeout: 10_000 }),
         "create Herdr review tab",
       );
       const tab = object(value.tab, "tab");
@@ -134,14 +142,17 @@ export function commandBackend(pi: Pick<ExtensionAPI, "exec">): ReviewBackend {
         throw new Error(`launch Tuicr failed (Herdr pane run exited ${result.code}): ${detail}`);
       }
     },
-    async comments(cwd, session, signal) {
-      const result = await pi.exec(tuicr, ["review", "comments", "--session", session.slug, "--repo", cwd], { signal, timeout: 10_000 });
+    async comments(cwd, dataDir, session, signal) {
+      const result = await pi.exec(
+        "env", [`XDG_DATA_HOME=${dataDir}`, tuicr, "review", "comments", "--session", session.slug, "--repo", cwd],
+        { signal, timeout: 10_000 },
+      );
       return decodeComments(result);
     },
-    async add(cwd, session, payload, signal) {
+    async add(cwd, dataDir, session, payload, signal) {
       const result = await pi.exec(
-        tuicr,
-        ["review", "add", "--session", session.slug, "--repo", cwd, "--input", JSON.stringify(payload)],
+        "env",
+        [`XDG_DATA_HOME=${dataDir}`, tuicr, "review", "add", "--session", session.slug, "--repo", cwd, "--input", JSON.stringify(payload)],
         { signal, timeout: 10_000 },
       );
       const value = decodeJson(result, "add Tuicr annotation");
@@ -180,6 +191,7 @@ export function commandBackend(pi: Pick<ExtensionAPI, "exec">): ReviewBackend {
       decodeHerdr(result, "close owned Herdr review tab");
     },
     removeCompletionFile: (path) => rm(path, { force: true }),
+    removeDataDirectory: (path) => rm(path, { recursive: true, force: true }),
     delay: (milliseconds, signal) => delay(milliseconds, signal),
     completionFile(ownerSessionId) {
       return completionFilePath(ownerSessionId, randomUUID());
