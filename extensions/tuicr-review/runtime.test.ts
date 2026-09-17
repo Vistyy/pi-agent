@@ -6,7 +6,11 @@ import { TuicrReviewRuntime, type ReviewBackend } from "./runtime.ts";
 const resources = { workspaceId: "w1", tabId: "w1:t9", paneId: "w1:p9" };
 const session = { slug: "repo@main/worktree", path: "/reviews/exact.json", active: true };
 
-function harness(options: { launchError?: Error; addFailure?: (payload: Record<string, unknown>) => boolean } = {}) {
+function harness(options: {
+  launchError?: Error;
+  addFailure?: (payload: Record<string, unknown>) => boolean;
+  commentFailures?: number;
+} = {}) {
   const branch: unknown[] = [];
   const messages: any[] = [];
   const widgets: any[] = [];
@@ -19,12 +23,15 @@ function harness(options: { launchError?: Error; addFailure?: (payload: Record<s
   let listCount = 0;
   let completionReads = 0;
   let resourceChecks = 0;
+  let preflights = 0;
+  let creates = 0;
+  let commentFailures = options.commentFailures ?? 0;
   const backend: ReviewBackend = {
-    async preflight() { return { workspaceId: resources.workspaceId }; },
+    async preflight() { preflights += 1; return { workspaceId: resources.workspaceId }; },
     async listSessions() { return listCount++ === 0 ? [] : [session]; },
-    async createTab() { return resources; },
+    async createTab() { creates += 1; return resources; },
     async launch() { if (options.launchError) throw options.launchError; },
-    async comments() { return comments; },
+    async comments() { if (commentFailures-- > 0) throw new Error("comments unavailable"); return comments; },
     async add(_cwd, _session, payload) {
       additions.push(payload);
       if (options.addFailure?.(payload)) throw new Error("anchor rejected");
@@ -66,9 +73,10 @@ function harness(options: { launchError?: Error; addFailure?: (payload: Record<s
   return {
     runtime, backend, context, branch, messages, widgets, closes, additions,
     setComments(value: StoredComment[]) { comments = value; },
+    failComments(count = 1) { commentFailures = count; },
     setExists(value: boolean) { exists = value; },
     setExit(value: number | undefined) { exitCode = value; },
-    effects() { return { completionReads, resourceChecks }; },
+    effects() { return { completionReads, resourceChecks, preflights, creates }; },
     tick() { waits.splice(0).forEach((resolve) => resolve()); },
   };
 }
@@ -157,10 +165,75 @@ test("discovery failure closes the exact newly owned tab, but uncertain ownershi
   await uncertain.runtime.restore(uncertain.context);
   await assert.rejects(
     uncertain.runtime.ensure(request, uncertain.context),
-    /could not be proven safe to close; it was preserved/,
+    /could not be proven closed.*recovery is blocked/,
   );
   assert.equal(uncertain.closes.length, 0);
+  assert.equal((uncertain.branch.at(-1) as any).data.status, "recovery-blocked");
   uncertain.runtime.stop();
+  await uncertain.runtime.restore(uncertain.context);
+  await assert.rejects(uncertain.runtime.ensure(request, uncertain.context), /recovery is blocked/i);
+  assert.equal(uncertain.effects().creates, 1, "reload must not create another review");
+  uncertain.runtime.stop();
+});
+
+test("launch cleanup uses a fresh signal when the tool signal is already aborted", async () => {
+  const h = harness({ launchError: new Error("aborted launch") });
+  const toolAbort = new AbortController();
+  toolAbort.abort(new Error("tool aborted"));
+  let cleanupSignal: AbortSignal | undefined;
+  h.backend.resourceExists = async (_identity, signal) => {
+    cleanupSignal = signal;
+    return true;
+  };
+  await h.runtime.restore(h.context);
+  await assert.rejects(h.runtime.ensure(request, h.context, toolAbort.signal), /aborted launch/);
+  assert.notEqual(cleanupSignal, toolAbort.signal);
+  assert.equal(cleanupSignal?.aborted, false);
+  assert.deepEqual(h.closes, [resources]);
+  h.runtime.stop();
+});
+
+test("seed failure after active persistence still starts completion monitoring", async () => {
+  const h = harness({ commentFailures: 1 });
+  h.backend.completion = async () => 0;
+  await h.runtime.restore(h.context);
+  await assert.rejects(h.runtime.ensure(request, h.context), /comments unavailable/);
+  await settle();
+  const final = (h.branch.at(-1) as any).data as PersistedState;
+  assert.equal(final.status, "completed");
+  assert.equal(h.messages.length, 1);
+  assert.deepEqual(h.closes, [resources]);
+  h.runtime.stop();
+});
+
+test("monitoring uncertainty is durable across reload and blocks another review", async () => {
+  const h = harness();
+  h.backend.completion = async () => { throw new Error("filesystem uncertain"); };
+  h.backend.delay = async () => {};
+  await h.runtime.restore(h.context);
+  await h.runtime.ensure(request, h.context);
+  await settle();
+  assert.equal((h.branch.at(-1) as any).data.status, "recovery-blocked");
+  assert.equal(h.messages.length, 0, "uncertain monitoring is not a known failed completion");
+  h.runtime.stop();
+  await h.runtime.restore(h.context);
+  await assert.rejects(h.runtime.ensure(request, h.context), /recovery is blocked.*filesystem uncertain/i);
+  assert.equal(h.effects().creates, 1);
+  h.runtime.stop();
+});
+
+test("normal exit with an unreadable exact session blocks recovery instead of completing", async () => {
+  const h = harness();
+  await h.runtime.restore(h.context);
+  await h.runtime.ensure(request, h.context);
+  h.failComments();
+  h.setExit(0);
+  h.tick();
+  await settle();
+  assert.equal((h.branch.at(-1) as any).data.status, "recovery-blocked");
+  assert.equal(h.messages.length, 0);
+  assert.equal(h.closes.length, 0);
+  h.runtime.stop();
 });
 
 test("normal exit reads exact session, persists before one follow-up delivery, and closes owned tab", async () => {
@@ -239,7 +312,10 @@ test("malformed restored ownership state causes no monitoring or cleanup effects
   });
   await h.runtime.restore(h.context);
   await settle();
-  assert.deepEqual(h.effects(), { completionReads: 0, resourceChecks: 0 });
+  assert.deepEqual(h.effects(), { completionReads: 0, resourceChecks: 0, preflights: 0, creates: 0 });
+  await assert.rejects(h.runtime.ensure(request, h.context), /recovery is blocked.*malformed/i);
+  assert.equal(h.effects().creates, 0, "malformed latest state must block new review effects");
+  assert.ok(h.widgets.some((entry) => String(entry[1]).includes("Review recovery blocked")));
   assert.equal(h.closes.length, 0);
   assert.equal(h.messages.length, 0);
   h.runtime.stop();

@@ -12,6 +12,7 @@ import {
   type Annotation,
   type NormalizedRequest,
   type PersistedState,
+  type RecoveryBlockedState,
   type ResourceIdentity,
   type ReviewRequest,
   type SessionSummary,
@@ -47,7 +48,8 @@ export interface EnsureResult {
 }
 
 export class TuicrReviewRuntime {
-  private state?: PersistedState;
+  private state?: PersistedState | RecoveryBlockedState;
+  private recoveryError?: string;
   private context?: ExtensionContext;
   private generation = 0;
   private operation: Promise<unknown> = Promise.resolve();
@@ -60,7 +62,9 @@ export class TuicrReviewRuntime {
   async restore(ctx: ExtensionContext): Promise<void> {
     this.generation += 1;
     this.context = ctx;
-    this.state = restoreState(ctx.sessionManager.getBranch(), ctx.sessionManager.getSessionId());
+    const restored = restoreState(ctx.sessionManager.getBranch(), ctx.sessionManager.getSessionId());
+    this.state = restored.kind === "known" ? restored.state : undefined;
+    this.recoveryError = restored.kind === "malformed" ? restored.reason : undefined;
     this.render();
     if (this.state?.status === "active") this.startWait(this.generation);
   }
@@ -70,12 +74,17 @@ export class TuicrReviewRuntime {
     this.context?.ui.setWidget(WIDGET_ID, undefined);
     this.context = undefined;
     this.state = undefined;
+    this.recoveryError = undefined;
   }
 
   ensure(input: ReviewRequest, ctx: ExtensionContext, signal?: AbortSignal): Promise<EnsureResult> {
     return this.enqueue(async () => {
       this.assertContext(ctx);
       const request = normalizeRequest(ctx.cwd, input);
+      if (this.recoveryError) throw new Error(`Tuicr review recovery is blocked. ${this.recoveryError} Resolve the uncertain resource/session with the human before retrying.`);
+      if (this.state?.status === "recovery-blocked") {
+        throw new Error(`Tuicr review recovery is blocked. ${this.state.reason} Resolve the preserved Herdr resource/Tuicr session with the human before retrying.`);
+      }
       if (this.state?.status === "active") {
         if (this.state.targetKey !== request.targetKey) {
           throw new Error("A different Tuicr review is already active on this conversation branch. Complete or cancel it before opening another target.");
@@ -97,10 +106,19 @@ export class TuicrReviewRuntime {
         await this.backend.launch(resources, request.cwd, request.launchArgs, completionFile, signal);
         session = await this.discover(request.cwd, before, resources, signal);
       } catch (error) {
+        // The tool signal commonly aborts with the launch itself. Ownership cleanup
+        // gets an independent bounded attempt so an aborted call cannot strand a tab.
+        const cleanupSignal = AbortSignal.timeout(10_000);
         try {
-          if (await this.backend.resourceExists(resources, signal)) await this.backend.closeTab(resources, signal);
-        } catch {
-          throw new Error(`${message(error)} The newly created tab could not be proven safe to close; it was preserved.`);
+          if (await this.backend.resourceExists(resources, cleanupSignal)) {
+            await this.backend.closeTab(resources, cleanupSignal);
+          }
+        } catch (cleanupError) {
+          this.blockRecovery({
+            request, resources, completionFile, tuicrSession: null,
+            reason: `Launch/discovery failed and cleanup of the exact owned Herdr tab is uncertain: ${singleLine(message(cleanupError))}`,
+          });
+          throw new Error(`${message(error)} The newly created tab could not be proven closed; its exact identity was preserved and recovery is blocked.`);
         }
         throw error;
       }
@@ -119,9 +137,19 @@ export class TuicrReviewRuntime {
       };
       this.persist();
       this.render();
-      const seeded = await this.seed(request.annotations, ctx, signal);
-      this.startWait(this.generation);
-      return { reused: false, session: this.state.tuicrSession, ...seeded };
+      let monitorStarted = false;
+      try {
+        // Persistence transfers lifecycle ownership immediately; seeding and the
+        // monitor may proceed concurrently, but seeding cannot overwrite a terminal transition.
+        this.startWait(this.generation);
+        monitorStarted = true;
+        const seeded = await this.seed(request.annotations, ctx, signal);
+        return { reused: false, session: session, ...seeded };
+      } finally {
+        // Keep this lifecycle guarantee even if monitor startup later gains a
+        // synchronous failure path or the tool call is aborted during seeding.
+        if (!monitorStarted) this.startWait(this.generation);
+      }
     });
   }
 
@@ -147,8 +175,9 @@ export class TuicrReviewRuntime {
   }
 
   private async seed(annotations: readonly Annotation[], ctx: ExtensionContext, signal?: AbortSignal) {
-    if (!this.state) throw new Error("No active Tuicr review.");
-    const comments = await this.backend.comments(this.state.cwd, this.state.tuicrSession, signal);
+    if (!this.state || this.state.status !== "active") throw new Error("No active Tuicr review.");
+    const activeState = this.state;
+    const comments = await this.backend.comments(activeState.cwd, activeState.tuicrSession, signal);
     const acceptedByFingerprint = new Map<string, string>();
     for (const comment of comments) {
       const fingerprint = commentFingerprint(comment);
@@ -161,8 +190,8 @@ export class TuicrReviewRuntime {
       if (acceptedByFingerprint.has(fingerprint)) continue;
       try {
         const comment = await this.backend.add(
-          this.state.cwd,
-          this.state.tuicrSession,
+          activeState.cwd,
+          activeState.tuicrSession,
           annotationPayload(annotation),
           signal,
         );
@@ -174,17 +203,21 @@ export class TuicrReviewRuntime {
 
     const requested = new Set(annotations.map(annotationFingerprint));
     const accepted: AcceptedAnnotation[] = [...acceptedByFingerprint]
-      .filter(([fingerprint]) => requested.has(fingerprint) || this.state?.accepted.some((item) => item.fingerprint === fingerprint))
+      .filter(([fingerprint]) => requested.has(fingerprint) || activeState.accepted.some((item) => item.fingerprint === fingerprint))
       .map(([fingerprint, commentId]) => ({ fingerprint, commentId }));
-    this.state = { ...this.state, accepted };
-    this.persist();
-    this.render();
+    if (this.state === activeState) {
+      this.state = { ...activeState, accepted };
+      this.persist();
+      this.render();
+    }
     return { acceptedCommentIds: accepted.map((item) => item.commentId), failures: failures.slice(0, 20) };
   }
 
   private startWait(generation: number): void {
-    void this.waitForCompletion(generation).catch(async (error) => {
-      if (this.isCurrent(generation)) await this.finish("failed", `Review monitoring failed: ${singleLine(message(error))}`);
+    void this.waitForCompletion(generation).catch((error) => {
+      if (this.isCurrent(generation)) {
+        this.blockActiveRecovery(`Review monitoring failed with exact ownership preserved: ${singleLine(message(error))}`);
+      }
     });
   }
 
@@ -220,7 +253,7 @@ export class TuicrReviewRuntime {
     try {
       comments = await this.backend.comments(state.cwd, state.tuicrSession);
     } catch (error) {
-      await this.finish("failed", `Tuicr exited normally, but its exact persisted session could not be read: ${singleLine(message(error))}`, false);
+      this.blockActiveRecovery(`Tuicr exited normally, but its exact persisted session could not be read: ${singleLine(message(error))}`);
       return;
     }
     const seededIds = new Set(state.accepted.map((item) => item.commentId));
@@ -262,6 +295,32 @@ export class TuicrReviewRuntime {
     );
   }
 
+  private blockActiveRecovery(reason: string): void {
+    const state = this.state;
+    if (!state || state.status !== "active") return;
+    this.state = { ...state, status: "recovery-blocked", reason, delivered: false };
+    this.persist();
+    this.render();
+  }
+
+  private blockRecovery(input: {
+    request: NormalizedRequest;
+    resources: ResourceIdentity;
+    completionFile: string;
+    tuicrSession: TuicrSessionIdentity | null;
+    reason: string;
+  }): void {
+    const ownerSessionId = this.context?.sessionManager.getSessionId();
+    if (!ownerSessionId) return;
+    this.state = {
+      version: 1, ownerSessionId, status: "recovery-blocked", reason: input.reason,
+      targetKey: input.request.targetKey, cwd: input.request.cwd, resources: input.resources,
+      tuicrSession: input.tuicrSession, completionFile: input.completionFile, accepted: [], delivered: false,
+    };
+    this.persist();
+    this.render();
+  }
+
   private persist(): void {
     if (this.state) this.pi.appendEntry(STATE_ENTRY, this.state);
   }
@@ -269,6 +328,11 @@ export class TuicrReviewRuntime {
   private render(): void {
     const ctx = this.context;
     if (!ctx?.hasUI) return;
+    const blocked = this.recoveryError ?? (this.state?.status === "recovery-blocked" ? this.state.reason : undefined);
+    if (blocked) {
+      ctx.ui.setWidget(WIDGET_ID, [`${ctx.ui.theme.fg("warning", "Review recovery blocked")}  ${singleLine(blocked)}`], { placement: "aboveEditor" });
+      return;
+    }
     if (this.state?.status !== "active") {
       ctx.ui.setWidget(WIDGET_ID, undefined);
       return;

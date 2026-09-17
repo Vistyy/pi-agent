@@ -62,6 +62,25 @@ export interface PersistedState {
   readonly delivered: boolean;
 }
 
+export interface RecoveryBlockedState {
+  readonly version: 1;
+  readonly ownerSessionId: string;
+  readonly status: "recovery-blocked";
+  readonly reason: string;
+  readonly targetKey: string;
+  readonly cwd: string;
+  readonly resources: ResourceIdentity;
+  readonly tuicrSession: TuicrSessionIdentity | null;
+  readonly completionFile: string;
+  readonly accepted: readonly AcceptedAnnotation[];
+  readonly delivered: false;
+}
+
+export type RestoredState =
+  | { readonly kind: "none" }
+  | { readonly kind: "known"; readonly state: PersistedState | RecoveryBlockedState }
+  | { readonly kind: "malformed"; readonly reason: string };
+
 export interface SessionSummary extends TuicrSessionIdentity {
   readonly active: boolean;
 }
@@ -199,16 +218,19 @@ export function isOwnedCompletionFile(path: string, ownerSessionId: string): boo
   return uuid.test(uniqueId) && path === completionFilePath(ownerSessionId, uniqueId);
 }
 
-export function restoreState(entries: readonly unknown[], ownerSessionId: string): PersistedState | undefined {
+export function restoreState(entries: readonly unknown[], ownerSessionId: string): RestoredState {
   for (let index = entries.length - 1; index >= 0; index -= 1) {
     const entry = entries[index] as { type?: unknown; customType?: unknown; data?: unknown };
     if (entry?.type !== "custom" || entry.customType !== STATE_ENTRY) continue;
     if (!isRecord(entry.data) || entry.data.ownerSessionId !== ownerSessionId) continue;
-    // A malformed latest transition for this owner is preserved but blocks fallback
-    // to older state, so no resource effect can be replayed from uncertain identity.
-    return isState(entry.data, ownerSessionId) ? entry.data : undefined;
+    // Never fall back past the latest owned transition: malformed identity may still
+    // describe a live resource, but is not trustworthy enough to inspect or close.
+    if (isState(entry.data, ownerSessionId) || isRecoveryBlockedState(entry.data, ownerSessionId)) {
+      return { kind: "known", state: entry.data };
+    }
+    return { kind: "malformed", reason: "The latest owned Tuicr review transition is malformed; its resource identity is uncertain." };
   }
-  return undefined;
+  return { kind: "none" };
 }
 
 function isState(value: Record<string, unknown>, ownerSessionId: string): value is Record<string, unknown> & PersistedState {
@@ -225,6 +247,19 @@ function isState(value: Record<string, unknown>, ownerSessionId: string): value 
   const accepted = value.accepted as AcceptedAnnotation[];
   return new Set(accepted.map((item) => item.fingerprint)).size === accepted.length
     && new Set(accepted.map((item) => item.commentId)).size === accepted.length;
+}
+
+function isRecoveryBlockedState(value: Record<string, unknown>, ownerSessionId: string): value is Record<string, unknown> & RecoveryBlockedState {
+  if (!exactKeys(value, [
+    "version", "ownerSessionId", "status", "reason", "targetKey", "cwd", "resources", "tuicrSession",
+    "completionFile", "accepted", "delivered",
+  ])) return false;
+  return value.version === 1 && value.ownerSessionId === ownerSessionId && value.status === "recovery-blocked"
+    && nonEmpty(value.reason) && nonEmpty(value.targetKey) && nonEmpty(value.cwd) && isAbsolute(value.cwd)
+    && isResourceIdentity(value.resources)
+    && (value.tuicrSession === null || isTuicrSessionIdentity(value.tuicrSession))
+    && nonEmpty(value.completionFile) && isOwnedCompletionFile(value.completionFile, ownerSessionId)
+    && Array.isArray(value.accepted) && value.accepted.every(isAcceptedAnnotation) && value.delivered === false;
 }
 
 function isResourceIdentity(value: unknown): value is ResourceIdentity {

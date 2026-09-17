@@ -79,9 +79,11 @@ test("restores only the latest state owned by the exact Pi session branch", () =
     { type: "custom", customType: STATE_ENTRY, data: state("session-b", "active") },
     { type: "custom", customType: STATE_ENTRY, data: state("session-a", "completed") },
   ];
-  assert.equal(restoreState(branch, "session-a")?.status, "completed");
-  assert.equal(restoreState(branch, "session-b")?.status, "active");
-  assert.equal(restoreState(branch, "fork")?.status, undefined);
+  assert.equal(restoreState(branch, "session-a").kind, "known");
+  assert.equal(restoreState(branch, "session-b").kind, "known");
+  assert.equal(restoreState(branch, "fork").kind, "none");
+  const restored = restoreState(branch, "session-a");
+  assert.equal(restored.kind === "known" ? restored.state.status : undefined, "completed");
 });
 
 test("rejects malformed persisted identities, transitions, accepted entries, and completion paths", () => {
@@ -105,7 +107,7 @@ test("rejects malformed persisted identities, transitions, accepted entries, and
     { ...valid, extra: true },
   ];
   for (const data of corruptions) {
-    assert.equal(restoreState([{ type: "custom", customType: STATE_ENTRY, data }], owner), undefined);
+    assert.equal(restoreState([{ type: "custom", customType: STATE_ENTRY, data }], owner).kind, "malformed");
   }
 });
 
@@ -121,5 +123,5 @@ test("a latest malformed owned transition blocks replay of older valid resource 
     { type: "custom", customType: STATE_ENTRY, data: valid },
     { type: "custom", customType: STATE_ENTRY, data: { ...valid, completionFile: "/tmp/attacker.exit" } },
   ];
-  assert.equal(restoreState(branch, owner), undefined);
+  assert.equal(restoreState(branch, owner).kind, "malformed");
 });
