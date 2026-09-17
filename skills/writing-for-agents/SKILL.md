@@ -15,7 +15,7 @@ Inspect the instruction layers the target agent will actually receive. Describe 
 - Put universal mandatory safety and authority in reliably loaded instructions, not only in a conditional skill or reference.
 - Use skills for specialized conditional operational knowledge.
 - Put operation-specific inputs, effects, and mechanics in the owning tool's schema or description.
-- Put branch-specific procedure in a conditional reference, and state what it contains and when to load it beside the link in the referring instruction.
+- Put branch-specific procedure in a conditional reference. State what it contains and when to load it beside the link in the referring instruction; do not repeat that load condition inside the reference, where it can no longer guide loading.
 
 Do not copy easily inspected environment or configuration into prose unless the lookup is unreliable or the rationale changes behavior.
 
