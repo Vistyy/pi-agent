@@ -323,11 +323,17 @@ export class TuicrReviewRuntime {
       }
       return;
     }
-    await this.deliver(state, generation);
+    this.startDeliveryConfirmation(state, generation);
+  }
+
+  private startDeliveryConfirmation(state: PersistedState, generation: number): void {
+    void Promise.resolve()
+      .then(() => this.deliver(state, generation))
+      .catch(() => undefined);
   }
 
   private async deliver(state: PersistedState, generation: number): Promise<void> {
-    if (!state.notification || this.state !== state) return;
+    if (!state.notification || this.state !== state || !this.isCurrent(generation)) return;
     const ctx = this.context;
     if (!ctx) return;
     if (!hasCompletionDelivery(ctx.sessionManager.getBranch(), state.notification.deliveryId)) {

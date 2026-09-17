@@ -341,6 +341,34 @@ test("terminal cleanup uncertainty becomes durable recovery-blocked and preserve
   }
 });
 
+test("same-review cancellation returns before queued follow-up delivery and confirms asynchronously", async () => {
+  const h = harness({ deferDelivery: true });
+  h.backend.completion = () => new Promise(() => {});
+  await h.runtime.restore(h.context);
+  await h.runtime.ensure(request, h.context);
+  h.setExists(false);
+
+  let outcome: "resolved" | "rejected" | undefined;
+  const ensuring = h.runtime.ensure(request, h.context).then(
+    () => "resolved" as const,
+    () => "rejected" as const,
+  );
+  void ensuring.then((value) => { outcome = value; });
+  await settle();
+  assert.equal(outcome, "rejected", "tool execution must settle before Pi appends its queued follow-up");
+  const pending = (h.branch.filter((entry: any) => entry.customType === STATE_ENTRY).at(-1) as any).data as PersistedState;
+  assert.equal(pending.status, "cancelled");
+  assert.equal(pending.delivered, false);
+  assert.equal(h.messages.length, 1);
+
+  h.branch.push({ type: "custom_message", ...h.messages[0].message });
+  h.tick();
+  await settle();
+  const delivered = (h.branch.filter((entry: any) => entry.customType === STATE_ENTRY).at(-1) as any).data as PersistedState;
+  assert.equal(delivered.delivered, true);
+  h.runtime.stop();
+});
+
 test("marks delivery complete only after the queued custom message is appended", async () => {
   const h = harness({ deferDelivery: true });
   await h.runtime.restore(h.context);
