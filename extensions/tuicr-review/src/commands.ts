@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { access, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -82,8 +82,26 @@ export class ReviewCommands {
     throw new Error(`inspect owned Herdr tab failed: ${oneLine(result.stderr || result.stdout)}`);
   }
 
+  async dataExists(review: OwnedReview): Promise<boolean> {
+    try {
+      await access(review.dataHome);
+      return true;
+    } catch (error) {
+      if (isObject(error) && error.code === "ENOENT") return false;
+      throw error;
+    }
+  }
+
   async cleanup(review: OwnedReview): Promise<string[]> {
-    return this.cleanupPaths(review.tabId, review.dataHome);
+    const warnings: string[] = [];
+    try {
+      if (await this.tabExists(review)) {
+        checked(await this.pi.exec(this.herdr, ["tab", "close", review.tabId], { timeout: 10_000 }), `close owned tab ${review.tabId}`);
+      }
+    } catch (error) { warnings.push(message(error)); }
+    try { await rm(review.dataHome, { recursive: true, force: true }); }
+    catch (error) { warnings.push(`remove ${review.dataHome}: ${message(error)}`); }
+    return warnings;
   }
 
   sleep(milliseconds: number): Promise<void> {

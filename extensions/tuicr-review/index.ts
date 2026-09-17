@@ -36,7 +36,7 @@ export type TuicrReviewInput = Static<typeof TuicrReviewParameters>;
 
 export default function tuicrReview(pi: ExtensionAPI): void {
   const commands = new ReviewCommands(pi);
-  const review = new GuidedReview(pi, commands, commands, commands);
+  const review = new GuidedReview(pi, commands);
 
   pi.registerTool({
     name: "tuicr_review",
@@ -65,5 +65,6 @@ export default function tuicrReview(pi: ExtensionAPI): void {
   });
 
   pi.on("session_start", async (_event, ctx) => review.restore(ctx));
+  pi.on("session_tree", async (_event, ctx) => review.tree(ctx));
   pi.on("session_shutdown", () => review.shutdown());
 }

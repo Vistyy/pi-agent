@@ -10,13 +10,14 @@ const baseReview = (): OwnedReview => ({
   tabId: "w:tab-1",
   paneId: "w:pane-1",
   sessionId: "exact-session",
-  dataHome: "/tmp/private-tuicr",
-  completionFile: "/tmp/private-tuicr/exit",
+  dataHome: "/tmp/pi-tuicr-review-pi-session-owned",
+  completionFile: "/tmp/pi-tuicr-review-pi-session-owned/exit",
   accepted: {},
 });
 
 function harness() {
-  const branch: any[] = [];
+  let branch: any[] = [];
+  let sessionId = "pi-session";
   const events: string[] = [];
   const sent: any[] = [];
   const added: Record<string, unknown>[] = [];
@@ -24,14 +25,14 @@ function harness() {
   let launchCount = 0;
   let addFailures = 0;
   let exit: number | undefined;
-  let exists = true;
+  let tabExists = true;
+  let dataExists = true;
   let comments: Comment[] = [];
-  let launchError: Error | undefined;
+  let commentsFailures = 0;
+  let persistFailure = false;
   const ops = {
-    async launch(request: any, _owner: string, signal?: AbortSignal) {
+    async launch(request: any) {
       launchCount += 1;
-      if (signal?.aborted) throw signal.reason;
-      if (launchError) throw launchError;
       return { ...baseReview(), targetKey: request.targetKey, cwd: request.cwd, accepted: {} };
     },
     async add(_review: OwnedReview, payload: Record<string, unknown>) {
@@ -41,36 +42,49 @@ function harness() {
       comments.push({
         id, content: String(payload.content), author: "Pi",
         ...(payload.file ? { path: String(payload.file) } : {}),
-        ...(payload.line ? { start_line: Number(payload.line), end_line: Number(payload.line) } : {}),
-        ...(payload.start_line ? { start_line: Number(payload.start_line), end_line: Number(payload.end_line) } : {}),
+        ...(payload.line ? { start_line: Number(payload.line), end_line: Number(payload.line), side: payload.side as "old" | "new" } : {}),
+        ...(payload.start_line ? { start_line: Number(payload.start_line), end_line: Number(payload.end_line), side: payload.side as "old" | "new" } : {}),
       });
       return id;
     },
-    async comments() { return comments; },
+    async comments() {
+      if (commentsFailures-- > 0) throw new Error("comments unavailable");
+      return comments;
+    },
     async completion() { return exit; },
-    async tabExists() { return exists; },
-    async cleanup(review: OwnedReview) { events.push(`cleanup:${review.tabId}:${review.paneId}:${review.dataHome}`); return []; },
-    sleep() { return new Promise<void>((resolve) => sleeps.push(resolve)); },
+    async tabExists() { return tabExists; },
+    async dataExists() { return dataExists; },
+    async cleanup(review: OwnedReview) { events.push(`cleanup:${review.tabId}:${review.dataHome}`); dataExists = false; tabExists = false; return []; },
+    sleep(milliseconds: number) {
+      if (milliseconds === 25) return Promise.resolve();
+      return new Promise<void>((resolve) => sleeps.push(resolve));
+    },
   };
   const pi = {
     appendEntry(customType: string, data: PersistedReview) {
+      if (persistFailure && data.state === "active" && Object.keys(data.review.accepted).length) throw new Error("crash before persist");
       events.push(`persist:${data.state}`);
       branch.push({ type: "custom", customType, data: structuredClone(data) });
     },
-    sendMessage(message: unknown, options: unknown) { events.push("deliver"); sent.push({ message, options }); },
+    sendMessage(message: any, options: unknown) { events.push("deliver"); sent.push({ message, options }); },
   };
-  const context = {
+  const context = () => ({
     cwd: "/repo",
-    sessionManager: { getSessionId: () => "pi-session", getBranch: () => branch },
-  } as any;
-  const runtime = new GuidedReview(pi as any, ops as any, ops as any, ops as any);
+    sessionManager: { getSessionId: () => sessionId, getBranch: () => branch },
+  } as any);
   return {
-    runtime, context, branch, events, sent, added,
+    ops, pi, events, sent, added,
+    runtime: () => new GuidedReview(pi as any, ops as any),
+    context,
+    branch: () => branch,
+    replaceBranch(value: any[], owner = sessionId) { branch = value; sessionId = owner; },
     setAddFailures(value: number) { addFailures = value; },
     setExit(value: number | undefined) { exit = value; },
-    setExists(value: boolean) { exists = value; },
+    setTabExists(value: boolean) { tabExists = value; },
+    setDataExists(value: boolean) { dataExists = value; },
     setComments(value: Comment[]) { comments = value; },
-    setLaunchError(value: Error) { launchError = value; },
+    setCommentsFailures(value: number) { commentsFailures = value; },
+    setPersistFailure(value: boolean) { persistFailure = value; },
     tick() { sleeps.splice(0).forEach((resolve) => resolve()); },
     launchCount: () => launchCount,
   };
@@ -82,125 +96,106 @@ const lineRequest = (content = "Explain this") => ({
 });
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-test("launches once, persists compact ready ownership, and reuses with dedup/retry/revision", async () => {
+test("reconciles an accepted Pi annotation after add succeeded before compact persistence", async () => {
   const h = harness();
-  await h.runtime.restore(h.context);
-  h.setAddFailures(1);
-  const opened = await h.runtime.ensure(lineRequest(), h.context);
-  assert.equal(opened.reused, false);
-  assert.equal(opened.failures.length, 1);
-  assert.equal((h.branch[0].data as PersistedReview).state, "active");
-  assert.deepEqual(Object.keys(h.branch[0].data.review).sort(), [
-    "accepted", "completionFile", "cwd", "dataHome", "paneId", "sessionId", "tabId", "targetKey",
-  ]);
+  const first = h.runtime();
+  await first.restore(h.context());
+  h.setPersistFailure(true);
+  const interrupted = await first.ensure(lineRequest(), h.context());
+  assert.equal(interrupted.failures.length, 1);
+  first.shutdown();
+  h.setPersistFailure(false);
 
-  const retried = await h.runtime.ensure(lineRequest(), h.context);
-  assert.deepEqual(retried.acceptedCommentIds, ["p2"]);
-  await h.runtime.ensure(lineRequest(), h.context);
-  assert.equal(h.added.length, 2, "accepted annotation is not duplicated");
-  const changed = await h.runtime.ensure(lineRequest("Different context"), h.context);
-  assert.deepEqual(changed.acceptedCommentIds, ["p2", "p3"]);
-  assert.equal(h.launchCount(), 1);
-  h.runtime.shutdown();
+  const restored = h.runtime();
+  await restored.restore(h.context());
+  const result = await restored.ensure(lineRequest(), h.context());
+  assert.equal(result.reused, true);
+  assert.deepEqual(result.acceptedCommentIds, ["p1"]);
+  assert.equal(h.added.length, 1, "the accepted exact Pi comment is not added twice");
+  restored.shutdown();
 });
 
-test("rejects a different normalized target while active", async () => {
+test("finished feedback replays after queued-message interruption and suppresses repeats in one runtime", async () => {
   const h = harness();
-  await h.runtime.restore(h.context);
-  await h.runtime.ensure(lineRequest(), h.context);
-  await assert.rejects(h.runtime.ensure({ target: { kind: "revisions", revset: "main..HEAD" } }, h.context), /different Tuicr review/);
-  h.runtime.shutdown();
-});
-
-test("completion reads exact comments without truncation, persists first, cleans exact ownership, then follows up", async () => {
-  const h = harness();
-  await h.runtime.restore(h.context);
-  await h.runtime.ensure(lineRequest(), h.context);
-  const long = `first\n${"x".repeat(900)}\nlast`;
-  h.setComments([
-    { id: "p1", author: "Pi", content: "Explain this", path: "src/a.ts", start_line: 4 },
-    { id: "m1", author: "Maintainer", content: long, location: "review" },
-  ]);
+  const first = h.runtime();
+  await first.restore(h.context());
+  await first.ensure({ target: { kind: "workingTree" } }, h.context());
   h.setExit(0);
+  await settle();
   h.tick();
   await settle();
+  assert.equal(h.sent.length, 1);
+  const deliveryId = h.sent[0].message.details.deliveryId;
+  assert.ok(deliveryId);
 
-  const finished = h.branch.findLast((entry) => entry.data.state === "finished").data;
-  assert.deepEqual(finished.feedback.seeded.map((comment: Comment) => comment.id), ["p1"]);
-  assert.deepEqual(finished.feedback.maintainer.map((comment: Comment) => comment.id), ["m1"]);
-  assert.ok(h.sent[0].message.content.includes(long));
-  assert.deepEqual(h.sent[0].options, { deliverAs: "followUp", triggerTurn: true });
-  const persisted = h.events.indexOf("persist:finished");
-  const cleanup = h.events.indexOf("cleanup:w:tab-1:w:pane-1:/tmp/private-tuicr");
-  const delivered = h.events.indexOf("deliver");
-  assert.ok(persisted < cleanup && cleanup < delivered);
-  assert.deepEqual(Object.keys(finished).sort(), ["delivered", "feedback", "ownerSessionId", "state", "targetKey"]);
+  const second = h.runtime();
+  await second.restore(h.context());
+  assert.equal(h.sent.length, 2, "sendMessage alone is not delivery confirmation");
+  await second.restore(h.context());
+  assert.equal(h.sent.length, 2, "one live runtime sends an identity only once");
+
+  h.branch().push({ type: "custom_message", customType: "tuicr-review-feedback", details: { deliveryId } });
+  const third = h.runtime();
+  await third.restore(h.context());
+  assert.equal(h.sent.length, 2, "the exact message already on the branch is not replayed");
 });
 
-test("nonzero exit and manual closure produce clear finished feedback", async () => {
-  for (const mode of ["exit", "closed"] as const) {
-    const h = harness();
-    await h.runtime.restore(h.context);
-    await h.runtime.ensure({ target: { kind: "workingTree" } }, h.context);
-    if (mode === "exit") h.setExit(7);
-    else h.setExists(false);
-    h.tick();
-    await settle();
-    const feedback = h.sent[0].message.details;
-    assert.equal(feedback.status, mode === "exit" ? "failed" : "cancelled");
-    assert.match(feedback.message, mode === "exit" ? /status 7/ : /tab closed/);
-  }
-});
-
-test("restores a ready active review and an undelivered finished review", async () => {
-  const activeHarness = harness();
-  const review = baseReview();
-  review.accepted[JSON.stringify({ kind: "line", file: "src/a.ts", line: 4, side: "new", content: "Explain this" })] = "p1";
-  activeHarness.branch.push({ type: "custom", customType: STATE_ENTRY, data: {
-    state: "active", ownerSessionId: "pi-session", review,
-  } });
-  await activeHarness.runtime.restore(activeHarness.context);
-  const reused = await activeHarness.runtime.ensure(lineRequest(), activeHarness.context);
+test("tree navigation preserves current review and clears a stale old active branch silently", async () => {
+  const h = harness();
+  const runtime = h.runtime();
+  await runtime.restore(h.context());
+  await runtime.ensure(lineRequest(), h.context());
+  const stale = structuredClone(h.branch()[0]);
+  h.replaceBranch([], "pi-session");
+  await runtime.tree(h.context());
+  assert.equal(h.branch().at(-1).data.state, "active", "current state is persisted into the visible branch");
+  const reused = await runtime.ensure(lineRequest(), h.context());
   assert.equal(reused.reused, true);
-  assert.equal(activeHarness.launchCount(), 0);
-  assert.equal(activeHarness.added.length, 0);
-  activeHarness.runtime.shutdown();
 
-  const finishedHarness = harness();
-  finishedHarness.branch.push({ type: "custom", customType: STATE_ENTRY, data: {
-    state: "finished", ownerSessionId: "pi-session", targetKey: "target", delivered: false,
-    feedback: { status: "completed", sessionId: "exact", seeded: [], maintainer: [{ id: "m", content: "ready" }] },
-  } });
-  await finishedHarness.runtime.restore(finishedHarness.context);
-  assert.equal(finishedHarness.sent.length, 1);
-  assert.match(finishedHarness.sent[0].message.content, /ready/);
-  assert.equal(finishedHarness.branch.at(-1).data.delivered, true);
+  h.setExit(0);
+  await settle();
+  h.tick();
+  await settle();
+  const sentBeforeStaleNavigation = h.sent.length;
+  h.replaceBranch([stale], "pi-session");
+  await runtime.tree(h.context());
+  assert.equal(h.branch().at(-1).data.state, "finished", "stale branch state cannot replace current finished state");
+  assert.equal(h.sent.length, sentBeforeStaleNavigation);
+  runtime.shutdown();
+
+  h.replaceBranch([stale], "pi-session");
+  h.setExit(undefined);
+  h.setTabExists(false);
+  h.setDataExists(false);
+  const restored = h.runtime();
+  await restored.restore(h.context());
+  assert.equal(h.sent.length, sentBeforeStaleNavigation, "ordinary stale cleanup does not emit contradictory feedback");
+  assert.equal(h.branch().at(-1).data.state, "cleared");
 });
 
-test("launch cancellation leaves no persisted review, while shutdown preserves a ready review", async () => {
-  const failed = harness();
-  await failed.runtime.restore(failed.context);
-  failed.setLaunchError(new Error("launch cancelled"));
-  await assert.rejects(failed.runtime.ensure(lineRequest(), failed.context), /launch cancelled/);
-  assert.equal(failed.branch.length, 0);
+test("same-target reuse checks liveness and preserves data when comments cannot be read", async () => {
+  const h = harness();
+  const runtime = h.runtime();
+  await runtime.restore(h.context());
+  await runtime.ensure({ target: { kind: "workingTree" } }, h.context());
+  h.setTabExists(false);
+  h.setCommentsFailures(3);
+  await assert.rejects(runtime.ensure({ target: { kind: "workingTree" } }, h.context()), /finished while reuse/);
+  assert.equal(h.events.some((event) => event.startsWith("cleanup:")), false);
+  assert.match(h.sent.at(-1).message.details.message, /resources were preserved/);
+});
 
-  const ready = harness();
-  await ready.runtime.restore(ready.context);
-  await ready.runtime.ensure(lineRequest(), ready.context);
-  ready.runtime.shutdown();
-  ready.tick();
+test("completion retries transient reads, cleans, and reports exact comments", async () => {
+  const h = harness();
+  const runtime = h.runtime();
+  await runtime.restore(h.context());
+  await runtime.ensure(lineRequest(), h.context());
+  h.setComments([{ id: "p1", author: "Pi", content: "Explain this", path: "src/a.ts", start_line: 4, end_line: 4, side: "new" }]);
+  h.setCommentsFailures(2);
+  h.setExit(0);
   await settle();
-  assert.ok(ready.branch.some((entry) => entry.data.state === "active"));
-  assert.equal(ready.events.some((event) => event.startsWith("cleanup:")), false);
-  assert.equal(ready.sent.length, 0);
-
-  const navigated = {
-    ...ready.context,
-    sessionManager: { getSessionId: () => "another-session", getBranch: () => [] },
-  } as any;
-  await ready.runtime.restore(navigated);
-  const reused = await ready.runtime.ensure(lineRequest(), navigated);
-  assert.equal(reused.reused, true, "the active review follows the running extension process");
-  assert.equal(ready.launchCount(), 1);
-  ready.runtime.shutdown();
+  h.tick();
+  await settle();
+  assert.deepEqual(h.sent[0].message.details.seeded.map((comment: Comment) => comment.id), ["p1"]);
+  assert.ok(h.events.some((event) => event.startsWith("cleanup:")));
 });

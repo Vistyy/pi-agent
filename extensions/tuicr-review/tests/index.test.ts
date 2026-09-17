@@ -10,7 +10,7 @@ test("registers exactly one tool with optional scoped annotations and no comment
     on(name: string) { handlers.push(name); },
   } as any);
   assert.deepEqual(tools.map((tool) => tool.name), ["tuicr_review"]);
-  assert.deepEqual(handlers.sort(), ["session_shutdown", "session_start"]);
+  assert.deepEqual(handlers.sort(), ["session_shutdown", "session_start", "session_tree"]);
 
   const variants = (TuicrReviewParameters.properties.annotations as any).items.anyOf;
   assert.equal(variants.length, 4);

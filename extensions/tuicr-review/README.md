@@ -27,13 +27,13 @@ Only one review can be active. Calling the tool again with the same normalized t
 
 Each review receives a private `XDG_DATA_HOME`. The extension retains the exact Herdr tab, pane, and Tuicr session it created, and launches Tuicr with `--stdout` and `--no-update-check`. It does not focus the new tab.
 
-When Tuicr exits, the extension reads the exact session's complete comments. Retained accepted comment IDs separate seeded Pi annotations from Maintainer comments. It persists feedback before best-effort cleanup, closes only its exact tab, removes only its private temporary data, and sends one visible follow-up that starts a Pi turn.
+When Tuicr exits, the extension reads the exact session's complete comments. Retained accepted comment IDs separate seeded Pi annotations from Maintainer comments. It persists feedback before best-effort cleanup, closes only its exact tab, removes only its private temporary data, and sends one visible follow-up that starts a Pi turn. If exact comments remain unreadable after bounded retries, it reports failure without removing the private session so it remains available for inspection or later recovery.
 
-A compact ready-review record allows an extension reload or later resume of the same Pi session to continue monitoring. A compact finished record allows undelivered feedback to be sent after resume. Session switching, forks, and conversation-tree navigation are not blocked; a ready review follows the running Pi instance. Shutdown and reload detach monitoring without closing the review so it can be restored later.
+A compact ready-review record allows an extension reload or later resume of the same owning Pi session to continue monitoring. A compact finished record and stable delivery identity allow feedback absent from the current branch to be replayed after resume. Live conversation-tree navigation is not blocked: the in-process review follows navigation and is persisted into the newly visible branch. New-session, resume, and fork rebinds do not migrate ownership to their destination session; recovery requires resuming the original owning Pi session. Shutdown and reload detach monitoring without closing the review so it can be restored later.
 
 ## Accepted limitations
 
 - Initial launch is not recoverable if Pi terminates before readiness is recorded.
 - Recovery is not guaranteed after reboot, temporary-directory deletion, or when the owning Pi session is never resumed.
-- A crash between sending feedback and recording it as sent can duplicate the follow-up.
+- A narrow crash race between queueing feedback and Pi persisting that exact message can duplicate the follow-up.
 - Cleanup is best effort. Failures are reported with the exact owned resources and may leave the tab or private temporary directory behind.

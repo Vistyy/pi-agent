@@ -54,4 +54,5 @@ export interface ReviewFeedback {
 
 export type PersistedReview =
   | { state: "active"; ownerSessionId: string; review: OwnedReview }
-  | { state: "finished"; ownerSessionId: string; targetKey: string; feedback: ReviewFeedback; delivered: boolean };
+  | { state: "finished"; ownerSessionId: string; targetKey: string; deliveryId: string; feedback: ReviewFeedback }
+  | { state: "cleared"; ownerSessionId: string; targetKey: string };

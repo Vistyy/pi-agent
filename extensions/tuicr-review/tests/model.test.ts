@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { annotationKey, annotationPayload, normalizeReview } from "../src/model.ts";
+import { annotationKey, annotationPayload, commentAnnotationKey, normalizeReview, restoreReview, STATE_ENTRY } from "../src/model.ts";
 
 test("constructs working-tree and revision-range targets", () => {
   assert.deepEqual(normalizeReview("/repo", { target: { kind: "workingTree" } }).launchArgs,
@@ -36,4 +36,29 @@ test("supports review, file, old/new line, and old/new range annotations", () =>
     target: { kind: "workingTree" },
     annotations: [{ kind: "range", file: "a", startLine: 3, endLine: 2, content: "x" }],
   }), /endLine/);
+});
+
+test("reconstructs normalized exact keys only for Pi-authored comments", () => {
+  assert.equal(commentAnnotationKey({ id: "r", author: "Pi", content: " overview " }),
+    annotationKey({ kind: "review", content: "overview" }));
+  assert.equal(commentAnnotationKey({ id: "f", author: "Pi", content: "file", path: " src/a.ts " }),
+    annotationKey({ kind: "file", file: "src/a.ts", content: "file" }));
+  assert.equal(commentAnnotationKey({ id: "l", author: "Pi", content: "line", path: "a", start_line: 4 }),
+    annotationKey({ kind: "line", file: "a", line: 4, side: "new", content: "line" }));
+  assert.equal(commentAnnotationKey({ id: "g", author: "Pi", content: "range", path: "a", start_line: 2, end_line: 5, side: "old" }),
+    annotationKey({ kind: "range", file: "a", startLine: 2, endLine: 5, side: "old", content: "range" }));
+  assert.equal(commentAnnotationKey({ id: "m", author: "Maintainer", content: "line", path: "a", start_line: 4 }), undefined);
+});
+
+test("rejects restored ownership with a partial or non-private cleanup path", () => {
+  const entry = (review: Record<string, unknown>) => [{
+    type: "custom", customType: STATE_ENTRY,
+    data: { state: "active", ownerSessionId: "owner", review },
+  }];
+  const otherwiseComplete = {
+    targetKey: "target", cwd: "/repo", tabId: "tab", paneId: "pane", sessionId: "session",
+    dataHome: "/tmp/pi-tuicr-review-owner-private", completionFile: "/tmp/pi-tuicr-review-owner-private/exit", accepted: {},
+  };
+  assert.equal(restoreReview(entry({ ...otherwiseComplete, completionFile: "/tmp/victim" }), "owner"), undefined);
+  assert.equal(restoreReview(entry({ ...otherwiseComplete, dataHome: "/var/tmp/pi-tuicr-review-owner-private" }), "owner"), undefined);
 });

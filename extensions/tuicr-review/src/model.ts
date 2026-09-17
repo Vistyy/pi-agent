@@ -1,5 +1,6 @@
-import { resolve } from "node:path";
-import type { Annotation, Comment, PersistedReview, ReviewInput, ReviewTarget } from "./types.ts";
+import { tmpdir } from "node:os";
+import { basename, dirname, resolve } from "node:path";
+import type { Annotation, Comment, OwnedReview, PersistedReview, ReviewInput, ReviewTarget } from "./types.ts";
 
 export const STATE_ENTRY = "tuicr-review";
 export const PI_AUTHOR = "Pi";
@@ -62,6 +63,22 @@ export function annotationKey(annotation: Annotation): string {
   return JSON.stringify(annotation);
 }
 
+export function commentAnnotationKey(comment: Comment): string | undefined {
+  if (comment.author !== PI_AUTHOR) return undefined;
+  const content = comment.content.trim();
+  if (!content) return undefined;
+  const file = comment.path?.trim();
+  if (!file) return annotationKey({ kind: "review", content });
+  const start = comment.start_line;
+  const end = comment.end_line;
+  if (start === undefined && end === undefined) return annotationKey({ kind: "file", file, content });
+  if (!Number.isInteger(start) || start! < 1) return undefined;
+  const side = comment.side ?? "new";
+  if (end === undefined || end === start) return annotationKey({ kind: "line", file, line: start!, side, content });
+  if (!Number.isInteger(end) || end! < start!) return undefined;
+  return annotationKey({ kind: "range", file, startLine: start!, endLine: end!, side, content });
+}
+
 export function annotationPayload(annotation: Annotation): Record<string, unknown> {
   const payload: Record<string, unknown> = { content: annotation.content, username: PI_AUTHOR };
   if (annotation.kind !== "review") payload.file = annotation.file;
@@ -94,9 +111,44 @@ export function restoreReview(entries: readonly unknown[], ownerSessionId: strin
     const entry = entries[index] as { type?: unknown; customType?: unknown; data?: unknown };
     if (entry?.type !== "custom" || entry.customType !== STATE_ENTRY) continue;
     const data = entry.data as Partial<PersistedReview> | undefined;
-    if (data?.ownerSessionId === ownerSessionId && (data.state === "active" || data.state === "finished")) {
-      return data as PersistedReview;
-    }
+    if (data?.ownerSessionId !== ownerSessionId) continue;
+    if (data.state === "cleared") return undefined;
+    if (data.state === "finished" && typeof data.deliveryId === "string" && /^[0-9a-f-]{36}$/i.test(data.deliveryId)
+      && validFeedback(data.feedback)) return data as PersistedReview;
+    if (data.state === "active" && validOwnedReview(data.review, ownerSessionId)) return data as PersistedReview;
+    return undefined;
   }
   return undefined;
+}
+
+export function hasFeedback(entries: readonly unknown[], deliveryId: string): boolean {
+  return entries.some((entry) => {
+    const value = entry as { type?: unknown; customType?: unknown; details?: { deliveryId?: unknown } };
+    return value?.type === "custom_message"
+      && value.customType === "tuicr-review-feedback"
+      && value.details?.deliveryId === deliveryId;
+  });
+}
+
+function validOwnedReview(value: unknown, ownerSessionId: string): value is OwnedReview {
+  if (!value || typeof value !== "object") return false;
+  const review = value as Partial<OwnedReview>;
+  const strings = [review.targetKey, review.cwd, review.tabId, review.paneId, review.sessionId, review.dataHome, review.completionFile];
+  if (strings.some((item) => typeof item !== "string" || !item)) return false;
+  if (!review.accepted || typeof review.accepted !== "object" || Array.isArray(review.accepted)
+    || Object.values(review.accepted).some((id) => typeof id !== "string" || !id)) return false;
+  const expectedPrefix = `pi-tuicr-review-${ownerSessionId}-`;
+  return resolve(review.dataHome!) === review.dataHome
+    && dirname(review.dataHome!) === tmpdir()
+    && basename(review.dataHome!).startsWith(expectedPrefix)
+    && dirname(review.completionFile!) === review.dataHome
+    && basename(review.completionFile!) === "exit";
+}
+
+function validFeedback(value: unknown): value is import("./types.ts").ReviewFeedback {
+  if (!value || typeof value !== "object") return false;
+  const feedback = value as Partial<import("./types.ts").ReviewFeedback>;
+  return (feedback.status === "completed" || feedback.status === "failed" || feedback.status === "cancelled")
+    && typeof feedback.sessionId === "string" && !!feedback.sessionId
+    && Array.isArray(feedback.seeded) && Array.isArray(feedback.maintainer);
 }
