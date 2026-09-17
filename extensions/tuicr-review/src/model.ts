@@ -71,10 +71,10 @@ export function commentAnnotationKey(comment: Comment): string | undefined {
   if (!file) return annotationKey({ kind: "review", content });
   const start = comment.start_line;
   const end = comment.end_line;
-  if (start === undefined && end === undefined) return annotationKey({ kind: "file", file, content });
+  if (start == null && end == null) return annotationKey({ kind: "file", file, content });
   if (!Number.isInteger(start) || start! < 1) return undefined;
   const side = comment.side ?? "new";
-  if (end === undefined || end === start) return annotationKey({ kind: "line", file, line: start!, side, content });
+  if (end == null || end === start) return annotationKey({ kind: "line", file, line: start!, side, content });
   if (!Number.isInteger(end) || end! < start!) return undefined;
   return annotationKey({ kind: "range", file, startLine: start!, endLine: end!, side, content });
 }

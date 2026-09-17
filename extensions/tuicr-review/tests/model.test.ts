@@ -39,14 +39,20 @@ test("supports review, file, old/new line, and old/new range annotations", () =>
 });
 
 test("reconstructs normalized exact keys only for Pi-authored comments", () => {
-  assert.equal(commentAnnotationKey({ id: "r", author: "Pi", content: " overview " }),
-    annotationKey({ kind: "review", content: "overview" }));
-  assert.equal(commentAnnotationKey({ id: "f", author: "Pi", content: "file", path: " src/a.ts " }),
-    annotationKey({ kind: "file", file: "src/a.ts", content: "file" }));
-  assert.equal(commentAnnotationKey({ id: "l", author: "Pi", content: "line", path: "a", start_line: 4 }),
+  assert.equal(commentAnnotationKey({
+    id: "r", author: "Pi", content: " overview ", path: null, start_line: null, end_line: null, side: null,
+  }), annotationKey({ kind: "review", content: "overview" }));
+  assert.equal(commentAnnotationKey({
+    id: "f", author: "Pi", content: "file", path: " src/a.ts ", start_line: null, end_line: null, side: null,
+  }), annotationKey({ kind: "file", file: "src/a.ts", content: "file" }));
+  assert.equal(commentAnnotationKey({
+    id: "l", author: "Pi", content: "line", path: "a", start_line: 4, end_line: null, side: "new",
+  }), annotationKey({ kind: "line", file: "a", line: 4, side: "new", content: "line" }));
+  assert.equal(commentAnnotationKey({
+    id: "g", author: "Pi", content: "range", path: "a", start_line: 2, end_line: 5, side: "old",
+  }), annotationKey({ kind: "range", file: "a", startLine: 2, endLine: 5, side: "old", content: "range" }));
+  assert.equal(commentAnnotationKey({ id: "omitted", author: "Pi", content: "line", path: "a", start_line: 4 }),
     annotationKey({ kind: "line", file: "a", line: 4, side: "new", content: "line" }));
-  assert.equal(commentAnnotationKey({ id: "g", author: "Pi", content: "range", path: "a", start_line: 2, end_line: 5, side: "old" }),
-    annotationKey({ kind: "range", file: "a", startLine: 2, endLine: 5, side: "old", content: "range" }));
   assert.equal(commentAnnotationKey({ id: "m", author: "Maintainer", content: "line", path: "a", start_line: 4 }), undefined);
 });
 

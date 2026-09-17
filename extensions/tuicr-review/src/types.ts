@@ -26,10 +26,10 @@ export interface Comment {
   content: string;
   author?: string;
   location?: string;
-  path?: string;
-  start_line?: number;
-  end_line?: number;
-  side?: "old" | "new";
+  path?: string | null;
+  start_line?: number | null;
+  end_line?: number | null;
+  side?: "old" | "new" | null;
 }
 
 export interface OwnedReview {

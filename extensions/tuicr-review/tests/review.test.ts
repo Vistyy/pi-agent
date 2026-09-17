@@ -41,9 +41,10 @@ function harness() {
       const id = `p${added.length}`;
       comments.push({
         id, content: String(payload.content), author: "Pi",
-        ...(payload.file ? { path: String(payload.file) } : {}),
-        ...(payload.line ? { start_line: Number(payload.line), end_line: Number(payload.line), side: payload.side as "old" | "new" } : {}),
-        ...(payload.start_line ? { start_line: Number(payload.start_line), end_line: Number(payload.end_line), side: payload.side as "old" | "new" } : {}),
+        path: payload.file ? String(payload.file) : null,
+        start_line: payload.line ? Number(payload.line) : payload.start_line ? Number(payload.start_line) : null,
+        end_line: payload.start_line ? Number(payload.end_line) : null,
+        side: (payload.side as "old" | "new" | undefined) ?? null,
       });
       return id;
     },
@@ -94,21 +95,28 @@ const lineRequest = (content = "Explain this") => ({
   target: { kind: "workingTree" as const },
   annotations: [{ kind: "line" as const, file: "src/a.ts", line: 4, side: "new" as const, content }],
 });
+const fileRequest = () => ({
+  target: { kind: "workingTree" as const },
+  annotations: [{ kind: "file" as const, file: "src/a.ts", content: "Check this file" }],
+});
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-test("reconciles an accepted Pi annotation after add succeeded before compact persistence", async () => {
+test.each([
+  ["file comment with null lines", fileRequest],
+  ["line comment with null end line", lineRequest],
+])("reconciles an accepted Pi %s after add succeeded before compact persistence", async (_name, request) => {
   const h = harness();
   const first = h.runtime();
   await first.restore(h.context());
   h.setPersistFailure(true);
-  const interrupted = await first.ensure(lineRequest(), h.context());
+  const interrupted = await first.ensure(request(), h.context());
   assert.equal(interrupted.failures.length, 1);
   first.shutdown();
   h.setPersistFailure(false);
 
   const restored = h.runtime();
   await restored.restore(h.context());
-  const result = await restored.ensure(lineRequest(), h.context());
+  const result = await restored.ensure(request(), h.context());
   assert.equal(result.reused, true);
   assert.deepEqual(result.acceptedCommentIds, ["p1"]);
   assert.equal(h.added.length, 1, "the accepted exact Pi comment is not added twice");
