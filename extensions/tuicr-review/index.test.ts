@@ -90,6 +90,36 @@ test("uses the live current pane workspace and ignores stale inherited identity"
   }
 });
 
+test("launch accepts Herdr pane run empty success and reports bounded nonzero output", async () => {
+  const results = [
+    { code: 0, stdout: "", stderr: "" },
+    { code: 23, stdout: "", stderr: ` pane unavailable ${"x".repeat(600)} ` },
+  ];
+  const backend = commandBackend({
+    async exec() { return results.shift()!; },
+  } as any);
+
+  await backend.launch(
+    { workspaceId: "w1", tabId: "w1:t1", paneId: "w1:p1" },
+    "/repo",
+    ["--working-tree", "--stdout"],
+    "/tmp/tuicr.exit",
+  );
+  await assert.rejects(
+    backend.launch(
+      { workspaceId: "w1", tabId: "w1:t1", paneId: "w1:p1" },
+      "/repo",
+      ["--working-tree", "--stdout"],
+      "/tmp/tuicr.exit",
+    ),
+    (error: Error) => {
+      assert.match(error.message, /^launch Tuicr failed \(Herdr pane run exited 23\): pane unavailable/);
+      assert.ok(error.message.length <= 570, "launch diagnostic must remain bounded");
+      return true;
+    },
+  );
+});
+
 test("Workgraph Worker visibility disables tuicr_review", async () => {
   const settings = JSON.parse(await readFile(new URL("../../settings.json", import.meta.url), "utf8"));
   const disabled = settings["pi-workgraph"].worker.disabledTools;

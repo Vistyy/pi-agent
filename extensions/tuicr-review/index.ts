@@ -128,10 +128,11 @@ export function commandBackend(pi: Pick<ExtensionAPI, "exec">): ReviewBackend {
         ...args.map(shellQuote),
         ";", "code=$?", ";", "printf", shellQuote("%s\\n"), '"$code"', ">", shellQuote(completionFile),
       ].join(" ");
-      decodeHerdr(
-        await pi.exec(herdr, ["pane", "run", resources.paneId, command], { signal, timeout: 10_000 }),
-        "launch Tuicr",
-      );
+      const result = await pi.exec(herdr, ["pane", "run", resources.paneId, command], { signal, timeout: 10_000 });
+      if (result.code !== 0) {
+        const detail = singleLine(result.stderr || result.stdout) || "no diagnostic output";
+        throw new Error(`launch Tuicr failed (Herdr pane run exited ${result.code}): ${detail}`);
+      }
     },
     async comments(cwd, session, signal) {
       const result = await pi.exec(tuicr, ["review", "comments", "--session", session.slug, "--repo", cwd], { signal, timeout: 10_000 });
