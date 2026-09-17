@@ -87,8 +87,8 @@ function saveTabAlias(pi: ExtensionAPI, name: string): void {
 
 function queueNamingPrompt(pi: ExtensionAPI, ctx: ExtensionContext): void {
 	const prompt = herdrEnabled()
-		? "Call name_session exactly once after the intended outcome and scope are clear. Provide a descriptive piName and a distinct, compact, discriminative 2-4 word tabName for the current Herdr tab; do not duplicate the Pi name. Only reconsider either name after a material scope or name change."
-		: "Call name_session exactly once after the intended outcome and scope are clear, with a descriptive piName only. Only reconsider it after a material scope or name change.";
+		? "Call name_session once for initial naming, after the session's primary objective is clear. Name the enduring umbrella topic or objective, not the current phase, latest subtask, or most recent conversational turn. Provide a descriptive piName and a compact, discriminative 2-4 word tabName for the same umbrella topic; do not duplicate the Pi name. Keep both names through normal progression, related pivots, implementation, debugging, review, and follow-up work. Call name_session again only when the user asks or when the session's primary objective has been replaced and the existing names have become materially misleading."
+		: "Call name_session once for initial naming, after the session's primary objective is clear. Name the enduring umbrella topic or objective, not the current phase, latest subtask, or most recent conversational turn. Provide a descriptive piName only. Keep the name through normal progression, related pivots, implementation, debugging, review, and follow-up work. Call name_session again only when the user asks or when the session's primary objective has been replaced and the existing name has become materially misleading.";
 	pi.sendUserMessage(prompt, ctx.isIdle() ? undefined : { deliverAs: "followUp" });
 }
 
@@ -127,8 +127,9 @@ export default function sessionNamingExtension(pi: ExtensionAPI) {
 			"Set the current Pi session name. Inside Herdr, optionally also rename exactly the current Herdr tab and remember its compact alias for this branch. Outside Herdr, Pi naming works without a tab.",
 		promptSnippet: "Name the Pi session and, inside Herdr, its current tab",
 		promptGuidelines: [
-			"Use name_session once after the intended outcome and scope are clear: provide a descriptive piName, plus a distinct compact/discriminative 2-4 word tabName inside Herdr, or piName only outside Herdr.",
-			"Reconsider name_session only after a material scope or name change; do not create routine naming churn.",
+			"Use name_session once for initial naming, after the session's primary objective is clear. Name the enduring umbrella topic or objective, not the current phase, latest subtask, or most recent conversational turn.",
+			"Inside Herdr, provide a descriptive piName and a distinct compact/discriminative 2-4 word tabName for the same umbrella topic; outside Herdr, provide piName only.",
+			"Keep session names through normal progression, related pivots, implementation, debugging, review, and follow-up work. Use name_session again only when the user asks or when the primary objective has been replaced and the existing names have become materially misleading.",
 		],
 		parameters: NameSessionParams,
 		async execute(_toolCallId, params, signal, _onUpdate, ctx) {
