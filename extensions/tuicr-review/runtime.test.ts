@@ -114,6 +114,37 @@ test("opens once, persists exact ownership, seeds annotations, and reuses withou
   h.runtime.stop();
 });
 
+test("initial completion monitoring waits for delayed seeding and classifies its accepted ID", async () => {
+  const h = harness();
+  let releaseSeed!: () => void;
+  const seedGate = new Promise<void>((resolve) => { releaseSeed = resolve; });
+  h.backend.add = async () => {
+    await seedGate;
+    const comment: StoredComment = {
+      id: "c1", author: COORDINATOR_AUTHOR, content: "Fix this",
+      path: "src/a.ts", start_line: 4, end_line: 4, side: "new",
+    };
+    h.setComments([comment]);
+    return comment;
+  };
+  h.setExit(0);
+  await h.runtime.restore(h.context);
+
+  const ensuring = h.runtime.ensure(request, h.context);
+  await settle();
+  assert.equal(h.effects().completionReads, 0, "completion must not be read while initial seeding is pending");
+
+  releaseSeed();
+  const opened = await ensuring;
+  assert.deepEqual(opened.acceptedCommentIds, ["c1"]);
+  await settle();
+  assert.equal(h.effects().completionReads, 1);
+  assert.equal(h.messages.length, 1);
+  assert.deepEqual(h.messages[0].message.details.seeded.map((comment: StoredComment) => comment.id), ["c1"]);
+  assert.deepEqual(h.messages[0].message.details.maintainer, []);
+  h.runtime.stop();
+});
+
 test("retries failed annotations and accepts a revised annotation", async () => {
   let failures = 0;
   const h = harness({ addFailure: () => failures++ === 0 });

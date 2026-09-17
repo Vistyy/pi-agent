@@ -137,18 +137,12 @@ export class TuicrReviewRuntime {
       };
       this.persist();
       this.render();
-      let monitorStarted = false;
       try {
-        // Persistence transfers lifecycle ownership immediately; seeding and the
-        // monitor may proceed concurrently, but seeding cannot overwrite a terminal transition.
-        this.startWait(this.generation);
-        monitorStarted = true;
-        const seeded = await this.seed(request.annotations, ctx, signal);
-        return { reused: false, session: session, ...seeded };
+        return { reused: false, session, ...await this.seed(request.annotations, ctx, signal) };
       } finally {
-        // Keep this lifecycle guarantee even if monitor startup later gains a
-        // synchronous failure path or the tool call is aborted during seeding.
-        if (!monitorStarted) this.startWait(this.generation);
+        // Initial seeding must settle before completion can classify persisted comments.
+        // The generation check in startWait still prevents monitoring stale state.
+        this.startWait(this.generation);
       }
     });
   }
