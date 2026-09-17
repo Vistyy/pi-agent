@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { promisify } from "node:util";
 import test from "node:test";
 import extension, { TuicrReviewParameters, commandBackend } from "./index.ts";
 
@@ -142,6 +146,57 @@ test("launch accepts Herdr pane run empty success and reports bounded nonzero ou
       return true;
     },
   );
+});
+
+test("launch is shell-independent and records the exact Tuicr exit code under fish", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "tuicr-review-shell-"));
+  const cwd = join(directory, "review 'cwd");
+  const tuicr = join(directory, "fake tuicr 'bin");
+  const observed = join(directory, "observed arguments");
+  const completion = join(directory, "completion 'exact'.txt");
+  const previousTuicr = process.env.TUICR_BIN_PATH;
+  const quote = (value: string) => `'${value.replaceAll("'", `'"'"'`)}'`;
+  try {
+    await mkdir(cwd);
+    await writeFile(tuicr, [
+      "#!/bin/sh",
+      `printf '%s\\n' \"$PWD\" > ${quote(observed)}`,
+      `printf '<%s>\\n' \"$@\" >> ${quote(observed)}`,
+      "exit 37",
+      "",
+    ].join("\n"));
+    await chmod(tuicr, 0o700);
+    process.env.TUICR_BIN_PATH = tuicr;
+
+    let outerCommand = "";
+    const backend = commandBackend({
+      async exec(command: string, args: string[]) {
+        assert.match(command, /(?:^|\/)herdr$/);
+        assert.deepEqual(args.slice(0, 3), ["pane", "run", "w1:p1"]);
+        outerCommand = args[3]!;
+        const result = await promisify(execFile)("fish", ["-c", outerCommand]);
+        return { code: 0, stdout: result.stdout, stderr: result.stderr };
+      },
+    } as any);
+    const launchArgs = ["--stdout", "argument with spaces", "quote'argument", "$literal;still-one-arg"];
+    await backend.launch(
+      { workspaceId: "w1", tabId: "w1:t1", paneId: "w1:p1" },
+      cwd,
+      launchArgs,
+      completion,
+    );
+
+    assert.match(outerCommand, /^sh -lc /);
+    assert.equal(await readFile(completion, "utf8"), "37\n");
+    assert.deepEqual(
+      (await readFile(observed, "utf8")).trimEnd().split("\n"),
+      [cwd, ...launchArgs.map((argument) => `<${argument}>`)],
+    );
+  } finally {
+    if (previousTuicr === undefined) delete process.env.TUICR_BIN_PATH;
+    else process.env.TUICR_BIN_PATH = previousTuicr;
+    await rm(directory, { recursive: true, force: true });
+  }
 });
 
 test("Workgraph Worker visibility disables tuicr_review", async () => {

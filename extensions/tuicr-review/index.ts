@@ -131,11 +131,12 @@ export function commandBackend(pi: Pick<ExtensionAPI, "exec">): ReviewBackend {
       };
     },
     async launch(resources, cwd, args, completionFile, signal) {
-      const command = [
+      const script = [
         "cd", shellQuote(cwd), "&&", shellQuote(tuicr),
         ...args.map(shellQuote),
         ";", "code=$?", ";", "printf", shellQuote("%s\\n"), '"$code"', ">", shellQuote(completionFile),
       ].join(" ");
+      const command = `sh -lc ${shellQuote(script)}`;
       const result = await pi.exec(herdr, ["pane", "run", resources.paneId, command], { signal, timeout: 10_000 });
       if (result.code !== 0) {
         const detail = singleLine(result.stderr || result.stdout) || "no diagnostic output";
