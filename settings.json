@@ -31,6 +31,7 @@
         "follow_pr",
         "name_session",
         "start_session",
+        "tuicr_review",
         "unfollow_pr"
       ]
     }
