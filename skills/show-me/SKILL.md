@@ -1,7 +1,6 @@
 ---
 name: show-me
-description: "[M] Help the user understand the current topic visually with diagrams, code-shape sketches, and HTML artifacts."
-disable-model-invocation: true
+description: Prefer a small visual whenever it clarifies structure, flow, scale, relationships, or change better than prose. Load this skill to choose and produce the visual; skip it when prose is clearer.
 ---
 
 # Show Me
