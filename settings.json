@@ -10,7 +10,8 @@
   "theme": "rose-pine-moon",
   "packages": [
     "npm:pi-web-access@0.14.0",
-    "/home/syzom/projects/pi-extensions/pi-workgraph"
+    "/home/syzom/projects/pi-extensions/pi-workgraph",
+    "npm:compact-adviser@0.1.2"
   ],
   "wrap-up": {
     "model": "openai-codex/gpt-5.6-terra",
