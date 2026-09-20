@@ -43,15 +43,14 @@ export default function tuicrReview(pi: ExtensionAPI): void {
     label: "Tuicr Review",
     description: [
       "Open or update one guided Tuicr review in a dedicated Herdr tab and return when it is ready.",
-      "Annotations are optional. Use them when colocated context improves the review: explain intent or constraints,",
-      "surface meaningful risks or trade-offs, highlight non-obvious decisions, or ask focused questions.",
-      "Choose the narrowest useful review, file, line, or range scope; any number of annotations, including none, is valid.",
+      "Annotations are optional. Add one only when it gives the Maintainer useful context that the diff does not make clear,",
+      "or asks a specific review question. Choose the narrowest useful review, file, line, or range scope.",
     ].join(" "),
     promptSnippet: "Open or add useful context to a guided Tuicr review",
     promptGuidelines: [
-      "Inspect the target change before opening the review. Use annotations as an authored review layer when colocated context will help the Maintainer judge intent, constraints, risks, trade-offs, non-obvious decisions, or focused questions.",
-      "Place each annotation at the narrowest useful review, file, line, or range scope. Add as many as materially improve the review, including none; do not treat scopes or annotation counts as a checklist.",
-      "When structure clarifies an annotation, use the smallest fitting form: pseudocode for logic, a call tree for runtime flow, a shallow file tree for ownership, Mermaid for interactions or data movement, or a fenced diff for changes. Use prose when clearer and do not repeat the same point in multiple forms.",
+      "Inspect the change before calling tuicr_review. Do not annotate code whose purpose is already clear from the diff.",
+      "Write every tuicr_review annotation for a Maintainer who has not seen the conversation. State what the cited code does and why it matters in plain project terms. Prefer a short example or a specific question; avoid abstract labels when concrete wording is available.",
+      "Place each tuicr_review annotation at the narrowest useful scope. Use a small visual only when it is clearer than prose, and do not repeat the same point in multiple annotations.",
     ],
     parameters: TuicrReviewParameters,
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
