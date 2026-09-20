@@ -43,7 +43,7 @@ export class ReviewCommands {
       const sessionId = await this.waitForSession(request.cwd, dataHome, signal);
       return {
         targetKey: request.targetKey, cwd: request.cwd, base: request.base, head: request.head,
-        tabId, paneId, sessionId, dataHome, completionFile, accepted: {},
+        tabId, paneId, sessionId, dataHome, completionFile, accepted: {}, reported: [],
       };
     } catch (error) {
       const warnings = await this.cleanupPaths(tabId, dataHome);
@@ -138,19 +138,19 @@ export class ReviewCommands {
     }
   }
 
-  async cleanup(review: OwnedReview): Promise<string[]> {
+  async cleanup(review: OwnedReview): Promise<{ warnings: string[]; tabClosed: boolean }> {
     try {
       if (await this.tabExists(review)) {
         checked(await this.pi.exec(this.herdr, ["tab", "close", review.tabId], { timeout: 10_000 }), `close owned tab ${review.tabId}`);
       }
     } catch (error) {
-      return [message(error)];
+      return { warnings: [message(error)], tabClosed: false };
     }
     try {
       await rm(review.dataHome, { recursive: true, force: true });
-      return [];
+      return { warnings: [], tabClosed: true };
     } catch (error) {
-      return [`remove ${review.dataHome}: ${message(error)}`];
+      return { warnings: [`remove ${review.dataHome}: ${message(error)}`], tabClosed: true };
     }
   }
 
@@ -193,7 +193,7 @@ export class ReviewCommands {
     const warnings: string[] = [];
     if (tabId) {
       try { checked(await this.pi.exec(this.herdr, ["tab", "close", tabId], { timeout: 10_000 }), `close owned tab ${tabId}`); }
-      catch (error) { warnings.push(message(error)); }
+      catch (error) { return [message(error)]; }
     }
     try { await rm(dataHome, { recursive: true, force: true }); }
     catch (error) { warnings.push(`remove ${dataHome}: ${message(error)}`); }

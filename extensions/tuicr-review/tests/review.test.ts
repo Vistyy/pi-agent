@@ -21,10 +21,11 @@ function harness() {
   let commentFailures = 0;
   let sessionExists = true;
   let cleanupWarnings: string[] = [];
+  let cleanupTabClosed = true;
   const exact = (base: string, head: string): OwnedReview => ({
     targetKey: JSON.stringify({ cwd: "/repo", base, head }), cwd: "/repo", base, head,
     tabId: `tab-${launchCount}`, paneId: `pane-${launchCount}`, sessionId: `session-${launchCount}`,
-    dataHome: `/tmp/pi-tuicr-review-owner-${launchCount}`, completionFile: `/tmp/pi-tuicr-review-owner-${launchCount}/exit`, accepted: {},
+    dataHome: `/tmp/pi-tuicr-review-owner-${launchCount}`, completionFile: `/tmp/pi-tuicr-review-owner-${launchCount}/exit`, accepted: {}, reported: [],
   });
   const ops = {
     async resolveComparison(_cwd: string, base: string, head: string) {
@@ -53,10 +54,9 @@ function harness() {
     async dataExists() { return data; },
     async cleanup(review: OwnedReview) {
       events.push(`cleanup:${review.sessionId}`);
-      if (cleanupWarnings.length) return cleanupWarnings;
-      tab = false;
-      data = false;
-      return [];
+      if (cleanupTabClosed) tab = false;
+      if (!cleanupWarnings.length) data = false;
+      return { warnings: cleanupWarnings, tabClosed: cleanupTabClosed };
     },
     sleep(milliseconds: number) { if (milliseconds === 25) return Promise.resolve(); return new Promise<void>((resolve) => sleeps.push(resolve)); },
   };
@@ -71,7 +71,10 @@ function harness() {
     setComments(value: Comment[]) { comments = value; }, setCommentFailures(value: number) { commentFailures = value; },
     setSessionExists(value: boolean) { sessionExists = value; },
     setLaunchFailure(value: string | undefined) { launchFailure = value; },
-    setCleanupWarnings(value: string[]) { cleanupWarnings = value; },
+    setCleanup(value: { warnings: string[]; tabClosed: boolean }) {
+      cleanupWarnings = value.warnings;
+      cleanupTabClosed = value.tabClosed;
+    },
     tick() { sleeps.splice(0).forEach((resolve) => resolve()); },
     launchCount: () => launchCount, branch: () => branch,
   };
@@ -139,12 +142,16 @@ test("saved replacement feedback survives cleanup failure", async () => {
   await runtime.restore(h.context);
   await runtime.ensure(request(), h.context);
   h.setComments([{ id: "m1", author: "Maintainer", content: "Keep this feedback" }]);
-  h.setCleanupWarnings(["close failed"]);
+  h.setCleanup({ warnings: ["close failed"], tabClosed: false });
   await assert.rejects(
     runtime.ensure(request("next", "next", true), h.context),
-    /Saved feedback from comparison being replaced:[\s\S]*Keep this feedback[\s\S]*remaining resources were preserved[\s\S]*close failed/,
+    /Saved feedback from comparison being replaced:[\s\S]*Keep this feedback[\s\S]*resources were preserved[\s\S]*close failed/,
   );
   assert.equal(h.launchCount(), 1);
+  h.setCleanup({ warnings: [], tabClosed: true });
+  h.setExit(0);
+  await settle(); h.tick(); await settle();
+  assert.deepEqual(h.sent.at(-1).details.maintainer, [], "feedback returned in the tool error is not delivered twice");
   runtime.shutdown();
 });
 

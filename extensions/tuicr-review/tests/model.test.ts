@@ -46,7 +46,7 @@ test("restores only exact comparisons with private owned cleanup paths", () => {
   const entry = (review: Record<string, unknown>) => [{ type: "custom", customType: STATE_ENTRY, data: { state: "active", ownerSessionId: "owner", review } }];
   const complete = {
     targetKey: "target", cwd: "/repo", base, head, tabId: "tab", paneId: "pane", sessionId: "session",
-    dataHome: "/tmp/pi-tuicr-review-owner-private", completionFile: "/tmp/pi-tuicr-review-owner-private/exit", accepted: {},
+    dataHome: "/tmp/pi-tuicr-review-owner-private", completionFile: "/tmp/pi-tuicr-review-owner-private/exit", accepted: {}, reported: [],
   };
   assert.ok(restoreReview(entry(complete), "owner"));
   assert.equal(restoreReview(entry({ ...complete, base: undefined }), "owner"), undefined);

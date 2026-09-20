@@ -41,6 +41,33 @@ test("resolves commits and launches Tuicr with only the exact range", async () =
   }
 });
 
+test("failed launch preserves private data when its created tab cannot close", async () => {
+  const previous = process.env.HERDR_ENV;
+  process.env.HERDR_ENV = "1";
+  let dataHome: string | undefined;
+  try {
+    const commands = new ReviewCommands({
+      async exec(_command: string, args: string[]) {
+        if (args[0] === "pane" && args[1] === "current") return { code: 0, stdout: '{"result":{"pane":{"workspace_id":"workspace"}}}', stderr: "" };
+        if (args[0] === "tab" && args[1] === "create") {
+          dataHome = args.find((arg) => arg.startsWith("XDG_DATA_HOME="))?.slice("XDG_DATA_HOME=".length);
+          return { code: 0, stdout: '{"result":{"tab":{"tab_id":"tab"},"root_pane":{"pane_id":"pane"}}}', stderr: "" };
+        }
+        if (args[0] === "pane" && args[1] === "run") return { code: 1, stdout: "", stderr: "launch failed" };
+        if (args[0] === "tab" && args[1] === "close") return { code: 1, stdout: "", stderr: "close denied" };
+        throw new Error(`unexpected ${args.join(" ")}`);
+      },
+    } as any);
+    const request = exactReview(normalizeRequest("/repo", { base, head, replaceExisting: false }), { base, head });
+    await assert.rejects(commands.launch(request, "owner"), /launch failed[\s\S]*close denied/);
+    assert.ok(dataHome);
+    await access(dataHome);
+  } finally {
+    if (dataHome) await rm(dataHome, { recursive: true, force: true });
+    if (previous === undefined) delete process.env.HERDR_ENV; else process.env.HERDR_ENV = previous;
+  }
+});
+
 const execFileAsync = promisify(execFile);
 
 test("cleanup preserves private data when the owned tab cannot close", async () => {
@@ -53,8 +80,9 @@ test("cleanup preserves private data when the owned tab cannot close", async () 
         throw new Error(`unexpected ${args.join(" ")}`);
       },
     } as any);
-    const warnings = await commands.cleanup({ tabId: "tab", dataHome } as OwnedReview);
-    assert.match(warnings[0] ?? "", /close denied/);
+    const cleanup = await commands.cleanup({ tabId: "tab", dataHome } as OwnedReview);
+    assert.equal(cleanup.tabClosed, false);
+    assert.match(cleanup.warnings[0] ?? "", /close denied/);
     await access(dataHome);
   } finally {
     await rm(dataHome, { recursive: true, force: true });

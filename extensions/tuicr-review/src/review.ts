@@ -137,10 +137,13 @@ export class GuidedReview {
   private async replace(review: OwnedReview): Promise<ReviewFeedback> {
     const comments = await this.retry(() => this.commands.comments(review));
     const feedback = await this.feedback(review, "replaced", comments, "Replaced by an explicit request; unsaved editor text was not read or migrated.");
-    const warnings = await this.commands.cleanup(review);
-    if (warnings.length) {
-      throw new Error(`Saved feedback from comparison being replaced:\n${formatFeedback(feedback)}\nCould not fully close the owned review; its remaining resources were preserved: ${warnings.join("; ")}`);
+    const cleanup = await this.commands.cleanup(review);
+    if (!cleanup.tabClosed) {
+      review.reported.push(...comments.map((comment) => comment.id).filter((id) => !review.reported.includes(id)));
+      this.persistActive(review);
+      throw new Error(`Saved feedback from comparison being replaced:\n${formatFeedback(feedback)}\nCould not close the owned review; its resources were preserved: ${cleanup.warnings.join("; ")}`);
     }
+    if (cleanup.warnings.length) feedback.cleanupWarnings = cleanup.warnings;
     this.clear(review);
     return feedback;
   }
@@ -214,9 +217,9 @@ export class GuidedReview {
     }
     const feedback = await this.feedback(review, status, comments, failure);
     const finished = this.makeFinished(review, feedback);
-    const warnings = await this.commands.cleanup(review);
-    if (warnings.length) {
-      finished.feedback.cleanupWarnings = warnings;
+    const cleanup = await this.commands.cleanup(review);
+    if (cleanup.warnings.length) {
+      finished.feedback.cleanupWarnings = cleanup.warnings;
       this.persist(finished);
     }
     this.deliver(finished);
@@ -225,11 +228,14 @@ export class GuidedReview {
 
   private async feedback(review: OwnedReview, status: ReviewFeedback["status"], comments: Comment[], messageText?: string): Promise<ReviewFeedback> {
     const { seeded, maintainer } = splitComments(comments, review.accepted);
+    const alreadyReported = new Set(review.reported);
+    const pendingSeeded = seeded.filter((comment) => !alreadyReported.has(comment.id));
+    const pendingMaintainer = maintainer.filter((comment) => !alreadyReported.has(comment.id));
     const grounded: FeedbackComment[] = [];
-    for (const comment of maintainer) grounded.push(await this.commands.groundComment(review, comment));
+    for (const comment of pendingMaintainer) grounded.push(await this.commands.groundComment(review, comment));
     return {
       status, sessionId: review.sessionId, base: review.base, head: review.head,
-      seeded, maintainer: grounded, ...(messageText ? { message: messageText } : {}),
+      seeded: pendingSeeded, maintainer: grounded, ...(messageText ? { message: messageText } : {}),
     };
   }
 

@@ -53,6 +53,7 @@ export interface OwnedReview extends ExactComparison {
   dataHome: string;
   completionFile: string;
   accepted: Record<string, string>;
+  reported: string[];
 }
 
 export interface ReviewFeedback extends ExactComparison {

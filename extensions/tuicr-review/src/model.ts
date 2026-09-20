@@ -127,6 +127,7 @@ function validOwnedReview(value: unknown, ownerSessionId: string): value is Owne
   const strings = [review.targetKey, review.cwd, review.base, review.head, review.tabId, review.paneId, review.sessionId, review.dataHome, review.completionFile];
   if (strings.some((item) => typeof item !== "string" || !item)) return false;
   if (!review.accepted || typeof review.accepted !== "object" || Array.isArray(review.accepted) || Object.values(review.accepted).some((id) => typeof id !== "string" || !id)) return false;
+  if (!Array.isArray(review.reported) || review.reported.some((id) => typeof id !== "string" || !id)) return false;
   const expectedPrefix = `pi-tuicr-review-${ownerSessionId}-`;
   return resolve(review.dataHome!) === review.dataHome && dirname(review.dataHome!) === tmpdir()
     && basename(review.dataHome!).startsWith(expectedPrefix) && dirname(review.completionFile!) === review.dataHome
