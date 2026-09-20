@@ -1,6 +1,6 @@
 ---
 name: gh-axi
-description: Use when interacting with GitHub through the CLI. Skip local-only Git operations.
+description: Selects between `gh-axi` and raw `gh` for GitHub CLI operations. Use when a task requires interacting with GitHub through the CLI; skip local-only Git operations.
 ---
 
 # GitHub CLI preference
