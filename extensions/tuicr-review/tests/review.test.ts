@@ -19,6 +19,7 @@ function harness() {
   let data = true;
   let comments: Comment[] = [];
   let commentFailures = 0;
+  let failingCommentsSession: string | undefined;
   let sessionExists = true;
   let cleanupWarnings: string[] = [];
   let cleanupTabClosed = true;
@@ -41,7 +42,12 @@ function harness() {
       exit = undefined;
       return exact(request.base, request.head);
     },
-    async comments() { events.push("comments"); if (commentFailures-- > 0) throw new Error("comments unavailable"); return comments; },
+    async comments(review: OwnedReview) {
+      events.push("comments");
+      if (review.sessionId === failingCommentsSession) throw new Error("new session comments unavailable");
+      if (commentFailures-- > 0) throw new Error("comments unavailable");
+      return comments;
+    },
     async sessionExists() { events.push("sessionExists"); return sessionExists; },
     async groundComment(review: OwnedReview, comment: Comment) {
       if (!comment.path || comment.start_line == null) return comment;
@@ -69,6 +75,7 @@ function harness() {
     events, sent, ops, context, runtime: () => new GuidedReview(pi as any, ops as any),
     setExit(value: number | undefined) { exit = value; }, setTab(value: boolean) { tab = value; },
     setComments(value: Comment[]) { comments = value; }, setCommentFailures(value: number) { commentFailures = value; },
+    setFailingCommentsSession(value: string | undefined) { failingCommentsSession = value; },
     setSessionExists(value: boolean) { sessionExists = value; },
     setLaunchFailure(value: string | undefined) { launchFailure = value; },
     setCleanup(value: { warnings: string[]; tabClosed: boolean }) {
@@ -166,6 +173,21 @@ test("saved replacement feedback survives a new launch failure", async () => {
     runtime.ensure(request("next", "next", true), h.context),
     /Saved feedback from replaced comparison:[\s\S]*Keep this feedback[\s\S]*launch unavailable/,
   );
+  runtime.shutdown();
+});
+
+test("saved replacement feedback survives initial seeding failure", async () => {
+  const h = harness();
+  const runtime = h.runtime();
+  await runtime.restore(h.context);
+  await runtime.ensure(request(), h.context);
+  h.setComments([{ id: "m1", author: "Maintainer", content: "Important old feedback" }]);
+  h.setFailingCommentsSession("session-2");
+  await assert.rejects(
+    runtime.ensure(request("next", "next", true), h.context),
+    /Saved feedback from replaced comparison:[\s\S]*Important old feedback[\s\S]*initial annotation seeding failed[\s\S]*new session comments unavailable/,
+  );
+  assert.equal(h.launchCount(), 2);
   runtime.shutdown();
 });
 

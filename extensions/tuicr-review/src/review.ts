@@ -98,6 +98,11 @@ export class GuidedReview {
           reused: false, sessionId: review.sessionId, base: review.base, head: review.head, replacedFeedback,
           ...await this.seed(review, request.annotations, signal),
         };
+      } catch (error) {
+        if (replacedFeedback) {
+          throw new Error(`Saved feedback from replaced comparison:\n${formatFeedback(replacedFeedback)}\nThe replacement review opened, but its initial annotation seeding failed: ${message(error)}`);
+        }
+        throw error;
       } finally {
         this.monitor(review, this.generation);
       }
