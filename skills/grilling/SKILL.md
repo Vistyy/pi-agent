@@ -1,6 +1,6 @@
 ---
 name: grilling
-description: Stress-tests consequential plans and designs through progressive, evidence-informed decision rounds. Use when unresolved choices or assumptions could materially affect the outcome, behavior, interfaces, safety, or implementation authority. Skip settled work with only local, reversible implementation choices.
+description: Stress-tests consequential plans and designs through progressive, evidence-informed decision rounds. Use when a planning request involves choosing between alternatives that would change observable behavior, public interfaces, safety, or implementation authority, or when an unverified assumption could change that choice. Skip settled work with only local, reversible implementation choices.
 ---
 
 # Grilling
