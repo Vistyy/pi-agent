@@ -317,7 +317,11 @@ async function resolveCodexAuth(ctx: ExtensionContext): Promise<Record<string, s
 	for (const model of codexModels(ctx)) {
 		const auth = await ctx.modelRegistry.getApiKeyAndHeaders(model);
 		if (!auth.ok) continue;
-		const headers: Record<string, string> = { ...(auth.headers ?? {}) };
+		const headers = Object.fromEntries(
+			Object.entries(auth.headers ?? {}).filter(
+				(entry): entry is [string, string] => typeof entry[1] === "string",
+			),
+		);
 		if (!hasHeader(headers, "Authorization") && auth.apiKey) headers.Authorization = `Bearer ${auth.apiKey}`;
 		if (!hasHeader(headers, "User-Agent")) headers["User-Agent"] = "pi-quota-usage";
 		if (hasHeader(headers, "Authorization")) return headers;

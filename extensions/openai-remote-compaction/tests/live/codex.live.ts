@@ -45,7 +45,7 @@ live("live Codex remote compaction", () => {
       authPath: join(actualAgentDir, "auth.json"),
       modelsPath: join(actualAgentDir, "models.json"),
     });
-    const modelId = process.env.PI_REMOTE_COMPACTION_MODEL ?? "gpt-5.4-mini";
+    const modelId = process.env.PI_REMOTE_COMPACTION_MODEL ?? "gpt-5.6-luna";
     const availableModels = getModels("openai-codex");
     const initialModel = availableModels.find((model) => model.id === modelId);
     if (!initialModel) throw new Error(`Unknown live Codex model: ${modelId}`);

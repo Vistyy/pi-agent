@@ -139,7 +139,7 @@ describe("persisted Pi acceptance lifecycle", () => {
         const target = String(url);
         if (target.includes("/models?")) {
           return new Response(
-            JSON.stringify({ models: [{ slug: "gpt-5.4-mini", comp_hash: "family-1" }] }),
+            JSON.stringify({ models: [{ slug: "gpt-5.6-luna", comp_hash: "family-1" }] }),
           );
         }
         const headers = new Headers(init?.headers);
@@ -167,7 +167,7 @@ describe("persisted Pi acceptance lifecycle", () => {
         ]),
       );
       const modelRuntime = await ModelRuntime.create({ credentials, modelsPath: null });
-      const registeredModel = getModel("openai-codex", "gpt-5.4-mini");
+      const registeredModel = getModel("openai-codex", "gpt-5.6-luna");
       expect(registeredModel).toBeTruthy();
       const model = { ...registeredModel!, contextWindow: 10, maxTokens: 2 };
       const settingsManager = SettingsManager.inMemory({
@@ -190,7 +190,7 @@ describe("persisted Pi acceptance lifecycle", () => {
 
       expect(compactionBodies).toHaveLength(1);
       expect(compactionBodies[0]).toMatchObject({
-        model: "gpt-5.4-mini",
+        model: "gpt-5.6-luna",
         store: false,
         stream: true,
         tool_choice: "auto",
@@ -254,7 +254,7 @@ describe("persisted Pi acceptance lifecycle", () => {
         ]),
       );
       const modelRuntime = await ModelRuntime.create({ credentials, modelsPath: null });
-      const model = getModel("openai-codex", "gpt-5.4-mini");
+      const model = getModel("openai-codex", "gpt-5.6-luna");
       expect(model).toBeTruthy();
       const settingsManager = SettingsManager.inMemory({
         transport: "sse",
@@ -349,8 +349,8 @@ describe("persisted Pi acceptance lifecycle", () => {
             ? new Response(
                 JSON.stringify({
                   models: [
-                    { slug: "gpt-5.4-mini", comp_hash: "family-1" },
-                    { slug: "gpt-5.4", comp_hash: "family-1" },
+                    { slug: "gpt-5.6-luna", comp_hash: "family-1" },
+                    { slug: "gpt-5.6-sol", comp_hash: "family-1" },
                     { slug: "gpt-5.5", comp_hash: "family-2" },
                   ],
                 }),
@@ -383,8 +383,8 @@ describe("persisted Pi acceptance lifecycle", () => {
         ]),
       );
       const modelRuntime = await ModelRuntime.create({ credentials, modelsPath: null });
-      const original = getModel("openai-codex", "gpt-5.4-mini")!;
-      const compatible = getModel("openai-codex", "gpt-5.4")!;
+      const original = getModel("openai-codex", "gpt-5.6-luna")!;
+      const compatible = getModel("openai-codex", "gpt-5.6-sol")!;
       const incompatible = getModel("openai-codex", "gpt-5.5")!;
       const settingsManager = SettingsManager.inMemory({
         transport: "sse",
@@ -501,7 +501,7 @@ describe("persisted Pi acceptance lifecycle", () => {
         ]),
       );
       const modelRuntime = await ModelRuntime.create({ credentials, modelsPath: null });
-      const model = getModel("openai-codex", "gpt-5.4-mini");
+      const model = getModel("openai-codex", "gpt-5.6-luna");
       const settingsManager = SettingsManager.inMemory({
         transport: "sse",
         compaction: { enabled: true, reserveTokens: 100, keepRecentTokens: 1 },

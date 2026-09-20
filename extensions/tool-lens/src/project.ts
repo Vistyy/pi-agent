@@ -116,8 +116,10 @@ export function summarizeResult(content: readonly LensContent[], isError: boolea
 }
 
 function getToolCalls(entry: SessionEntry): ToolCallRecord[] {
-  if (entry.type !== "message" || !isRecord(entry.message) || entry.message.role !== "assistant") return [];
-  const content = entry.message.content;
+  if (entry.type !== "message") return [];
+  const message: unknown = entry.message;
+  if (!isRecord(message) || message.role !== "assistant") return [];
+  const content = message.content;
   if (!Array.isArray(content)) return [];
 
   return content.flatMap((part): ToolCallRecord[] => {
@@ -136,8 +138,9 @@ interface ToolResultRecord {
 }
 
 function getToolResult(entry: SessionEntry): ToolResultRecord | undefined {
-  if (entry.type !== "message" || !isRecord(entry.message) || entry.message.role !== "toolResult") return undefined;
-  const message = entry.message;
+  if (entry.type !== "message") return undefined;
+  const message: unknown = entry.message;
+  if (!isRecord(message) || message.role !== "toolResult") return undefined;
   if (typeof message.toolCallId !== "string" || typeof message.toolName !== "string") return undefined;
   const content = Array.isArray(message.content) ? message.content : [];
   if (!content.every((part) => isRecord(part) && (part.type === "text" || part.type === "image"))) return undefined;
