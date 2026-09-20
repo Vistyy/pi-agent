@@ -66,14 +66,14 @@ export class GuidedReview {
         if (disposition === "live") {
           comparison = await this.commands.resolveComparison(request.cwd, request.base, request.head, signal);
           const exact = exactReview(request, comparison);
-          if (owned.targetKey === exact.targetKey) {
+          if (owned.targetKey === exact.targetKey && !request.replaceExisting) {
             return {
               reused: true, sessionId: owned.sessionId, base: owned.base, head: owned.head,
               ...await this.seed(owned, request.annotations, signal),
             };
           }
           if (!request.replaceExisting) {
-            throw new Error(`A live Tuicr review already owns ${owned.base}..${owned.head}. Set replaceExisting to true to replace it.`);
+            throw new Error(`A live Tuicr review already owns ${owned.base}..${owned.head} in Herdr tab ${owned.tabId}. Set replaceExisting to true to replace it.`);
           }
           replacedFeedback = await this.replace(owned);
         }
@@ -82,7 +82,15 @@ export class GuidedReview {
       comparison ??= await this.commands.resolveComparison(request.cwd, request.base, request.head, signal);
       const exact = exactReview(request, comparison);
       const ownerSessionId = ctx.sessionManager.getSessionId();
-      const review = await this.commands.launch(exact, ownerSessionId, signal);
+      let review: OwnedReview;
+      try {
+        review = await this.commands.launch(exact, ownerSessionId, signal);
+      } catch (error) {
+        if (replacedFeedback) {
+          throw new Error(`Saved feedback from replaced comparison:\n${formatFeedback(replacedFeedback)}\nOpening the replacement failed: ${message(error)}`);
+        }
+        throw error;
+      }
       this.current = { state: "active", ownerSessionId, review };
       this.persist(this.current);
       try {

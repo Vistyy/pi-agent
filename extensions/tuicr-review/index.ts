@@ -60,7 +60,7 @@ export default function tuicrReview(pi: ExtensionAPI): void {
           type: "text" as const,
           text: [
             ...(result.replacedFeedback ? [`Saved feedback from replaced comparison:\n${formatFeedback(result.replacedFeedback)}`] : []),
-            `${result.reused ? "Reused" : "Opened"} Tuicr session ${result.sessionId} for ${result.base}..${result.head}. Accepted annotation IDs: ${result.acceptedCommentIds.join(", ") || "none"}.${failures}`,
+            `${result.reused ? "Reused" : "Opened"} Tuicr review for ${result.base}..${result.head}. Seeded Pi annotations: ${result.acceptedCommentIds.length}.${failures}`,
           ].join("\n"),
         }],
         details: result,

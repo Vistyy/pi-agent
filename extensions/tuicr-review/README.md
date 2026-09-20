@@ -14,7 +14,7 @@ Provide `base`, `head`, and the required boolean `replaceExisting`. The extensio
 
 Annotations are optional. Use them candidly to explain intent or constraints, surface meaningful risks or trade-offs, highlight a non-obvious decision, or ask a focused question. Choose the narrowest useful review, file, line, or range scope. Line and range annotations can select the `old` or `new` side.
 
-Only one owned review can be live. A same-comparison call reuses it. A different live comparison is rejected unless `replaceExisting` is true. Explicit replacement first reads and returns all saved Maintainer feedback for the old exact comparison, then closes only the owned old tab and private data before opening the new comparison. Comments and unsaved editor text are not migrated or inferred.
+Only one owned review can be live. With `replaceExisting: false`, a same-comparison call reuses it and a different comparison is rejected. With `replaceExisting: true`, either can be restarted or replaced. Explicit replacement first reads and returns all saved Maintainer feedback for the old exact comparison, then closes only the owned old tab and private data before opening the new comparison. If opening fails, the tool error still returns that saved feedback. Comments and unsaved editor text are not migrated or inferred.
 
 ## Feedback and lifecycle
 

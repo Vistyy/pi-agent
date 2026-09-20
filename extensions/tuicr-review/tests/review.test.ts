@@ -13,6 +13,7 @@ function harness() {
   const sent: any[] = [];
   const sleeps: Array<() => void> = [];
   let launchCount = 0;
+  let launchFailure: string | undefined;
   let exit: number | undefined;
   let tab = true;
   let data = true;
@@ -29,7 +30,15 @@ function harness() {
       events.push(`resolve:${base}:${head}`);
       return { base: base === "base" ? A : base === "next" ? B : base, head: head === "head" ? B : head === "next" ? C : head };
     },
-    async launch(request: any) { launchCount += 1; events.push(`launch:${request.base}:${request.head}`); tab = true; data = true; exit = undefined; return exact(request.base, request.head); },
+    async launch(request: any) {
+      launchCount += 1;
+      events.push(`launch:${request.base}:${request.head}`);
+      if (launchFailure) throw new Error(launchFailure);
+      tab = true;
+      data = true;
+      exit = undefined;
+      return exact(request.base, request.head);
+    },
     async comments() { events.push("comments"); if (commentFailures-- > 0) throw new Error("comments unavailable"); return comments; },
     async sessionExists() { events.push("sessionExists"); return sessionExists; },
     async groundComment(review: OwnedReview, comment: Comment) {
@@ -53,7 +62,9 @@ function harness() {
     events, sent, ops, context, runtime: () => new GuidedReview(pi as any, ops as any),
     setExit(value: number | undefined) { exit = value; }, setTab(value: boolean) { tab = value; },
     setComments(value: Comment[]) { comments = value; }, setCommentFailures(value: number) { commentFailures = value; },
-    setSessionExists(value: boolean) { sessionExists = value; }, tick() { sleeps.splice(0).forEach((resolve) => resolve()); },
+    setSessionExists(value: boolean) { sessionExists = value; },
+    setLaunchFailure(value: string | undefined) { launchFailure = value; },
+    tick() { sleeps.splice(0).forEach((resolve) => resolve()); },
     launchCount: () => launchCount, branch: () => branch,
   };
 }
@@ -99,6 +110,32 @@ test("replacement reads and returns old feedback before closing only the owned r
   assert.ok(h.events.indexOf("comments") < h.events.indexOf("cleanup:session-1"));
   assert.ok(h.events.indexOf("cleanup:session-1") < h.events.indexOf(`launch:${B}:${C}`));
   assert.match(result.replacedFeedback?.message ?? "", /unsaved editor text was not read or migrated/);
+  runtime.shutdown();
+});
+
+test("explicit replacement restarts the same comparison", async () => {
+  const h = harness();
+  const runtime = h.runtime();
+  await runtime.restore(h.context);
+  await runtime.ensure(request(), h.context);
+  const result = await runtime.ensure(request("base", "head", true), h.context);
+  assert.equal(result.reused, false);
+  assert.equal(h.launchCount(), 2);
+  assert.ok(result.replacedFeedback);
+  runtime.shutdown();
+});
+
+test("saved replacement feedback survives a new launch failure", async () => {
+  const h = harness();
+  const runtime = h.runtime();
+  await runtime.restore(h.context);
+  await runtime.ensure(request(), h.context);
+  h.setComments([{ id: "m1", author: "Maintainer", content: "Keep this feedback" }]);
+  h.setLaunchFailure("launch unavailable");
+  await assert.rejects(
+    runtime.ensure(request("next", "next", true), h.context),
+    /Saved feedback from replaced comparison:[\s\S]*Keep this feedback[\s\S]*launch unavailable/,
+  );
   runtime.shutdown();
 });
 
