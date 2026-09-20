@@ -1,6 +1,6 @@
 ---
 name: show-me
-description: Prefer a small visual whenever it clarifies structure, flow, scale, relationships, or change better than prose. Load this skill to choose and produce the visual; skip it when prose is clearer.
+description: Choose and produce a small visual for structure, flow, scale, relationships, or change. Use when the user asks to see something or when one of those shapes is easier to inspect visually than in prose; skip when prose is clearer.
 ---
 
 # Show Me
