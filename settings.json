@@ -9,7 +9,6 @@
   "doubleEscapeAction": "tree",
   "theme": "rose-pine-moon",
   "packages": [
-    "npm:pi-web-access@0.14.0",
     "/home/syzom/projects/pi-extensions/pi-workgraph",
     "npm:compact-adviser@0.1.2"
   ],
@@ -20,10 +19,8 @@
   "pi-workgraph": {
     "calm": {
       "additionalHiddenTools": [
-        "fetch_content",
-        "get_search_content",
-        "source_check",
         "web_search",
+        "web_fetch",
         "name_session"
       ]
     },
