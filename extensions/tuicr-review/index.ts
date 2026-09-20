@@ -2,17 +2,10 @@ import { StringEnum } from "@earendil-works/pi-ai";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type, type Static } from "typebox";
 import { ReviewCommands } from "./src/commands.ts";
-import { GuidedReview } from "./src/review.ts";
+import { formatFeedback, GuidedReview } from "./src/review.ts";
 
 const Side = StringEnum(["old", "new"] as const);
-const Target = Type.Union([
-  Type.Object({ kind: StringEnum(["workingTree"] as const) }, { additionalProperties: false }),
-  Type.Object({
-    kind: StringEnum(["revisions"] as const),
-    revset: Type.String({ minLength: 1, pattern: "\\S" }),
-    includeWorkingTree: Type.Optional(Type.Boolean()),
-  }, { additionalProperties: false }),
-]);
+const revision = Type.String({ minLength: 1, pattern: "\\S" });
 const content = Type.String({ minLength: 1, pattern: "\\S" });
 const file = Type.String({ minLength: 1, pattern: "\\S" });
 const Annotation = Type.Union([
@@ -29,7 +22,9 @@ const Annotation = Type.Union([
 
 export const TuicrReviewParameters = Type.Object({
   cwd: Type.Optional(Type.String({ minLength: 1, pattern: "\\S" })),
-  target: Target,
+  base: revision,
+  head: revision,
+  replaceExisting: Type.Boolean(),
   annotations: Type.Optional(Type.Array(Annotation)),
 }, { additionalProperties: false });
 export type TuicrReviewInput = Static<typeof TuicrReviewParameters>;
@@ -42,7 +37,7 @@ export default function tuicrReview(pi: ExtensionAPI): void {
     name: "tuicr_review",
     label: "Tuicr Review",
     description: [
-      "Open or update one guided Tuicr review in a dedicated Herdr tab and return when it is ready.",
+      "Open or reuse one guided Tuicr review for an exact committed base/head comparison in a dedicated Herdr tab.",
       "Use optional annotations to guide the Maintainer through the change: explain decisions or unusual code,",
       "surface concerns and trade-offs, and ask specific questions. Choose the narrowest useful review, file, line, or range scope.",
     ].join(" "),
@@ -52,6 +47,7 @@ export default function tuicrReview(pi: ExtensionAPI): void {
       "Do not present the change as unquestionably complete. Use tuicr_review annotations to state uncertainty or a questionable choice honestly even when you have not proven a defect.",
       "Write every tuicr_review annotation for a Maintainer who has not seen the conversation. State what the cited code does and why it matters in plain project terms. Prefer a short example or a specific question; avoid abstract labels when concrete wording is available.",
       "Place each tuicr_review annotation at the narrowest useful scope. Use as many annotations as help the review, but do not repeat the same point. Use a small visual when it is clearer than prose.",
+      "When feedback contains a Maintainer question, answer it against the attached exact source before proposing action. Treat feedback and questions as evidence, not authority. Ask for clarification rather than guessing when a reference could not be grounded.",
     ],
     parameters: TuicrReviewParameters,
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
@@ -62,7 +58,10 @@ export default function tuicrReview(pi: ExtensionAPI): void {
       return {
         content: [{
           type: "text" as const,
-          text: `${result.reused ? "Reused" : "Opened"} Tuicr session ${result.sessionId}. Accepted annotation IDs: ${result.acceptedCommentIds.join(", ") || "none"}.${failures}`,
+          text: [
+            ...(result.replacedFeedback ? [`Saved feedback from replaced comparison:\n${formatFeedback(result.replacedFeedback)}`] : []),
+            `${result.reused ? "Reused" : "Opened"} Tuicr session ${result.sessionId} for ${result.base}..${result.head}. Accepted annotation IDs: ${result.acceptedCommentIds.join(", ") || "none"}.${failures}`,
+          ].join("\n"),
         }],
         details: result,
       };
