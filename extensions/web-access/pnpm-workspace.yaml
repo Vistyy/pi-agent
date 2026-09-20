@@ -1,3 +1,10 @@
+pmOnFail: error
+
+allowBuilds:
+  '@google/genai': false
+  esbuild: true
+  protobufjs: false
+
 minimumReleaseAgeExclude:
   - '@earendil-works/chord@0.86.1'
   - '@earendil-works/pi-agent-core@0.86.1'

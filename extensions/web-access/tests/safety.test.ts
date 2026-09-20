@@ -16,6 +16,7 @@ describe("surface and safety", () => {
 	it.each([
 		"file:///etc/passwd", "http://user:pass@example.com", "http://localhost/x", "http://service.local/x",
 		"http://127.0.0.1/x", "http://10.2.3.4/x", "http://[::1]/x", "http://[fd00::1]/x",
+		"http://[fec0::1]/x", "http://[fed0::1]/x",
 	])("rejects unsafe initial URL %s", (url) => expect(() => normalizePublicUrl(url)).toThrow(/HTTP|credentials|Local|private/i));
 
 	it("rejects hostnames resolving to private addresses before network submission", async () => {

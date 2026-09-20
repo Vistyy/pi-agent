@@ -8,18 +8,13 @@ const SearchParams = Type.Object({
 	query: Type.String({ minLength: 1, description: "One web search query." }),
 }, { additionalProperties: false });
 
-const FetchParams = Type.Union([
-	Type.Object({
-		url: Type.String({ minLength: 1, description: "Public HTTP(S) URL." }),
-		question: Type.Optional(Type.String({ minLength: 1, description: "Focus highlights across the page on this question." })),
-		maxChars: Type.Optional(Type.Integer({ minimum: 1_000, maximum: 30_000 })),
-	}, { additionalProperties: false }),
-	Type.Object({
-		contentRef: Type.String({ minLength: 1, description: "Reference returned by a truncated broad fetch." }),
-		offset: Type.Integer({ minimum: 0, description: "Required zero-based Unicode character offset." }),
-		maxChars: Type.Optional(Type.Integer({ minimum: 1_000, maximum: 30_000 })),
-	}, { additionalProperties: false }),
-]);
+const FetchParams = Type.Object({
+	url: Type.Optional(Type.String({ minLength: 1, description: "Public HTTP(S) URL for a new fetch." })),
+	question: Type.Optional(Type.String({ minLength: 1, description: "Focus evidence across the page on this question." })),
+	contentRef: Type.Optional(Type.String({ minLength: 1, description: "Reference returned by a truncated broad fetch." })),
+	offset: Type.Optional(Type.Integer({ minimum: 0, description: "Required zero-based Unicode character offset for continuation." })),
+	maxChars: Type.Optional(Type.Integer({ minimum: 1_000, maximum: 30_000 })),
+}, { additionalProperties: false });
 
 export default function webAccessExtension(pi: ExtensionAPI) {
 	const service = new WebAccessService();
@@ -38,11 +33,17 @@ export default function webAccessExtension(pi: ExtensionAPI) {
 		renderCall(args, theme) {
 			return new Text(`${theme.fg("toolTitle", theme.bold("web_search "))}${theme.fg("muted", args.query)}`, 0, 0);
 		},
-		renderResult(result, _options, theme) {
+		renderResult(result, { expanded }, theme) {
+			const text = result.content[0]?.type === "text" ? result.content[0].text : "";
 			const details = result.details as Record<string, unknown> | undefined;
-			const backend = details?.backend ? ` · ${details.backend}` : "";
-			const request = details?.requestId ? ` · ${details.requestId}` : "";
-			return new Text(theme.fg("dim", `${result.content[0]?.type === "text" ? result.content[0].text : ""}${backend}${request}`), 0, 0);
+			if (expanded) {
+				const request = details?.requestId ? `request ${details.requestId}` : undefined;
+				const cost = details?.cost !== undefined ? `cost ${JSON.stringify(details.cost)}` : undefined;
+				const meta = [details?.backend, request, cost].filter(Boolean).join(" · ");
+				return new Text(`${text}${meta ? `\n\n${theme.fg("dim", meta)}` : ""}`, 0, 0);
+			}
+			const fallback = details?.fallback ? " · fallback" : "";
+			return new Text(theme.fg("dim", `${details?.backend ?? "web"}${fallback} · ${Array.from(text).length} chars`), 0, 0);
 		},
 	});
 
@@ -58,8 +59,17 @@ export default function webAccessExtension(pi: ExtensionAPI) {
 			catch (error) { return errorResult(error); }
 		},
 		renderCall(args, theme) {
-			const target = "url" in args ? args.url : `${args.contentRef} @ ${args.offset}`;
+			const target = args.url ?? `${args.contentRef} @ ${args.offset}`;
 			return new Text(`${theme.fg("toolTitle", theme.bold("web_fetch "))}${theme.fg("muted", target)}`, 0, 0);
+		},
+		renderResult(result, { expanded }, theme) {
+			const text = result.content[0]?.type === "text" ? result.content[0].text : "";
+			const details = result.details as Record<string, any> | undefined;
+			if (expanded) return new Text(text, 0, 0);
+			const range = details?.range;
+			const position = range ? ` · ${range.start}-${range.end}/${details.representationChars}` : "";
+			const state = details?.complete ? " · complete" : details?.nextOffset !== undefined ? " · more" : "";
+			return new Text(theme.fg("dim", `${details?.source ?? details?.mode ?? "web"}${position}${state}`), 0, 0);
 		},
 	});
 

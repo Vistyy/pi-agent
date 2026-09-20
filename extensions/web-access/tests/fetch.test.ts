@@ -18,7 +18,7 @@ describe("web_fetch", () => {
 			return json({ results: [{ title: "Page", highlights: empty ? [] : ["first evidence", "second evidence"] }] });
 		} });
 		const focused = await service.webFetch({ url: "https://example.com/page", question: "why?" });
-		expect(bodies[0]).toMatchObject({ ids: ["https://example.com/page"], highlights: { query: "why?" } });
+		expect(bodies[0]).toMatchObject({ urls: ["https://example.com/page"], highlights: { query: "why?" }, maxAgeHours: 0 });
 		expect(focused.content[0].text).toContain("selected evidence; not exhaustive");
 		expect(focused.content[0].text).toContain("first evidence");
 		expect(focused.details.mode).toBe("selected-highlights");
@@ -31,7 +31,7 @@ describe("web_fetch", () => {
 		let calls = 0;
 		const original = "😀".repeat(7_000) + "END";
 		const service = new WebAccessService({ apiKey: () => "key", resolve: publicDns, fetch: async (_url, init) => {
-			calls++; expect(JSON.parse(String(init?.body))).toEqual({ ids: ["https://example.com/large"], text: { maxAgeHours: 0 } });
+			calls++; expect(JSON.parse(String(init?.body))).toEqual({ urls: ["https://example.com/large"], text: { maxCharacters: 200_000 }, maxAgeHours: 0 });
 			return json({ results: [{ title: "Large", text: original }] });
 		} });
 		const first = await service.webFetch({ url: "https://example.com/large", maxChars: 1_000 });
@@ -50,16 +50,20 @@ describe("web_fetch", () => {
 		let n = 0;
 		const service = new WebAccessService({ apiKey: () => "key", resolve: publicDns, fetch: async () => json({ results: [{ text: `${n++}:` + "x".repeat(10_000) }] }) });
 		const refs: string[] = [];
-		for (let i = 0; i < 9; i++) refs.push((await service.webFetch({ url: `https://example.com/${i}`, maxChars: 1_000 })).details.contentRef as string);
+		for (let i = 0; i < 17; i++) refs.push((await service.webFetch({ url: `https://example.com/${i}`, maxChars: 1_000 })).details.contentRef as string);
 		await expect(service.webFetch({ contentRef: refs[0]!, offset: 1_000 })).rejects.toThrow(/expired or unknown/);
 		service.clear();
-		await expect(service.webFetch({ contentRef: refs[8]!, offset: 1_000 })).rejects.toThrow(/expired or unknown/);
+		await expect(service.webFetch({ contentRef: refs[16]!, offset: 1_000 })).rejects.toThrow(/expired or unknown/);
 	});
 
-	it("honors per-URL errors despite HTTP 200 and validates maxChars", async () => {
-		const service = new WebAccessService({ apiKey: () => "key", resolve: publicDns, fetch: async () => json({ results: [{ status: "error", error: "blocked" }] }) });
+	it("honors per-URL statuses despite HTTP 200 and validates input forms", async () => {
+		const service = new WebAccessService({ apiKey: () => "key", resolve: publicDns, fetch: async () => json({
+			results: [{ text: "misleading body" }], statuses: [{ status: "error", error: "blocked" }],
+		}) });
 		await expect(service.webFetch({ url: "https://example.com" })).rejects.toThrow(/provider reported an error/);
 		await expect(service.webFetch({ url: "https://example.com", maxChars: 999 })).rejects.toThrow(/1000 to 30000/);
+		await expect(service.webFetch({ url: "https://example.com", contentRef: "mixed", offset: 0 })).rejects.toThrow(/either url/);
+		await expect(service.webFetch({ contentRef: "missing-offset" })).rejects.toThrow(/requires contentRef and offset/);
 	});
 
 	it("bypasses Exa for GitHub raw/blob/API content and decodes Contents payloads", async () => {
@@ -76,7 +80,27 @@ describe("web_fetch", () => {
 		expect(blob.content[0].text).toContain("raw exact");
 		expect(api.content[0].text).toContain("api exact");
 		expect(urls[1]).toBe("https://raw.githubusercontent.com/o/r/main/a.txt");
+		expect(blob.content[0].text).toContain("URL: https://github.com/o/r/blob/main/a.txt");
 		expect(urls).toHaveLength(3);
+	});
+
+	it("focuses exact GitHub text locally without calling Exa or offering continuation", async () => {
+		const service = new WebAccessService({ apiKey: () => { throw new Error("Exa must not be used"); }, resolve: publicDns, fetch: async () => text([
+			"Installation details live here.",
+			"",
+			"Security policy requires signed releases.",
+			"",
+			"Unrelated history.",
+		].join("\n")) });
+		const result = await service.webFetch({
+			url: "https://raw.githubusercontent.com/o/r/main/README.md",
+			question: "What is the security policy?",
+		});
+		expect(result.content[0].text).toContain("Security policy requires signed releases.");
+		expect(result.content[0].text).not.toContain("Installation details");
+		expect(result.details.mode).toBe("selected-highlights");
+		expect(result.details.contentRef).toBeUndefined();
+		expect(result.details.nextOffset).toBeUndefined();
 	});
 
 	it("pretty-prints non-Contents GitHub API JSON and rejects direct binary", async () => {
@@ -86,5 +110,11 @@ describe("web_fetch", () => {
 		expect(result.content[0].text).toContain('"ok": true');
 		binary = true;
 		await expect(service.webFetch({ url: "https://raw.githubusercontent.com/o/r/main/image" })).rejects.toThrow(/binary/);
+	});
+
+	it("rejects binary bytes decoded from GitHub Contents base64", async () => {
+		const payload = Buffer.from([0x00, 0x01, 0x02, 0x41]).toString("base64");
+		const service = new WebAccessService({ resolve: publicDns, fetch: async () => json({ encoding: "base64", content: payload }) });
+		await expect(service.webFetch({ url: "https://api.github.com/repos/o/r/contents/blob.bin" })).rejects.toThrow(/binary/);
 	});
 });

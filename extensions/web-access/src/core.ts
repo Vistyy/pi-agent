@@ -6,18 +6,23 @@ const EXA = "https://api.exa.ai";
 const SEARCH_BUDGET = 3_000;
 const DIRECT_HOSTS = new Set(["raw.githubusercontent.com", "api.github.com"]);
 const MAX_API_BYTES = 2_000_000;
-const MAX_DIRECT_BYTES = 2_000_000;
+const MAX_DIRECT_BYTES = 1_000_000;
+const MAX_EXA_TEXT_CHARS = 200_000;
 const MAX_CACHE_CHARS = 1_000_000;
-const MAX_CACHE_ENTRIES = 8;
+const MAX_CACHE_ENTRIES = 16;
 
 export type FetchLike = (input: string | URL, init?: RequestInit) => Promise<Response>;
 export type ResolveHost = (host: string) => Promise<string[]>;
 export type ToolResult = { content: [{ type: "text"; text: string }]; details: Record<string, unknown> };
-export type FetchInput =
-	| { url: string; question?: string; maxChars?: number }
-	| { contentRef: string; offset: number; maxChars?: number };
+export type FetchInput = {
+	url?: string;
+	question?: string;
+	contentRef?: string;
+	offset?: number;
+	maxChars?: number;
+};
 
-type CacheEntry = { ref: string; url: string; title?: string; text: string; source: string };
+type CacheEntry = { ref: string; url: string; title?: string; text: string; source: string; warning?: string };
 type Citation = { url: string; title?: string };
 type ExaStatus = { id?: unknown; status?: unknown; error?: unknown };
 
@@ -32,6 +37,16 @@ function cleanText(value: unknown): string {
 }
 function cleanInline(value: unknown): string {
 	return cleanText(value).replace(/\s+/g, " ");
+}
+function looksBinary(value: string): boolean {
+	const sample = value.slice(0, 8_192);
+	if (sample.includes("\u0000")) return true;
+	let controls = 0;
+	for (const character of sample) {
+		const code = character.codePointAt(0)!;
+		if (code < 32 && character !== "\n" && character !== "\r" && character !== "\t") controls++;
+	}
+	return sample.length > 0 && controls / sample.length > 0.01;
 }
 function abortError(): Error { return new DOMException("The operation was cancelled", "AbortError"); }
 function isAbort(error: unknown): boolean { return error instanceof Error && error.name === "AbortError"; }
@@ -101,7 +116,9 @@ function privateAddress(address: string): boolean {
 	if (isIP(normalized) === 4) return privateV4(normalized);
 	if (isIP(normalized) !== 6) return true;
 	if (normalized === "::" || normalized === "::1" || normalized.startsWith("fc") || normalized.startsWith("fd") || normalized.startsWith("ff") ||
-		normalized.startsWith("fe8") || normalized.startsWith("fe9") || normalized.startsWith("fea") || normalized.startsWith("feb") || normalized.startsWith("2001:db8:")) return true;
+		normalized.startsWith("fe8") || normalized.startsWith("fe9") || normalized.startsWith("fea") || normalized.startsWith("feb") ||
+		normalized.startsWith("fec") || normalized.startsWith("fed") || normalized.startsWith("fee") || normalized.startsWith("fef") ||
+		normalized.startsWith("2001:db8:")) return true;
 	const embedded = normalized.match(/::(?:ffff:)?(\d+\.\d+\.\d+\.\d+)$/)?.[1];
 	if (embedded) return privateV4(embedded);
 	const mappedHex = normalized.match(/::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
@@ -129,7 +146,10 @@ export function normalizePublicUrl(raw: string): string {
 
 function citationUrl(raw: unknown): string | undefined {
 	if (typeof raw !== "string" || raw.length > 2_000) return undefined;
-	try { return normalizePublicUrl(raw); } catch { return undefined; }
+	try {
+		const normalized = normalizePublicUrl(raw);
+		return normalized.length <= 2_000 ? normalized : undefined;
+	} catch { return undefined; }
 }
 
 async function defaultResolve(host: string): Promise<string[]> {
@@ -162,18 +182,35 @@ function exaResultError(result: any): string | undefined {
 	return undefined;
 }
 
-function fitSearch(answer: string, citations: Citation[]): string {
+function exaContentsIssue(data: any, item: any): string | undefined {
+	const status = Array.isArray(data?.statuses) ? data.statuses[0] : undefined;
+	return exaResultError(status) || exaResultError(item) || (!item ? "missing per-URL result" : undefined);
+}
+
+function fitSearch(answer: string, citations: Array<Citation | undefined>): string {
 	const unique: Citation[] = [];
-	const seen = new Set<string>();
-	for (const citation of citations) {
-		if (!seen.has(citation.url)) { seen.add(citation.url); unique.push(citation); }
+	const sourceByUrl = new Map<string, number>();
+	const remap = new Map<number, number>();
+	for (const [index, citation] of citations.entries()) {
+		if (!citation) continue;
+		let source = sourceByUrl.get(citation.url);
+		if (source === undefined) {
+			unique.push(citation);
+			source = unique.length;
+			sourceByUrl.set(citation.url, source);
+		}
+		remap.set(index + 1, source);
 	}
+	const normalizedAnswer = answer.replace(/\[(\d+)\]/g, (_marker, id: string) => {
+		const source = remap.get(Number(id));
+		return source === undefined ? "" : `[${source}]`;
+	});
 	for (let count = Math.min(unique.length, 8); count >= 1; count--) {
-		const lines = unique.slice(0, count).map((c, i) => `[${i + 1}] ${c.title ? `${c.title} — ` : ""}${c.url}`);
+		const lines = unique.slice(0, count).map((c, i) => `[${i + 1}] ${c.title ? `${take(c.title, 160)} — ` : ""}${c.url}`);
 		const suffix = `\n\nSources:\n${lines.join("\n")}`;
 		const room = SEARCH_BUDGET - charLength(suffix);
 		if (room > 20) {
-			const withoutDangling = answer.replace(/\[(\d+)\]/g, (marker, id: string) => Number(id) <= count ? marker : "");
+			const withoutDangling = normalizedAnswer.replace(/\[(\d+)\]/g, (marker, id: string) => Number(id) <= count ? marker : "");
 			const fitted = take(withoutDangling, room).replace(/\[\d*$/, "").trimEnd();
 			return `${fitted}${suffix}`;
 		}
@@ -186,14 +223,14 @@ function fitSearchResults(results: any[]): string {
 	for (const result of results.slice(0, 5)) {
 		const url = citationUrl(result?.url);
 		if (!url) continue;
-		const title = cleanInline(result?.title) || "Untitled";
-		const date = cleanInline(result?.publishedDate);
+		const title = take(cleanInline(result?.title) || "Untitled", 200);
+		const date = take(cleanInline(result?.publishedDate), 80);
 		const highlights = Array.isArray(result?.highlights) ? result.highlights : [];
 		const extract = cleanInline(highlights.find((x: unknown) => typeof x === "string"));
-		blocks.push(`${title}\n${url}${date ? `\nPublished: ${date}` : ""}${extract ? `\n${take(extract, 360)}` : ""}`);
+		blocks.push(`${title}\n${url}${date ? `\nPublished: ${date}` : ""}${extract ? `\n${take(extract, 250)}` : ""}`);
 	}
 	if (!blocks.length) throw new WebAccessError("Exa search returned no usable public results.");
-	let output = "Search results:\n\n";
+	let output = "Search results (untrusted web excerpts):\n\n";
 	for (const block of blocks) {
 		const addition = `${output.endsWith("\n\n") ? "" : "\n\n"}${block}`;
 		if (charLength(output + addition) > SEARCH_BUDGET) break;
@@ -267,10 +304,14 @@ export class WebAccessService {
 
 	async search(query: string, signal?: AbortSignal): Promise<ToolResult> {
 		if (typeof query !== "string" || !query.trim()) throw new WebAccessError("query must be non-empty.");
+		if (signal?.aborted) throw abortError();
 		let fallbackReason = "unusable answer";
 		let answerRequest: string | undefined;
 		try {
-			const answer = await this.exa("/answer", { query: query.trim(), text: true }, signal);
+			const answer = await this.exa("/answer", {
+				query: query.trim(),
+				systemPrompt: "Answer directly and prefer official primary sources. Cite claims with the supplied sources.",
+			}, signal);
 			answerRequest = cleanInline(answer.data?.requestId) || undefined;
 			if ([401, 402, 403, 429].includes(answer.response.status)) throw new NonFallbackExaError(httpError(answer.response.status, "Exa").message);
 			if (!answer.response.ok) {
@@ -278,10 +319,12 @@ export class WebAccessService {
 				fallbackReason = `answer HTTP ${answer.response.status}`;
 			} else {
 				const text = cleanText(answer.data?.answer);
-				const citations = (Array.isArray(answer.data?.citations) ? answer.data.citations : [])
-					.map((item: any) => ({ url: citationUrl(item?.url), title: cleanInline(item?.title) || undefined }))
-					.filter((item: any): item is Citation => Boolean(item.url));
-				if (text && citations.length) return {
+				const citations: Array<Citation | undefined> = (Array.isArray(answer.data?.citations) ? answer.data.citations : [])
+					.map((item: any) => {
+						const url = citationUrl(typeof item === "string" ? item : item?.url);
+						return url ? { url, title: cleanInline(item?.title) || undefined } : undefined;
+					});
+				if (text && citations.some(Boolean)) return {
 					content: [{ type: "text", text: fitSearch(text, citations) }],
 					details: { backend: "exa-answer", requestId: answerRequest, cost: answer.data?.costDollars, fallback: false },
 				};
@@ -309,27 +352,32 @@ export class WebAccessService {
 	}
 
 	async webFetch(input: FetchInput, signal?: AbortSignal): Promise<ToolResult> {
-		const maxChars = input.maxChars ?? ("question" in input && input.question ? 4_000 : 6_000);
+		const hasUrl = typeof input.url === "string";
+		const hasRef = typeof input.contentRef === "string";
+		if (hasUrl === hasRef) throw new WebAccessError("Provide either url for a new fetch or contentRef with offset for continuation.");
+		if (hasUrl && input.offset !== undefined) throw new WebAccessError("offset is only valid with contentRef continuation.");
+		if (hasRef && (input.question !== undefined || input.offset === undefined)) throw new WebAccessError("Continuation requires contentRef and offset, without url or question.");
+		const maxChars = input.maxChars ?? (input.question !== undefined ? 4_000 : 6_000);
 		if (!Number.isInteger(maxChars) || maxChars < 1_000 || maxChars > 30_000) throw new WebAccessError("maxChars must be an integer from 1000 to 30000.");
-		if ("contentRef" in input) return this.continue(input.contentRef, input.offset, maxChars);
+		if (hasRef) return this.continue(input.contentRef!, input.offset!, maxChars);
+		if (input.question !== undefined && !input.question.trim()) throw new WebAccessError("question must be non-empty when provided.");
 		if (signal?.aborted) throw abortError();
-		const url = normalizePublicUrl(input.url);
+		const url = normalizePublicUrl(input.url!);
 		await assertPublicResolution(url, this.resolver);
 		if (signal?.aborted) throw abortError();
 		const direct = githubDirectUrl(url);
-		if (direct) return this.direct(direct.url, direct.source, maxChars, signal);
-		if (input.question !== undefined) {
-			if (!input.question.trim()) throw new WebAccessError("question must be non-empty when provided.");
-			return this.focused(url, input.question.trim(), maxChars, signal);
-		}
+		if (direct) return this.direct(url, direct.url, direct.source, maxChars, input.question?.trim(), signal);
+		if (input.question !== undefined) return this.focused(url, input.question.trim(), maxChars, signal);
 		return this.broad(url, maxChars, signal);
 	}
 
 	private async focused(url: string, question: string, budget: number, signal?: AbortSignal): Promise<ToolResult> {
-		const result = await this.exa("/contents", { ids: [url], highlights: { query: question, maxCharacters: Math.min(8_000, budget * 2) } }, signal);
+		const result = await this.exa("/contents", {
+			urls: [url], highlights: { query: question, maxCharacters: Math.min(8_000, budget * 2) }, maxAgeHours: 0,
+		}, signal);
 		if (!result.response.ok) throw httpError(result.response.status, "Exa Contents");
 		const item = result.data?.results?.[0];
-		const issue = exaResultError(item) || (!item ? "missing per-URL result" : undefined);
+		const issue = exaContentsIssue(result.data, item);
 		if (issue) throw new WebAccessError(`Exa could not fetch this URL: ${issue}.`);
 		const highlights = (Array.isArray(item.highlights) ? item.highlights : []).map(cleanText).filter(Boolean);
 		const title = cleanInline(item.title) || undefined;
@@ -341,18 +389,21 @@ export class WebAccessService {
 	}
 
 	private async broad(url: string, budget: number, signal?: AbortSignal): Promise<ToolResult> {
-		const result = await this.exa("/contents", { ids: [url], text: { maxAgeHours: 0 } }, signal);
+		const result = await this.exa("/contents", {
+			urls: [url], text: { maxCharacters: MAX_EXA_TEXT_CHARS }, maxAgeHours: 0,
+		}, signal);
 		if (!result.response.ok) throw httpError(result.response.status, "Exa Contents");
 		const item = result.data?.results?.[0];
-		const issue = exaResultError(item) || (!item ? "missing per-URL result" : undefined);
+		const issue = exaContentsIssue(result.data, item);
 		if (issue) throw new WebAccessError(`Exa could not fetch this URL: ${issue}.`);
 		const text = cleanText(item.text);
 		if (!text) throw new WebAccessError("Exa returned an empty broad representation for this URL.");
-		return this.storeAndFormat(text, url, cleanInline(item.title) || undefined, "exa-text", budget);
+		const warning = charLength(text) >= MAX_EXA_TEXT_CHARS ? "Exa may have truncated this representation at its 200000-character extraction limit." : undefined;
+		return this.storeAndFormat(text, url, cleanInline(item.title) || undefined, "exa-text", budget, warning);
 	}
 
-	private async direct(url: string, source: string, budget: number, signal?: AbortSignal): Promise<ToolResult> {
-		let current = url;
+	private async direct(requestedUrl: string, fetchUrl: string, source: string, budget: number, question?: string, signal?: AbortSignal): Promise<ToolResult> {
+		let current = fetchUrl;
 		for (let redirects = 0; redirects <= 3; redirects++) {
 			await assertPublicResolution(current, this.resolver);
 			if (!DIRECT_HOSTS.has(new URL(current).hostname)) throw new WebAccessError("GitHub direct fetch redirected outside recognized exact-content hosts.");
@@ -365,7 +416,7 @@ export class WebAccessService {
 			}
 			if (!response.ok) throw new WebAccessError(`GitHub exact-content fetch failed (HTTP ${response.status}).`);
 			const type = response.headers.get("content-type")?.toLowerCase() ?? "";
-			if (source !== "github-api" && (type.startsWith("image/") || type.startsWith("audio/") || type.startsWith("video/") || text.includes("\u0000"))) throw new WebAccessError("GitHub content is binary and cannot be returned as text.");
+			if (source !== "github-api" && (type.startsWith("image/") || type.startsWith("audio/") || type.startsWith("video/") || looksBinary(text))) throw new WebAccessError("GitHub content is binary and cannot be returned as text.");
 			let body = text;
 			if (source === "github-api") {
 				const json = parseJson(text, "GitHub API");
@@ -377,17 +428,24 @@ export class WebAccessService {
 					} catch { throw new WebAccessError("GitHub Contents payload is not valid UTF-8 text."); }
 				} else body = JSON.stringify(json, null, 2);
 			}
+			if (looksBinary(body)) throw new WebAccessError("GitHub content is binary and cannot be returned as text.");
 			body = cleanText(body);
 			if (!body) throw new WebAccessError("GitHub returned empty content.");
-			return this.storeAndFormat(body, url, undefined, source, budget);
+			if (question) {
+				const selected = selectFocusedText(body, question);
+				const evidence = selected || "No focused passages matched. Call web_fetch with {url} and no question for a broad fetch.";
+				return fitFetchOutput(evidence, budget, { mode: "selected-highlights", url: requestedUrl, complete: false, source }, undefined);
+			}
+			return this.storeAndFormat(body, requestedUrl, undefined, source, budget);
 		}
 		throw new WebAccessError("GitHub exact-content fetch exceeded the redirect limit.");
 	}
 
-	private storeAndFormat(text: string, url: string, title: string | undefined, source: string, budget: number): ToolResult {
+	private storeAndFormat(text: string, url: string, title: string | undefined, source: string, budget: number, warning?: string): ToolResult {
 		const ref = randomBytes(12).toString("base64url");
-		this.cache.put({ ref, url, title, text, source });
-		return fitFetchOutput(text, budget, { mode: "broad-text", url, title, complete: true, source }, ref);
+		const result = fitFetchOutput(text, budget, { mode: "broad-text", url, title, complete: true, source, warning }, ref);
+		if (result.details.contentRef) this.cache.put({ ref, url, title, text, source, warning });
+		return result;
 	}
 
 	private continue(ref: string, offset: number, budget: number): ToolResult {
@@ -396,8 +454,30 @@ export class WebAccessService {
 		if (!entry) throw new WebAccessError("contentRef is expired or unknown; fetch the URL again.");
 		const total = charLength(entry.text);
 		if (offset > total) throw new WebAccessError(`offset ${offset} is beyond the ${total}-character representation.`);
-		return fitFetchOutput(entry.text, budget, { mode: "broad-text", url: entry.url, title: entry.title, complete: false, source: entry.source }, ref, offset);
+		return fitFetchOutput(entry.text, budget, { mode: "broad-text", url: entry.url, title: entry.title, complete: false, source: entry.source, warning: entry.warning }, ref, offset);
 	}
+}
+
+function selectFocusedText(text: string, question: string): string {
+	const allTerms = question.toLocaleLowerCase().match(/[\p{L}\p{N}]{2,}/gu) ?? [];
+	const stopWords = new Set(["and", "are", "for", "from", "how", "is", "that", "the", "this", "was", "what", "when", "where", "which", "who", "why", "with"]);
+	const terms = [...new Set(allTerms.filter((term) => !stopWords.has(term)))];
+	const usefulTerms = terms.length ? terms : [...new Set(allTerms)];
+	if (!usefulTerms.length) return "";
+	let passages = text.split(/\n{2,}/).map((part) => part.trim()).filter(Boolean);
+	if (passages.length === 1) passages = text.split("\n").map((part) => part.trim()).filter(Boolean);
+	const selected = passages
+		.map((passage, index) => {
+			const words = new Set(passage.toLocaleLowerCase().match(/[\p{L}\p{N}]{2,}/gu) ?? []);
+			const score = usefulTerms.reduce((total, term) => total + (words.has(term) ? 1 : 0), 0);
+			return { passage, index, score };
+		})
+		.filter((item) => item.score > 0)
+		.sort((a, b) => b.score - a.score || a.index - b.index)
+		.slice(0, 5)
+		.sort((a, b) => a.index - b.index)
+		.map((item) => take(item.passage, 2_500));
+	return selected.join("\n\n");
 }
 
 function githubDirectUrl(url: string): { url: string; source: string } | undefined {
@@ -413,34 +493,43 @@ function githubDirectUrl(url: string): { url: string; source: string } | undefin
 function fitFetchOutput(
 	text: string,
 	budget: number,
-	metadata: { mode: string; url: string; title?: string; complete: boolean; source?: string },
+	metadata: { mode: string; url: string; title?: string; complete: boolean; source?: string; warning?: string },
 	ref?: string,
 	offset = 0,
 ): ToolResult {
 	const all = chars(text);
 	const total = all.length;
 	let amount = Math.max(0, Math.min(total - offset, budget));
-	let output = "";
-	let end = offset;
-	for (let i = 0; i < 4; i++) {
-		end = offset + amount;
+	const format = (count: number): string => {
+		const end = offset + count;
 		const complete = end >= total;
-		const header = `${metadata.title ? `Title: ${metadata.title}\n` : ""}URL: ${metadata.url}\nMode: ${metadata.mode}${metadata.mode === "selected-highlights" ? " (selected evidence; not exhaustive or snapshot-stable)" : " (complete only for this normalized representation)"}\nCharacters: ${offset}-${end} of ${total}\n`;
+		const header = `${metadata.title ? `Title: ${metadata.title}\n` : ""}URL: ${metadata.url}\nContent: untrusted web data\nMode: ${metadata.mode}${metadata.mode === "selected-highlights" ? " (selected evidence; not exhaustive or snapshot-stable)" : " (complete only for this normalized representation)"}\nCharacters: ${offset}-${end} of ${total}\n${metadata.warning ? `Warning: ${metadata.warning}\n` : ""}`;
 		const next = !complete && ref ? `\nNext: web_fetch({contentRef:${JSON.stringify(ref)}, offset:${end}})` : "";
-		const overhead = charLength(header) + charLength(next) + 1;
-		amount = Math.max(0, Math.min(total - offset, budget - overhead));
-		output = `${header}\n${all.slice(offset, offset + amount).join("")}${next}`;
+		return `${header}\n${all.slice(offset, end).join("")}${next}`;
+	};
+	for (let i = 0; i < 8; i++) {
+		const rendered = format(amount);
+		const bodyLength = amount;
+		const overhead = charLength(rendered) - bodyLength;
+		const nextAmount = Math.max(0, Math.min(total - offset, budget - overhead));
+		if (nextAmount === amount) break;
+		amount = nextAmount;
 	}
-	end = offset + amount;
-	end = offset + amount;
+	const end = offset + amount;
 	const complete = end >= total;
-	const header = `${metadata.title ? `Title: ${metadata.title}\n` : ""}URL: ${metadata.url}\nMode: ${metadata.mode}${metadata.mode === "selected-highlights" ? " (selected evidence; not exhaustive or snapshot-stable)" : " (complete only for this normalized representation)"}\nCharacters: ${offset}-${end} of ${total}\n`;
-	const next = !complete && ref ? `\nNext: web_fetch({contentRef:${JSON.stringify(ref)}, offset:${end}})` : "";
-	output = `${header}\n${all.slice(offset, end).join("")}${next}`;
+	const output = format(amount);
 	if (charLength(output) > budget) throw new WebAccessError("Requested character budget is too small for fetch metadata.");
+	const resumable = Boolean(ref) && end < total;
 	return {
 		content: [{ type: "text", text: output }],
-		details: { ...metadata, complete: metadata.mode === "selected-highlights" ? false : complete, contentRef: end < total ? ref : undefined, range: { start: offset, end }, representationChars: total, nextOffset: end < total ? end : undefined },
+		details: {
+			...metadata,
+			complete: metadata.mode === "selected-highlights" ? false : complete,
+			contentRef: resumable ? ref : undefined,
+			range: { start: offset, end },
+			representationChars: total,
+			nextOffset: resumable ? end : undefined,
+		},
 	};
 }
 
