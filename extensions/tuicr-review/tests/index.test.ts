@@ -13,15 +13,16 @@ test("registers exactly one tool with optional scoped annotations and no comment
   assert.deepEqual(handlers.sort(), ["session_shutdown", "session_start", "session_tree"]);
 
   const [tool] = tools;
-  assert.match(tool.description, /context that the diff does not make clear/);
+  assert.match(tool.description, /guide the Maintainer through the change/);
+  assert.match(tool.description, /concerns and trade-offs/);
   assert.ok(tool.promptGuidelines.some((guideline: string) =>
-    guideline.includes("Maintainer who has not seen the conversation")
+    guideline.includes("without reconstructing the implementation from scratch")
+  ));
+  assert.ok(tool.promptGuidelines.some((guideline: string) =>
+    guideline.includes("state uncertainty or a questionable choice honestly")
   ));
   assert.ok(tool.promptGuidelines.some((guideline: string) =>
     guideline.includes("what the cited code does and why it matters in plain project terms")
-  ));
-  assert.ok(tool.promptGuidelines.some((guideline: string) =>
-    guideline.includes("Do not annotate code whose purpose is already clear from the diff")
   ));
 
   const variants = (TuicrReviewParameters.properties.annotations as any).items.anyOf;

@@ -43,14 +43,15 @@ export default function tuicrReview(pi: ExtensionAPI): void {
     label: "Tuicr Review",
     description: [
       "Open or update one guided Tuicr review in a dedicated Herdr tab and return when it is ready.",
-      "Annotations are optional. Add one only when it gives the Maintainer useful context that the diff does not make clear,",
-      "or asks a specific review question. Choose the narrowest useful review, file, line, or range scope.",
+      "Use optional annotations to guide the Maintainer through the change: explain decisions or unusual code,",
+      "surface concerns and trade-offs, and ask specific questions. Choose the narrowest useful review, file, line, or range scope.",
     ].join(" "),
     promptSnippet: "Open or add useful context to a guided Tuicr review",
     promptGuidelines: [
-      "Inspect the change before calling tuicr_review. Do not annotate code whose purpose is already clear from the diff.",
+      "Inspect the change before calling tuicr_review. Use annotations to help the Maintainer follow the change without reconstructing the implementation from scratch: point out important decisions, non-obvious behavior, complex sections, concerns, trade-offs, and useful review questions.",
+      "Do not present the change as unquestionably complete. Use tuicr_review annotations to state uncertainty or a questionable choice honestly even when you have not proven a defect.",
       "Write every tuicr_review annotation for a Maintainer who has not seen the conversation. State what the cited code does and why it matters in plain project terms. Prefer a short example or a specific question; avoid abstract labels when concrete wording is available.",
-      "Place each tuicr_review annotation at the narrowest useful scope. Use a small visual only when it is clearer than prose, and do not repeat the same point in multiple annotations.",
+      "Place each tuicr_review annotation at the narrowest useful scope. Use as many annotations as help the review, but do not repeat the same point. Use a small visual when it is clearer than prose.",
     ],
     parameters: TuicrReviewParameters,
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
