@@ -9,6 +9,8 @@ const MUSE_SPARK_INSTRUCTIONS = `
 - Keep code comments to a minimum. Prefer clear code; add comments only for non-obvious intent, constraints, or behavior. Do not narrate what the code already says. Preserve useful existing comments, required notices, and tooling directives; do not perform unrelated comment cleanup.
 `;
 
+const SECTION_NAME = "model_shims";
+
 function isDeepSeekV4Flash(model: { provider: string; id: string } | undefined): boolean {
 	return (
 		(model?.provider === "deepseek" || model?.provider === "opencode-go") &&
@@ -25,10 +27,19 @@ export default function modelShims(pi: ExtensionAPI): void {
 		const extras: string[] = [];
 		if (isDeepSeekV4Flash(ctx.model)) extras.push(DEEPSEEK_V4_FLASH_INSTRUCTIONS);
 		if (isMuseSpark(ctx.model)) extras.push(MUSE_SPARK_INSTRUCTIONS);
+
+		delete event.systemPromptOptions.sections[SECTION_NAME];
 		if (extras.length === 0) return;
 
-		return {
-			systemPrompt: `${event.systemPrompt}\n${extras.join("\n")}`,
-		};
+		const instructions = extras.join("\n");
+		if (event.systemPromptOptions.forceSystemPrompt !== undefined) {
+			return {
+				systemPrompt: event.systemPrompt.endsWith(instructions)
+					? event.systemPrompt
+					: `${event.systemPrompt}\n${instructions}`,
+			};
+		}
+
+		event.systemPromptOptions.sections[SECTION_NAME] = instructions;
 	});
 }
