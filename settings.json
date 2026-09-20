@@ -27,6 +27,13 @@
         "name_session"
       ]
     },
+    "delivery": {
+      "deferredTools": [
+        "tuicr_review",
+        "follow_pr",
+        "unfollow_pr"
+      ]
+    },
     "worker": {
       "disabledTools": [
         "follow_pr",
