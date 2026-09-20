@@ -2,7 +2,7 @@ import { access, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import type { Comment, OwnedReview } from "./types.ts";
+import type { Comment, ExactComparison, FeedbackComment, OwnedReview } from "./types.ts";
 import type { NormalizedReview } from "./model.ts";
 
 interface Result { code: number; stdout: string; stderr: string }
@@ -12,6 +12,13 @@ export class ReviewCommands {
   private readonly tuicr = process.env.TUICR_BIN_PATH ?? "tuicr";
 
   constructor(private readonly pi: Pick<ExtensionAPI, "exec">) {}
+
+  async resolveComparison(cwd: string, base: string, head: string, signal?: AbortSignal): Promise<ExactComparison> {
+    return {
+      base: await this.resolveCommit(cwd, base, "base", signal),
+      head: await this.resolveCommit(cwd, head, "head", signal),
+    };
+  }
 
   async launch(request: NormalizedReview, ownerSessionId: string, signal?: AbortSignal): Promise<OwnedReview> {
     if (process.env.HERDR_ENV !== "1") throw new Error("tuicr_review requires Pi to run inside Herdr.");
@@ -34,7 +41,10 @@ export class ReviewCommands {
       ].join(" ");
       checked(await this.pi.exec(this.herdr, ["pane", "run", paneId, `sh -lc ${quote(script)}`], { signal, timeout: 10_000 }), "launch Tuicr");
       const sessionId = await this.waitForSession(request.cwd, dataHome, signal);
-      return { targetKey: request.targetKey, cwd: request.cwd, tabId, paneId, sessionId, dataHome, completionFile, accepted: {} };
+      return {
+        targetKey: request.targetKey, cwd: request.cwd, base: request.base, head: request.head,
+        tabId, paneId, sessionId, dataHome, completionFile, accepted: {}, reported: [],
+      };
     } catch (error) {
       const warnings = await this.cleanupPaths(tabId, dataHome);
       if (warnings.length) throw new Error(`${message(error)} Cleanup also failed: ${warnings.join("; ")}`);
@@ -50,6 +60,45 @@ export class ReviewCommands {
       if (!isObject(item) || typeof item.id !== "string" || typeof item.content !== "string") throw new Error("Tuicr returned an invalid comment.");
       return item as unknown as Comment;
     });
+  }
+
+  async sessionExists(review: OwnedReview, signal?: AbortSignal): Promise<boolean> {
+    const result = await this.pi.exec("env", [
+      `XDG_DATA_HOME=${review.dataHome}`, this.tuicr, "review", "list", "--repo", review.cwd,
+    ], { signal, timeout: 10_000 });
+    const value = json(checked(result, "list Tuicr sessions").stdout, "list Tuicr sessions");
+    if (!Array.isArray(value)) throw new Error("Tuicr session list response was not an array.");
+    return value.some((item) => isObject(item) && item.slug === review.sessionId);
+  }
+
+  async groundComment(review: OwnedReview, comment: Comment): Promise<FeedbackComment> {
+    const path = comment.path?.trim();
+    const start = comment.start_line;
+    const end = comment.end_line ?? start;
+    if (start == null) return comment;
+    const side = comment.side ?? "new";
+    const revision = side === "old" ? review.base : review.head;
+    const grounding = { revision, side, path: path || "(missing path)", startLine: start, endLine: end ?? start };
+    if (!path) return { ...comment, grounding: { ...grounding, unresolved: "Tuicr returned a line comment without a path." } };
+    if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1 || end! < start) {
+      return { ...comment, grounding: { ...grounding, unresolved: "Tuicr returned an invalid line range." } };
+    }
+    const result = await this.pi.exec("git", ["-C", review.cwd, "show", `${revision}:${path}`], { timeout: 10_000 });
+    if (result.code !== 0) {
+      return { ...comment, grounding: { ...grounding, unresolved: `Git could not read ${revision}:${path}: ${oneLine(result.stderr || result.stdout)}` } };
+    }
+    const lines = result.stdout.replace(/\n$/, "").split("\n");
+    if (start > lines.length || end! > lines.length) {
+      return { ...comment, grounding: { ...grounding, unresolved: `Range ${start}-${end} is outside the ${lines.length}-line file at ${revision}.` } };
+    }
+    const first = Math.max(1, start - 2);
+    const citedLast = Math.min(end!, start + 16);
+    const last = Math.min(lines.length, citedLast + 2);
+    const excerpt = lines.slice(first - 1, last).map((line, index) => {
+      const number = first + index;
+      return `${number >= start && number <= citedLast ? ">>" : "  "} ${number}: ${line}`;
+    }).join("\n");
+    return { ...comment, grounding: { ...grounding, excerpt: `${excerpt}${end! > citedLast ? `\n>> … cited range continues through line ${end}` : ""}` } };
   }
 
   async add(review: OwnedReview, payload: Record<string, unknown>, signal?: AbortSignal): Promise<string> {
@@ -89,16 +138,20 @@ export class ReviewCommands {
     }
   }
 
-  async cleanup(review: OwnedReview): Promise<string[]> {
-    const warnings: string[] = [];
+  async cleanup(review: OwnedReview): Promise<{ warnings: string[]; tabClosed: boolean }> {
     try {
       if (await this.tabExists(review)) {
         checked(await this.pi.exec(this.herdr, ["tab", "close", review.tabId], { timeout: 10_000 }), `close owned tab ${review.tabId}`);
       }
-    } catch (error) { warnings.push(message(error)); }
-    try { await rm(review.dataHome, { recursive: true, force: true }); }
-    catch (error) { warnings.push(`remove ${review.dataHome}: ${message(error)}`); }
-    return warnings;
+    } catch (error) {
+      return { warnings: [message(error)], tabClosed: false };
+    }
+    try {
+      await rm(review.dataHome, { recursive: true, force: true });
+      return { warnings: [], tabClosed: true };
+    } catch (error) {
+      return { warnings: [`remove ${review.dataHome}: ${message(error)}`], tabClosed: true };
+    }
   }
 
   sleep(milliseconds: number): Promise<void> {
@@ -106,6 +159,13 @@ export class ReviewCommands {
       const timer = setTimeout(resolve, milliseconds);
       timer.unref?.();
     });
+  }
+
+  private async resolveCommit(cwd: string, revision: string, label: string, signal?: AbortSignal): Promise<string> {
+    const result = await this.pi.exec("git", ["-C", cwd, "rev-parse", "--verify", `${revision}^{commit}`], { signal, timeout: 10_000 });
+    const commit = checked(result, `resolve ${label} revision`).stdout.trim();
+    if (!/^[0-9a-f]{40,64}$/i.test(commit)) throw new Error(`Git returned an invalid ${label} commit ID.`);
+    return commit;
   }
 
   private async waitForSession(cwd: string, dataHome: string, signal?: AbortSignal): Promise<string> {
@@ -133,7 +193,7 @@ export class ReviewCommands {
     const warnings: string[] = [];
     if (tabId) {
       try { checked(await this.pi.exec(this.herdr, ["tab", "close", tabId], { timeout: 10_000 }), `close owned tab ${tabId}`); }
-      catch (error) { warnings.push(message(error)); }
+      catch (error) { return [message(error)]; }
     }
     try { await rm(dataHome, { recursive: true, force: true }); }
     catch (error) { warnings.push(`remove ${dataHome}: ${message(error)}`); }

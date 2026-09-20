@@ -1,39 +1,34 @@
 # Tuicr review
 
-`tuicr_review` opens one guided Tuicr review in a dedicated, unfocused Herdr tab. It returns when the review is ready while completion monitoring continues in the Pi process.
+`tuicr_review` opens one guided Tuicr review for an exact committed comparison in a dedicated, unfocused Herdr tab. It returns when the review is ready while completion monitoring continues in the Pi process.
 
-## Prerequisites
+## Prerequisites and input
 
 - Pi is running inside Herdr.
 - `herdr` and `tuicr` are available on `PATH` (or through `HERDR_BIN_PATH` and `TUICR_BIN_PATH`).
-- The selected `cwd`, defaulting to Pi's current directory, is a Git working tree Tuicr can review.
+- The selected `cwd`, defaulting to Pi's current directory, is a Git repository containing both revisions.
 
-Use `target.kind: "workingTree"` for working-tree changes. Use `target.kind: "revisions"` with a `revset` for a revision range; `includeWorkingTree: true` adds current working-tree changes.
+Provide `base`, `head`, and the required boolean `replaceExisting`. The extension resolves both names to full commit IDs before launch and gives Tuicr only the exact `<base>..<head>` range. Working-tree targets and general revision-set input are not supported.
 
 ## Guided annotations
 
-Annotations are optional, and any number—including none—is valid. Add them when colocated context improves the review by:
+Annotations are optional. Use them candidly to explain intent or constraints, surface meaningful risks or trade-offs, highlight a non-obvious decision, or ask a focused question. Choose the narrowest useful review, file, line, or range scope. Line and range annotations can select the `old` or `new` side.
 
-- explaining intent or constraints;
-- surfacing meaningful risks or trade-offs;
-- highlighting a non-obvious decision; or
-- asking a focused question.
+Only one owned review can be live. With `replaceExisting: false`, a same-comparison call reuses it and a different comparison is rejected. With `replaceExisting: true`, either can be restarted or replaced. Explicit replacement first reads and returns all saved Maintainer feedback for the old exact comparison, then closes only the owned old tab and private data before opening the new comparison. If opening fails, the tool error still returns that saved feedback. Comments and unsaved editor text are not migrated or inferred.
 
-Choose the narrowest useful scope: the review, a file, a line, or a line range. Line and range annotations can select the `old` or `new` side. Tuicr validates file and line anchors.
+## Feedback and lifecycle
 
-Only one review can be active. Calling the tool again with the same normalized target reuses it, skips accepted annotations, retries failed annotations, and treats changed text as a new annotation. A different target is rejected until the current review ends. Individual annotation failures are returned without closing the review.
+Each review receives a private `XDG_DATA_HOME`. The extension retains the exact commit IDs, Herdr tab, pane, and Tuicr session it created, and launches Tuicr with `--stdout` and `--no-update-check` without focusing the tab.
 
-## Lifecycle and recovery
+Completed feedback names the exact comparison. Maintainer line and range comments include their verbatim text, exact revision, side, path, range, and a bounded excerpt read from Git with cited lines marked `>>`. Unresolvable paths, revisions, or ranges report an explicit reason and no guessed code. Review and file comments remain at their actual scope.
 
-Each review receives a private `XDG_DATA_HOME`. The extension retains the exact Herdr tab, pane, and Tuicr session it created, and launches Tuicr with `--stdout` and `--no-update-check`. It does not focus the new tab.
+When Tuicr exits, the extension reads the exact session's comments, persists feedback, closes only its owned tab, removes only its private data, and sends one visible follow-up. Tuicr may remove an empty successful session; that documented exit-0 case completes with zero comments. Other read failures preserve owned resources and report failure.
 
-When Tuicr exits, the extension reads the exact session's complete comments. Retained accepted comment IDs separate seeded Pi annotations from Maintainer comments. It persists feedback before best-effort cleanup, closes only its exact tab, removes only its private temporary data, and sends one visible follow-up that starts a Pi turn. If exact comments remain unreadable after bounded retries, it reports failure without removing the private session so it remains available for inspection or later recovery.
-
-A compact ready-review record allows an extension reload or later resume of the same owning Pi session to continue monitoring. A compact finished record and stable delivery identity allow feedback absent from the current branch to be replayed after resume. Live conversation-tree navigation is not blocked: the in-process review follows navigation and is persisted into the newly visible branch. New-session, resume, and fork rebinds do not migrate ownership to their destination session; recovery requires resuming the original owning Pi session. Shutdown and reload detach monitoring without closing the review so it can be restored later.
+A compact active record allows the owning Pi session to resume monitoring. A compact finished record and stable delivery identity allow undelivered feedback to replay after resume. Shutdown and reload detach monitoring without closing the review.
 
 ## Accepted limitations
 
 - Initial launch is not recoverable if Pi terminates before readiness is recorded.
 - Recovery is not guaranteed after reboot, temporary-directory deletion, or when the owning Pi session is never resumed.
 - A narrow crash race between queueing feedback and Pi persisting that exact message can duplicate the follow-up.
-- Cleanup is best effort. Failures are reported with the exact owned resources and may leave the tab or private temporary directory behind.
+- Cleanup is best effort; reported failures may leave the owned tab or private temporary directory behind.

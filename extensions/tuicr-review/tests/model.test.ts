@@ -1,23 +1,24 @@
 import assert from "node:assert/strict";
 import { test } from "vitest";
-import { annotationKey, annotationPayload, commentAnnotationKey, normalizeReview, restoreReview, STATE_ENTRY } from "../src/model.ts";
+import {
+  annotationKey, annotationPayload, commentAnnotationKey, exactReview, normalizeRequest, restoreReview, STATE_ENTRY,
+} from "../src/model.ts";
 
-test("constructs working-tree and revision-range targets", () => {
-  assert.deepEqual(normalizeReview("/repo", { target: { kind: "workingTree" } }).launchArgs,
-    ["--working-tree", "--stdout", "--no-update-check"]);
-  const revisions = normalizeReview("/repo", {
-    cwd: "nested/..",
-    target: { kind: "revisions", revset: " main..HEAD ", includeWorkingTree: true },
-  });
-  assert.equal(revisions.cwd, "/repo");
-  assert.deepEqual(revisions.launchArgs,
-    ["--revisions", "main..HEAD", "--working-tree", "--stdout", "--no-update-check"]);
-  assert.throws(() => normalizeReview("/repo", { target: { kind: "revisions", revset: " " } }), /non-empty revset/);
+const base = "a".repeat(40);
+const head = "b".repeat(40);
+
+test("constructs only an exact committed comparison", () => {
+  const request = normalizeRequest("/repo", { cwd: "nested/..", base: " main ", head: " HEAD ", replaceExisting: false });
+  assert.deepEqual(request, { cwd: "/repo", base: "main", head: "HEAD", replaceExisting: false, annotations: [] });
+  const exact = exactReview(request, { base, head });
+  assert.deepEqual(exact.launchArgs, ["--revisions", `${base}..${head}`, "--stdout", "--no-update-check"]);
+  assert.equal(exact.targetKey, JSON.stringify({ cwd: "/repo", base, head }));
+  assert.throws(() => normalizeRequest("/repo", { base: " ", head: "HEAD", replaceExisting: false }), /base and head/);
 });
 
 test("supports review, file, old/new line, and old/new range annotations", () => {
-  const annotations = normalizeReview("/repo", {
-    target: { kind: "workingTree" },
+  const annotations = normalizeRequest("/repo", {
+    base: "main", head: "HEAD", replaceExisting: false,
     annotations: [
       { kind: "review", content: " overview " },
       { kind: "file", file: " src/a.ts ", content: "file" },
@@ -32,39 +33,22 @@ test("supports review, file, old/new line, and old/new range annotations", () =>
     { username: "Pi", file: "src/a.ts", start_line: 5, end_line: 8, side: "new", content: "range" },
   ]);
   assert.notEqual(annotationKey(annotations[2]!), annotationKey({ ...annotations[2]!, content: "changed" }));
-  assert.throws(() => normalizeReview("/repo", {
-    target: { kind: "workingTree" },
-    annotations: [{ kind: "range", file: "a", startLine: 3, endLine: 2, content: "x" }],
-  }), /endLine/);
 });
 
 test("reconstructs normalized exact keys only for Pi-authored comments", () => {
-  assert.equal(commentAnnotationKey({
-    id: "r", author: "Pi", content: " overview ", path: null, start_line: null, end_line: null, side: null,
-  }), annotationKey({ kind: "review", content: "overview" }));
-  assert.equal(commentAnnotationKey({
-    id: "f", author: "Pi", content: "file", path: " src/a.ts ", start_line: null, end_line: null, side: null,
-  }), annotationKey({ kind: "file", file: "src/a.ts", content: "file" }));
-  assert.equal(commentAnnotationKey({
-    id: "l", author: "Pi", content: "line", path: "a", start_line: 4, end_line: null, side: "new",
-  }), annotationKey({ kind: "line", file: "a", line: 4, side: "new", content: "line" }));
-  assert.equal(commentAnnotationKey({
-    id: "g", author: "Pi", content: "range", path: "a", start_line: 2, end_line: 5, side: "old",
-  }), annotationKey({ kind: "range", file: "a", startLine: 2, endLine: 5, side: "old", content: "range" }));
-  assert.equal(commentAnnotationKey({ id: "omitted", author: "Pi", content: "line", path: "a", start_line: 4 }),
-    annotationKey({ kind: "line", file: "a", line: 4, side: "new", content: "line" }));
+  assert.equal(commentAnnotationKey({ id: "r", author: "Pi", content: " overview ", path: null }), annotationKey({ kind: "review", content: "overview" }));
+  assert.equal(commentAnnotationKey({ id: "f", author: "Pi", content: "file", path: " src/a.ts ", start_line: null, end_line: null }), annotationKey({ kind: "file", file: "src/a.ts", content: "file" }));
+  assert.equal(commentAnnotationKey({ id: "l", author: "Pi", content: "line", path: "a", start_line: 4, end_line: null, side: "new" }), annotationKey({ kind: "line", file: "a", line: 4, side: "new", content: "line" }));
   assert.equal(commentAnnotationKey({ id: "m", author: "Maintainer", content: "line", path: "a", start_line: 4 }), undefined);
 });
 
-test("rejects restored ownership with a partial or non-private cleanup path", () => {
-  const entry = (review: Record<string, unknown>) => [{
-    type: "custom", customType: STATE_ENTRY,
-    data: { state: "active", ownerSessionId: "owner", review },
-  }];
-  const otherwiseComplete = {
-    targetKey: "target", cwd: "/repo", tabId: "tab", paneId: "pane", sessionId: "session",
-    dataHome: "/tmp/pi-tuicr-review-owner-private", completionFile: "/tmp/pi-tuicr-review-owner-private/exit", accepted: {},
+test("restores only exact comparisons with private owned cleanup paths", () => {
+  const entry = (review: Record<string, unknown>) => [{ type: "custom", customType: STATE_ENTRY, data: { state: "active", ownerSessionId: "owner", review } }];
+  const complete = {
+    targetKey: "target", cwd: "/repo", base, head, tabId: "tab", paneId: "pane", sessionId: "session",
+    dataHome: "/tmp/pi-tuicr-review-owner-private", completionFile: "/tmp/pi-tuicr-review-owner-private/exit", accepted: {}, reported: [],
   };
-  assert.equal(restoreReview(entry({ ...otherwiseComplete, completionFile: "/tmp/victim" }), "owner"), undefined);
-  assert.equal(restoreReview(entry({ ...otherwiseComplete, dataHome: "/var/tmp/pi-tuicr-review-owner-private" }), "owner"), undefined);
+  assert.ok(restoreReview(entry(complete), "owner"));
+  assert.equal(restoreReview(entry({ ...complete, base: undefined }), "owner"), undefined);
+  assert.equal(restoreReview(entry({ ...complete, completionFile: "/tmp/victim" }), "owner"), undefined);
 });
