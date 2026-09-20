@@ -24,7 +24,6 @@ export type FetchInput = {
 
 type CacheEntry = { ref: string; url: string; title?: string; text: string; source: string; warning?: string };
 type Citation = { url: string; title?: string };
-type ExaStatus = { id?: unknown; status?: unknown; error?: unknown };
 
 export class WebAccessError extends Error {}
 class NonFallbackExaError extends WebAccessError {}
@@ -173,7 +172,7 @@ function parseJson(text: string, service: string): any {
 function exaResultError(result: any): string | undefined {
 	const topLevelError = cleanInline(result?.error);
 	if (topLevelError) return "provider reported an error";
-	const status = result?.status as ExaStatus | string | undefined;
+	const status = result?.status;
 	if (typeof status === "string" && !["success", "completed"].includes(status.toLowerCase())) return `status ${status}`;
 	if (status && typeof status === "object") {
 		const value = typeof status.status === "string" ? status.status.toLowerCase() : "";
@@ -383,9 +382,9 @@ export class WebAccessService {
 		const title = cleanInline(item.title) || undefined;
 		if (!highlights.length) {
 			return fitFetchOutput("No focused highlights were returned. Call web_fetch with {url} and no question for a broad fetch.", budget,
-				{ mode: "selected-highlights", url, title, complete: false }, undefined);
+				{ mode: "selected-highlights", url, title });
 		}
-		return fitFetchOutput(highlights.join("\n\n"), budget, { mode: "selected-highlights", url, title, complete: false }, undefined);
+		return fitFetchOutput(highlights.join("\n\n"), budget, { mode: "selected-highlights", url, title });
 	}
 
 	private async broad(url: string, budget: number, signal?: AbortSignal): Promise<ToolResult> {
@@ -434,7 +433,7 @@ export class WebAccessService {
 			if (question) {
 				const selected = selectFocusedText(body, question);
 				const evidence = selected || "No focused passages matched. Call web_fetch with {url} and no question for a broad fetch.";
-				return fitFetchOutput(evidence, budget, { mode: "selected-highlights", url: requestedUrl, complete: false, source }, undefined);
+				return fitFetchOutput(evidence, budget, { mode: "selected-highlights", url: requestedUrl, source });
 			}
 			return this.storeAndFormat(body, requestedUrl, undefined, source, budget);
 		}
@@ -443,7 +442,7 @@ export class WebAccessService {
 
 	private storeAndFormat(text: string, url: string, title: string | undefined, source: string, budget: number, warning?: string): ToolResult {
 		const ref = randomBytes(12).toString("base64url");
-		const result = fitFetchOutput(text, budget, { mode: "broad-text", url, title, complete: true, source, warning }, ref);
+		const result = fitFetchOutput(text, budget, { mode: "broad-text", url, title, source, warning }, ref);
 		if (result.details.contentRef) this.cache.put({ ref, url, title, text, source, warning });
 		return result;
 	}
@@ -454,7 +453,7 @@ export class WebAccessService {
 		if (!entry) throw new WebAccessError("contentRef is expired or unknown; fetch the URL again.");
 		const total = charLength(entry.text);
 		if (offset > total) throw new WebAccessError(`offset ${offset} is beyond the ${total}-character representation.`);
-		return fitFetchOutput(entry.text, budget, { mode: "broad-text", url: entry.url, title: entry.title, complete: false, source: entry.source, warning: entry.warning }, ref, offset);
+		return fitFetchOutput(entry.text, budget, { mode: "broad-text", url: entry.url, title: entry.title, source: entry.source, warning: entry.warning }, ref, offset);
 	}
 }
 
@@ -493,7 +492,7 @@ function githubDirectUrl(url: string): { url: string; source: string } | undefin
 function fitFetchOutput(
 	text: string,
 	budget: number,
-	metadata: { mode: string; url: string; title?: string; complete: boolean; source?: string; warning?: string },
+	metadata: { mode: string; url: string; title?: string; source?: string; warning?: string },
 	ref?: string,
 	offset = 0,
 ): ToolResult {
