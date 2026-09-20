@@ -139,15 +139,19 @@ export class ReviewCommands {
   }
 
   async cleanup(review: OwnedReview): Promise<string[]> {
-    const warnings: string[] = [];
     try {
       if (await this.tabExists(review)) {
         checked(await this.pi.exec(this.herdr, ["tab", "close", review.tabId], { timeout: 10_000 }), `close owned tab ${review.tabId}`);
       }
-    } catch (error) { warnings.push(message(error)); }
-    try { await rm(review.dataHome, { recursive: true, force: true }); }
-    catch (error) { warnings.push(`remove ${review.dataHome}: ${message(error)}`); }
-    return warnings;
+    } catch (error) {
+      return [message(error)];
+    }
+    try {
+      await rm(review.dataHome, { recursive: true, force: true });
+      return [];
+    } catch (error) {
+      return [`remove ${review.dataHome}: ${message(error)}`];
+    }
   }
 
   sleep(milliseconds: number): Promise<void> {

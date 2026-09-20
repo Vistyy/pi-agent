@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { access, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { test } from "vitest";
 import { ReviewCommands } from "../src/commands.ts";
 import { exactReview, normalizeRequest } from "../src/model.ts";
+import type { OwnedReview } from "../src/types.ts";
 
 const base = "a".repeat(40);
 const head = "b".repeat(40);
@@ -41,6 +42,24 @@ test("resolves commits and launches Tuicr with only the exact range", async () =
 });
 
 const execFileAsync = promisify(execFile);
+
+test("cleanup preserves private data when the owned tab cannot close", async () => {
+  const dataHome = await mkdtemp(join(tmpdir(), "pi-tuicr-review-owner-"));
+  try {
+    const commands = new ReviewCommands({
+      async exec(_command: string, args: string[]) {
+        if (args[0] === "tab" && args[1] === "get") return { code: 0, stdout: "{}", stderr: "" };
+        if (args[0] === "tab" && args[1] === "close") return { code: 1, stdout: "", stderr: "close denied" };
+        throw new Error(`unexpected ${args.join(" ")}`);
+      },
+    } as any);
+    const warnings = await commands.cleanup({ tabId: "tab", dataHome } as OwnedReview);
+    assert.match(warnings[0] ?? "", /close denied/);
+    await access(dataHome);
+  } finally {
+    await rm(dataHome, { recursive: true, force: true });
+  }
+});
 
 test("grounds old and new excerpts from a real Git repository", async () => {
   const repo = await mkdtemp(join(tmpdir(), "tuicr-grounding-"));

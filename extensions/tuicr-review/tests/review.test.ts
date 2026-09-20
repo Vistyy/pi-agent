@@ -20,6 +20,7 @@ function harness() {
   let comments: Comment[] = [];
   let commentFailures = 0;
   let sessionExists = true;
+  let cleanupWarnings: string[] = [];
   const exact = (base: string, head: string): OwnedReview => ({
     targetKey: JSON.stringify({ cwd: "/repo", base, head }), cwd: "/repo", base, head,
     tabId: `tab-${launchCount}`, paneId: `pane-${launchCount}`, sessionId: `session-${launchCount}`,
@@ -50,7 +51,13 @@ function harness() {
     async completion() { events.push("completion"); return exit; },
     async tabExists() { events.push("tabExists"); return tab; },
     async dataExists() { return data; },
-    async cleanup(review: OwnedReview) { events.push(`cleanup:${review.sessionId}`); tab = false; data = false; return []; },
+    async cleanup(review: OwnedReview) {
+      events.push(`cleanup:${review.sessionId}`);
+      if (cleanupWarnings.length) return cleanupWarnings;
+      tab = false;
+      data = false;
+      return [];
+    },
     sleep(milliseconds: number) { if (milliseconds === 25) return Promise.resolve(); return new Promise<void>((resolve) => sleeps.push(resolve)); },
   };
   const pi = {
@@ -64,6 +71,7 @@ function harness() {
     setComments(value: Comment[]) { comments = value; }, setCommentFailures(value: number) { commentFailures = value; },
     setSessionExists(value: boolean) { sessionExists = value; },
     setLaunchFailure(value: string | undefined) { launchFailure = value; },
+    setCleanupWarnings(value: string[]) { cleanupWarnings = value; },
     tick() { sleeps.splice(0).forEach((resolve) => resolve()); },
     launchCount: () => launchCount, branch: () => branch,
   };
@@ -122,6 +130,21 @@ test("explicit replacement restarts the same comparison", async () => {
   assert.equal(result.reused, false);
   assert.equal(h.launchCount(), 2);
   assert.ok(result.replacedFeedback);
+  runtime.shutdown();
+});
+
+test("saved replacement feedback survives cleanup failure", async () => {
+  const h = harness();
+  const runtime = h.runtime();
+  await runtime.restore(h.context);
+  await runtime.ensure(request(), h.context);
+  h.setComments([{ id: "m1", author: "Maintainer", content: "Keep this feedback" }]);
+  h.setCleanupWarnings(["close failed"]);
+  await assert.rejects(
+    runtime.ensure(request("next", "next", true), h.context),
+    /Saved feedback from comparison being replaced:[\s\S]*Keep this feedback[\s\S]*remaining resources were preserved[\s\S]*close failed/,
+  );
+  assert.equal(h.launchCount(), 1);
   runtime.shutdown();
 });
 

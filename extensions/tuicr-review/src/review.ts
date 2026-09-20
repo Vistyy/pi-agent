@@ -138,7 +138,9 @@ export class GuidedReview {
     const comments = await this.retry(() => this.commands.comments(review));
     const feedback = await this.feedback(review, "replaced", comments, "Replaced by an explicit request; unsaved editor text was not read or migrated.");
     const warnings = await this.commands.cleanup(review);
-    if (warnings.length) throw new Error(`Could not fully close the owned review: ${warnings.join("; ")}`);
+    if (warnings.length) {
+      throw new Error(`Saved feedback from comparison being replaced:\n${formatFeedback(feedback)}\nCould not fully close the owned review; its remaining resources were preserved: ${warnings.join("; ")}`);
+    }
     this.clear(review);
     return feedback;
   }
