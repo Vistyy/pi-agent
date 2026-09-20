@@ -9,8 +9,7 @@
   "doubleEscapeAction": "tree",
   "theme": "rose-pine-moon",
   "packages": [
-    "/home/syzom/projects/pi-extensions/pi-workgraph",
-    "npm:compact-adviser@0.1.2"
+    "/home/syzom/projects/pi-extensions/pi-workgraph"
   ],
   "wrap-up": {
     "model": "openai-codex/gpt-5.6-terra",
