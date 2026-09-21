@@ -45,11 +45,11 @@ For instruction files in Writ's supported repository scope, run the exact releas
 pnpm dlx @syzom/writ@0.1.0 check --root <root>
 ```
 
-The check itself is deterministic and makes no model calls, though the first `pnpm dlx` invocation may require registry access. Run the paid semantic checks when auditing their target behavior or after materially changing it, and only when `TYPESAFE_API_KEY` is available:
+The check itself is deterministic and makes no model calls, though the first `pnpm dlx` invocation may require registry access. Run the paid semantic checks when auditing their target behavior or after materially changing it, and only when `TYPESAFE_API_KEY` is already available in the environment. Writ reads the key from the environment; do not supply or echo credentials in commands.
 
 ```sh
-TYPESAFE_API_KEY=... pnpm dlx @syzom/writ@0.1.0 routing --root <root>
-TYPESAFE_API_KEY=... pnpm dlx @syzom/writ@0.1.0 references --root <root>
+pnpm dlx @syzom/writ@0.1.0 routing --root <root>
+pnpm dlx @syzom/writ@0.1.0 references --root <root>
 ```
 
 Use `routing` for skill discovery metadata and `references` for instruction-loading references. Treat semantic findings as bounded evidence and apply judgment rather than rewriting instructions solely to satisfy a score. Consult [Writ's documentation](https://github.com/Vistyy/writ#readme) for its supported scope, privacy boundary, outcomes, and limitations.
