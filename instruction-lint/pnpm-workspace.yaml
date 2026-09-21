@@ -1,2 +1,2 @@
 minimumReleaseAgeExclude:
-  - markdownlint-cli2@0.23.3
+  - '@syzom/writ@0.1.0'

@@ -1,22 +1,14 @@
 {
-  "name": "pi-agent-instruction-lint",
+  "name": "pi-agent-instruction-verification",
   "private": true,
-  "type": "module",
   "packageManager": "pnpm@11.25.0",
   "scripts": {
-    "check": "markdownlint-cli2 --config .markdownlint-cli2.mjs",
-    "check:semantic": "node semantic-lint.mjs",
-    "check:references": "node reference-lint.mjs",
-    "check:questions": "node question-check.mjs",
-    "test": "node --test *.test.mjs"
-  },
-  "dependencies": {
-    "@typesafe-ai/sdk": "0.6.0",
-    "markdown-it": "15.0.2",
-    "yaml": "2.8.2"
+    "check": "writ check --root ..",
+    "check:semantic": "writ routing --root ..",
+    "check:references": "writ references --root ..",
+    "check:questions": "writ questions"
   },
   "devDependencies": {
-    "markdownlint-cli2": "0.23.3",
-    "markdownlint-rule-relative-links": "5.1.2"
+    "@syzom/writ": "0.1.0"
   }
 }

@@ -7,23 +7,10 @@ settings:
 importers:
 
   .:
-    dependencies:
-      '@typesafe-ai/sdk':
-        specifier: 0.6.0
-        version: 0.6.0
-      markdown-it:
-        specifier: 15.0.2
-        version: 15.0.2
-      yaml:
-        specifier: 2.8.2
-        version: 2.8.2
     devDependencies:
-      markdownlint-cli2:
-        specifier: 0.23.3
-        version: 0.23.3
-      markdownlint-rule-relative-links:
-        specifier: 5.1.2
-        version: 5.1.2
+      '@syzom/writ':
+        specifier: 0.1.0
+        version: 0.1.0
 
 packages:
 
@@ -42,6 +29,11 @@ packages:
   '@sindresorhus/merge-streams@4.0.0':
     resolution: {integrity: sha512-tlqY9xq5ukxTUZBmoOp+m61cqwQD5pHJtFY3Mn8CA8ps6yghLH/Hw8UPdqg4OLmFW3IFlcXnQNmo/dh8HzXYIQ==}
     engines: {node: '>=18'}
+
+  '@syzom/writ@0.1.0':
+    resolution: {integrity: sha512-PK1rzWcbyvsG26081vMqz9O/5HgdtwLnICRdFR9vJh8X2b6ah+dJBTnbboPdtQHrY84Y3Gj7a3dEXONhFlyWtw==}
+    engines: {node: '>=22'}
+    hasBin: true
 
   '@types/debug@4.1.13':
     resolution: {integrity: sha512-KSVgmQmzMwPlmtljOomayoR89W4FynCAi3E8PPs7vmDVPe84hT+vGPKkJfThkmXs0x0jAaa9U8uW8bbfyS2fWw==}
@@ -384,6 +376,16 @@ snapshots:
       fastq: 1.20.3
 
   '@sindresorhus/merge-streams@4.0.0': {}
+
+  '@syzom/writ@0.1.0':
+    dependencies:
+      '@typesafe-ai/sdk': 0.6.0
+      markdown-it: 15.0.2
+      markdownlint-cli2: 0.23.3
+      markdownlint-rule-relative-links: 5.1.2
+      yaml: 2.8.2
+    transitivePeerDependencies:
+      - supports-color
 
   '@types/debug@4.1.13':
     dependencies:

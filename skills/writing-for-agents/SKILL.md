@@ -36,3 +36,7 @@ A discoverable description names the capability and the tasks that should trigge
 ## Validate consequential behavior
 
 Validate the artifact's syntax, discovery, and intended visibility in the target harness. When routing changes materially, check a representative matching task and an adjacent non-matching task. Use model invocation experiments only when consequential uncertainty remains; treat them as bounded evidence, not proof of reliable future selection. A forced invocation establishes that the body can load, not that autonomous routing works.
+
+## Verify this agent repository's instructions
+
+When changing instructions owned by this global agent repository, read and follow [agent instruction verification](../../instruction-lint/README.md).
