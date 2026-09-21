@@ -57,4 +57,4 @@ Offer an ADR only when all three are true:
 2. **Surprising without context:** a future maintainer would reasonably wonder why it was chosen.
 3. **A real trade-off:** credible alternatives existed and were rejected for specific reasons.
 
-If any condition is missing, skip the ADR. When an ADR is warranted, read and follow [ADR format](references/ADR-FORMAT.md).
+If any condition is missing, skip the ADR. When all three preceding conditions are met, read and follow [ADR format](references/ADR-FORMAT.md).

@@ -2,7 +2,7 @@
 
 ## Structure
 
-A repository with one domain language uses a root `GLOSSARY.md`:
+For a repository with one domain language, create a root `GLOSSARY.md`:
 
 ```md
 # {Domain name}
@@ -55,4 +55,4 @@ When ownership is unclear, resolve it before splitting or duplicating definition
 
 ## Source
 
-Adapted for `GLOSSARY.md` terminology from Matt Pocock's [`CONTEXT-FORMAT.md`](https://github.com/mattpocock/skills/blob/3cca18b368ae95cdbdebbff572ccafa662551015/skills/engineering/domain-modeling/CONTEXT-FORMAT.md), Copyright (c) 2026 Matt Pocock, used under the MIT License.
+Adapted for glossary terminology from Matt Pocock's [`CONTEXT-FORMAT.md`](https://github.com/mattpocock/skills/blob/3cca18b368ae95cdbdebbff572ccafa662551015/skills/engineering/domain-modeling/CONTEXT-FORMAT.md), Copyright (c) 2026 Matt Pocock, used under the MIT License.
