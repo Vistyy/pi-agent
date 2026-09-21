@@ -37,6 +37,19 @@ A discoverable description names the capability and the tasks that should trigge
 
 Validate the artifact's syntax, discovery, and intended visibility in the target harness. When routing changes materially, check a representative matching task and an adjacent non-matching task. Use model invocation experiments only when consequential uncertainty remains; treat them as bounded evidence, not proof of reliable future selection. A forced invocation establishes that the body can load, not that autonomous routing works.
 
-## Verify this agent repository's instructions
+## Check instruction artifacts with Writ
 
-When changing instructions owned by this global agent repository, read and follow [agent instruction verification](../../instruction-lint/README.md).
+For instruction files in Writ's supported repository scope, run the exact released CLI on demand after making material changes. Replace `<root>` with the target repository root.
+
+```sh
+pnpm dlx @syzom/writ@0.1.0 check --root <root>
+```
+
+The check itself is deterministic and makes no model calls, though the first `pnpm dlx` invocation may require registry access. Run the paid semantic checks when auditing their target behavior or after materially changing it, and only when `TYPESAFE_API_KEY` is available:
+
+```sh
+TYPESAFE_API_KEY=... pnpm dlx @syzom/writ@0.1.0 routing --root <root>
+TYPESAFE_API_KEY=... pnpm dlx @syzom/writ@0.1.0 references --root <root>
+```
+
+Use `routing` for skill discovery metadata and `references` for instruction-loading references. Treat semantic findings as bounded evidence and apply judgment rather than rewriting instructions solely to satisfy a score. Consult [Writ's documentation](https://github.com/Vistyy/writ#readme) for its supported scope, privacy boundary, outcomes, and limitations.
