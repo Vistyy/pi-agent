@@ -33,6 +33,11 @@ void test("only explicit v2 choices override the global default", () => {
 	assert.equal(savedSessionOverride(entries, "a"), true);
 	assert.equal(savedSessionOverride(entries, "b"), false);
 	assert.equal(savedSessionOverride(entries, "fork"), undefined);
+	assert.equal(
+		savedSessionOverride(entries.slice(0, 1), "a"),
+		undefined,
+		"a legacy snapshot alone must not become an override",
+	);
 });
 
 void test("default changes apply now and override-free reloads follow them", async () => {
@@ -51,7 +56,8 @@ void test("default changes apply now and override-free reloads follow them", asy
 
 	await first.command("");
 	assert.equal(savedSessionOverride(entries, "session-a"), true);
-	assert.equal(first.request()?.service_tier, "fast");
+	assert.deepEqual(first.request({ model: "gpt" }), { model: "gpt", service_tier: "fast" });
+	assert.equal(first.request({ model: "gpt" }, "anthropic"), undefined);
 
 	await first.command("default off");
 	assert.equal(globalDefault, false);
@@ -103,6 +109,10 @@ function harness(
 	return {
 		start: () => handlers.get("session_start")?.({}, ctx),
 		command: (args: string) => fastCommand!.handler(args, ctx),
-		request: () => handlers.get("before_provider_request")?.({ payload: {} }, ctx),
+		request: (payload: Record<string, unknown> = {}, provider = "openai-codex") =>
+			handlers.get("before_provider_request")?.(
+				{ payload },
+				{ ...ctx, model: { provider } },
+			),
 	};
 }
