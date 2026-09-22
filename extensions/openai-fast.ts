@@ -1,13 +1,57 @@
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { randomUUID } from "node:crypto";
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import {
+	getAgentDir,
+	type ExtensionAPI,
+	type ExtensionContext,
+} from "@earendil-works/pi-coding-agent";
 
-const ENV_KEY = "PI_OPENAI_FAST";
 const STATUS_ID = "openai-fast";
+const SESSION_ENTRY = "openai-fast-preference";
+const DEFAULT_PATH = join(getAgentDir(), "extensions", "openai-fast-default");
 const FAST_PROVIDERS = new Set(["openai", "openai-codex"]);
 
-export default function openaiFast(pi: ExtensionAPI) {
-	let enabled = process.env[ENV_KEY] === "1";
+interface FastPreferences {
+	load(): Promise<boolean>;
+	save(enabled: boolean): Promise<void>;
+}
 
-	pi.on("session_start", (_event, ctx) => {
+interface SessionEntryLike {
+	readonly type: string;
+	readonly customType?: string;
+	readonly data?: unknown;
+}
+
+export default function openaiFast(
+	pi: ExtensionAPI,
+	preferences: FastPreferences = fastPreferences(),
+) {
+	let enabled = false;
+	let generation = 0;
+
+	pi.on("session_start", async (_event, ctx) => {
+		const currentGeneration = ++generation;
+		const sessionId = ctx.sessionManager.getSessionId();
+		const sessionChoice = savedSessionChoice(ctx.sessionManager.getEntries(), sessionId);
+		let initial = sessionChoice;
+
+		if (initial === undefined) {
+			try {
+				initial = await preferences.load();
+			} catch (error) {
+				if (currentGeneration === generation && ctx.hasUI) {
+					ctx.ui.notify(`Could not load OpenAI fast default: ${message(error)}`, "warning");
+				}
+				initial = false;
+			}
+		}
+
+		if (currentGeneration !== generation) return;
+		enabled = initial;
+		if (sessionChoice === undefined) {
+			pi.appendEntry(SESSION_ENTRY, { sessionId, enabled });
+		}
 		setStatus(ctx, enabled);
 	});
 
@@ -16,17 +60,49 @@ export default function openaiFast(pi: ExtensionAPI) {
 	});
 
 	pi.registerCommand("fast", {
-		description: "Toggle OpenAI fast mode",
-		handler: async (_args, ctx) => {
+		description: "Toggle OpenAI fast mode for this session; /fast default on|off saves the startup default",
+		getArgumentCompletions: (prefix) =>
+			["default on", "default off"].flatMap((value) =>
+				value.startsWith(prefix) ? [{ value, label: value }] : [],
+			),
+		handler: async (args, ctx) => {
+			const command = args.trim();
+
+			if (command === "default on" || command === "default off") {
+				const currentGeneration = generation;
+				const nextDefault = command === "default on";
+				await preferences.save(nextDefault);
+				if (currentGeneration === generation && ctx.hasUI) {
+					ctx.ui.notify(
+						`OpenAI fast default ${nextDefault ? "on" : "off"} saved for new sessions. This session is unchanged.`,
+						"info",
+					);
+				}
+				return;
+			}
+
+			if (command !== "") {
+				if (ctx.hasUI) ctx.ui.notify("Usage: /fast or /fast default on|off", "warning");
+				return;
+			}
+
 			enabled = !enabled;
-			if (enabled) process.env[ENV_KEY] = "1";
-			else delete process.env[ENV_KEY];
+			pi.appendEntry(SESSION_ENTRY, {
+				sessionId: ctx.sessionManager.getSessionId(),
+				enabled,
+			});
 			setStatus(ctx, enabled);
-			ctx.ui.notify(`OpenAI fast mode ${enabled ? "on" : "off"}`, "info");
+			if (ctx.hasUI) {
+				ctx.ui.notify(
+					`OpenAI fast mode ${enabled ? "on" : "off"} for this session (saved default unchanged).`,
+					"info",
+				);
+			}
 		},
 	});
 
 	pi.on("session_shutdown", (_event, ctx) => {
+		generation++;
 		if (ctx.hasUI) ctx.ui.setStatus(STATUS_ID, undefined);
 	});
 
@@ -41,6 +117,47 @@ export default function openaiFast(pi: ExtensionAPI) {
 	});
 }
 
+export function fastPreferences(path = DEFAULT_PATH): FastPreferences {
+	return {
+		async load() {
+			let text: string;
+			try {
+				text = await readFile(path, "utf8");
+			} catch (error) {
+				if (isNotFound(error)) return false;
+				throw error;
+			}
+
+			if (text.trim() === "on") return true;
+			if (text.trim() === "off") return false;
+			throw new Error(`Invalid OpenAI fast default in ${path}; expected on or off.`);
+		},
+		async save(enabled) {
+			await mkdir(dirname(path), { recursive: true });
+			const temporary = `${path}.${randomUUID()}.tmp`;
+			try {
+				await writeFile(temporary, enabled ? "on\n" : "off\n", { mode: 0o600 });
+				await rename(temporary, path);
+			} finally {
+				await rm(temporary, { force: true });
+			}
+		},
+	};
+}
+
+export function savedSessionChoice(
+	entries: readonly SessionEntryLike[],
+	sessionId: string,
+): boolean | undefined {
+	for (let index = entries.length - 1; index >= 0; index--) {
+		const entry = entries[index];
+		if (entry.type !== "custom" || entry.customType !== SESSION_ENTRY) continue;
+		if (!isSessionPreference(entry.data) || entry.data.sessionId !== sessionId) continue;
+		return entry.data.enabled;
+	}
+	return undefined;
+}
+
 function setStatus(ctx: ExtensionContext, enabled: boolean, model = ctx.model): void {
 	if (!ctx.hasUI) return;
 	const status = enabled && isFastModel(model) ? ctx.ui.theme.fg("accent", "⚡") : undefined;
@@ -49,4 +166,21 @@ function setStatus(ctx: ExtensionContext, enabled: boolean, model = ctx.model): 
 
 function isFastModel(model: ExtensionContext["model"]): boolean {
 	return model != null && FAST_PROVIDERS.has(model.provider);
+}
+
+function isSessionPreference(value: unknown): value is { sessionId: string; enabled: boolean } {
+	return (
+		typeof value === "object" &&
+		value !== null &&
+		typeof (value as { sessionId?: unknown }).sessionId === "string" &&
+		typeof (value as { enabled?: unknown }).enabled === "boolean"
+	);
+}
+
+function isNotFound(error: unknown): boolean {
+	return error instanceof Error && "code" in error && error.code === "ENOENT";
+}
+
+function message(error: unknown): string {
+	return error instanceof Error ? error.message : String(error);
 }
