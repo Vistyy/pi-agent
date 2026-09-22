@@ -11,6 +11,8 @@ const STATUS_ID = "openai-fast";
 const SESSION_ENTRY = "openai-fast-override-v2";
 const DEFAULT_PATH = join(getAgentDir(), "state", "openai-fast-default");
 const FAST_PROVIDERS = new Set(["openai", "openai-codex"]);
+// GPT-5.6 through Pi's openai-codex transport requires the legacy Fast-mode wire value.
+const FAST_SERVICE_TIER = "priority";
 
 type SessionOverride = boolean | null;
 
@@ -119,7 +121,7 @@ export default function openaiFast(
 		const payload = event.payload && typeof event.payload === "object" ? event.payload : {};
 		return {
 			...payload,
-			service_tier: "fast",
+			service_tier: FAST_SERVICE_TIER,
 		};
 	});
 }

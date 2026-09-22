@@ -56,7 +56,7 @@ void test("default changes apply now and override-free reloads follow them", asy
 
 	await first.command("");
 	assert.equal(savedSessionOverride(entries, "session-a"), true);
-	assert.deepEqual(first.request({ model: "gpt" }), { model: "gpt", service_tier: "fast" });
+	assert.deepEqual(first.request({ model: "gpt" }), { model: "gpt", service_tier: "priority" });
 	assert.equal(first.request({ model: "gpt" }, "anthropic"), undefined);
 
 	await first.command("default off");
@@ -70,7 +70,7 @@ void test("default changes apply now and override-free reloads follow them", asy
 		save: async () => undefined,
 	});
 	await reloaded.start();
-	assert.equal(reloaded.request()?.service_tier, "fast", "reload must read the current global default");
+	assert.equal(reloaded.request()?.service_tier, "priority", "reload must read the current global default");
 });
 
 function harness(
