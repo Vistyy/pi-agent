@@ -8,9 +8,11 @@ import {
 } from "@earendil-works/pi-coding-agent";
 
 const STATUS_ID = "openai-fast";
-const SESSION_ENTRY = "openai-fast-preference";
-const DEFAULT_PATH = join(getAgentDir(), "extensions", "openai-fast-default");
+const SESSION_ENTRY = "openai-fast-override-v2";
+const DEFAULT_PATH = join(getAgentDir(), "state", "openai-fast-default");
 const FAST_PROVIDERS = new Set(["openai", "openai-codex"]);
+
+type SessionOverride = boolean | null;
 
 interface FastPreferences {
 	load(): Promise<boolean>;
@@ -33,8 +35,8 @@ export default function openaiFast(
 	pi.on("session_start", async (_event, ctx) => {
 		const currentGeneration = ++generation;
 		const sessionId = ctx.sessionManager.getSessionId();
-		const sessionChoice = savedSessionChoice(ctx.sessionManager.getEntries(), sessionId);
-		let initial = sessionChoice;
+		const sessionOverride = savedSessionOverride(ctx.sessionManager.getEntries(), sessionId);
+		let initial = typeof sessionOverride === "boolean" ? sessionOverride : undefined;
 
 		if (initial === undefined) {
 			try {
@@ -49,9 +51,6 @@ export default function openaiFast(
 
 		if (currentGeneration !== generation) return;
 		enabled = initial;
-		if (sessionChoice === undefined) {
-			pi.appendEntry(SESSION_ENTRY, { sessionId, enabled });
-		}
 		setStatus(ctx, enabled);
 	});
 
@@ -60,7 +59,7 @@ export default function openaiFast(
 	});
 
 	pi.registerCommand("fast", {
-		description: "Toggle OpenAI fast mode for this session; /fast default on|off saves the startup default",
+		description: "Toggle Fast mode for this session; /fast default on|off saves and applies the default",
 		getArgumentCompletions: (prefix) =>
 			["default on", "default off"].flatMap((value) =>
 				value.startsWith(prefix) ? [{ value, label: value }] : [],
@@ -72,9 +71,17 @@ export default function openaiFast(
 				const currentGeneration = generation;
 				const nextDefault = command === "default on";
 				await preferences.save(nextDefault);
-				if (currentGeneration === generation && ctx.hasUI) {
+				if (currentGeneration !== generation) return;
+
+				enabled = nextDefault;
+				pi.appendEntry(SESSION_ENTRY, {
+					sessionId: ctx.sessionManager.getSessionId(),
+					enabled: null,
+				});
+				setStatus(ctx, enabled);
+				if (ctx.hasUI) {
 					ctx.ui.notify(
-						`OpenAI fast default ${nextDefault ? "on" : "off"} saved for new sessions. This session is unchanged.`,
+						`OpenAI Fast mode default ${enabled ? "on" : "off"}; this session now follows it.`,
 						"info",
 					);
 				}
@@ -94,7 +101,7 @@ export default function openaiFast(
 			setStatus(ctx, enabled);
 			if (ctx.hasUI) {
 				ctx.ui.notify(
-					`OpenAI fast mode ${enabled ? "on" : "off"} for this session (saved default unchanged).`,
+					`OpenAI Fast mode ${enabled ? "on" : "off"} for this session (saved default unchanged).`,
 					"info",
 				);
 			}
@@ -112,7 +119,7 @@ export default function openaiFast(
 		const payload = event.payload && typeof event.payload === "object" ? event.payload : {};
 		return {
 			...payload,
-			service_tier: "priority",
+			service_tier: "fast",
 		};
 	});
 }
@@ -145,10 +152,10 @@ export function fastPreferences(path = DEFAULT_PATH): FastPreferences {
 	};
 }
 
-export function savedSessionChoice(
+export function savedSessionOverride(
 	entries: readonly SessionEntryLike[],
 	sessionId: string,
-): boolean | undefined {
+): SessionOverride | undefined {
 	for (let index = entries.length - 1; index >= 0; index--) {
 		const entry = entries[index];
 		if (entry.type !== "custom" || entry.customType !== SESSION_ENTRY) continue;
@@ -168,12 +175,13 @@ function isFastModel(model: ExtensionContext["model"]): boolean {
 	return model != null && FAST_PROVIDERS.has(model.provider);
 }
 
-function isSessionPreference(value: unknown): value is { sessionId: string; enabled: boolean } {
+function isSessionPreference(value: unknown): value is { sessionId: string; enabled: SessionOverride } {
 	return (
 		typeof value === "object" &&
 		value !== null &&
 		typeof (value as { sessionId?: unknown }).sessionId === "string" &&
-		typeof (value as { enabled?: unknown }).enabled === "boolean"
+		((value as { enabled?: unknown }).enabled === null ||
+			typeof (value as { enabled?: unknown }).enabled === "boolean")
 	);
 }
 
