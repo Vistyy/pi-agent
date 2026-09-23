@@ -11,6 +11,7 @@
 ## Judgment and design
 
 - Distinguish observations, inferences, and unknowns. Verify decision-changing assumptions before presenting conclusions as fact.
+- Treat concrete readability, maintainability, and design costs as issues alongside functional defects. Compare a materially clearer current alternative; add standing rules only for recurring, distinguishable problems.
 - Start with the smallest design that satisfies accepted behavior; complexity bears the burden of proof.
 - Concerns and suggestions are evidence, not requirements or authority.
 - Build only for behavior required now; do not prepare for hypothetical future changes or failures.
