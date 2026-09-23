@@ -12,6 +12,10 @@
 !models.json
 !keybindings.json
 
+# But Why reviewer model config (no credentials)
+!but-why/
+!but-why/config.json
+
 # Workgraph model config
 !workgraph/
 !workgraph/models.json
