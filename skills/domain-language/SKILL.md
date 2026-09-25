@@ -1,27 +1,23 @@
 ---
-name: domain-modeling
-description: Build and sharpen a project's domain model. Use when discussing project terminology, shaping domain concepts or relationships, writing or editing a GLOSSARY.md, or recording or editing an ADR. Skip routine use of already-settled language and purely technical changes.
+name: domain-language
+description: >-
+  Clarify project-specific concepts, relationships, and canonical terminology.
+  Use when resolving ambiguous or conflicting domain meanings or maintaining
+  a glossary. Skip routine use of settled terminology and code changes that
+  do not affect domain meaning.
 ---
 
-# Domain Modeling
+# Domain Language
 
-Actively build and sharpen the project's domain model as you design. This is the active discipline: challenge terms, invent concrete edge-case scenarios, and record language and decisions when they crystallize. Merely reading a glossary for established vocabulary does not require this skill.
+Actively clarify the project's domain language as you design: challenge terms, test their meanings against concrete scenarios, and record agreed terminology. Merely reading a glossary for established vocabulary does not require this skill.
 
 ## File structure
 
-Most repositories have one domain glossary:
-
-```text
-/
-├── GLOSSARY.md
-├── docs/
-│   └── adr/
-└── src/
-```
+Most repositories have one root `GLOSSARY.md`.
 
 If `GLOSSARY-MAP.md` exists at the root, the repository has multiple independently owned domain languages. The map identifies their glossaries and relationships.
 
-Create files lazily. Create the first glossary when the first term is resolved, the map when a second language owner is justified, and the ADR directory when the first ADR is needed. Follow an established project's differently named domain documents rather than creating a parallel glossary.
+Create files lazily. Create the first glossary when the first term is resolved and the map when a second language owner is justified. Follow an established project's differently named domain documents rather than creating a parallel glossary.
 
 Before editing a glossary, read and follow [Glossary format](references/GLOSSARY-FORMAT.md).
 
@@ -48,13 +44,3 @@ When someone states how the domain works, check whether the implementation agree
 When language is explicitly agreed as authoritative for the work, update the glossary then rather than batching it. If implementation still conflicts, disclose that discrepancy instead of delaying the glossary or claiming the code already conforms.
 
 A glossary contains project-specific language only. It is not a specification, implementation guide, schema catalog, scratch pad, decision log, or task tracker.
-
-### Offer ADRs sparingly
-
-Offer an ADR only when all three are true:
-
-1. **Hard to reverse:** changing the decision later would be meaningfully costly.
-2. **Surprising without context:** a future maintainer would reasonably wonder why it was chosen.
-3. **A real trade-off:** credible alternatives existed and were rejected for specific reasons.
-
-If any condition is missing, skip the ADR. When all three preceding conditions are met, read and follow [ADR format](references/ADR-FORMAT.md).
