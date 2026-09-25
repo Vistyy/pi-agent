@@ -11,6 +11,13 @@
   "packages": [
     "/home/syzom/projects/pi-extensions/pi-workgraph"
   ],
+  "pi-pstack": {
+    "excludedChildTools": [
+      "name_session",
+      "start_session",
+      "tuicr_review"
+    ]
+  },
   "wrap-up": {
     "model": "openai-codex/gpt-6-luna",
     "thinkingLevel": "low"
