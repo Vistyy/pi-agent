@@ -1,46 +1,23 @@
 ---
 name: typescript-quality
-description: Use when initializing a TypeScript project or designing, adopting, or upgrading its compiler, lint, or Effect quality configuration. Skip routine TypeScript edits and running existing checks.
+description: Use when initializing a TypeScript project or adopting or upgrading Effect and shared compiler/lint configuration. Skip routine TypeScript edits and running existing checks.
 ---
 
-# TypeScript project quality
+# Effect and shared TypeScript quality configuration
 
-Use Effect by default for new TypeScript projects.
-For existing projects, preserve their accepted runtime and architecture unless adopting Effect or changing the toolchain is part of the authorized work.
-Follow documentation for the selected Effect version rather than mixing v3 examples with v4 APIs.
-Prefer upstream Effect diagnostics and documentation over inventing another local methodology.
+Use Effect by default for new TypeScript projects. For existing projects, preserve the accepted runtime and architecture unless adopting Effect or changing the toolchain is part of the authorized work.
+Follow documentation for the selected Effect version rather than mixing v3 examples with v4 APIs. Prefer upstream Effect diagnostics and documentation over a local substitute.
 
-## Shared configuration and local ownership
+## Integrate the shared configuration
 
-Use [`Vistyy/typescript-quality`](https://github.com/Vistyy/typescript-quality) as the shared configuration owner rather than copying rules into global instructions or project templates.
-Before adoption or upgrade, read its README at the selected revision for publication status, compatible tool versions, and exact installation and checking commands.
-Pin the package and its compatible toolchain so local checks and CI use the same policy.
-Use a template only to create the project's initial layout and configuration references.
+Use [`Vistyy/typescript-quality`](https://github.com/Vistyy/typescript-quality) as the shared configuration owner, rather than copying its rules into instructions or templates.
+Before adoption or upgrade, inspect the project's current checks and read the package README at the selected revision for publication status, compatible TypeScript, Effect and tool versions, and exact installation and checking commands.
+Pin the package and compatible toolchain so local checks and CI use the same policy. Templates establish the initial layout and configuration references, not another copy of the rules.
 
-Extend the shared configuration with project-local runtime, framework, file-selection, and exception settings.
-Do not put one project's paths or framework assumptions into the universal baseline.
-Keep generated output under its generator's checks rather than mechanically applying source-code refactors to it.
+Keep runtime, framework, file-selection and exception settings project-local. Do not put one project's paths or assumptions into the shared baseline. Keep generated output under its generator's checks.
+Avoid duplicate diagnostics from overlapping Biome, Oxlint and Effect integrations.
 
-## Enforcement
+## Verify the integration
 
-Configure selected quality rules as blocking errors by default, with failing exit codes in local checks and CI.
-Reserve non-blocking diagnostics for genuinely optional advice, not requirements that may be ignored.
-Verify enforcement through the actual check command rather than relying on the severity displayed in an editor.
-Avoid duplicate diagnostics from overlapping Biome, Oxlint, and Effect integrations.
-
-Use the agreed cognitive-complexity ceiling of 15 as an error-level guardrail, not a target to minimize by scattering logic among trivial helpers.
-Do not impose file-length limits; improve responsibility boundaries instead.
-
-Strict anti-slop defaults may have narrowly scoped, explicit exceptions for legitimate boundaries.
-For example, a decoder accepting external data may require an `unknown` parameter while internal operations should consume decoded types.
-Explain the real boundary or invariant, not merely the need to satisfy lint.
-Do not hide the same operation behind an alias or helper solely to evade a rule.
-Repeated legitimate exceptions warrant reconsidering the rule's scope rather than automatic blanket suppression.
-
-## Adoption
-
-Inspect the project's existing checks and constraints before changing configuration.
-Use the shared package's documented integration for the selected TypeScript and Effect versions; their native compiler and lint integrations have compatibility requirements.
-Make the local check command the CI entry point as well.
-For a configuration change, confirm that intended violations fail and a valid representative project passes.
-Keep migration or cleanup focused on the adopted policy and preserve supported behavior.
+Use the same check command locally and in CI. Required checks must produce failing exit codes, not merely editor warnings; reserve non-blocking diagnostics for optional advice.
+For a configuration change, run the actual checks to confirm that intended violations fail and a valid representative project passes.

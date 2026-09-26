@@ -9,7 +9,7 @@
   "doubleEscapeAction": "tree",
   "theme": "rose-pine-moon",
   "packages": [
-    "/home/syzom/projects/pi-extensions/pi-workgraph"
+    "/home/syzom/projects/pi-extensions/pi-pstack"
   ],
   "pi-pstack": {
     "excludedChildTools": [
@@ -21,31 +21,6 @@
   "wrap-up": {
     "model": "openai-codex/gpt-6-luna",
     "thinkingLevel": "low"
-  },
-  "pi-workgraph": {
-    "calm": {
-      "additionalHiddenTools": [
-        "web_search",
-        "web_fetch",
-        "name_session"
-      ]
-    },
-    "delivery": {
-      "deferredTools": [
-        "tuicr_review",
-        "follow_pr",
-        "unfollow_pr"
-      ]
-    },
-    "worker": {
-      "disabledTools": [
-        "follow_pr",
-        "name_session",
-        "start_session",
-        "tuicr_review",
-        "unfollow_pr"
-      ]
-    }
   },
   "enabledModels": [
     "openai-codex/gpt-6-astra",
