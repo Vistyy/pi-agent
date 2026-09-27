@@ -1,31 +1,31 @@
 {
   "version": 1,
-  "budget": "medium",
+  "budget": "unlimited",
   "roles": {
     "feature, refactoring": "opencode-go/mimo-v2.6-flash:high",
-    "bug-fix": "opencode-go/deepseek-v4.1-flash:high",
-    "perf-issue": "opencode-go/mimo-v2.6-pro:high",
+    "bug-fix": "opencode-go/mimo-v2.6-flash:high",
+    "perf-issue": "openai-codex/gpt-6-luna:high",
     "hillclimb": "opencode-go/mimo-v2.6-flash:high",
-    "judgment and prose": "opencode-go/mimo-v2.6-pro:high",
-    "hardest tasks": "openai-codex/gpt-6-sol:high",
-    "how explorer": "opencode-go/muse-spark-1.3-contributor:high",
-    "how explainer": "openai-codex/gpt-6-luna:high",
-    "why investigators": "opencode-go/muse-spark-1.3-contributor:high",
-    "why synthesizer": "opencode-go/mimo-v2.6-pro:high",
-    "reflect tooling": "openai-codex/gpt-6-luna:high",
-    "reflect judgment, divergent, synthesizer": "opencode-go/mimo-v2.6-pro:high",
+    "judgment and prose": "openai-codex/gpt-6-luna:high",
+    "hardest tasks": "openai-codex/gpt-6-sol:xhigh",
+    "how explorer": "opencode-go/muse-spark-1.3-contributor:medium",
+    "how explainer": "openai-codex/gpt-6-luna:medium",
+    "why investigators": "opencode-go/muse-spark-1.3-contributor:medium",
+    "why synthesizer": "openai-codex/gpt-6-luna:high",
+    "reflect tooling": "openai-codex/gpt-6-luna:medium",
+    "reflect judgment, divergent, synthesizer": "openai-codex/gpt-6-luna:high",
     "arena runners": [
-      "opencode-go/mimo-v2.6-flash:high",
+      "openai-codex/gpt-6-luna:high",
       "opencode-go/deepseek-v4.1-flash:high"
     ],
     "arena cross-judge pool": [
       "opencode-go/mimo-v2.6-pro:high",
       "openai-codex/gpt-6-sol:high"
     ],
-    "swarm workers": "opencode-go/mimo-v2.6-flash:high",
+    "swarm workers": "opencode-go/mimo-v2.6-flash:medium",
     "architect runners": [
       "opencode-go/mimo-v2.6-pro:high",
-      "openai-codex/gpt-6-luna:high"
+      "openai-codex/gpt-6-luna:xhigh"
     ],
     "interrogate reviewers": [
       "opencode-go/mimo-v2.6-pro:high",
