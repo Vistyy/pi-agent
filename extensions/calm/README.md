@@ -20,16 +20,18 @@ Session choices use `pi-calm-preference` entries in the native session file. The
 
 The rail occupies one line while work or an input prompt is active. It disappears at idle.
 
-- Up to three recent outcomes appear on the left. `✓` means the tool completed without an error flag. A warning-colored `×` means the tool reported failure.
-- The active section appears toward the right. A static accent-colored `●` identifies the oldest active tool, thinking, responding, or awaiting input.
-- Parallel calls add a count of the other active calls. The rail does not select whichever call most recently emitted an event.
-- Read, edit, and write entries retain bounded filename hints. Full paths and command output remain in the underlying transcript.
-- An active tool shows its own elapsed time. Total elapsed time stays at the right edge. The timer requests a redraw once per second while the rail is visible.
-- Older completed entries disappear first at narrower widths. Extremely narrow terminals retain a clipped live label instead of overflowing.
+- Current activity starts at the left edge. A static accent-colored `●` identifies the oldest active tool, working, thinking, responding, or awaiting input. Completed calls do not appear in the rail.
+- Parallel calls add a count of the other active calls. The oldest active call remains the named call until it finishes.
+- Active read, edit, and write calls retain bounded filename hints. Full paths and command output remain in the underlying transcript.
+- An active tool shows its own elapsed time. Overall elapsed time stays at the right edge without a label. The timer requests a redraw once per second while the rail is visible.
+- A warning-colored `×` and a count beside the clock report tool failures during the current run. Successful calls do not decrement the count.
+- Narrower terminals truncate the live label without wrapping the row. Extremely narrow terminals retain only a clipped live label.
 
-Successes and elapsed time use dim or muted theme colors. Active text uses the normal foreground. Only the active dot and failure markers receive accent or warning colors. There is no blinking or animation.
+Elapsed time and the failure count use muted theme colors. Active text uses the normal foreground. Only the active dot and failure marker receive accent or warning colors. There is no blinking or animation.
 
-A failed tool marker does not mean the whole task failed. A later successful call does not mark an earlier failure as recovered.
+The absence of active tools does not mean the run has finished. The rail follows Pi's run lifecycle. It shows Working until a thinking or text event provides a more specific phase. A tool failure count does not mean the whole task failed.
+
+Pi-level warnings, errors, cache notices, and reload messages remain visible. Warning text inside a tool result stays hidden with that result until Calm is turned off.
 
 ## Runtime boundary
 

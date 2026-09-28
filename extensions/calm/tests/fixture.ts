@@ -23,6 +23,14 @@ import { discoverCalmChat } from "../projection.js";
 function checkRail(theme: Parameters<typeof calmActivityLines>[3]): void {
   const state = new CalmActivity(() => {});
   state.start(0);
+  const lines = (width: number) => calmActivityLines(state.snapshot(), 42000, width, theme);
+  const plain = (width = 160) => stripAnsi(lines(width).join("\n"));
+  const summary = () => plain().replace(/ +/g, " ").trimEnd();
+  assert.equal(summary(), "● Working 42s");
+  state.message("thinking_delta");
+  assert.equal(summary(), "● Thinking 42s");
+  state.message("text_delta");
+  assert.equal(summary(), "● Responding 42s");
   state.toolStart("1", "read", { path: "/private/note.txt" }, 100);
   state.toolEnd("1", false);
   state.toolStart("2", "read", { path: "/private/missing.txt" }, 200);
@@ -31,25 +39,30 @@ function checkRail(theme: Parameters<typeof calmActivityLines>[3]): void {
   state.toolEnd("3", false);
   state.toolStart("4", "bash", {}, 24000);
   state.toolStart("5", "read", { path: "/private/config.json" }, 25000);
-  const lines = (width: number) => calmActivityLines(state.snapshot(), 42000, width, theme);
-  const wide = stripAnsi(lines(160).join("\n"));
-  assert.match(wide, /✓ read note.txt · × read missing.txt · ✓ edit note.txt/);
-  assert.match(wide, /● bash 18s \+1 running/);
-  assert.match(wide, /42s total$/);
-  assert.ok(!wide.includes("/private/"));
-  for (const width of [1, 10, 24, 40, 47, 48, 60, 80, 120, 160]) {
+  assert.equal(summary(), "● bash 18s +1 running × 1 42s");
+  assert.ok(!plain().includes("/private/"));
+  for (const width of [1, 10, 24, 40, 47, 48, 60, 80, 120, 160, 300]) {
+    assert.ok(plain(width).startsWith("●"), `activity stays at column one at ${width} columns`);
     assert.equal(lines(width).length, 1);
     assert.ok(visibleWidth(lines(width)[0] ?? "") <= width, `rail fits ${width} columns`);
     if (width >= 24) assert.equal(visibleWidth(lines(width)[0] ?? ""), width);
   }
-  assert.ok(!stripAnsi(lines(80).join("\n")).includes("✓ read note.txt"));
+  state.toolEnd("2", true);
+  assert.equal(summary(), "● bash 18s +1 running × 1 42s");
   state.toolEnd("4", false);
-  assert.match(stripAnsi(lines(160).join("\n")), /● read config.json 17s/);
+  assert.equal(summary(), "● read config.json 17s × 1 42s");
   state.promptStart(42000);
-  assert.match(stripAnsi(lines(160).join("\n")), /Awaiting input/);
+  assert.equal(summary(), "● Awaiting input × 1 42s");
   state.promptEnd();
+  state.toolEnd("5", false);
+  assert.equal(summary(), "● Working × 1 42s");
+  state.toolStart("6", "bash", {}, 30000);
+  state.toolEnd("6", true);
+  assert.equal(summary(), "● Working × 2 42s");
   state.settle();
   assert.deepEqual(lines(160), []);
+  state.start(40000);
+  assert.equal(summary(), "● Working 2s");
 }
 
 export default function fixture(pi: ExtensionAPI): void {

@@ -123,19 +123,21 @@ try:
     launch()
     capture('startup')
     event_command('/calm-probe check', 'checked')
-    passed.append('rail bounds, recent outcomes, active filename, parallel count, clocks, and preference IO')
+    passed.append('left-aligned live states, no completed-call history, failure counts, active filename, parallel count, clocks, and preference IO')
     send('fixture-run')
     wait(lambda: count('hold-start') == 2, 'both parallel tools active')
-    wait(lambda: bool(re.search(r'● probe_hold .*\+1 running.*total', screen())), 'parallel activity rail')
+    wait(lambda: bool(re.search(r'^● probe_hold .*\+1 running.*× 1.*\d+s\s*$', screen(), re.M)), 'left-aligned parallel activity rail')
     wide = capture('active-wide', pages=True)
-    assert '✓ read note.txt · × read missing.txt · ✓ edit note.txt' in wide
+    rail = next(line for line in screen().splitlines() if line.startswith('●'))
+    assert 'note.txt' not in rail and 'missing.txt' not in rail and '✓' not in rail
+    assert 'total' not in rail
     assert 'VISIBLE_ASSISTANT_NOTE' in wide
     assert 'HOLD_PARTIAL_a' not in wide and 'HOLD_PARTIAL_b' not in wide
     assert not re.search(r'^\s*read note.txt\s*$', wide, re.M)
-    passed.append('default-on hides native tool rows while preserving assistant text and outcomes in the rail')
-    for width in [100, 70, 40]:
+    passed.append('default-on hides native tool rows while preserving assistant text and a compact failure indicator')
+    for width in [300, 100, 70, 40]:
         tmux('resize-window', '-t', 'probe', '-x', str(width), '-y', '44')
-        wait(lambda: bool(re.search(r'●.*total', screen())), f'rail at width {width}')
+        wait(lambda: bool(re.search(r'^●.*× 1.*\d+s\s*$', screen(), re.M)), f'left-aligned rail at width {width}')
         capture(f'active-{width}')
     tmux('resize-window', '-t', 'probe', '-x', '160', '-y', '44')
     wait(lambda: '● probe_hold' in screen(), 'wide rail restored')
