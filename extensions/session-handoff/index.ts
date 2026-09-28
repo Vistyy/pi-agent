@@ -49,8 +49,7 @@ export default function sessionHandoff(pi: ExtensionAPI): void {
     name: "start_session",
     label: "Start Session",
     description:
-      "Start an independent interactive Pi session in a new unfocused Herdr workspace. Choose cwd as an absolute path or relative to this session; omit it to use this session's working directory. Set forkContext=true to copy the exact active branch ending before this tool call; false or omitted starts clean. The new session is a peer, not a managed worker. This tool does not wait for a result, steer or close the peer, or establish ownership. Returns exact Herdr and Pi session identities after the kickoff prompt is accepted.",
-    promptSnippet: "Start an independent Pi session in a new Herdr workspace",
+      "Start an independent interactive Pi peer in a new unfocused Herdr workspace. It is not a managed worker. This call does not wait for results, steer or close the peer, or establish ownership. Returns exact Herdr and Pi session identities after the kickoff prompt is accepted.",
     parameters: Type.Object(
       {
         prompt: Type.String({ minLength: 1, pattern: "\\S", description: "Kickoff prompt for the new session" }),
@@ -58,13 +57,13 @@ export default function sessionHandoff(pi: ExtensionAPI): void {
           Type.String({
             minLength: 1,
             pattern: "\\S",
-            description: "Working directory, absolute or relative to the originating session",
+            description: "Working directory, absolute or relative to this session. Defaults to this session's working directory.",
           }),
         ),
         forkContext: Type.Optional(
           Type.Boolean({
             default: false,
-            description: "Copy prior active-branch context when true; start with an empty conversation when false",
+            description: "Copy the exact active branch ending before this call when true. False or omitted starts clean.",
           }),
         ),
       },

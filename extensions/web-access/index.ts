@@ -23,7 +23,6 @@ export default function webAccessExtension(pi: ExtensionAPI) {
 		name: "web_search",
 		label: "Web Search",
 		description: "Answer one current-information query with Exa and cited public sources; falls back once to compact search results.",
-		promptSnippet: "Search the public web for one query with citations",
 		promptGuidelines: ["Use web_search for current or externally sourced facts; pass one focused query."],
 		parameters: SearchParams,
 		async execute(_id, params, signal) {
@@ -51,7 +50,6 @@ export default function webAccessExtension(pi: ExtensionAPI) {
 		name: "web_fetch",
 		label: "Web Fetch",
 		description: "Fetch a public URL broadly, focus it by question, or continue a cached broad representation by contentRef and Unicode offset.",
-		promptSnippet: "Fetch or continue public web content within an explicit character budget",
 		promptGuidelines: ["Use web_fetch({url, question}) for selected evidence, {url} for broad text, and {contentRef, offset} only to continue a truncated broad result."],
 		parameters: FetchParams,
 		async execute(_id, params, signal) {

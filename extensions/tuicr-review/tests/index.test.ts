@@ -20,7 +20,7 @@ test("registers a committed-only exact comparison tool", () => {
   assert.equal(JSON.stringify(TuicrReviewParameters).includes("includeWorkingTree"), false);
 
   const [tool] = tools;
-  assert.ok(tool.promptGuidelines.some((guideline: string) => guideline.includes("answer it against the attached exact source")));
+  assert.ok(tool.promptGuidelines.some((guideline: string) => guideline.includes("against the attached exact source before proposing action")));
   assert.ok(tool.promptGuidelines.some((guideline: string) => guideline.includes("evidence, not authority")));
-  assert.ok(tool.promptGuidelines.some((guideline: string) => guideline.includes("Ask for clarification rather than guessing")));
+  assert.ok(tool.promptGuidelines.some((guideline: string) => guideline.includes("Ask for clarification") && guideline.includes("cannot be grounded")));
 });

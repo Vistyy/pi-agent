@@ -124,12 +124,11 @@ export default function sessionNamingExtension(pi: ExtensionAPI) {
 		name: "name_session",
 		label: "Name Session",
 		description:
-			"Set the current Pi session name. Inside Herdr, optionally also rename exactly the current Herdr tab and remember its compact alias for this branch. Outside Herdr, Pi naming works without a tab.",
-		promptSnippet: "Name the Pi session and, inside Herdr, its current tab",
+			"Set the current Pi session name. In Herdr, optionally rename its current tab and save the alias for this branch.",
 		promptGuidelines: [
-			"Use name_session once for initial naming, after the session's primary objective is clear. Name the enduring umbrella topic or objective, not the current phase, latest subtask, or most recent conversational turn.",
-			"Inside Herdr, provide a descriptive piName and a distinct compact/discriminative 2-4 word tabName for the same umbrella topic; outside Herdr, provide piName only.",
-			"Keep session names through normal progression, related pivots, implementation, debugging, review, and follow-up work. Use name_session again only when the user asks or when the primary objective has been replaced and the existing names have become materially misleading.",
+			"Call name_session once for initial naming, after the primary objective is clear. Use the enduring objective, not a phase, subtask, or conversational turn.",
+			"Inside Herdr, provide a descriptive piName and a distinct, compact, discriminative 2-4 word tabName for the same objective. Outside Herdr, provide only piName.",
+			"Keep names through related pivots, implementation, debugging, review, and follow-up. Rename only on user request or when a replaced primary objective makes the names materially misleading.",
 		],
 		parameters: NameSessionParams,
 		async execute(_toolCallId, params, signal, _onUpdate, ctx) {
