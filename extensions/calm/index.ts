@@ -6,7 +6,7 @@ import type {
 import type { TUI } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import { Value } from "typebox/value";
-import { CalmActivity, calmActivityLines } from "./activity.js";
+import { ACTIVITY_INTERVAL_MS, CalmActivity, calmActivityLines } from "./activity.js";
 import { loadCalmChatRuntime } from "./pi-runtime.js";
 import { calmPreferences } from "./preferences.js";
 import { attachCalmProjection, type CalmProjection, discoverCalmChat } from "./projection.js";
@@ -98,7 +98,7 @@ export default function calm(pi: ExtensionAPI): void {
     } else widget.requestRender();
 
     if (timer === undefined) {
-      timer = setInterval(() => widget?.requestRender(), 1000);
+      timer = setInterval(() => widget?.requestRender(), ACTIVITY_INTERVAL_MS);
       timer.unref();
     }
   };
@@ -173,6 +173,10 @@ export default function calm(pi: ExtensionAPI): void {
 
   pi.on("agent_start", () => {
     if (mode.kind === "ready") activity.start(performance.now());
+  });
+  pi.on("message_update", (event) => {
+    if (mode.kind === "ready" && event.message.role === "assistant")
+      activity.message(event.assistantMessageEvent.type);
   });
   pi.on("tool_execution_start", (event) => {
     if (mode.kind === "ready")

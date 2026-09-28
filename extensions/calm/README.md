@@ -20,17 +20,23 @@ Session choices use `pi-calm-preference` entries in the native session file. The
 
 The rail occupies one line while work or an input prompt is active. It disappears at idle.
 
-- The entire rail stays together on the left, including elapsed time and failure counts. A static accent-colored `●` indicates an active run or input prompt, not that a retained tool is still running.
-- While tools run, the oldest active call is named, with a count of the other active calls. When none remain active, the most recently completed call stays visible with `✓` for completion or `×` for failure. Only one completed call is retained.
-- Before any tool runs, the rail shows just the dot and elapsed time. There are no Working, Thinking, or Responding labels. An input prompt temporarily shows Awaiting input without discarding the retained call.
+```text
+⠋ Thinking   24s · last read activity.ts
+⠋ Running    26s · bash
+⠋ Responding 31s
+```
+
+- The entire rail stays near the left edge. The phase has a ten-column field, so elapsed time always starts in column fourteen. Variable-length details follow the clock.
+- The muted spinner advances every 160 milliseconds while work is active. The phase describes model activity as Thinking, or Responding when text is streamed. There is meaningful status text even before a tool runs.
+- Calls become primary activity only after running for at least 500 milliseconds. Running shows the oldest sustained call and a count of the other sustained calls. Brief calls do not flash the primary status or parallel count.
+- Otherwise, details retain the most recently completed call, prefixed with "last". A failed retained call also says "(failed)". Only one completed call is retained.
+- Input prompts show a stationary `?`, Waiting, and "for input". Closing the prompt restores the prior activity context.
 - Read, edit, and write calls retain bounded filename hints. Full paths and command output remain in the underlying transcript.
-- An active tool shows its own elapsed time. A completed tool does not keep accruing time. Overall elapsed time follows the tool label without a "total" label. The timer requests a redraw once per second while the rail is visible.
-- A warning-colored `×` and a count beside the clock report tool failures during the current run. Successful calls do not decrement the count.
-- Narrower terminals truncate the live label without wrapping the row. Extremely narrow terminals retain only a clipped live label.
+- There is one elapsed time for the whole run. There are no per-tool stopwatches or "total" label.
+- A warning-colored failure count follows the clock when needed. It counts failed tool calls, not failed tasks. Successful calls do not decrement it.
+- Narrower terminals truncate the row without wrapping or moving the clock. At widths too small to contain the clock, only the beginning of the status is shown.
 
-Elapsed time and the failure count use muted theme colors. Active text uses the normal foreground, and completed calls use dim text. Only the active dot and failure markers receive accent or warning colors. There are no pulsing indicators or display-delay timers.
-
-The absence of active tools does not mean the run has finished. The retained call remains visible during model thinking and response generation. The rail follows Pi's run lifecycle and disappears when the run settles. A tool failure count does not mean the whole task failed.
+Phase, spinner, and time use muted theme colors. Details are dim. Warning color is reserved for the failure count. There is no accent dot or success checkmark. The redraw timer stops when the rail is hidden or the run settles.
 
 Pi-level warnings, errors, cache notices, and reload messages remain visible. Warning text inside a tool result stays hidden with that result until Calm is turned off.
 

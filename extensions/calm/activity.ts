@@ -1,6 +1,8 @@
 import type { ExtensionUIContext } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 
+type ModelPhase = "thinking" | "responding";
+type ActivityPhase = ModelPhase | "running" | "waiting";
 type ToolActivity = {
   readonly name: string;
   readonly target: string | undefined;
@@ -13,6 +15,7 @@ type CompletedTool = {
 type Run = {
   readonly startedAt: number;
   readonly tools: Map<string, ToolActivity>;
+  phase: ModelPhase;
   lastCompleted: CompletedTool | undefined;
   failedCalls: number;
 };
@@ -22,6 +25,7 @@ export type ActivitySnapshot =
       readonly kind: "active";
       readonly startedAt: number;
       readonly waiting: boolean;
+      readonly phase: ModelPhase;
       readonly tools: readonly ToolActivity[];
       readonly lastCompleted: CompletedTool | undefined;
       readonly failedCalls: number;
@@ -29,6 +33,15 @@ export type ActivitySnapshot =
 
 type ActivityTheme = Pick<ExtensionUIContext["theme"], "fg">;
 const PATH_TOOLS = new Set(["read", "edit", "write"]);
+const PHASE_LABELS = {
+  thinking: "Thinking",
+  responding: "Responding",
+  running: "Running",
+  waiting: "Waiting",
+} satisfies Record<ActivityPhase, string>;
+const SPINNER = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+const TOOL_REVEAL_MS = 500;
+export const ACTIVITY_INTERVAL_MS = 160;
 
 export class CalmActivity {
   private run: Run | undefined;
@@ -37,7 +50,26 @@ export class CalmActivity {
   constructor(private readonly changed: () => void) {}
 
   start(now: number): void {
-    this.run = { startedAt: now, tools: new Map(), lastCompleted: undefined, failedCalls: 0 };
+    this.run = {
+      startedAt: now,
+      tools: new Map(),
+      phase: "thinking",
+      lastCompleted: undefined,
+      failedCalls: 0,
+    };
+    this.changed();
+  }
+
+  message(type: string): void {
+    const phase =
+      type.startsWith("thinking_") || type.startsWith("toolcall_")
+        ? "thinking"
+        : type.startsWith("text_")
+          ? "responding"
+          : undefined;
+
+    if (this.run === undefined || phase === undefined || this.run.phase === phase) return;
+    this.run.phase = phase;
     this.changed();
   }
 
@@ -45,6 +77,7 @@ export class CalmActivity {
     if (this.run === undefined) return;
     const target = PATH_TOOLS.has(name) ? pathHint(args) : undefined;
     this.run.tools.set(id, { name, target, startedAt: now });
+    this.run.phase = "thinking";
     this.changed();
   }
 
@@ -88,6 +121,7 @@ export class CalmActivity {
       kind: "active",
       startedAt,
       waiting: this.waitingSince !== undefined,
+      phase: this.run?.phase ?? "thinking",
       tools: this.run === undefined ? [] : [...this.run.tools.values()],
       lastCompleted: this.run?.lastCompleted,
       failedCalls: this.run?.failedCalls ?? 0,
@@ -125,26 +159,27 @@ function elapsed(start: number, now: number): string {
   return `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, "0")}m`;
 }
 
-function activityLabel(
+function presentation(
   state: Extract<ActivitySnapshot, { kind: "active" }>,
   now: number,
-  theme: ActivityTheme,
-): string {
-  if (state.waiting) return theme.fg("text", "Awaiting input");
-  const oldest = state.tools[0];
+): { phase: ActivityPhase; details: string | undefined } {
+  if (state.waiting) return { phase: "waiting", details: "for input" };
+  const sustained = state.tools.filter((tool) => now - tool.startedAt >= TOOL_REVEAL_MS);
+  const oldest = sustained[0];
 
   if (oldest !== undefined) {
-    const others = state.tools.length - 1;
+    const others = sustained.length - 1;
     const extra = others > 0 ? ` +${others} running` : "";
 
-    return theme.fg("text", `${toolLabel(oldest)} ${elapsed(oldest.startedAt, now)}${extra}`);
+    return { phase: "running", details: `${toolLabel(oldest)}${extra}` };
   }
   const completed = state.lastCompleted;
+  const details =
+    completed === undefined
+      ? undefined
+      : `last ${toolLabel(completed.tool)}${completed.outcome === "failed" ? " (failed)" : ""}`;
 
-  if (completed === undefined) return "";
-  const marker = completed.outcome === "failed" ? theme.fg("warning", "×") : theme.fg("dim", "✓");
-
-  return `${marker} ${theme.fg("dim", toolLabel(completed.tool))}`;
+  return { phase: state.phase, details };
 }
 
 export function calmActivityLines(
@@ -154,18 +189,14 @@ export function calmActivityLines(
   theme: ActivityTheme,
 ): string[] {
   if (state.kind === "idle" || width < 1) return [];
-  const label = activityLabel(state, now, theme);
-  const live = `${theme.fg("accent", "●")}${label === "" ? "" : ` ${label}`}`;
-  const clock = theme.fg("muted", elapsed(state.startedAt, now));
+  const view = presentation(state, now);
+  const frame = Math.floor(Math.max(0, now - state.startedAt) / ACTIVITY_INTERVAL_MS);
+  const spinner = state.waiting ? "?" : (SPINNER[frame % SPINNER.length] ?? "⠋");
+  const prefix = `${spinner} ${PHASE_LABELS[view.phase].padEnd(10)} ${elapsed(state.startedAt, now)}`;
   const failures =
-    state.failedCalls > 0
-      ? `${theme.fg("warning", "×")}${theme.fg("muted", ` ${state.failedCalls}`)}  `
-      : "";
-  const summary = `${failures}${clock}`;
-  const available = width - visibleWidth(summary) - 2;
+    state.failedCalls > 0 ? theme.fg("warning", ` · ${state.failedCalls} failed`) : "";
+  const details = view.details === undefined ? "" : theme.fg("dim", ` · ${view.details}`);
+  const line = `${theme.fg("muted", prefix)}${failures}${details}`;
 
-  if (available < 8) return [truncateToWidth(live, width, "")];
-  const clippedLive = truncateToWidth(live, available);
-
-  return [`${clippedLive}  ${summary}`];
+  return [truncateToWidth(line, width, width <= visibleWidth(prefix) ? "" : "…")];
 }

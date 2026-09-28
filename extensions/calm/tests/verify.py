@@ -26,6 +26,11 @@ agent = run / 'agent'
 (run / 'overlay.txt').write_text('OVERLAY_TOOL_RESULT\n')
 socket = f'calm-{run.name}'
 print(f'Evidence {run}', flush=True)
+SPINNER = r'[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]'
+
+
+def activity_row(text):
+    return next((line.rstrip() for line in text.splitlines() if re.match(rf'^(?:{SPINNER}|\?) (?:Thinking|Running|Responding|Waiting)', line)), '')
 
 
 def tmux(*words):
@@ -123,28 +128,31 @@ try:
     launch()
     capture('startup')
     event_command('/calm-probe check', 'checked')
-    passed.append('compact left-aligned rail, one retained completed call, failure counts, active filename, parallel selection, clocks, and preference IO')
+    passed.append('fixed clock column, model phases, spinner frames, brief-call suppression, retained details, failure counts, parallel selection, and preference IO')
     send('fixture-run')
     for gate, expected in [
-        ('after-read', r'● ✓ read note\.txt  \d+s'),
-        ('after-failure', r'● × read missing\.txt  × 1  \d+s'),
-        ('after-edit', r'● ✓ edit note\.txt  × 1  \d+s'),
+        ('after-read', rf'{SPINNER} Thinking   \d+s · last read note\.txt'),
+        ('after-failure', rf'{SPINNER} Thinking   \d+s · 1 failed · last read missing\.txt \(failed\)'),
+        ('after-edit', rf'{SPINNER} Thinking   \d+s · 1 failed · last edit note\.txt'),
     ]:
         wait(lambda: any(event.get('gate') == gate for event in events()), gate)
         time.sleep(0.15)
         frame = capture(gate)
-        rail = next(line.rstrip() for line in frame.splitlines() if line.startswith('●'))
-        assert re.fullmatch(expected, rail), f'{gate} expected one retained call with compact spacing, got {rail!r}'
+        rail = activity_row(frame)
+        assert re.fullmatch(expected, rail), f'{gate} expected a thinking phase and retained detail, got {rail!r}'
+        assert re.search(r'\d', rail).start() == 13, 'clock remains in column fourteen'
         time.sleep(1.1)
         assert any(re.fullmatch(expected, line.rstrip()) for line in screen().splitlines()), f'{gate} remains visible while the model is pending'
         (run / gate).write_text('release')
     passed.append('fast completed and failed tools remain named while the model is pending, replacing only the previous call')
     wait(lambda: count('hold-start') == 2, 'both parallel tools active')
-    wait(lambda: bool(re.search(r'^● probe_hold .*\+1 running.*× 1.*\d+s\s*$', screen(), re.M)), 'left-aligned parallel activity rail')
+    parallel = rf'{SPINNER} Running    \d+s · 1 failed · probe_hold \+1 running'
+    wait(lambda: bool(re.fullmatch(parallel, activity_row(screen()))), 'sustained parallel activity rail')
     wide = capture('active-wide', pages=True)
-    rail = next(line for line in screen().splitlines() if line.startswith('●'))
+    rail = activity_row(screen())
     assert 'note.txt' not in rail and 'missing.txt' not in rail and '✓' not in rail
-    assert re.fullmatch(r'● probe_hold \d+s \+1 running  × 1  \d+s', rail.rstrip()), 'the entire rail stays together at the left'
+    assert re.fullmatch(parallel, rail), 'phase, clock, and details stay together at the left'
+    assert re.search(r'\d', rail).start() == 13, 'running keeps the clock in column fourteen'
     assert 'total' not in rail
     assert 'VISIBLE_ASSISTANT_NOTE' in wide
     assert 'HOLD_PARTIAL_a' not in wide and 'HOLD_PARTIAL_b' not in wide
@@ -152,41 +160,46 @@ try:
     passed.append('default-on hides native tool rows while preserving assistant text and a compact failure indicator')
     for width in [300, 100, 70, 40]:
         tmux('resize-window', '-t', 'probe', '-x', str(width), '-y', '44')
-        wait(lambda: bool(re.search(r'^●.*× 1.*\d+s\s*$', screen(), re.M)), f'left-aligned rail at width {width}')
+        wait(lambda: bool(re.match(rf'{SPINNER} Running    \d+s · 1 failed', activity_row(screen()))), f'left-aligned rail at width {width}')
         resized = capture(f'active-{width}')
-        assert any(re.fullmatch(r'● probe_hold \d+s \+1 running  × 1  \d+s', line.rstrip()) for line in resized.splitlines()), f'compact spacing at {width} columns'
+        assert re.search(r'\d', activity_row(resized)).start() == 13, f'fixed clock column at {width} columns'
+        if width >= 70:
+            assert re.fullmatch(parallel, activity_row(resized)), f'compact spacing at {width} columns'
     tmux('resize-window', '-t', 'probe', '-x', '160', '-y', '44')
-    wait(lambda: '● probe_hold' in screen(), 'wide rail restored')
-    first = screen()
-    time.sleep(1.1)
-    later = capture('clock-advanced')
-    assert first != later, 'active elapsed time advances'
+    wait(lambda: bool(re.fullmatch(parallel, activity_row(screen()))), 'wide rail restored')
+    first = activity_row(capture('spinner-first'))
+    wait(lambda: (row := activity_row(screen())) and row[0] != first[0], 'spinner advances')
+    capture('spinner-next')
+    clock = re.search(r'\d+s', first).group()
+    wait(lambda: (row := activity_row(screen())) and re.search(r'\d+s', row).group() != clock, 'elapsed time advances')
+    capture('clock-advanced')
     send('/calm')
     wait(lambda: 'Calm off for this session.' in screen(), 'Calm disabled')
     off = capture('active-off', pages=True)
     assert 'HOLD_PARTIAL_a' in off and 'HOLD_PARTIAL_b' in off
     send('/calm')
-    wait(lambda: '● probe_hold' in screen(), 'Calm enabled')
+    wait(lambda: bool(re.fullmatch(parallel, activity_row(screen()))), 'Calm enabled')
     (run / 'release').write_text('release')
     wait(lambda: any(event.get('gate') == 'after-parallel' for event in events()), 'parallel tools completed')
-    wait(lambda: '● ✓ probe_hold' in screen(), 'last completed parallel call retained')
+    wait(lambda: 'last probe_hold' in activity_row(screen()), 'last completed parallel call retained')
     capture('parallel-completed')
     thinking = count('thinking-start')
     (run / 'after-parallel').write_text('release')
     wait(lambda: count('thinking-start') > thinking, 'model continues thinking after tools')
     retained = capture('retained-during-thinking')
-    assert '● ✓ probe_hold' in retained and '+1 running' not in retained
+    assert re.fullmatch(rf'{SPINNER} Thinking   \d+s · 1 failed · last probe_hold', activity_row(retained))
     passed.append('last completed parallel call stays visible during subsequent model thinking')
     wait(lambda: count('settled') == 1, 'turn settled')
     wait(lambda: 'CALM_FINAL' in screen(), 'final reply')
     idle = capture('idle')
-    assert '● probe_hold' not in idle and '+1 running' not in idle
+    assert activity_row(idle) == ''
     event_command('/calm-probe assert-file', 'file-checked')
     passed.append('live toggling restores partial results, real edit succeeds, and the rail disappears at idle')
     send('fixture-stream')
     wait(lambda: 'STREAM_FLAG_LIVE' in screen(), 'streaming formatter state')
     streaming = capture('streaming')
-    assert any(re.fullmatch(r'●  \d+s', line.rstrip()) for line in streaming.splitlines()), 'a turn without tools shows only the dot and elapsed time'
+    assert re.fullmatch(rf'{SPINNER} Responding \d+s', activity_row(streaming)), 'a turn without tools shows meaningful activity'
+    assert re.search(r'\d', activity_row(streaming)).start() == 13, 'responding keeps the clock in column fourteen'
     wait(lambda: count('settled') == 2, 'stream settled')
     send('fixture-truncated')
     wait(lambda: count('settled') == 3, 'truncated turn settled')
@@ -198,7 +211,9 @@ try:
     passed.append('streaming metadata and native notices survive filtering')
     send('/calm-probe prompt')
     wait(lambda: 'INPUT_PROBE' in screen(), 'input prompt')
-    capture('prompt')
+    prompt = capture('prompt')
+    assert re.fullmatch(r'\? Waiting    \d+s · for input', activity_row(prompt)), 'input prompt pauses the spinner and names the wait'
+    assert re.search(r'\d', activity_row(prompt)).start() == 13, 'waiting keeps the clock in column fourteen'
     before = count('prompt-ended')
     tmux('send-keys', '-t', 'probe', 'Enter')
     wait(lambda: count('prompt-ended') > before, 'input prompt completed')
@@ -250,10 +265,10 @@ try:
     before = count('settled')
     send('fixture-abort')
     wait(lambda: any(event['type'] == 'hold-start' and event['label'] == 'abort' for event in events()), 'abort fixture active')
-    wait(lambda: '● probe_hold' in screen(), 'abort fixture rail')
+    wait(lambda: bool(re.fullmatch(rf'{SPINNER} Running    \d+s · probe_hold', activity_row(screen()))), 'abort fixture rail')
     tmux('send-keys', '-t', 'probe', 'Escape')
     wait(lambda: count('settled') > before, 'aborted turn settled')
-    wait(lambda: '● probe_hold' not in screen(), 'aborted rail cleared')
+    wait(lambda: activity_row(screen()) == '', 'aborted rail cleared')
     capture('aborted')
     shutdown()
     passed.append('saved startup default applies to a new session, and abort clears active activity')
