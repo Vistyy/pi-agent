@@ -7,7 +7,6 @@
 - Keep replies under 1,500 characters unless explicitly asked otherwise.
 - Develop one topic or decision per reply; “research deeply” is not an all-at-once request.
 - Use established project terminology.
-- Reply in Pi by default. For visual or interactive presentations, apply the `show-me` skill to choose the format and delivery.
 
 ## Judgment and design
 
