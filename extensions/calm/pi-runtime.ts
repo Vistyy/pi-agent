@@ -1,0 +1,168 @@
+import { readdir, readFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { pathToFileURL } from "node:url";
+import type { AssistantMessage } from "@earendil-works/pi-ai";
+import type { AssistantMessageComponent } from "@earendil-works/pi-coding-agent";
+import type { Component, Container } from "@earendil-works/pi-tui";
+
+/**
+ * Calm must classify the classes the running Pi actually instantiates.
+ *
+ * A bundled Pi CLI loads its own private copies of the presentation classes, so statically imported
+ * public `@earendil-works` values compare unequal to the live instances. This boundary therefore
+ * loads the *running* Pi module and validates its exports before Calm uses them; a mismatch fails
+ * Calm visibly instead of silently rendering a partial transcript. It never rewrites Pi state.
+ */
+
+type CalmAssistantConstructor = new (message?: AssistantMessage) => AssistantMessageComponent;
+
+type CalmUserConstructor = new (text: string) => Component;
+
+type CalmSkillConstructor = new (...args: never[]) => Component;
+
+export type CalmComponentConstructor = new (...args: never[]) => Component;
+
+type CalmContainerConstructor = new () => Container;
+
+export interface CalmChatRuntime {
+  readonly assistant: CalmAssistantConstructor;
+  readonly user: CalmUserConstructor;
+  readonly skill: CalmSkillConstructor;
+  readonly toolExecution: CalmComponentConstructor;
+  readonly container: CalmContainerConstructor;
+}
+
+const MESSAGE_EXPORTS = [
+  "AssistantMessageComponent",
+  "UserMessageComponent",
+  "SkillInvocationMessageComponent",
+  "ToolExecutionComponent",
+] as const;
+
+/**
+ * Load the presentation classes from the module the running Pi entrypoint actually uses.
+ *
+ * The running bundle re-exports its private classes from a sibling `index.js`, so that candidate is
+ * tried first (its module graph is already loaded and cached). A `chunks` fallback covers layouts
+ * that only expose hashed chunk files, and the entrypoint itself covers SDK-style public entries.
+ */
+export async function loadCalmChatRuntime(entrypoint = process.argv[1]): Promise<CalmChatRuntime> {
+  if (entrypoint === undefined || entrypoint === "")
+    throw new Error("the running Pi entrypoint is unknown.");
+
+  for (const url of await runtimeModuleUrls(entrypoint)) {
+    const runtime = await tryLoadRuntime(url);
+
+    if (runtime !== undefined) return runtime;
+  }
+
+  throw new Error("the running Pi presentation module could not be loaded.");
+}
+
+async function runtimeModuleUrls(entrypoint: string): Promise<readonly string[]> {
+  const directory = dirname(entrypoint);
+  const urls = [pathToFileURL(join(directory, "index.js")).href];
+  urls.push(...(await chunkModuleUrls(directory)));
+  urls.push(pathToFileURL(entrypoint).href);
+
+  return urls;
+}
+
+async function chunkModuleUrls(directory: string): Promise<readonly string[]> {
+  const chunks = join(directory, "chunks");
+  let names: readonly string[];
+
+  try {
+    names = await readdir(chunks);
+  } catch {
+    return [];
+  }
+
+  const urls: string[] = [];
+
+  for (const name of names) {
+    if (!name.endsWith(".js")) continue;
+    const path = join(chunks, name);
+
+    try {
+      const source = await readFile(path, "utf8");
+
+      if (MESSAGE_EXPORTS.every((exportName) => source.includes(exportName)))
+        urls.push(pathToFileURL(path).href);
+    } catch {
+      /* An unreadable chunk must not prevent checking the remaining runtime candidates. */
+    }
+  }
+
+  return urls;
+}
+
+async function tryLoadRuntime(url: string): Promise<CalmChatRuntime | undefined> {
+  let loaded: unknown;
+
+  try {
+    loaded = await import(url);
+  } catch {
+    return undefined;
+  }
+
+  return decodeCalmChatRuntime(loaded);
+}
+
+function decodeCalmChatRuntime(module: unknown): CalmChatRuntime | undefined {
+  const assistant = readProperty(module, "AssistantMessageComponent");
+  const user = readProperty(module, "UserMessageComponent");
+  const skill = readProperty(module, "SkillInvocationMessageComponent");
+  const toolExecution = readProperty(module, "ToolExecutionComponent");
+
+  if (!isAssistantConstructor(assistant)) return undefined;
+
+  if (
+    !isComponentConstructor(user) ||
+    !isComponentConstructor(skill) ||
+    !isComponentConstructor(toolExecution)
+  )
+    return undefined;
+  const parent: unknown = Object.getPrototypeOf(assistant.prototype);
+  const container: unknown = readProperty(parent, "constructor");
+
+  if (!isContainerConstructor(container)) return undefined;
+
+  return {
+    assistant,
+    user,
+    skill,
+    toolExecution,
+    container,
+  };
+}
+
+function isComponentConstructor(value: unknown): value is new () => Component {
+  if (typeof value !== "function") return false;
+  const prototype = readProperty(value, "prototype");
+
+  return typeof readProperty(prototype, "render") === "function";
+}
+
+function isContainerConstructor(value: unknown): value is CalmContainerConstructor {
+  if (!isComponentConstructor(value)) return false;
+
+  return ["addChild", "removeChild", "clear", "invalidate", "handleMouse"].every(
+    (name) => typeof readProperty(value.prototype, name) === "function",
+  );
+}
+
+function isAssistantConstructor(
+  value: unknown,
+): value is CalmAssistantConstructor & { prototype: object } {
+  if (!isComponentConstructor(value)) return false;
+
+  return typeof readProperty(value.prototype, "updateContent") === "function";
+}
+
+function readProperty(value: unknown, key: PropertyKey): unknown {
+  if ((typeof value !== "object" && typeof value !== "function") || value === null)
+    return undefined;
+
+  return Reflect.get(value, key);
+}
