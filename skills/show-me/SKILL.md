@@ -1,6 +1,6 @@
 ---
 name: show-me
-description: Choose and produce a small visual for structure, flow, scale, relationships, or change. Use when the user asks to see something or when one of those shapes is easier to inspect visually than in prose; skip when prose is clearer.
+description: Choose the smallest useful visual for structure, flow, layout, or interactive behavior. Use when the user asks to see a UI, try a prototype, or inspect a visual relationship that prose would obscure. Skip long reports and explanations that remain clear in Pi.
 ---
 
 # Show Me
@@ -18,7 +18,7 @@ Help the user understand the current topic visually. Pick the smallest view that
 | Component interaction, control flow, or data movement | Mermaid |
 | Change to an existing shape | Fenced `diff` |
 | Mostly new, copyable code | Complete code block |
-| Dense visual UI, layout, state comparison, or concept | Focused HTML artifact |
+| Rendered UI, visual fidelity, or behavior the reader must try | Focused HTML artifact |
 
 ## Logic and flow
 
@@ -139,13 +139,13 @@ function expandSkill(command: string): string {
 
 ## HTML artifacts
 
-For a visual UI, layout, state comparison, or concept too dense for Mermaid, write one focused HTML file: a diagram, infographic, or slide deck.
+Use HTML only when the user must judge a rendered layout or try behavior that Pi cannot show. A long overview, plan, or comparison stays in Pi when text or a diagram preserves its meaning. Write one focused HTML file for the browser question.
 
-- Match the product's colors, type, spacing, components, labels, and data.
-- Support desktop and mobile.
+- Match the product's colors, type, spacing, components, labels, and data. Support desktop and mobile.
 - Place the artifact outside product source unless the user requested a repository change.
-- Open it through an available presentation mechanism rather than assuming a platform-specific command.
-- If opening is unavailable, give the user its path and say that it was not opened.
+- On this devbox, use Lavish through the tailnet-only Tailscale Serve port 4387. Bind Lavish to `127.0.0.1`. Set `LAVISH_AXI_LINK_HOST` and `LAVISH_AXI_ALLOWED_HOSTS` to the devbox Tailscale DNS name and `LAVISH_AXI_NO_OPEN=1`. Run `lavish-axi <file> --no-open`, then confirm the returned URL serves the artifact before giving it to the user.
+- A link does not open a browser on the user's SSH client. Keep the Lavish poll attached to this session for browser feedback, and end the review when finished. Do not use `lavish-axi share`, which sends the file to a third-party service.
+- If a private browser link is unavailable, give the user the file path and say that it was not opened.
 
 ## Constraints
 
