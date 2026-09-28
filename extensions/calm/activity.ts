@@ -8,16 +8,11 @@ type ToolActivity = {
   readonly target: string | undefined;
   readonly startedAt: number;
 };
-type CompletedTool = {
-  readonly tool: ToolActivity;
-  readonly outcome: "completed" | "failed";
-};
 type Run = {
   readonly startedAt: number;
   readonly tools: Map<string, ToolActivity>;
   phase: ModelPhase;
-  lastCompleted: CompletedTool | undefined;
-  failedCalls: number;
+  lastCompleted: ToolActivity | undefined;
 };
 export type ActivitySnapshot =
   | { readonly kind: "idle" }
@@ -27,11 +22,11 @@ export type ActivitySnapshot =
       readonly waiting: boolean;
       readonly phase: ModelPhase;
       readonly tools: readonly ToolActivity[];
-      readonly lastCompleted: CompletedTool | undefined;
-      readonly failedCalls: number;
+      readonly lastCompleted: ToolActivity | undefined;
     };
 
-type ActivityTheme = Pick<ExtensionUIContext["theme"], "fg">;
+type ActivityTheme = Pick<ExtensionUIContext["theme"], "fg" | "getThinkingBorderColor">;
+type ThinkingLevel = Parameters<ActivityTheme["getThinkingBorderColor"]>[0];
 const PATH_TOOLS = new Set(["read", "edit", "write"]);
 const PHASE_LABELS = {
   thinking: "Thinking",
@@ -41,7 +36,7 @@ const PHASE_LABELS = {
 } satisfies Record<ActivityPhase, string>;
 const SPINNER = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 const TOOL_REVEAL_MS = 500;
-export const ACTIVITY_INTERVAL_MS = 160;
+export const ACTIVITY_INTERVAL_MS = 80;
 
 export class CalmActivity {
   private run: Run | undefined;
@@ -55,7 +50,6 @@ export class CalmActivity {
       tools: new Map(),
       phase: "thinking",
       lastCompleted: undefined,
-      failedCalls: 0,
     };
     this.changed();
   }
@@ -81,13 +75,12 @@ export class CalmActivity {
     this.changed();
   }
 
-  toolEnd(id: string, failed: boolean): void {
+  toolEnd(id: string): void {
     const tool = this.run?.tools.get(id);
 
     if (this.run === undefined || tool === undefined) return;
     this.run.tools.delete(id);
-    this.run.lastCompleted = { tool, outcome: failed ? "failed" : "completed" };
-    if (failed) this.run.failedCalls += 1;
+    this.run.lastCompleted = tool;
     this.changed();
   }
 
@@ -124,7 +117,6 @@ export class CalmActivity {
       phase: this.run?.phase ?? "thinking",
       tools: this.run === undefined ? [] : [...this.run.tools.values()],
       lastCompleted: this.run?.lastCompleted,
-      failedCalls: this.run?.failedCalls ?? 0,
     };
   }
 }
@@ -174,10 +166,7 @@ function presentation(
     return { phase: "running", details: `${toolLabel(oldest)}${extra}` };
   }
   const completed = state.lastCompleted;
-  const details =
-    completed === undefined
-      ? undefined
-      : `last ${toolLabel(completed.tool)}${completed.outcome === "failed" ? " (failed)" : ""}`;
+  const details = completed === undefined ? undefined : toolLabel(completed);
 
   return { phase: state.phase, details };
 }
@@ -187,16 +176,19 @@ export function calmActivityLines(
   now: number,
   width: number,
   theme: ActivityTheme,
+  thinkingLevel: ThinkingLevel,
 ): string[] {
   if (state.kind === "idle" || width < 1) return [];
   const view = presentation(state, now);
   const frame = Math.floor(Math.max(0, now - state.startedAt) / ACTIVITY_INTERVAL_MS);
   const spinner = state.waiting ? "?" : (SPINNER[frame % SPINNER.length] ?? "⠋");
-  const prefix = `${spinner} ${PHASE_LABELS[view.phase].padEnd(10)} ${elapsed(state.startedAt, now)}`;
-  const failures =
-    state.failedCalls > 0 ? theme.fg("warning", ` · ${state.failedCalls} failed`) : "";
+  const indicator = state.waiting
+    ? theme.fg("muted", spinner)
+    : theme.getThinkingBorderColor(thinkingLevel)(spinner);
+  const status = `${PHASE_LABELS[view.phase].padEnd(10)} ${elapsed(state.startedAt, now)}`;
+  const prefix = `${indicator} ${theme.fg("muted", status)}`;
   const details = view.details === undefined ? "" : theme.fg("dim", ` · ${view.details}`);
-  const line = `${theme.fg("muted", prefix)}${failures}${details}`;
+  const line = `${prefix}${details}`;
 
   return [truncateToWidth(line, width, width <= visibleWidth(prefix) ? "" : "…")];
 }

@@ -21,22 +21,21 @@ Session choices use `pi-calm-preference` entries in the native session file. The
 The rail occupies one line while work or an input prompt is active. It disappears at idle.
 
 ```text
-⠋ Thinking   24s · last read activity.ts
+⠋ Thinking   24s · read activity.ts
 ⠋ Running    26s · bash
 ⠋ Responding 31s
 ```
 
 - The entire rail stays near the left edge. The phase has a ten-column field, so elapsed time always starts in column fourteen. Variable-length details follow the clock.
-- The muted spinner advances every 160 milliseconds while work is active. The phase describes model activity as Thinking, or Responding when text is streamed. There is meaningful status text even before a tool runs.
+- The spinner advances every 80 milliseconds, matching Pi's default loader. It uses the active theme's thinking-level color, as Pi's normal editor spinner does. The phase describes model activity as Thinking, or Responding when text is streamed. There is meaningful status text even before a tool runs.
 - Calls become primary activity only after running for at least 500 milliseconds. Running shows the oldest sustained call and a count of the other sustained calls. Brief calls do not flash the primary status or parallel count.
-- Otherwise, details retain the most recently completed call, prefixed with "last". A failed retained call also says "(failed)". Only one completed call is retained.
+- Otherwise, details retain the most recently completed call without a prefix or outcome marker. Only one completed call is retained.
 - Input prompts show a stationary `?`, Waiting, and "for input". Closing the prompt restores the prior activity context.
 - Read, edit, and write calls retain bounded filename hints. Full paths and command output remain in the underlying transcript.
 - There is one elapsed time for the whole run. There are no per-tool stopwatches or "total" label.
-- A warning-colored failure count follows the clock when needed. It counts failed tool calls, not failed tasks. Successful calls do not decrement it.
 - Narrower terminals truncate the row without wrapping or moving the clock. At widths too small to contain the clock, only the beginning of the status is shown.
 
-Phase, spinner, and time use muted theme colors. Details are dim. Warning color is reserved for the failure count. There is no accent dot or success checkmark. The redraw timer stops when the rail is hidden or the run settles.
+Phase and time remain muted, and details are dim. Spinner color follows live theme and thinking-level changes. The rail contains no success checkmarks, failure counts, or failed-call annotations. The redraw timer stops when the rail is hidden or the run settles.
 
 Pi-level warnings, errors, cache notices, and reload messages remain visible. Warning text inside a tool result stays hidden with that result until Calm is turned off.
 

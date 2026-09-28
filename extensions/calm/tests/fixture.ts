@@ -23,73 +23,76 @@ import { discoverCalmChat } from "../projection.js";
 function checkRail(theme: Parameters<typeof calmActivityLines>[3]): void {
   const state = new CalmActivity(() => {});
   state.start(0);
-  const lines = (width: number) => calmActivityLines(state.snapshot(), 42000, width, theme);
+  const lines = (width: number) => calmActivityLines(state.snapshot(), 42000, width, theme, "low");
   const plain = (width = 160) => stripAnsi(lines(width).join("\n"));
-  assert.equal(plain(), "⠹ Thinking   42s");
+  assert.equal(plain(), "⠴ Thinking   42s");
   assert.equal(
-    stripAnsi(calmActivityLines(state.snapshot(), 42160, 160, theme).join("")),
-    "⠸ Thinking   42s",
+    stripAnsi(calmActivityLines(state.snapshot(), 42080, 160, theme, "low").join("")),
+    "⠦ Thinking   42s",
   );
+  assert.ok(lines(160)[0]?.startsWith(theme.fg("thinkingLow", "⠴")));
+  const high = calmActivityLines(state.snapshot(), 42000, 160, theme, "high").join("");
+  assert.ok(high.startsWith(theme.fg("thinkingHigh", "⠴")));
   state.message("text_delta");
-  assert.equal(plain(), "⠹ Responding 42s");
+  assert.equal(plain(), "⠴ Responding 42s");
   assert.equal(plain().indexOf("42s"), 13);
   state.message("thinking_delta");
   state.toolStart("1", "read", { path: "/private/note.txt" }, 100);
-  state.toolEnd("1", false);
-  assert.equal(plain(), "⠹ Thinking   42s · last read note.txt");
+  state.toolEnd("1");
+  assert.equal(plain(), "⠴ Thinking   42s · read note.txt");
   state.toolStart("brief", "bash", {}, 41999);
-  assert.equal(plain(), "⠹ Thinking   42s · last read note.txt");
-  state.toolEnd("brief", false);
-  assert.equal(plain(), "⠹ Thinking   42s · last bash");
+  assert.equal(plain(), "⠴ Thinking   42s · read note.txt");
+  state.toolEnd("brief");
+  assert.equal(plain(), "⠴ Thinking   42s · bash");
   state.toolStart("2", "read", { path: "/private/missing.txt" }, 200);
-  state.toolEnd("2", true);
-  assert.equal(plain(), "⠹ Thinking   42s · 1 failed · last read missing.txt (failed)");
+  state.toolEnd("2");
+  assert.equal(plain(), "⠴ Thinking   42s · read missing.txt");
   state.toolStart("3", "edit", { path: "/private/note.txt" }, 300);
-  state.toolEnd("3", false);
-  assert.equal(plain(), "⠹ Thinking   42s · 1 failed · last edit note.txt");
+  state.toolEnd("3");
+  assert.equal(plain(), "⠴ Thinking   42s · edit note.txt");
   state.toolStart("4", "bash", {}, 24000);
   state.toolStart("5", "read", { path: "/private/config.json" }, 25000);
-  assert.equal(plain(), "⠹ Running    42s · 1 failed · bash +1 running");
+  assert.equal(plain(), "⠴ Running    42s · bash +1 running");
   assert.equal(plain().indexOf("42s"), 13);
   state.toolStart("brief-parallel", "edit", { path: "brief.txt" }, 41999);
-  assert.equal(plain(), "⠹ Running    42s · 1 failed · bash +1 running");
-  state.toolEnd("brief-parallel", false);
+  assert.equal(plain(), "⠴ Running    42s · bash +1 running");
+  state.toolEnd("brief-parallel");
   assert.ok(!plain().includes("/private/"));
   for (const width of [1, 10, 24, 40, 47, 48, 60, 80, 120, 160, 300]) {
-    assert.ok(plain(width).startsWith("⠹"), `activity stays at column one at ${width} columns`);
+    assert.ok(plain(width).startsWith("⠴"), `activity stays at column one at ${width} columns`);
     assert.equal(lines(width).length, 1);
     assert.ok(visibleWidth(lines(width)[0] ?? "") <= width, `rail fits ${width} columns`);
-    if (width >= 60) assert.equal(plain(width), "⠹ Running    42s · 1 failed · bash +1 running");
+    if (width >= 40) assert.equal(plain(width), "⠴ Running    42s · bash +1 running");
   }
-  state.toolEnd("2", true);
-  assert.equal(plain(), "⠹ Running    42s · 1 failed · bash +1 running");
-  state.toolEnd("4", false);
-  assert.equal(plain(), "⠹ Running    42s · 1 failed · read config.json");
+  state.toolEnd("2");
+  assert.equal(plain(), "⠴ Running    42s · bash +1 running");
+  state.toolEnd("4");
+  assert.equal(plain(), "⠴ Running    42s · read config.json");
   state.promptStart(42000);
-  assert.equal(plain(), "? Waiting    42s · 1 failed · for input");
+  assert.equal(plain(), "? Waiting    42s · for input");
   assert.equal(plain().indexOf("42s"), 13);
   state.promptEnd();
-  state.toolEnd("5", false);
-  assert.equal(plain(), "⠹ Thinking   42s · 1 failed · last read config.json");
+  state.toolEnd("5");
+  assert.equal(plain(), "⠴ Thinking   42s · read config.json");
   state.message("text_delta");
-  assert.equal(plain(), "⠹ Responding 42s · 1 failed · last read config.json");
+  assert.equal(plain(), "⠴ Responding 42s · read config.json");
   state.toolStart("6", "bash", {}, 30000);
-  state.toolEnd("6", true);
-  assert.equal(plain(), "⠹ Thinking   42s · 2 failed · last bash (failed)");
+  state.toolEnd("6");
+  assert.equal(plain(), "⠴ Thinking   42s · bash");
   state.settle();
   assert.deepEqual(lines(160), []);
   state.start(40000);
-  assert.equal(plain(), "⠹ Thinking   2s");
+  assert.equal(plain(), "⠴ Thinking   2s");
   state.toolStart("7", "read", { path: "older.txt" }, 40500);
   state.toolStart("8", "edit", { path: "newer.txt" }, 41000);
-  state.toolEnd("8", false);
-  assert.equal(plain(), "⠹ Running    2s · read older.txt");
-  state.toolEnd("7", false);
-  assert.equal(plain(), "⠹ Thinking   2s · last read older.txt");
+  state.toolEnd("8");
+  assert.equal(plain(), "⠴ Running    2s · read older.txt");
+  state.toolEnd("7");
+  assert.equal(plain(), "⠴ Thinking   2s · read older.txt");
   state.promptStart(42000);
   assert.equal(plain(), "? Waiting    2s · for input");
   state.promptEnd();
-  assert.equal(plain(), "⠹ Thinking   2s · last read older.txt");
+  assert.equal(plain(), "⠴ Thinking   2s · read older.txt");
   state.clear();
   assert.deepEqual(lines(160), []);
 }
@@ -210,6 +213,18 @@ export default function fixture(pi: ExtensionAPI): void {
   pi.on("tool_execution_end", (event) =>
     log({ type: "tool-end", name: event.toolName, error: event.isError }),
   );
+  pi.registerCommand("calm-style", {
+    description: "Inspect and change the isolated spinner theme",
+    async handler(args, ctx) {
+      if (args === "theme") assert.equal(ctx.ui.setTheme("light").success, true);
+      if (args === "thinking") pi.setThinkingLevel("high");
+      log({
+        type: "style",
+        spinner: ctx.ui.theme.getThinkingBorderColor(pi.getThinkingLevel())("X"),
+        text: ctx.ui.theme.fg("muted", "X"),
+      });
+    },
+  });
   pi.registerCommand("calm-probe", {
     description: "Control the isolated Calm verification",
     async handler(args, ctx) {

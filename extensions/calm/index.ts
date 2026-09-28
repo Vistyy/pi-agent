@@ -82,13 +82,20 @@ export default function calm(pi: ExtensionAPI): void {
     }
 
     if (widget === undefined) {
-      mode.ui.setWidget(WIDGET, (tui, theme) => {
+      const ui = mode.ui;
+      ui.setWidget(WIDGET, (tui) => {
         const owned = { requestRender: () => tui.requestRender() };
         widget = owned;
 
         return {
           render: (width) =>
-            calmActivityLines(activity.snapshot(), performance.now(), width, theme),
+            calmActivityLines(
+              activity.snapshot(),
+              performance.now(),
+              width,
+              ui.theme,
+              pi.getThinkingLevel(),
+            ),
           invalidate() {},
           dispose() {
             if (widget === owned) widget = undefined;
@@ -183,7 +190,7 @@ export default function calm(pi: ExtensionAPI): void {
       activity.toolStart(event.toolCallId, event.toolName, event.args, performance.now());
   });
   pi.on("tool_execution_end", (event) => {
-    if (mode.kind === "ready") activity.toolEnd(event.toolCallId, event.isError);
+    if (mode.kind === "ready") activity.toolEnd(event.toolCallId);
   });
   pi.on("agent_settled", () => activity.settle());
   pi.on("ui_prompt_start", () => {

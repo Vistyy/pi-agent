@@ -41,6 +41,19 @@ def screen():
     return tmux('capture-pane', '-p', '-t', 'probe')
 
 
+def foreground(text):
+    return re.findall(r'\x1b\[38;(?:2;\d+;\d+;\d+|5;\d+)m', text)[-1]
+
+
+def spinner_style():
+    for line in tmux('capture-pane', '-e', '-p', '-t', 'probe').splitlines():
+        plain = re.sub(r'\x1b\[[0-9;]*m', '', line)
+        match = re.match(rf'({SPINNER}) (Thinking|Running|Responding)', plain)
+        if match:
+            return (foreground(line.split(match[1], 1)[0]), foreground(line.split(match[2], 1)[0]))
+    return None
+
+
 def events():
     path = run / 'events.jsonl'
     return [json.loads(line) for line in path.read_text().splitlines()] if path.exists() else []
@@ -128,12 +141,12 @@ try:
     launch()
     capture('startup')
     event_command('/calm-probe check', 'checked')
-    passed.append('fixed clock column, model phases, spinner frames, brief-call suppression, retained details, failure counts, parallel selection, and preference IO')
+    passed.append('fixed clock column, 80ms spinner frames, theme colors, brief-call suppression, retained details without outcome markers, parallel selection, and preference IO')
     send('fixture-run')
     for gate, expected in [
-        ('after-read', rf'{SPINNER} Thinking   \d+s · last read note\.txt'),
-        ('after-failure', rf'{SPINNER} Thinking   \d+s · 1 failed · last read missing\.txt \(failed\)'),
-        ('after-edit', rf'{SPINNER} Thinking   \d+s · 1 failed · last edit note\.txt'),
+        ('after-read', rf'{SPINNER} Thinking   \d+s · read note\.txt'),
+        ('after-failure', rf'{SPINNER} Thinking   \d+s · read missing\.txt'),
+        ('after-edit', rf'{SPINNER} Thinking   \d+s · edit note\.txt'),
     ]:
         wait(lambda: any(event.get('gate') == gate for event in events()), gate)
         time.sleep(0.15)
@@ -146,7 +159,7 @@ try:
         (run / gate).write_text('release')
     passed.append('fast completed and failed tools remain named while the model is pending, replacing only the previous call')
     wait(lambda: count('hold-start') == 2, 'both parallel tools active')
-    parallel = rf'{SPINNER} Running    \d+s · 1 failed · probe_hold \+1 running'
+    parallel = rf'{SPINNER} Running    \d+s · probe_hold \+1 running'
     wait(lambda: bool(re.fullmatch(parallel, activity_row(screen()))), 'sustained parallel activity rail')
     wide = capture('active-wide', pages=True)
     rail = activity_row(screen())
@@ -157,10 +170,10 @@ try:
     assert 'VISIBLE_ASSISTANT_NOTE' in wide
     assert 'HOLD_PARTIAL_a' not in wide and 'HOLD_PARTIAL_b' not in wide
     assert not re.search(r'^\s*read note.txt\s*$', wide, re.M)
-    passed.append('default-on hides native tool rows while preserving assistant text and a compact failure indicator')
+    passed.append('default-on hides native tool rows while preserving assistant text without rail failure badges')
     for width in [300, 100, 70, 40]:
         tmux('resize-window', '-t', 'probe', '-x', str(width), '-y', '44')
-        wait(lambda: bool(re.match(rf'{SPINNER} Running    \d+s · 1 failed', activity_row(screen()))), f'left-aligned rail at width {width}')
+        wait(lambda: bool(re.match(rf'{SPINNER} Running    \d+s · probe', activity_row(screen()))), f'left-aligned rail at width {width}')
         resized = capture(f'active-{width}')
         assert re.search(r'\d', activity_row(resized)).start() == 13, f'fixed clock column at {width} columns'
         if width >= 70:
@@ -173,6 +186,17 @@ try:
     clock = re.search(r'\d+s', first).group()
     wait(lambda: (row := activity_row(screen())) and re.search(r'\d+s', row).group() != clock, 'elapsed time advances')
     capture('clock-advanced')
+    colors = []
+    for style in ['inspect', 'theme', 'thinking']:
+        event_command(f'/calm-style {style}', 'style')
+        expected = next(event for event in reversed(events()) if event['type'] == 'style')
+        wanted = (foreground(expected['spinner']), foreground(expected['text']))
+        wait(lambda: spinner_style() == wanted, f'native theme spinner color for {style}')
+        colors.append(wanted)
+        capture(f'style-{style}')
+    assert colors[0] != colors[1], 'changing the theme changes the rendered colors'
+    assert colors[1][0] != colors[2][0], 'changing thinking level changes the spinner color'
+    passed.append('spinner follows live theme and thinking-level colors while status text remains muted')
     send('/calm')
     wait(lambda: 'Calm off for this session.' in screen(), 'Calm disabled')
     off = capture('active-off', pages=True)
@@ -181,13 +205,13 @@ try:
     wait(lambda: bool(re.fullmatch(parallel, activity_row(screen()))), 'Calm enabled')
     (run / 'release').write_text('release')
     wait(lambda: any(event.get('gate') == 'after-parallel' for event in events()), 'parallel tools completed')
-    wait(lambda: 'last probe_hold' in activity_row(screen()), 'last completed parallel call retained')
+    wait(lambda: bool(re.fullmatch(rf'{SPINNER} Thinking   \d+s · probe_hold', activity_row(screen()))), 'completed parallel call retained without a prefix')
     capture('parallel-completed')
     thinking = count('thinking-start')
     (run / 'after-parallel').write_text('release')
     wait(lambda: count('thinking-start') > thinking, 'model continues thinking after tools')
     retained = capture('retained-during-thinking')
-    assert re.fullmatch(rf'{SPINNER} Thinking   \d+s · 1 failed · last probe_hold', activity_row(retained))
+    assert re.fullmatch(rf'{SPINNER} Thinking   \d+s · probe_hold', activity_row(retained))
     passed.append('last completed parallel call stays visible during subsequent model thinking')
     wait(lambda: count('settled') == 1, 'turn settled')
     wait(lambda: 'CALM_FINAL' in screen(), 'final reply')
