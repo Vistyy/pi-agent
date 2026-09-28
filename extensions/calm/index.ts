@@ -174,10 +174,6 @@ export default function calm(pi: ExtensionAPI): void {
   pi.on("agent_start", () => {
     if (mode.kind === "ready") activity.start(performance.now());
   });
-  pi.on("message_update", (event) => {
-    if (mode.kind === "ready" && event.message.role === "assistant")
-      activity.message(event.assistantMessageEvent.type);
-  });
   pi.on("tool_execution_start", (event) => {
     if (mode.kind === "ready")
       activity.toolStart(event.toolCallId, event.toolName, event.args, performance.now());

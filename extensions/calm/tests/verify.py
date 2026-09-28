@@ -123,13 +123,28 @@ try:
     launch()
     capture('startup')
     event_command('/calm-probe check', 'checked')
-    passed.append('left-aligned live states, no completed-call history, failure counts, active filename, parallel count, clocks, and preference IO')
+    passed.append('compact left-aligned rail, one retained completed call, failure counts, active filename, parallel selection, clocks, and preference IO')
     send('fixture-run')
+    for gate, expected in [
+        ('after-read', r'● ✓ read note\.txt  \d+s'),
+        ('after-failure', r'● × read missing\.txt  × 1  \d+s'),
+        ('after-edit', r'● ✓ edit note\.txt  × 1  \d+s'),
+    ]:
+        wait(lambda: any(event.get('gate') == gate for event in events()), gate)
+        time.sleep(0.15)
+        frame = capture(gate)
+        rail = next(line.rstrip() for line in frame.splitlines() if line.startswith('●'))
+        assert re.fullmatch(expected, rail), f'{gate} expected one retained call with compact spacing, got {rail!r}'
+        time.sleep(1.1)
+        assert any(re.fullmatch(expected, line.rstrip()) for line in screen().splitlines()), f'{gate} remains visible while the model is pending'
+        (run / gate).write_text('release')
+    passed.append('fast completed and failed tools remain named while the model is pending, replacing only the previous call')
     wait(lambda: count('hold-start') == 2, 'both parallel tools active')
     wait(lambda: bool(re.search(r'^● probe_hold .*\+1 running.*× 1.*\d+s\s*$', screen(), re.M)), 'left-aligned parallel activity rail')
     wide = capture('active-wide', pages=True)
     rail = next(line for line in screen().splitlines() if line.startswith('●'))
     assert 'note.txt' not in rail and 'missing.txt' not in rail and '✓' not in rail
+    assert re.fullmatch(r'● probe_hold \d+s \+1 running  × 1  \d+s', rail.rstrip()), 'the entire rail stays together at the left'
     assert 'total' not in rail
     assert 'VISIBLE_ASSISTANT_NOTE' in wide
     assert 'HOLD_PARTIAL_a' not in wide and 'HOLD_PARTIAL_b' not in wide
@@ -138,7 +153,8 @@ try:
     for width in [300, 100, 70, 40]:
         tmux('resize-window', '-t', 'probe', '-x', str(width), '-y', '44')
         wait(lambda: bool(re.search(r'^●.*× 1.*\d+s\s*$', screen(), re.M)), f'left-aligned rail at width {width}')
-        capture(f'active-{width}')
+        resized = capture(f'active-{width}')
+        assert any(re.fullmatch(r'● probe_hold \d+s \+1 running  × 1  \d+s', line.rstrip()) for line in resized.splitlines()), f'compact spacing at {width} columns'
     tmux('resize-window', '-t', 'probe', '-x', '160', '-y', '44')
     wait(lambda: '● probe_hold' in screen(), 'wide rail restored')
     first = screen()
@@ -152,6 +168,15 @@ try:
     send('/calm')
     wait(lambda: '● probe_hold' in screen(), 'Calm enabled')
     (run / 'release').write_text('release')
+    wait(lambda: any(event.get('gate') == 'after-parallel' for event in events()), 'parallel tools completed')
+    wait(lambda: '● ✓ probe_hold' in screen(), 'last completed parallel call retained')
+    capture('parallel-completed')
+    thinking = count('thinking-start')
+    (run / 'after-parallel').write_text('release')
+    wait(lambda: count('thinking-start') > thinking, 'model continues thinking after tools')
+    retained = capture('retained-during-thinking')
+    assert '● ✓ probe_hold' in retained and '+1 running' not in retained
+    passed.append('last completed parallel call stays visible during subsequent model thinking')
     wait(lambda: count('settled') == 1, 'turn settled')
     wait(lambda: 'CALM_FINAL' in screen(), 'final reply')
     idle = capture('idle')
@@ -160,7 +185,8 @@ try:
     passed.append('live toggling restores partial results, real edit succeeds, and the rail disappears at idle')
     send('fixture-stream')
     wait(lambda: 'STREAM_FLAG_LIVE' in screen(), 'streaming formatter state')
-    capture('streaming')
+    streaming = capture('streaming')
+    assert any(re.fullmatch(r'●  \d+s', line.rstrip()) for line in streaming.splitlines()), 'a turn without tools shows only the dot and elapsed time'
     wait(lambda: count('settled') == 2, 'stream settled')
     send('fixture-truncated')
     wait(lambda: count('settled') == 3, 'truncated turn settled')
