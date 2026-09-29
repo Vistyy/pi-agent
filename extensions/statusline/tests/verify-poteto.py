@@ -117,7 +117,7 @@ def shutdown():
 passed = []
 try:
     launch()
-    check('on', 'new-session-default-on')
+    check('off', 'new-session-default-off')
     command('seed', 'settled')
     send('/poteto-mode on')
     check('on', 'command-on')
@@ -145,7 +145,7 @@ try:
     send('/poteto-mode on')
     check('on', 'before-malformed-on')
     command('/indicator-probe invalid', 'action')
-    check('on', 'malformed-newest-entry-uses-default')
+    check('off', 'malformed-newest-entry-means-off')
     send('/poteto-mode on')
     check('on', 'valid-entry-restores-on')
     command('/indicator-probe theme', 'action')
@@ -164,7 +164,7 @@ try:
     launch()
     check('on', 'restart-restores-on')
     command('/indicator-probe new', 'action')
-    check('on', 'new-session-uses-default-on')
+    check('off', 'new-session-clears-on-state')
     shutdown()
     result = {'mode': args.mode, 'passed': passed}
     (run / 'results.json').write_text(json.dumps(result, indent=2))
