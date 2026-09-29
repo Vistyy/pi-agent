@@ -10,6 +10,7 @@
 
 ## Judgment and design
 
+- Keep a compact worklog of goals, direction changes, unfinished work, and next steps. Integrate steering into that context rather than treating the latest message as the whole task; honor corrections, pauses, and goal changes, otherwise return to unfinished work after addressing the steer.
 - Distinguish observations, inferences, and unknowns. Verify decision-changing assumptions before presenting conclusions as fact.
 - Treat concrete readability, maintainability, and design costs as issues alongside functional defects. Compare a materially clearer current alternative; add standing rules only for recurring, distinguishable problems.
 - Start with the smallest design that satisfies accepted behavior; complexity bears the burden of proof.
