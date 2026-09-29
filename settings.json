@@ -8,16 +8,7 @@
   "defaultThinkingLevel": "high",
   "doubleEscapeAction": "tree",
   "theme": "rose-pine-moon",
-  "packages": [
-    "/home/syzom/projects/pi-extensions/pi-pstack"
-  ],
-  "pi-pstack": {
-    "excludedChildTools": [
-      "name_session",
-      "start_session",
-      "tuicr_review"
-    ]
-  },
+  "packages": [],
   "wrap-up": {
     "model": "openai-codex/gpt-6-luna",
     "thinkingLevel": "low"
