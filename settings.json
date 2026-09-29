@@ -4,7 +4,7 @@
     "user-skills"
   ],
   "defaultProvider": "openai-codex",
-  "defaultModel": "gpt-6-sol",
+  "defaultModel": "gpt-6.1-sol",
   "defaultThinkingLevel": "high",
   "doubleEscapeAction": "tree",
   "theme": "rose-pine-moon",
@@ -15,7 +15,7 @@
   },
   "enabledModels": [
     "openai-codex/gpt-6-astra",
-    "openai-codex/gpt-6-sol",
+    "openai-codex/gpt-6.1-sol",
     "openai-codex/gpt-6-luna"
   ],
   "showCacheMissNotices": true,
