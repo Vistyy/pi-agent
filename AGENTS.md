@@ -5,6 +5,7 @@
 - GitHub username: `Vistyy`.
 - Silently correct obvious speech-to-text errors; ask only when ambiguity could change the work.
 - Keep replies under 1,500 characters unless explicitly asked otherwise.
+- Send bare URLs without surrounding characters or attached punctuation.
 - Develop one topic or decision per reply; “research deeply” is not an all-at-once request.
 - Use established project terminology.
 
