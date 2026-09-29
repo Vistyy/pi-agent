@@ -1,15 +1,12 @@
 import type { AssistantMessage } from "@earendil-works/pi-ai";
-import type { ExtensionAPI, ExtensionContext, SessionEntry } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
-import { Type } from "typebox";
-import { Check } from "typebox/value";
 
 type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | string;
 type GitCache = { cwd: string; createdAt: number; value: string | undefined };
 
 const GIT_CACHE_MS = 1000;
 const COMPACT_BRANCH_WIDTH = 20;
-const PotetoMode = Type.Object({ enabled: Type.Boolean() });
 
 export default function statusline(pi: ExtensionAPI) {
   let thinkingLevel: ThinkingLevel = "low";
@@ -76,8 +73,7 @@ export default function statusline(pi: ExtensionAPI) {
         invalidate() {},
         render(width: number): string[] {
           scheduleRefresh(ctx);
-          const entries = ctx.sessionManager.getBranch();
-          const usage = summarizeUsage(entries);
+          const usage = summarizeUsage(ctx.sessionManager.getBranch());
           const contextUsage = ctx.getContextUsage();
           const branch = footerData.getGitBranch();
           const git = branch && gitCache?.cwd === ctx.cwd ? gitCache?.value : undefined;
@@ -88,7 +84,7 @@ export default function statusline(pi: ExtensionAPI) {
           const divider = theme.fg("borderMuted", " | ");
           const modelName = theme.fg("text", `${ctx.model?.id ?? "no model"}:${shortThinking(thinkingLevel)}`);
           const fastIndicator = fast ? theme.fg("accent", stripAnsi(fast)) : "";
-          const model = `${theme.fg(potetoColor(entries), "π")} ${modelName}${fastIndicator ? ` ${fastIndicator}` : ""}`;
+          const model = `${theme.fg("accent", "π")} ${modelName}${fastIndicator ? ` ${fastIndicator}` : ""}`;
           const contextColor = contextUsage?.percent != null && contextUsage.percent >= 80 ? "warning" : "muted";
           const ctxPct = contextUsage?.percent != null ? theme.fg(contextColor, `${Math.round(contextUsage.percent)}%`) : undefined;
           const ctxFull = contextUsage?.tokens != null
@@ -152,12 +148,6 @@ export default function statusline(pi: ExtensionAPI) {
       await ctx.reload();
     },
   });
-}
-
-function potetoColor(entries: readonly SessionEntry[]): "accent" | "dim" {
-  const mode = entries.findLast((entry) => entry.type === "custom" && entry.customType === "pstack-mode");
-  const data: unknown = mode?.type === "custom" ? mode.data : undefined;
-  return Check(PotetoMode, data) && data.enabled ? "accent" : "dim";
 }
 
 async function gitSummary(pi: ExtensionAPI, cwd: string, signal: AbortSignal): Promise<string | undefined> {
