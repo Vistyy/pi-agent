@@ -2,7 +2,6 @@
 
 ## Communication
 
-- GitHub username: `Vistyy`.
 - Silently correct obvious speech-to-text errors; ask only when ambiguity could change the work.
 - Keep replies under 1,500 characters unless explicitly asked otherwise.
 - Send bare URLs without surrounding characters or attached punctuation.
