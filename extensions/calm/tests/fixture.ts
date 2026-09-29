@@ -16,6 +16,7 @@ import { type ExtensionAPI, SessionManager } from "@earendil-works/pi-coding-age
 import { visibleWidth } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
 import { CalmActivity, calmActivityLines } from "../activity.js";
+import { isCompletionReportEnvelope } from "../completion-report.js";
 import { loadCalmChatRuntime } from "../pi-runtime.js";
 import { calmPreferences } from "../preferences.js";
 import { discoverCalmChat } from "../projection.js";
@@ -105,6 +106,119 @@ async function waitForRelease(path: string, signal: AbortSignal | undefined): Pr
   }
 }
 
+function checkReportEnvelope(): void {
+  const prefix = "PSTACK_CHILD_REPORT_V1\n";
+  const envelope = (payload: object) => `${prefix}${JSON.stringify(payload)}`;
+  const full = envelope({
+    id: "child-a",
+    attempt: 1,
+    status: "completed",
+    report: { kind: "full", text: "" },
+  });
+  const preview = envelope({
+    id: "child-b",
+    attempt: 2,
+    status: "failed",
+    report: { kind: "preview", text: "head", omittedBytes: 4096 },
+  });
+
+  assert.equal(isCompletionReportEnvelope(full), true, "exact full envelope");
+  assert.equal(isCompletionReportEnvelope(preview), true, "exact preview envelope");
+  assert.equal(isCompletionReportEnvelope(full.replace("\n", "")), false, "prefix without newline");
+  assert.equal(isCompletionReportEnvelope(`${full}\n`), false, "trailing newline");
+  assert.equal(
+    isCompletionReportEnvelope(`${prefix} ${full.slice(prefix.length)}`),
+    false,
+    "space before the JSON object",
+  );
+  assert.equal(
+    isCompletionReportEnvelope(
+      envelope({
+        id: "child-c",
+        attempt: 1,
+        status: "completed",
+        report: { kind: "full", text: "body" },
+        transport: "queue",
+      }),
+    ),
+    false,
+    "extra top-level property",
+  );
+  assert.equal(
+    isCompletionReportEnvelope(envelope({ id: "child-d", attempt: 1, status: "completed" })),
+    false,
+    "missing report",
+  );
+  assert.equal(
+    isCompletionReportEnvelope(
+      envelope({ id: "child-e", attempt: 0, status: "completed", report: { kind: "full", text: "b" } }),
+    ),
+    false,
+    "zero attempt",
+  );
+  assert.equal(
+    isCompletionReportEnvelope(
+      envelope({
+        id: "child-f",
+        attempt: 1.5,
+        status: "completed",
+        report: { kind: "full", text: "b" },
+      }),
+    ),
+    false,
+    "fractional attempt",
+  );
+  assert.equal(
+    isCompletionReportEnvelope(
+      envelope({ id: "", attempt: 1, status: "completed", report: { kind: "full", text: "b" } }),
+    ),
+    false,
+    "empty id",
+  );
+  assert.equal(
+    isCompletionReportEnvelope(
+      envelope({ id: "child-g", attempt: 1, status: "running", report: { kind: "full", text: "b" } }),
+    ),
+    false,
+    "non terminal status",
+  );
+  assert.equal(
+    isCompletionReportEnvelope(
+      envelope({
+        id: "child-h",
+        attempt: 1,
+        status: "completed",
+        report: { kind: "full", text: "b", omittedBytes: 1 },
+      }),
+    ),
+    false,
+    "full report carrying omittedBytes",
+  );
+  assert.equal(
+    isCompletionReportEnvelope(
+      envelope({ id: "child-i", attempt: 1, status: "completed", report: { kind: "preview", text: "b" } }),
+    ),
+    false,
+    "preview without omittedBytes",
+  );
+  assert.equal(
+    isCompletionReportEnvelope(
+      envelope({
+        id: "child-j",
+        attempt: 1,
+        status: "completed",
+        report: { kind: "preview", text: "b", omittedBytes: 0 },
+      }),
+    ),
+    false,
+    "zero omittedBytes",
+  );
+  assert.equal(isCompletionReportEnvelope(`${prefix}{"id":`), false, "malformed JSON");
+  assert.equal(isCompletionReportEnvelope('{"id":"child-k"}'), false, "ordinary JSON");
+  assert.equal(isCompletionReportEnvelope(undefined), false, "missing text metadata");
+  assert.equal(isCompletionReportEnvelope(42), false, "non text metadata");
+}
+
 export default function fixture(pi: ExtensionAPI): void {
   const directory = process.env.CALM_VERIFY_DIR;
   if (directory === undefined) throw new Error("CALM_VERIFY_DIR is required.");
@@ -138,7 +252,91 @@ export default function fixture(pi: ExtensionAPI): void {
       fauxText("CALM_FINAL"),
     ]),
   ];
-  const single = new Map([
+  const reportEnvelope = (payload: object) => `PSTACK_CHILD_REPORT_V1\n${JSON.stringify(payload)}`;
+  const reportCases = new Map<string, { readonly text: string; readonly reply: string }>([
+    [
+      "full",
+      {
+        text: reportEnvelope({
+          id: "child-full",
+          attempt: 1,
+          status: "completed",
+          report: { kind: "full", text: "REPORT-FULL-BODY" },
+        }),
+        reply: "REPORT-FULL-ACK",
+      },
+    ],
+    [
+      "preview",
+      {
+        text: reportEnvelope({
+          id: "child-preview",
+          attempt: 1,
+          status: "failed",
+          report: { kind: "preview", text: "REPORT-PREVIEW-HEAD", omittedBytes: 4096 },
+        }),
+        reply: "REPORT-PREVIEW-ACK",
+      },
+    ],
+    [
+      "near",
+      {
+        text: reportEnvelope({
+          id: "child-near",
+          attempt: 1,
+          status: "completed",
+          report: { kind: "full", text: "REPORT-NEAR-BODY" },
+          padding: 1,
+        }),
+        reply: "REPORT-NEAR-ACK",
+      },
+    ],
+    [
+      "version",
+      {
+        text: `PSTACK_CHILD_REPORT_V2\n${JSON.stringify({
+          id: "child-version",
+          attempt: 1,
+          status: "completed",
+          report: { kind: "full", text: "REPORT-VERSION-BODY" },
+        })}`,
+        reply: "REPORT-VERSION-ACK",
+      },
+    ],
+    [
+      "malformed",
+      {
+        text: `PSTACK_CHILD_REPORT_V1\n{"id":"child-malformed","text":"REPORT-MALFORMED-BODY"`,
+        reply: "REPORT-MALFORMED-ACK",
+      },
+    ],
+    [
+      "json",
+      {
+        text: JSON.stringify({
+          id: "child-plain",
+          attempt: 1,
+          status: "completed",
+          report: { kind: "full", text: "PLAIN-JSON-ROW" },
+        }),
+        reply: "PLAIN-JSON-ACK",
+      },
+    ],
+    ["text", { text: "ORDINARY-USER-TEXT", reply: "ORDINARY-TEXT-ACK" }],
+    [
+      "off",
+      {
+        text: reportEnvelope({
+          id: "child-off",
+          attempt: 1,
+          status: "completed",
+          report: { kind: "full", text: "REPORT-OFF-BODY" },
+        }),
+        reply: "REPORT-OFF-ACK",
+      },
+    ],
+  ]);
+  const single = new Map<string, AssistantMessage>([
     [
       "fixture-abort",
       fauxAssistantMessage(fauxToolCall("probe_hold", { label: "abort" }, { id: "abort-hold" }), {
@@ -153,6 +351,9 @@ export default function fixture(pi: ExtensionAPI): void {
     ],
     ["fixture-truncated", fauxAssistantMessage("VISIBLE_PARTIAL_REPLY", { stopReason: "length" })],
   ]);
+
+  for (const report of reportCases.values())
+    single.set(report.text, fauxAssistantMessage(report.reply));
   const provider = fauxProvider({
     provider: "calm-fixture",
     models: [{ id: "scripted", reasoning: true }],
@@ -317,6 +518,23 @@ export default function fixture(pi: ExtensionAPI): void {
       if (args === "assert-file") {
         assert.equal(readFileSync(join(directory, "note.txt"), "utf8"), "AFTER\n");
         log({ type: "file-checked" });
+      }
+      if (args === "report-envelope") {
+        checkReportEnvelope();
+        log({ type: "report-envelope-checked" });
+        ctx.ui.notify("REPORT_ENVELOPE_CHECKED", "info");
+        return;
+      }
+      if (args.startsWith("report ")) {
+        const name = args.slice("report ".length).trim();
+        const report = reportCases.get(name);
+
+        if (report === undefined) {
+          ctx.ui.notify(`Unknown report fixture case ${name}.`, "warning");
+          return;
+        }
+        log({ type: "report-sent", case: name, text: report.text });
+        pi.sendUserMessage(report.text);
       }
     },
   });

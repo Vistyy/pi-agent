@@ -1,6 +1,7 @@
 import type { AssistantMessage } from "@earendil-works/pi-ai";
 import type { AssistantMessageComponent } from "@earendil-works/pi-coding-agent";
 import type { Component, Container, TUI } from "@earendil-works/pi-tui";
+import { isCompletionReportEnvelope } from "./completion-report.js";
 import type { CalmChatRuntime, CalmComponentConstructor } from "./pi-runtime.js";
 
 /**
@@ -359,8 +360,14 @@ class ChatProjectionAdapter implements CalmProjection {
     return synthetic;
   }
 
+  #user(source: Component): Component | undefined {
+    const text = Object.getOwnPropertyDescriptor(source, "text")?.value;
+
+    return isCompletionReportEnvelope(text) ? undefined : source;
+  }
+
   #visible(component: Component): Component | undefined {
-    if (isLiveInstance(component, this.#runtime.user)) return component;
+    if (isLiveInstance(component, this.#runtime.user)) return this.#user(component);
 
     if (isLiveInstance(component, this.#runtime.skill)) return this.#skill(component);
 

@@ -27,6 +27,16 @@ agent = run / 'agent'
 socket = f'calm-{run.name}'
 print(f'Evidence {run}', flush=True)
 SPINNER = r'[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]'
+REPORT_CASES = [
+    ('full', 'REPORT-FULL-BODY', 'REPORT-FULL-ACK', True),
+    ('preview', 'REPORT-PREVIEW-HEAD', 'REPORT-PREVIEW-ACK', True),
+    ('near', 'REPORT-NEAR-BODY', 'REPORT-NEAR-ACK', False),
+    ('version', 'REPORT-VERSION-BODY', 'REPORT-VERSION-ACK', False),
+    ('malformed', 'REPORT-MALFORMED-BODY', 'REPORT-MALFORMED-ACK', False),
+    ('json', 'PLAIN-JSON-ROW', 'PLAIN-JSON-ACK', False),
+    ('text', 'ORDINARY-USER-TEXT', 'ORDINARY-TEXT-ACK', False),
+]
+OFF_CASE = ('off', 'REPORT-OFF-BODY', 'REPORT-OFF-ACK', True)
 
 
 def activity_row(text):
@@ -125,7 +135,7 @@ def launch(session='parent.jsonl'):
     wait(lambda: count('ready') > before, 'Pi startup')
     wait(lambda: 'scripted' in screen(), 'initial terminal frame')
     if restoring:
-        wait(lambda: 'VISIBLE_PARTIAL_REPLY' in screen(), 'saved transcript rendered')
+        wait(lambda: 'ORDINARY-TEXT-ACK' in screen(), 'saved transcript rendered')
 
 
 def shutdown():
@@ -142,6 +152,8 @@ try:
     capture('startup')
     event_command('/calm-probe check', 'checked')
     passed.append('fixed clock column, 80ms spinner frames, theme colors, brief-call suppression, retained details without outcome markers, parallel selection, and preference IO')
+    event_command('/calm-probe report-envelope', 'report-envelope-checked')
+    passed.append('exact full and preview report envelopes are recognized while near matches, malformed JSON, and unreadable text metadata stay unrecognized')
     send('fixture-run')
     for gate, expected in [
         ('after-read', rf'{SPINNER} Thinking   \d+s · read note\.txt'),
@@ -233,6 +245,35 @@ try:
     wait(lambda: 'VISIBLE_NATIVE_NOTICE' in screen(), 'native notice')
     capture('notice')
     passed.append('streaming metadata and native notices survive filtering')
+    for case, marker, ack, hidden in REPORT_CASES:
+        settled_before = count('settled')
+        event_command(f'/calm-probe report {case}', 'report-sent')
+        wait(lambda: count('settled') > settled_before, f'{case} report turn settled')
+        wait(lambda: ack in screen(), f'{case} report reply rendered')
+        frame = capture(f'report-{case}')
+        if hidden:
+            assert marker not in frame, f'{case} row must stay hidden while Calm is on'
+        else:
+            assert marker in frame, f'{case} row must stay visible while Calm is on'
+    passed.append('exact envelopes hide while Calm is on, while near matches, malformed rows, plain JSON, and ordinary text keep their rows')
+    send('/calm')
+    wait(lambda: 'Calm off for this session.' in screen() and 'Calm on for this session.' not in screen(),
+         'Calm disabled for report rows')
+    reports_off = capture('reports-off', pages=True)
+    assert 'CALM_FINAL' in reports_off, 'the paged capture reaches the report rows'
+    for case, marker, ack, hidden in REPORT_CASES:
+        assert marker in reports_off, f'{case} row must return while Calm is off'
+    send('/calm')
+    wait(lambda: 'Calm on for this session.' in screen() and 'Calm off for this session.' not in screen(),
+         'Calm enabled for report rows')
+    reports_on = capture('reports-on', pages=True)
+    assert 'CALM_FINAL' in reports_on, 'the paged capture reaches the report rows'
+    for case, marker, ack, hidden in REPORT_CASES:
+        if hidden:
+            assert marker not in reports_on, f'{case} row must hide again while Calm is on'
+        else:
+            assert marker in reports_on, f'{case} row must stay visible while Calm is on'
+    passed.append('toggling Calm off restores report rows and toggling it back on hides the exact envelopes again')
     send('/calm-probe prompt')
     wait(lambda: 'INPUT_PROBE' in screen(), 'input prompt')
     prompt = capture('prompt')
@@ -260,10 +301,26 @@ try:
     launch()
     restored = capture('restored-off', pages=True)
     assert 'HOLD_RESULT_a' in restored
+    assert 'CALM_FINAL' in restored, 'the paged capture reaches the report rows'
+    for case, marker, ack, hidden in REPORT_CASES:
+        assert marker in restored, f'{case} row must survive the restart while Calm is off'
+    settled_before = count('settled')
+    event_command(f'/calm-probe report {OFF_CASE[0]}', 'report-sent')
+    wait(lambda: count('settled') > settled_before, 'report sent while Calm is off settled')
+    wait(lambda: OFF_CASE[2] in screen(), 'report sent while Calm is off rendered')
+    off_case = capture('report-off')
+    assert OFF_CASE[1] in off_case, 'a row sent while Calm is off renders natively'
     send('/calm')
     wait(lambda: 'Calm on for this session.' in screen(), 'restored session toggled on')
     restored_on = capture('restored-on', pages=True)
     assert 'HOLD_RESULT_a' not in restored_on
+    assert 'CALM_FINAL' in restored_on, 'the paged capture reaches the report rows'
+    for case, marker, ack, hidden in REPORT_CASES:
+        if hidden:
+            assert marker not in restored_on, f'{case} row must hide after the restart toggle'
+        else:
+            assert marker in restored_on, f'{case} row must stay visible after the restart toggle'
+    assert OFF_CASE[1] not in restored_on, 'a row sent while Calm was off must hide once Calm is on'
     before = count('ready')
     send('/reload')
     wait(lambda: count('ready') > before, 'in-process reload')
@@ -271,15 +328,26 @@ try:
     reloaded = capture('reloaded', pages=True)
     assert 'HOLD_RESULT_a' not in reloaded
     assert 'Calm unavailable' not in reloaded
+    assert 'CALM_FINAL' in reloaded, 'the paged capture reaches the report rows'
+    for case, marker, ack, hidden in REPORT_CASES:
+        if hidden:
+            assert marker not in reloaded, f'{case} row must stay hidden across the reload'
+        else:
+            assert marker in reloaded, f'{case} row must stay visible across the reload'
     passed.append('session preference survives restart and in-process reload')
     send('/calm default off')
     wait(lambda: (agent / 'calm-default').exists() and (agent / 'calm-default').read_text() == 'off\n', 'startup default saved')
-    assert 'HOLD_RESULT_a' not in capture('default-change-current-session', pages=True)
+    unchanged = capture('default-change-current-session', pages=True)
+    assert 'HOLD_RESULT_a' not in unchanged
+    assert 'REPORT-FULL-BODY' not in unchanged, 'the current session stays Calm after a default change'
+    assert 'REPORT-NEAR-BODY' in unchanged, 'near matches stay visible after a default change'
     send('/calm-probe break')
     wait(lambda: 'Calm unavailable.' in screen(), 'native compatibility fallback')
     fallback = capture('fallback', pages=True)
     assert 'NATIVE_FALLBACK_VISIBLE' in fallback
     assert 'HOLD_RESULT_a' in fallback
+    assert 'REPORT-FULL-BODY' in fallback, 'native restore brings report rows back'
+    assert 'REPORT-MALFORMED-BODY' in fallback
     passed.append('incompatible private metadata restores native transcript without partial filtering')
     shutdown()
     launch('new-session.jsonl')
@@ -328,6 +396,21 @@ try:
     assert sum(message['isError'] for message in results) == 1
     assert any(part['type'] == 'thinking' for message in messages if message['role'] == 'assistant' for part in message['content'])
     passed.append('canonical session keeps all five tool results, the failure, and thinking')
+
+    def message_text(content):
+        if isinstance(content, str):
+            return content
+        return ''.join(part['text'] for part in content if part.get('type') == 'text')
+
+    sent = [event for event in events() if event['type'] == 'report-sent']
+    labels = [event['label'] for event in events() if event['type'] == 'request']
+    user_texts = [message_text(message['content']) for message in messages if message['role'] == 'user']
+    assert len(sent) == len(REPORT_CASES) + 1
+    for event in sent:
+        text = event['text']
+        assert user_texts.count(text) == 1, f"{event['case']} row is stored exactly once"
+        assert text in labels, f"{event['case']} provider input equals the stored row"
+    passed.append('every report row reaches the session file and the provider byte for byte while Calm only changes rendering')
     (run / 'results.json').write_text(json.dumps({'mode': args.mode, 'passed': passed}, indent=2) + '\n')
     print(json.dumps({'mode': args.mode, 'passed': passed}, indent=2), flush=True)
 finally:
