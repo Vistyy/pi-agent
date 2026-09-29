@@ -1,8 +1,8 @@
 # Poteto indicator
 
-With PStack loaded, the existing `π` in the footer shows the saved mode for the current session branch. It uses the theme's accent color when enabled and its dim color otherwise. There is no additional label or toggle.
+With PStack loaded, the existing `π` in the footer shows the effective Poteto mode for the current session branch. It uses the theme's accent color when the mode is on and its dim color when it is off. There is no additional label or toggle.
 
-The footer reads the newest `pstack-mode` custom entry in the current branch on every render. Its data must contain `enabled` as a boolean. Missing or malformed data means off, matching PStack's current runtime. There is no separate cache or preference to synchronize.
+The footer reads the newest `pstack-mode` custom entry in the current branch on every render. An entry with `enabled: false` renders dim. Missing or malformed entries render accent, matching PStack's default-on behavior. There is no separate cache or preference to synchronize.
 
 `/poteto-mode on` and `/poteto-mode off` remain PStack's commands. The footer only reads their stored state. It does not enable workflows or change model instructions.
 

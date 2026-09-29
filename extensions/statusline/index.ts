@@ -157,7 +157,7 @@ export default function statusline(pi: ExtensionAPI) {
 function potetoColor(entries: readonly SessionEntry[]): "accent" | "dim" {
   const mode = entries.findLast((entry) => entry.type === "custom" && entry.customType === "pstack-mode");
   const data: unknown = mode?.type === "custom" ? mode.data : undefined;
-  return Check(PotetoMode, data) && data.enabled ? "accent" : "dim";
+  return Check(PotetoMode, data) && !data.enabled ? "dim" : "accent";
 }
 
 async function gitSummary(pi: ExtensionAPI, cwd: string, signal: AbortSignal): Promise<string | undefined> {
