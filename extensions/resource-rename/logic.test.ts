@@ -28,14 +28,14 @@ test("tab restoration only claims its default numeric label", () => {
 	assert.equal(decideTabRestore("07", 7, "Build API"), "preserve");
 });
 
-test("session names require Pi name and trim optional tab name", () => {
+test("session names require and trim both names", () => {
 	assert.deepEqual(normalizeSessionNames({ piName: " Build API ", tabName: " Compact Tab " }), {
 		piName: "Build API",
 		tabName: "Compact Tab",
 	});
-	assert.deepEqual(normalizeSessionNames({ piName: "Pi only" }), { piName: "Pi only" });
-	assert.throws(() => normalizeSessionNames({ piName: "  " }), /piName must not be blank/);
-	assert.throws(() => normalizeSessionNames({ piName: "Pi", tabName: "  " }), /tabName must not be blank/);
+	assert.throws(() => normalizeSessionNames({ piName: "  ", tabName: "Compact Tab" }), /piName must not be blank/);
+	assert.throws(() => normalizeSessionNames({ piName: "Build API", tabName: "  " }), /tabName must not be blank/);
+	assert.throws(() => normalizeSessionNames({ piName: "Build API", tabName: undefined }), /tabName must not be blank/);
 });
 
 test("rename is only a no-argument naming shortcut", () => {

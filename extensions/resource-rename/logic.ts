@@ -38,14 +38,13 @@ export function decideTabRestore(label: string, tabNumber: number, alias: string
 
 export function normalizeSessionNames(input: {
 	piName: unknown;
-	tabName?: unknown;
-}): { piName: string; tabName?: string } {
+	tabName: unknown;
+}): { piName: string; tabName: string } {
 	const piName = typeof input.piName === "string" ? input.piName.trim() : "";
 	if (!piName) throw new Error("piName must not be blank.");
 
-	if (input.tabName === undefined) return { piName };
 	const tabName = typeof input.tabName === "string" ? input.tabName.trim() : "";
-	if (!tabName) throw new Error("tabName must not be blank when supplied.");
+	if (!tabName) throw new Error("tabName must not be blank.");
 	return { piName, tabName };
 }
 
