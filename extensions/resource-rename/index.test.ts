@@ -10,10 +10,15 @@ const savedEnv = {
 	HERDR_BIN_PATH: process.env.HERDR_BIN_PATH,
 };
 
+type RegisteredTool = {
+	parameters: { required?: string[]; properties?: Record<string, { minLength?: number }> };
+	execute: (...args: any[]) => Promise<any>;
+};
+
 type Fake = {
 	handlers: Record<string, (event: unknown, ctx: unknown) => unknown>;
 	commands: Record<string, { handler: (args: string, ctx: unknown) => unknown }>;
-	tools: Array<{ execute: (...args: any[]) => Promise<any> }>;
+	tools: RegisteredTool[];
 	setNames: string[];
 	appended: Array<{ type: string; data: unknown }>;
 	execCalls: string[][];
@@ -35,7 +40,7 @@ function makeFake(): Fake {
 	const api = {
 		on: (event: string, handler: (event: unknown, ctx: unknown) => unknown) => { fake.handlers[event] = handler; },
 		registerCommand: (name: string, command: { handler: (args: string, ctx: unknown) => unknown }) => { fake.commands[name] = command; },
-		registerTool: (tool: { execute: (...args: any[]) => Promise<any> }) => { fake.tools.push(tool); },
+		registerTool: (tool: RegisteredTool) => { fake.tools.push(tool); },
 		setSessionName: (name: string) => { fake.setNames.push(name); },
 		appendEntry: (type: string, data: unknown) => { fake.appended.push({ type, data }); },
 		exec: async (_command: string, args: string[]) => {
@@ -76,13 +81,40 @@ function tool(fake: Fake) {
 	return fake.tools[0]!;
 }
 
-test("name_session sets Pi only outside Herdr", async () => {
+test("registered name_session schema requires both nonempty names", () => {
+	const fake = makeFake();
+	const schema = tool(fake).parameters;
+	assert.deepEqual(schema.required, ["piName", "tabName"]);
+	assert.equal(schema.properties?.piName?.minLength, 1);
+	assert.equal(schema.properties?.tabName?.minLength, 1);
+});
+
+test("name_session sets Pi name and ignores tabName outside Herdr", async () => {
 	await withEnv({ HERDR_ENV: undefined, HERDR_PANE_ID: undefined, HERDR_TAB_ID: undefined }, async () => {
 		const fake = makeFake();
-		const result = await tool(fake).execute("call", { piName: "Build API" }, undefined, undefined, context());
+		const result = await tool(fake).execute("call", { piName: "Build API", tabName: "API Fix" }, undefined, undefined, context());
 		assert.deepEqual(fake.setNames, ["Build API"]);
 		assert.deepEqual(fake.execCalls, []);
+		assert.deepEqual(fake.appended, []);
 		assert.match(result.content[0].text, /Pi session named/);
+	});
+});
+
+test("missing or blank names are rejected before Pi state changes", async () => {
+	await withEnv({ HERDR_ENV: "1" }, async () => {
+		const fake = makeFake();
+		const invalid = [
+			{ tabName: "API Fix" },
+			{ piName: "Build API" },
+			{ piName: "  ", tabName: "API Fix" },
+			{ piName: "Build API", tabName: "  " },
+		];
+		for (const params of invalid) {
+			await assert.rejects(() => tool(fake).execute("call", params, undefined, undefined, context()));
+		}
+		assert.deepEqual(fake.setNames, []);
+		assert.deepEqual(fake.execCalls, []);
+		assert.deepEqual(fake.appended, []);
 	});
 });
 
@@ -160,5 +192,15 @@ test("/rename queues the normal naming pass and rejects arguments", async () => 
 		});
 		assert.deepEqual(notifications, ["Usage: /rename"]);
 		assert.equal(fake.messages.length, 1);
+	});
+});
+
+test("/rename outside Herdr requires both names and marks tabName ignored", async () => {
+	await withEnv({ HERDR_ENV: undefined }, async () => {
+		const fake = makeFake();
+		await fake.commands.rename.handler("", context([], true));
+		assert.equal(fake.messages.length, 1);
+		assert.match(fake.messages[0]!.text, /Provide a descriptive piName and a compact/);
+		assert.match(fake.messages[0]!.text, /tabName is ignored outside Herdr/);
 	});
 });

@@ -14,10 +14,10 @@ const NameSessionParams = Type.Object({
 		description: "The descriptive name for the current Pi session.",
 		minLength: 1,
 	}),
-	tabName: Type.Optional(Type.String({
-		description: "A distinct compact 2-4 word label for the current Herdr tab; use only inside Herdr.",
+	tabName: Type.String({
+		description: "A distinct compact 2-4 word label for the current Herdr tab; ignored outside Herdr.",
 		minLength: 1,
-	})),
+	}),
 });
 
 type HerdrPane = { tab_id?: unknown };
@@ -88,7 +88,7 @@ function saveTabAlias(pi: ExtensionAPI, name: string): void {
 function queueNamingPrompt(pi: ExtensionAPI, ctx: ExtensionContext): void {
 	const prompt = herdrEnabled()
 		? "Call name_session once for initial naming, after the session's primary objective is clear. Name the enduring umbrella topic or objective, not the current phase, latest subtask, or most recent conversational turn. Provide a descriptive piName and a compact, discriminative 2-4 word tabName for the same umbrella topic; do not duplicate the Pi name. Keep both names through normal progression, related pivots, implementation, debugging, review, and follow-up work. Call name_session again only when the user asks or when the session's primary objective has been replaced and the existing names have become materially misleading."
-		: "Call name_session once for initial naming, after the session's primary objective is clear. Name the enduring umbrella topic or objective, not the current phase, latest subtask, or most recent conversational turn. Provide a descriptive piName only. Keep the name through normal progression, related pivots, implementation, debugging, review, and follow-up work. Call name_session again only when the user asks or when the session's primary objective has been replaced and the existing name has become materially misleading.";
+		: "Call name_session once for initial naming, after the session's primary objective is clear. Name the enduring umbrella topic or objective, not the current phase, latest subtask, or most recent conversational turn. Provide a descriptive piName and a compact, discriminative 2-4 word tabName for the same umbrella topic; tabName is ignored outside Herdr. Keep both names through normal progression, related pivots, implementation, debugging, review, and follow-up work. Call name_session again only when the user asks or when the session's primary objective has been replaced and the existing names have become materially misleading.";
 	pi.sendUserMessage(prompt, ctx.isIdle() ? undefined : { deliverAs: "followUp" });
 }
 
@@ -124,10 +124,10 @@ export default function sessionNamingExtension(pi: ExtensionAPI) {
 		name: "name_session",
 		label: "Name Session",
 		description:
-			"Set the current Pi session name. In Herdr, optionally rename its current tab and save the alias for this branch.",
+			"Set the current Pi session name and, inside Herdr, rename the current tab and save the alias for this branch. Both piName and tabName are required; tabName is ignored outside Herdr.",
 		promptGuidelines: [
 			"Call name_session once for initial naming, after the primary objective is clear. Use the enduring objective, not a phase, subtask, or conversational turn.",
-			"Inside Herdr, provide a descriptive piName and a distinct, compact, discriminative 2-4 word tabName for the same objective. Outside Herdr, provide only piName.",
+			"name_session requires a descriptive piName and a distinct, compact, discriminative 2-4 word tabName for the same objective. tabName is ignored outside Herdr.",
 			"Keep names through related pivots, implementation, debugging, review, and follow-up. Rename only on user request or when a replaced primary objective makes the names materially misleading.",
 		],
 		parameters: NameSessionParams,
@@ -135,7 +135,7 @@ export default function sessionNamingExtension(pi: ExtensionAPI) {
 			const names = normalizeSessionNames(params);
 			pi.setSessionName(names.piName);
 
-			if (!names.tabName || !herdrEnabled()) {
+			if (!herdrEnabled()) {
 				return {
 					content: [{ type: "text", text: `Pi session named ${JSON.stringify(names.piName)}.` }],
 					details: { piName: names.piName },
