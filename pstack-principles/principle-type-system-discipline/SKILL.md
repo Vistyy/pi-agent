@@ -7,7 +7,7 @@ description: "Apply when designing types, reviewing a function signature, or wri
 
 The type checker is a proof assistant. Use it to eliminate impossible states, mismatched primitives, and unhandled variants at compile time. A case the types let you ignore becomes a runtime failure the compiler could have stopped. Prefer defining errors and special cases out of existence over proliferating handlers. Unrepresentable states, total functions, and interface redesign (the patterns below) are the tools.
 
-Applies to any typed language. Language-specific skills ground it in specific syntax.
+Applies to any typed language. Language-specific guidance grounds it in specific syntax. For TypeScript work, read [TypeScript best practices](references/typescript.md) and the linked pattern examples.
 
 **The patterns:**
 
