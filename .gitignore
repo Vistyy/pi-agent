@@ -24,6 +24,10 @@
 !skills/**
 !user-skills/
 !user-skills/**
+!pstack-skills/
+!pstack-skills/**
+!pstack-principles/
+!pstack-principles/**
 !themes/
 !themes/**
 !docs/

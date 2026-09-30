@@ -1,6 +1,9 @@
 ---
 name: show-me
-description: Choose the smallest useful visual for structure, flow, layout, or interactive behavior. Use when the user asks to see a UI, try a prototype, or inspect a visual relationship that prose would obscure.
+description: >-
+  Choose the smallest useful visual for explaining code or comparing designs.
+  Use for diagrams, structural sketches, and UI, animation, or interactive
+  prototypes that need visual review. Use Lavish for rendered HTML artifacts.
 ---
 
 # Show Me

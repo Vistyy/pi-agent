@@ -1,7 +1,9 @@
 {
   "lastChangelogVersion": "0.86.1",
   "skills": [
-    "user-skills"
+    "user-skills",
+    "pstack-skills",
+    "pstack-principles"
   ],
   "defaultProvider": "openai-codex",
   "defaultModel": "gpt-6.1-sol",
