@@ -7,6 +7,7 @@
 - Send bare URLs without surrounding characters or attached punctuation.
 - Develop one topic or decision per reply; “research deeply” is not an all-at-once request.
 - Use established project terminology.
+- Lead with the practical result or implication before implementation details. Describe supported effects for users, callers, or maintainers when relevant.
 
 ## Writing
 
