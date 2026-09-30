@@ -2,10 +2,11 @@
 name: architect
 description: >-
   Use for "architect this", "sketch the design", "design this", or non-trivial
-  implementation work where jumping straight to code would lock in the wrong
-  shape. Ground the affected system, derive a design from caller usage, and make
-  types, interfaces, boundaries, invariants, and trade-offs inspectable before
-  implementation.
+  implementation that changes data shapes, function contracts, or module
+  boundaries where coding first could lock in the wrong shape. Ground the
+  affected system, derive a design from caller usage, and make types, interfaces,
+  boundaries, invariants, and trade-offs inspectable before implementation.
+  Routine calls and mechanical edits alone do not trigger this skill.
 ---
 
 # Architect
