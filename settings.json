@@ -11,10 +11,6 @@
   "doubleEscapeAction": "tree",
   "theme": "rose-pine-moon",
   "packages": [],
-  "wrap-up": {
-    "model": "openai-codex/gpt-6-luna",
-    "thinkingLevel": "low"
-  },
   "enabledModels": [
     "openai-codex/gpt-6-astra",
     "openai-codex/gpt-6.1-sol",
