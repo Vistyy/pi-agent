@@ -3,9 +3,11 @@ name: how
 description: >-
   Use for "how does X work", code walkthroughs before changing something,
   and placement, ownership, or layering questions such as "where should this
-  live" or "which package owns this". Explains subsystem architecture,
-  runtime flow, and onboarding mental models. Not a historical design-rationale
-  investigation.
+  live" or "which package owns this". Also use before non-trivial changes or
+  architectural decisions when the affected runtime flow, boundaries, or
+  ownership are not yet understood from the current code. Explains subsystem
+  architecture, runtime flow, and onboarding mental models. Not a historical
+  design-rationale investigation.
 ---
 
 # How
