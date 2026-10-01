@@ -1,31 +1,11 @@
 ---
 name: show-me
-description: >-
-  Choose the smallest useful visual for explaining code or comparing designs.
-  Use for diagrams, structural sketches, and UI, animation, or interactive
-  prototypes that need visual review. Use Lavish for rendered HTML artifacts.
+description: Help the user understand the current topic visually with concise diagrams, code-shape sketches, and focused HTML artifacts. Not for building and running prototype experiments to choose a design or behavior.
 ---
 
-# Show Me
+Help the user understand the current topic of conversation visually. Skip the preamble and keep prose brief. Pick the smallest view that makes the key point clear.
 
-Help the user understand the current topic visually. Pick the smallest view that makes the key point clear.
-
-## Choose a form
-
-| Question shape | Prefer |
-| --- | --- |
-| Logic or algorithm | Pseudocode |
-| Runtime control flow | Call tree |
-| UI composition | Component tree |
-| File responsibility or broad refactor | Shallow file tree |
-| Component interaction, control flow, or data movement | Mermaid |
-| Change to an existing shape | Fenced `diff` |
-| Mostly new, copyable code | Complete code block |
-| Rendered UI, visual fidelity, or behavior the reader must try | Focused HTML artifact |
-
-## Logic and flow
-
-Show an algorithm as pseudocode:
+- Show logic or an algorithm as pseudocode:
 
 ```text
 on(save)
@@ -35,7 +15,7 @@ on(save)
   return fresh result
 ```
 
-Show runtime control flow as a call tree:
+- Show runtime control flow as a call tree:
 
 ```text
 submitForm
@@ -45,7 +25,25 @@ submitForm
   navigateToSession
 ```
 
-Show component interaction, control flow, or data flow with Mermaid:
+- Show UI structure as a component tree, including state and module boundaries that matter:
+
+```tsx
+<SessionPage> (apps/example/src/routes/session.tsx)
+  useSessionEvents()
+  <SessionToolbar>
+    <RunSkillButton> (packages/ui)
+```
+
+- Show file responsibility or a broad refactor as a shallow file tree:
+
+```text
+src/
+├── commands/       # parses user actions
+├── sessions/       # owns session state
+└── transport/      # sends API requests
+```
+
+- Show component interaction, control flow, or data flow with Mermaid:
 
 ```mermaid
 sequenceDiagram
@@ -57,42 +55,20 @@ sequenceDiagram
     Daemon-->>UI: stream result
 ```
 
-## Structure
+- Use `diff` when the point is what changes and the surrounding shape already exists. Match the diff shape to the topic.
 
-Show UI composition as a component tree. Include only state and module boundaries that matter:
-
-```tsx
-<SessionPage> (apps/example/src/routes/session.tsx)
-  useSessionEvents()
-  <SessionToolbar>
-    <RunSkillButton /> (packages/ui)
-  <SessionTimeline>
-```
-
-Show file responsibility or a broad refactor as a shallow file tree:
-
-```text
-src/
-├── commands/       # parses user actions
-├── sessions/       # owns session state
-└── transport/      # sends API requests
-```
-
-## Changes
-
-Use a fenced `diff` when the surrounding shape already exists. Match the diff to the topic.
-
-Component change:
+For a component change:
 
 ```diff
  <SessionPage>
+   useSessionEvents()
    <SessionToolbar>
 +    <RunSkillButton />
    <SessionTimeline>
 +    <SkillResultCard />
 ```
 
-File-layout change:
+For a file-layout change:
 
 ```diff
  src/
@@ -105,7 +81,7 @@ File-layout change:
 +    └── stream.ts
 ```
 
-Call-tree or call-stack change:
+For a call-tree or call-stack change:
 
 ```diff
  submitForm
@@ -115,23 +91,21 @@ Call-tree or call-stack change:
      launchAgent
 -  navigateToSession
 +  navigateToSession
-+    subscribeEvents
++    subscribeToEvents
 ```
 
-State or control-flow change:
+For a state or control-flow change:
 
 ```diff
  on(save)
 -  write content
 +  if content is unchanged
 +    return cached result
-+  write content
++  write new content
 +  invalidate cache
 ```
 
-## New code
-
-Show the complete block when most of it is new, omitted context would hide ownership or order, or the user needs a copyable target:
+- Show the whole block when most of it is new, when omitted context would hide ownership or order, or when the user needs a copyable target shape:
 
 ```ts
 function expandSkill(command: string): string {
@@ -140,18 +114,20 @@ function expandSkill(command: string): string {
 }
 ```
 
-## HTML artifacts
+- For a visual UI, layout, state comparison, or concept too dense for Mermaid, write one focused HTML file. Use a diagram, an infographic, or a short slide deck, whichever fits the point. Match the product's colors, type, spacing, and components; use real labels and data; support desktop and mobile. Before writing HTML, read the installed `lavish-axi --help` and each relevant `lavish-axi playbook <id>` for the artifact. Place the artifact outside product source unless the user requested a repository change. Keep local assets beside the HTML and use relative paths.
 
-Use HTML only when the user must judge a rendered layout or try behavior that Pi cannot show. A long overview, plan, or comparison stays in Pi when text or a diagram preserves its meaning. Write one focused HTML file for the browser question.
+Serve it for the user through the installed Lavish integration:
 
-- Match the product's colors, type, spacing, components, labels, and data. Support desktop and mobile.
-- Place the artifact outside product source unless the user requested a repository change.
-- Use the installed `lavish-axi` CLI for browser review. Open the artifact with `lavish-axi <file> --no-open`, check that the returned link serves it, and give the user that link. Follow the CLI's current instructions for access and feedback.
-- A link does not open a browser on the user's SSH client. Keep the Lavish poll attached to this session for browser feedback, and end the review when finished. Do not use `lavish-axi share`, which sends the file to a third-party service.
-- If a private browser link is unavailable, give the user the file path and say that it was not opened.
+```sh
+lavish-axi path/to/show-me-{description}.html --no-open
+```
 
-## Constraints
+Use the URL returned by the configured CLI, including its remote-host rewrite, and check that it serves the actual artifact. Do not substitute an agent-local localhost URL or rely on opening a browser on the SSH host. If a reachable private link is unavailable, provide the file path and report that browser delivery is blocked. Do not use `lavish-axi share`, which publishes to a third-party service.
 
-- Place each visual next to the text it supports.
-- Keep only the calls, files, props, states, and boundaries needed for the current question or the options that resolve the current discussion point.
-- Choose the visual forms that fit the question.
+Follow the CLI's current feedback lifecycle. Keep `lavish-axi poll <html-file>` attached to this agent through the foreground or a supported completion-aware facility; do not claim monitoring without a live feedback path. Read returned feedback completely, resume a timed-out poll when appropriate, and do not reopen a user-ended review uninvited. End the review only when complete or requested.
+
+### Guidance
+
+Place each visual next to the short text it supports. Keep only the calls, files, props, states, and boundaries needed to answer the user's current question or the options to resolve the current discussion point.
+
+You may use one of these, you may use several, it is unlikely you will use all of them. Use your judgement and don't overwhelm the user.
