@@ -34,6 +34,8 @@ Finish when the job, inputs, expected outputs, supported cases, and nearby exclu
 
 Check whether an existing skill is the right home. A repeated short prompt may need a prompt template instead. New executable tools or lifecycle hooks need an integration, not instructions pretending the capability already exists.
 
+Skills can provide a method, consulted reference, or complete workflow. For principles, state the conditions under which the guidance applies and its limits.
+
 Choose model invocation when the agent should select the skill during normal work. Choose explicit-only invocation when the user should decide when to run it. Read [Pi mechanics](references/pi-mechanics.md) when creating a skill or changing names, frontmatter, invocation policy, placement, or discovery.
 
 Write a concise description that states the job and its distinct trigger cases. Put discovery criteria in the description, not solely in the body that is loaded afterward. Include a boundary when a plausible neighboring request would otherwise select the wrong skill. Avoid keyword lists that broaden the job beyond its intended scope.
@@ -44,6 +46,8 @@ Finish when the resource and name avoid existing collisions, the invocation poli
 
 ## 3. Write the instructions and resources
 
+Separate mechanical operations from decisions before writing the workflow. Identify repeated command composition, data extraction, pagination, polling, validation, and artifact comparison. Inspect existing CLIs, repository harnesses, and upstream helpers first. Reuse a supported command when it already completes the operation. Otherwise bundle the smallest script that performs the deterministic work and returns facts or a condition requiring judgment. Keep interpretation, product choices, and authorization with the agent. Do not require a script for a one-off operation or wrap a command without reducing work or failure modes.
+
 Choose ordered steps, consulted reference, or both. For steps, state the required action and a checkable completion condition at important boundaries. For reference, state which rules or cases apply rather than requiring every rule on every task.
 
 - Keep instructions needed by all cases in the main file. Move case-specific details into references with explicit conditions for reading them.
@@ -53,7 +57,7 @@ Choose ordered steps, consulted reference, or both. For steps, state the require
 - Explain a reason when it changes a decision or prevents misuse. Omit explanations that only repeat the instruction.
 - Match precision to the task: permit judgment where valid approaches vary; specify exact sequences or tested scripts where operations are fragile.
 - Add examples that clarify a real ambiguity. Cover different cases without turning one example into a universal rule.
-- Add scripts for repeated work or deterministic operations, references for consulted knowledge, and assets for output material. Create only resources the workflow actually needs.
+- Add scripts for the mechanical work identified above, references for consulted knowledge, and assets for output material. Create only resources the workflow actually needs.
 
 For helpers, show the invocation, inputs, expected outputs, prerequisites, and cleanup responsibilities. Read unfamiliar source instructions and scripts before incorporating or running them. Keep permissions and side effects consistent with the job described to the user.
 
