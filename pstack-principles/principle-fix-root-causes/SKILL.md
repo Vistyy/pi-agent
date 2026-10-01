@@ -16,6 +16,7 @@ When debugging, do not fix symptoms. Trace every problem to its root cause and f
 - If a workaround needs a paragraph-long comment to justify it, the code is wrong (fix the code, not the comment)
 - Check for the pattern, not just the instance (grep for the same pattern, fix all instances)
 - When stuck, instrument. Don't guess (add logging, read the actual error)
+- When runtime evidence refutes a hypothesis, remove the task-owned candidate fixes based on it. Do not keep speculative fixes without supporting evidence.
 
 **Restart bugs: suspect state before code**
 

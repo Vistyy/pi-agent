@@ -11,6 +11,8 @@ Order work as a sequence of small units, each ending in a state you can check, a
 
 **Execution.** In a sweep, migration, or any run of similar edits, verify each change before starting the next. Each unit is a before/after bracket: verified starting baseline, one coherent change, run the check, then proceed. Rebase only when the agreed workflow requires it. When a lever does the edits, the per-unit check is nearly free. Run it anyway.
 
+For behavior-preserving refactors, establish a check of the affected observable contract before editing. Reuse existing tests that cover it; otherwise add a characterization or before/after check. Run the same checks after each structural change.
+
 **Delivery.** Stack commits and PRs in the order that proves the work. The canonical shape is the failing test first, then the fix on top. Other story orders are a subtraction before the reshape, a baseline capture before the treatment, the scaffold before the feature. Verify each stage against its intended outcome: a deliberately red reproducer must fail for the intended bug, not a setup error; the fix must make the same check pass. Intermediate commits need not be independently merge-ready; the test and fix can land together. The sequence reads as an argument.
 
 The sequencing complement to the [verification rules](../../AGENTS.md#verification), which keep each check real, and the **build-the-lever** principle skill, which makes the per-unit check cheap.
