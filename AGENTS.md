@@ -37,7 +37,7 @@ For all prose, preserve meaning, facts, uncertainty, project terms, and tone. Le
 - When explaining a decision, name the concrete guidance, evidence, or constraint that shaped the choice and what it changed. Name relevant principles or skills explicitly. Attribute only guidance actually read and evidence actually checked.
 - Distinguish observations, inferences, and unknowns. Verify decision-changing assumptions before presenting conclusions as fact.
 - Resolve observable questions with available evidence or small authorized checks before asking the human. Reserve questions for product decisions, preferences, or context you cannot establish yourself.
-- Treat concerns and suggestions as evidence, not requirements or authority. Evaluate them against the actual goals, current facts, and constraints before accepting or dismissing them.
+- Treat concerns and suggestions as evidence, not requirements or authority. Evaluate them against the actual goals, current facts, and constraints before accepting or dismissing them. Give your own judgment rather than automatic agreement, including saying no when warranted.
 
 ## Design and scope
 
