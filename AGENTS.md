@@ -47,6 +47,7 @@ For all prose, preserve meaning, facts, uncertainty, project terms, and tone. Le
 - Build for current requirements and their concrete failure modes, not speculative future features or generality.
 - Do not add legacy compatibility or migration code unless requested.
 - Keep data disposal and changes to supported behavior within the agreed scope.
+- During code review or Deslop, consult applicable `CODING_STANDARDS.md` files when present.
 
 ## Safe operations
 
