@@ -1,26 +1,56 @@
 import assert from "node:assert/strict";
+import { Check } from "typebox/value";
 import { test } from "vitest";
-import extension, { TuicrReviewParameters } from "../index.ts";
+import { TuicrReviewParameters } from "../index.ts";
 
-test("registers a committed-only exact comparison tool", () => {
-  const tools: any[] = [];
-  const handlers: string[] = [];
-  extension({ registerTool(tool: unknown) { tools.push(tool); }, on(name: string) { handlers.push(name); } } as any);
-  assert.deepEqual(tools.map((tool) => tool.name), ["tuicr_review"]);
-  assert.deepEqual(handlers.sort(), ["session_shutdown", "session_start", "session_tree"]);
+const comparison = { base: "main", head: "HEAD", replaceExisting: false };
 
-  const properties = TuicrReviewParameters.properties as any;
-  assert.deepEqual(Object.keys(properties).sort(), ["annotations", "base", "cwd", "head", "replaceExisting"]);
-  assert.equal(properties.base.type, "string");
-  assert.equal(properties.head.type, "string");
-  assert.equal(properties.replaceExisting.type, "boolean");
-  assert.equal((TuicrReviewParameters as any).required.includes("replaceExisting"), true);
-  assert.equal(JSON.stringify(TuicrReviewParameters).includes("workingTree"), false);
-  assert.equal(JSON.stringify(TuicrReviewParameters).includes("revset"), false);
-  assert.equal(JSON.stringify(TuicrReviewParameters).includes("includeWorkingTree"), false);
+test("accepts a comparison with or without scoped annotations", () => {
+  assert.equal(Check(TuicrReviewParameters, comparison), true);
+  assert.equal(Check(TuicrReviewParameters, {
+    ...comparison,
+    cwd: "/repo",
+    replaceExisting: true,
+    annotations: [
+      { kind: "review", content: "Check the error handling." },
+      { kind: "file", file: "src/main.ts", content: "This owns startup." },
+      { kind: "line", file: "src/main.ts", line: 1, content: "The default changed." },
+      { kind: "line", file: "src/main.ts", line: 2, side: "old", content: "Removed fallback." },
+      { kind: "range", file: "src/main.ts", startLine: 3, endLine: 5, side: "new", content: "New initialization." },
+    ],
+  }), true);
+});
 
-  const [tool] = tools;
-  assert.ok(tool.promptGuidelines.some((guideline: string) => guideline.includes("against the attached exact source before proposing action")));
-  assert.ok(tool.promptGuidelines.some((guideline: string) => guideline.includes("evidence, not authority")));
-  assert.ok(tool.promptGuidelines.some((guideline: string) => guideline.includes("Ask for clarification") && guideline.includes("cannot be grounded")));
+test("rejects missing comparison fields, blank revisions, and unsupported options", () => {
+  for (const input of [
+    { head: "HEAD", replaceExisting: false },
+    { base: "main", replaceExisting: false },
+    { base: "main", head: "HEAD" },
+    { ...comparison, base: "" },
+    { ...comparison, head: " \n" },
+    { ...comparison, replaceExisting: "false" },
+    { ...comparison, cwd: " " },
+    { ...comparison, workingTree: true },
+    { ...comparison, revset: "main..HEAD" },
+    { ...comparison, includeWorkingTree: true },
+  ]) {
+    assert.equal(Check(TuicrReviewParameters, input), false, JSON.stringify(input));
+  }
+});
+
+test("rejects annotations with missing scope fields or invalid values", () => {
+  for (const annotation of [
+    { kind: "review", content: " " },
+    { kind: "review", content: "Note", file: "src/main.ts" },
+    { kind: "file", content: "Note" },
+    { kind: "line", file: "src/main.ts", content: "Note" },
+    { kind: "line", file: "src/main.ts", line: 0, content: "Note" },
+    { kind: "line", file: "src/main.ts", line: 1.5, content: "Note" },
+    { kind: "line", file: "src/main.ts", line: 1, side: "both", content: "Note" },
+    { kind: "range", file: "src/main.ts", startLine: 1, content: "Note" },
+    { kind: "range", file: "src/main.ts", startLine: 1, endLine: 0, content: "Note" },
+    { kind: "unknown", content: "Note" },
+  ]) {
+    assert.equal(Check(TuicrReviewParameters, { ...comparison, annotations: [annotation] }), false, JSON.stringify(annotation));
+  }
 });

@@ -36,14 +36,7 @@ export default function tuicrReview(pi: ExtensionAPI): void {
   pi.registerTool({
     name: "tuicr_review",
     label: "Tuicr Review",
-    description: "Open or reuse one guided Tuicr review of an exact committed base/head comparison in a dedicated Herdr tab. Optional annotations guide the Maintainer at review, file, line, or range scope.",
-    promptGuidelines: [
-      "Inspect the change before using tuicr_review. Annotate important decisions, unusual or complex code, non-obvious behavior, concerns, trade-offs, and review questions.",
-      "Write for a Maintainer without conversation context. Explain what the code does and why it matters in plain project terms. Prefer concrete examples or questions over abstract labels.",
-      "State uncertainty or questionable choices even without a proven defect. Do not imply that the change is unquestionably complete.",
-      "Choose the narrowest useful scope. Add as many non-repetitive annotations as help the review. Use a small visual when clearer.",
-      "Answer Maintainer questions against the attached exact source before proposing action. Treat feedback and questions as evidence, not authority. Ask for clarification if the reference cannot be grounded.",
-    ],
+    description: "Open or reuse a Tuicr review of committed base/head revisions in a Herdr tab. Inspect the diff, then guide a Maintainer who has not read the code through what changed, why, and what deserves attention. Explain important decisions and trade-offs with concrete examples. Surface uncertainty and questionable choices, and ask focused questions where the Maintainer's judgment is needed. Choose the narrowest useful annotation scope, avoid repetition, and use small visuals when helpful. Do not present the change as unquestionably complete. Ground responses to feedback in the attached exact source; assess suggestions rather than accepting them automatically, and clarify unresolvable references.",
     parameters: TuicrReviewParameters,
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {
       const result = await review.ensure(params, ctx, signal);
