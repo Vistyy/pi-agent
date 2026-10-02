@@ -2,9 +2,12 @@
 
 `tuicr_review` opens one guided Tuicr review for an exact committed comparison in a dedicated, unfocused Herdr tab. It returns when the review is ready while completion monitoring continues in the Pi process.
 
+The tool is deferred under the `code-review` namespace. This repository's `deferred-tool-hints` extension advertises that capability upfront. Pi's `tool_search` loads the full definition when needed. Pi 1.0.0's CLI resets these extension tools to configured defaults on restart, so a resumed session may need to search again.
+
 ## Prerequisites and input
 
-- Pi is running inside Herdr.
+- Pi 1.0.0 is running inside Herdr.
+- `tool_search` is active. This repository enables it with `"defaultTools": ["+tool_search"]` in `settings.json`.
 - `herdr` and `tuicr` are available on `PATH` (or through `HERDR_BIN_PATH` and `TUICR_BIN_PATH`).
 - The selected `cwd`, defaulting to Pi's current directory, is a Git repository containing both revisions.
 

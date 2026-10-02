@@ -52,7 +52,26 @@ def screen():
 
 
 def foreground(text):
-    return re.findall(r'\x1b\[38;(?:2;\d+;\d+;\d+|5;\d+)m', text)[-1]
+    color = ('default',)
+    for command in re.findall(r'\x1b\[([0-9;]*)m', text):
+        codes = [int(code) for code in command.split(';')] if command else [0]
+        index = 0
+        while index < len(codes):
+            code = codes[index]
+            if code in (0, 39):
+                color = ('default',)
+            elif 30 <= code <= 37:
+                color = ('indexed', code - 30)
+            elif 90 <= code <= 97:
+                color = ('indexed', code - 90 + 8)
+            elif code == 38 and codes[index + 1] == 5:
+                color = ('indexed', codes[index + 2])
+                index += 2
+            elif code == 38 and codes[index + 1] == 2:
+                color = ('rgb', *codes[index + 2:index + 5])
+                index += 4
+            index += 1
+    return color
 
 
 def spinner_style():
@@ -202,7 +221,8 @@ try:
     for style in ['inspect', 'theme', 'thinking']:
         event_command(f'/calm-style {style}', 'style')
         expected = next(event for event in reversed(events()) if event['type'] == 'style')
-        wanted = (foreground(expected['spinner']), foreground(expected['text']))
+        wanted = (foreground(expected['spinner'].split('X', 1)[0]),
+                  foreground(expected['text'].split('X', 1)[0]))
         wait(lambda: spinner_style() == wanted, f'native theme spinner color for {style}')
         colors.append(wanted)
         capture(f'style-{style}')

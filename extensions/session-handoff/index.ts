@@ -48,6 +48,11 @@ export default function sessionHandoff(pi: ExtensionAPI): void {
   pi.registerTool({
     name: "start_session",
     label: "Start Session",
+    exposure: "deferred",
+    namespace: {
+      name: "peer-sessions",
+      description: "Start an independent Pi agent in Herdr.",
+    },
     description:
       "Start an independent interactive Pi peer in a new unfocused Herdr workspace. It is not a managed worker. This call does not wait for results, steer or close the peer, or establish ownership. Returns exact Herdr and Pi session identities after the kickoff prompt is accepted.",
     parameters: Type.Object(

@@ -53,7 +53,7 @@ Calm off renders every row natively. Busy PStack receipts are custom messages wi
 
 Calm adapts one main-chat container. It does not patch shared component prototypes or replace executable tools. PStack's separate subagent transcript renderer remains unfiltered. RPC sessions skip presentation initialization.
 
-The adapter reads private Pi presentation metadata. If discovery or classification fails, Calm restores native rendering and displays a warning. Pi 0.86.1 is the verified runtime. Other versions require the same native verification.
+The adapter reads private Pi presentation metadata. If discovery or classification fails, Calm restores native rendering and displays a warning. Pi 1.0.0 is the verified runtime. Other versions require the same native verification.
 
 `projection.ts` owns filtering and fallback. `completion-report.ts` owns PStack report envelope recognition. `pi-runtime.ts` locates the running Pi's exact component constructors. `activity.ts` owns the bounded activity state and row layout. `index.ts` owns session lifecycle and commands. `preferences.ts` owns default persistence.
 

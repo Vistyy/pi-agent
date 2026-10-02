@@ -36,6 +36,11 @@ export default function tuicrReview(pi: ExtensionAPI): void {
   pi.registerTool({
     name: "tuicr_review",
     label: "Tuicr Review",
+    exposure: "deferred",
+    namespace: {
+      name: "code-review",
+      description: "Open and annotate committed diffs in Tuicr.",
+    },
     description: "Open or reuse a Tuicr review of committed base/head revisions in a Herdr tab. Inspect the diff, then guide a Maintainer who has not read the code through what changed, why, and what deserves attention. Explain important decisions and trade-offs with concrete examples. Surface uncertainty and questionable choices, and ask focused questions where the Maintainer's judgment is needed. Choose the narrowest useful annotation scope, avoid repetition, and use small visuals when helpful. Do not present the change as unquestionably complete. Ground responses to feedback in the attached exact source; assess suggestions rather than accepting them automatically, and clarify unresolvable references.",
     parameters: TuicrReviewParameters,
     async execute(_toolCallId, params, signal, _onUpdate, ctx) {

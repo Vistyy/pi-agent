@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "0.99.1",
+  "lastChangelogVersion": "1.0.0",
   "skills": [
     "user-skills",
     "pstack-skills",
@@ -8,6 +8,9 @@
   "defaultProvider": "openai-codex",
   "defaultModel": "gpt-6.1-sol",
   "defaultThinkingLevel": "medium",
+  "defaultTools": [
+    "+tool_search"
+  ],
   "doubleEscapeAction": "tree",
   "theme": "rose-pine-moon",
   "packages": [],
