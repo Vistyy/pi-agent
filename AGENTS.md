@@ -28,12 +28,10 @@ For all prose, preserve meaning, facts, uncertainty, project terms, and tone. Le
 - Keep a compact worklog of goals, direction changes, unfinished work, and next steps.
 - Update the worklog when the user changes direction, corrects the task, or pauses it. Address follow-up questions without forgetting unfinished work. Resume that work unless the user changes or pauses the goal.
 - Proceed with reversible work without permission pauses. Show results so the user can review them and change direction. The user decides product goals and scope.
-- Keep read-only investigations read-only.
 - When a skill is broken, report the failed step and fix the cause within an explicitly stated scope. Do not silently skip the failed step.
 
 ## Judgment
 
-- Apply a principle only when the task meets the conditions described by that principle. For example, shared-state concurrency rules apply when concurrent actors may access the same mutable state.
 - When explaining a decision, name the concrete guidance, evidence, or constraint that shaped the choice and what it changed. Name relevant principles or skills explicitly. Attribute only guidance actually read and evidence actually checked.
 - Distinguish observations, inferences, and unknowns. Verify decision-changing assumptions before presenting conclusions as fact or using them to justify scope or complexity.
 - Do not silently turn assumptions or optional improvements into requirements. Ground consequential requirements in the user's stated goals, observed constraints, or a necessary consequence of the requested behavior.
