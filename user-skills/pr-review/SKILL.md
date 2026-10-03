@@ -11,7 +11,7 @@ disable-model-invocation: true
 
 # Review a pull request
 
-Keep the review read-only. Do not edit reviewed code, switch the user's checkout, publish comments, or submit a review decision. Review any explicitly selected PR, independent of author identity. Resolve its actual comparison base and head rather than assuming `main` or the current checkout. Exclude unrelated local changes. If the selection is ambiguous, ask. For GitHub CLI operations, follow [GitHub CLI preference](../../skills/gh-axi/SKILL.md).
+Keep the review read-only. Do not edit reviewed code, switch the user's checkout, publish comments, or submit a review decision. Review any explicitly selected PR, independent of author identity. Resolve its actual comparison base and head rather than assuming `main` or the current checkout. Exclude unrelated local changes. If the selection is ambiguous, ask.
 
 ## Review priorities
 
