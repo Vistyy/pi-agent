@@ -1,6 +1,6 @@
 ---
 name: principle-test-behavior-not-implementation
-description: "Apply when you write, change, or keep a test. Exercise the code through its supported interface and assert observable outputs or effects against independent expected results. For concrete inputs, assert literal expected outputs or observable effects. Reject self-referential, fixture-only, and private-implementation checks, not matcher names."
+description: "Apply when you write, change, review, or keep a test. Exercise the code through its supported interface and assert observable outputs or effects against independent expected results. For concrete inputs, assert literal expected outputs or observable effects. Reject self-referential, fixture-only, and private-implementation checks, not matcher names."
 ---
 
 # Test Behavior, Not Implementation
@@ -17,6 +17,10 @@ A test exercises the code the way its users do and asserts the observable contra
 - **Self-referential.** The expected answer comes from the same code under test: `expect(f(a)).toBe(f(a))`, or `expect(parsed.url).toBe(buildUrl(...))` when that builder is the production logic being checked. Use an independent expectation.
 - **Internal constant pin.** Restating a private constant or prompt string can lock implementation details without observing behavior. Test the mechanism that consumes it. A published default or protocol value can be a real contract; verify the value or behavior users actually consume.
 - **Fixture asserts fixture.** The assertion reads only data the test constructed or computed in setup, rather than an outcome produced by the subject.
+- **Source or syntax only.** Reading, grepping, regex matching, parsing an AST, or snapshotting implementation strings and tokens does not establish executable behavior. This differs from pinning a private constant and from reusing the production oracle. Generated public output, serialized protocols, persisted state, or intentionally specified byte/text contracts can be observable outcomes. Inspect what the subject actually produces. Literal expected strings are valid for such contracts. For machine-consumed configuration or workflows, exercise the real consumer when feasible or assert a typed/normalized semantic interpretation, not arbitrary source tokens.
+- **Vacuous coverage.** A guard that passes with zero exercised cases does not demonstrate coverage. Assert important preconditions, including that adversarial setup created the intended condition. Report unavailable integrations as unsupported or untested, not a clean verification pass.
+
+**Prompt contracts:** The final prompt delivered through the real interface can be a transport contract. It does not prove model adherence to its instructions. Separate that evidence without requiring live model calls in ordinary deterministic tests.
 
 **The fix:** Exercise the subject with one concrete input and assert the literal output or observable effect, `expect(slugify("Hello, World!")).toBe("hello-world")`. Judge the assertion by the contract it verifies, not by whether it uses `toBeDefined`, `toBeTruthy`, an empty result, or a mock. When no meaningful assertion exists, delete the test.
 
