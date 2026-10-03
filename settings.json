@@ -8,9 +8,6 @@
   "defaultProvider": "openai-codex",
   "defaultModel": "gpt-6.1-sol",
   "defaultThinkingLevel": "medium",
-  "defaultTools": [
-    "+tool_search"
-  ],
   "doubleEscapeAction": "tree",
   "theme": "rose-pine-moon",
   "packages": [],
