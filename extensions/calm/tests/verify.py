@@ -20,6 +20,7 @@ run = Path(tempfile.mkdtemp(prefix='pi-calm-verify-'))
 agent = run / 'agent'
 (agent / 'extensions').mkdir(parents=True)
 (agent / 'extensions/calm').symlink_to(ROOT, target_is_directory=True)
+(agent / 'extensions/openai-fast').symlink_to(ROOT.parent / 'openai-fast', target_is_directory=True)
 (agent / 'settings.json').write_text(json.dumps({'quietStartup': True, 'hideThinkingBlock': True,
     'retry': {'enabled': False}, 'compaction': {'enabled': False}, 'terminal': {'clearOnShrink': True}}))
 (run / 'note.txt').write_text('BEFORE\n')
@@ -105,6 +106,10 @@ def send(text):
     tmux('send-keys', '-l', '-t', 'probe', text)
     wait(lambda: any(line.strip() == text for line in screen().splitlines()), 'editor accepted input')
     tmux('send-keys', '-t', 'probe', 'Enter')
+
+
+def ctrl_alt(key):
+    tmux('send-keys', '-l', '-t', 'probe', f'\x1b[{ord(key)};7u')
 
 
 def event_command(text, kind):
@@ -229,12 +234,14 @@ try:
     assert colors[0] != colors[1], 'changing the theme changes the rendered colors'
     assert colors[1][0] != colors[2][0], 'changing thinking level changes the spinner color'
     passed.append('spinner follows live theme and thinking-level colors while status text remains muted')
-    send('/calm')
-    wait(lambda: 'Calm off for this session.' in screen(), 'Calm disabled')
+    ctrl_alt('c')
+    wait(lambda: 'Calm off for this session.' in screen(), 'Calm disabled by Ctrl+Alt+C')
     off = capture('active-off', pages=True)
     assert 'HOLD_PARTIAL_a' in off and 'HOLD_PARTIAL_b' in off
-    send('/calm')
-    wait(lambda: bool(re.fullmatch(parallel, activity_row(screen()))), 'Calm enabled')
+    ctrl_alt('c')
+    wait(lambda: bool(re.fullmatch(parallel, activity_row(screen()))), 'Calm enabled by Ctrl+Alt+C')
+    assert not (agent / 'calm-default').exists(), 'shortcut leaves startup default unchanged'
+    passed.append('Ctrl+Alt+C restores active native tool results and hides them again without changing the startup default')
     (run / 'release').write_text('release')
     wait(lambda: any(event.get('gate') == 'after-parallel' for event in events()), 'parallel tools completed')
     wait(lambda: bool(re.fullmatch(rf'{SPINNER} Thinking   \d+s · probe_hold', activity_row(screen()))), 'completed parallel call retained without a prefix')
@@ -250,6 +257,17 @@ try:
     idle = capture('idle')
     assert activity_row(idle) == ''
     event_command('/calm-probe assert-file', 'file-checked')
+    tmux('send-keys', '-l', '-t', 'probe', 'UNSUBMITTED_DRAFT')
+    for enabled in [True, False]:
+        ctrl_alt('f')
+        def fast_choices():
+            stored = [json.loads(line) for line in (run / 'parent.jsonl').read_text().splitlines()]
+            return [entry['data']['enabled'] for entry in stored if entry.get('customType') == 'openai-fast-override-v2']
+        wait(lambda: fast_choices() == ([True] if enabled else [True, False]), 'Fast shortcut persisted')
+        assert 'UNSUBMITTED_DRAFT' in screen(), 'shortcut preserves the draft'
+        assert not (agent / 'state/openai-fast-default').exists(), 'shortcut leaves startup default unchanged'
+    tmux('send-keys', '-t', 'probe', 'C-u')
+    passed.append('Ctrl+Alt+F toggles Fast on and off, persists session choices, preserves the editor draft, and leaves startup defaults unchanged')
     passed.append('live toggling restores partial results, real edit succeeds, and the rail disappears at idle')
     send('fixture-stream')
     wait(lambda: 'STREAM_FLAG_LIVE' in screen(), 'streaming formatter state')
@@ -410,6 +428,8 @@ try:
     assert 'STREAM_FINAL' in rpc_log.read_text()
     passed.append('headless RPC executes normally without installing the projection or recording a Calm preference')
     stored = [json.loads(line) for line in (run / 'parent.jsonl').read_text().splitlines()]
+    choices = [entry['data']['enabled'] for entry in stored if entry.get('customType') == 'openai-fast-override-v2']
+    assert choices == [True, False], 'Fast shortcut choices persist in the session file'
     messages = [entry['message'] for entry in stored if entry['type'] == 'message']
     results = [message for message in messages if message['role'] == 'toolResult']
     assert len(results) == 5

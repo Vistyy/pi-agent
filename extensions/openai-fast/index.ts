@@ -60,6 +60,26 @@ export default function openaiFast(
 		setStatus(ctx, enabled, event.model);
 	});
 
+	const toggle = (ctx: ExtensionContext): void => {
+		enabled = !enabled;
+		pi.appendEntry(SESSION_ENTRY, {
+			sessionId: ctx.sessionManager.getSessionId(),
+			enabled,
+		});
+		setStatus(ctx, enabled);
+		if (ctx.hasUI) {
+			ctx.ui.notify(
+				`OpenAI Fast mode ${enabled ? "on" : "off"} for this session (saved default unchanged).`,
+				"info",
+			);
+		}
+	};
+
+	pi.registerShortcut("ctrl+alt+f", {
+		description: "Toggle OpenAI Fast mode for this session",
+		handler: async (ctx) => toggle(ctx),
+	});
+
 	pi.registerCommand("fast", {
 		description: "Toggle Fast mode for this session; /fast default on|off saves and applies the default",
 		getArgumentCompletions: (prefix) =>
@@ -95,18 +115,7 @@ export default function openaiFast(
 				return;
 			}
 
-			enabled = !enabled;
-			pi.appendEntry(SESSION_ENTRY, {
-				sessionId: ctx.sessionManager.getSessionId(),
-				enabled,
-			});
-			setStatus(ctx, enabled);
-			if (ctx.hasUI) {
-				ctx.ui.notify(
-					`OpenAI Fast mode ${enabled ? "on" : "off"} for this session (saved default unchanged).`,
-					"info",
-				);
-			}
+			toggle(ctx);
 		},
 	});
 

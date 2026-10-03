@@ -73,12 +73,40 @@ void test("default changes apply now and override-free reloads follow them", asy
 	assert.equal(reloaded.request()?.service_tier, "priority", "reload must read the current global default");
 });
 
+void test("the shortcut toggles request priority and persists without changing the default", async () => {
+	const entries: any[] = [];
+	let globalDefault = false;
+	const app = harness(entries, {
+		load: async () => globalDefault,
+		save: async (enabled) => {
+			globalDefault = enabled;
+		},
+	});
+	await app.start();
+	await app.shortcut();
+	assert.deepEqual(app.request({ model: "gpt" }), { model: "gpt", service_tier: "priority" });
+	assert.equal(entries.at(-1).data.enabled, true);
+	assert.equal(globalDefault, false);
+
+	const restored = harness(entries, {
+		load: async () => globalDefault,
+		save: async () => undefined,
+	});
+	await restored.start();
+	assert.deepEqual(restored.request(), { service_tier: "priority" });
+	await restored.shortcut();
+	assert.equal(restored.request(), undefined);
+	assert.equal(entries.at(-1).data.enabled, false);
+	assert.equal(globalDefault, false);
+});
+
 function harness(
 	entries: any[],
 	preferences: { load(): Promise<boolean>; save(enabled: boolean): Promise<void> },
 ) {
 	const handlers = new Map<string, (...args: any[]) => any>();
 	let fastCommand: { handler(args: string, ctx: any): Promise<void> } | undefined;
+	let fastShortcut: { handler(ctx: any): Promise<void> } | undefined;
 	const ctx = {
 		hasUI: true,
 		model: { provider: "openai-codex" },
@@ -100,6 +128,10 @@ function harness(
 			assert.equal(name, "fast");
 			fastCommand = definition;
 		},
+		registerShortcut(key: string, definition: typeof fastShortcut) {
+			assert.equal(key, "ctrl+alt+f");
+			fastShortcut = definition;
+		},
 		appendEntry(customType: string, data: unknown) {
 			entries.push({ type: "custom", customType, data });
 		},
@@ -109,6 +141,7 @@ function harness(
 	return {
 		start: () => handlers.get("session_start")?.({}, ctx),
 		command: (args: string) => fastCommand!.handler(args, ctx),
+		shortcut: () => fastShortcut!.handler(ctx),
 		request: (payload: Record<string, unknown> = {}, provider = "openai-codex") =>
 			handlers.get("before_provider_request")?.(
 				{ payload },

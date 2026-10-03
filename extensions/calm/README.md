@@ -6,9 +6,9 @@ Pi discovers `index.ts` from the global `extensions/calm` directory. No package 
 
 ## Controls
 
-| Command | Effect |
+| Control | Effect |
 | --- | --- |
-| `/calm` | Toggle Calm for the current session. |
+| `/calm` or `Ctrl+Alt+C` | Toggle Calm for the current session. |
 | `/calm default on` | Enable Calm by default in new sessions. |
 | `/calm default off` | Disable Calm by default in new sessions. |
 
@@ -61,7 +61,7 @@ The projection and runtime discovery derive from Workgraph's MIT-licensed Calm i
 
 ## Verification
 
-`tests/verify.py` runs the installed Pi CLI with an isolated agent directory and a scripted local provider. It uses real read and edit calls, parallel fixture tools, native commands, saved transcripts, and PStack report envelopes checked with Calm on, off, across a restart, and after a reload. It requires Python and tmux. It does not invoke a paid model or execute a child agent.
+`tests/verify.py` runs the installed Pi CLI with an isolated agent directory and a scripted local provider. It uses real read and edit calls, parallel fixture tools, native commands, Calm and OpenAI Fast keyboard shortcuts, saved transcripts, and PStack report envelopes checked with Calm on, off, across a restart, and after a reload. It requires Python and tmux. It does not invoke a paid model or execute a child agent.
 
 The following commands run from this directory:
 

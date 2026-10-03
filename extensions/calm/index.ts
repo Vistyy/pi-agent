@@ -199,6 +199,26 @@ export default function calm(pi: ExtensionAPI): void {
   pi.on("ui_prompt_end", () => activity.promptEnd());
   pi.on("session_shutdown", shutdown);
 
+  const toggle = (ctx: ExtensionContext): void => {
+    if (mode.kind !== "ready" || ctx.mode !== "tui") {
+      ctx.ui.notify(
+        "Calm is unavailable in this session. Native transcript remains visible.",
+        "warning",
+      );
+      return;
+    }
+
+    pi.appendEntry(ENTRY, { sessionId: ctx.sessionManager.getSessionId(), on: !mode.enabled });
+    mode.enabled = !mode.enabled;
+    sync();
+    ctx.ui.notify(`Calm ${mode.enabled ? "on" : "off"} for this session.`, "info");
+  };
+
+  pi.registerShortcut("ctrl+alt+c", {
+    description: "Toggle Calm for this session",
+    handler: async (ctx) => toggle(ctx),
+  });
+
   pi.registerCommand("calm", {
     description:
       "Toggle Calm for this session; /calm default on|off sets the default for new sessions",
@@ -234,18 +254,7 @@ export default function calm(pi: ExtensionAPI): void {
         return;
       }
 
-      if (mode.kind !== "ready" || ctx.mode !== "tui") {
-        ctx.ui.notify(
-          "Calm is unavailable in this session. Native transcript remains visible.",
-          "warning",
-        );
-        return;
-      }
-
-      pi.appendEntry(ENTRY, { sessionId: ctx.sessionManager.getSessionId(), on: !mode.enabled });
-      mode.enabled = !mode.enabled;
-      sync();
-      ctx.ui.notify(`Calm ${mode.enabled ? "on" : "off"} for this session.`, "info");
+      toggle(ctx);
     },
   });
 }
