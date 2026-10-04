@@ -1,25 +1,14 @@
----
-name: pr-review
-description: >-
-  Explicit-only review of a pull request for correctness, simplicity, readability,
-  maintainability, and integration risk. Use relevant project context and concrete
-  failure patterns to assess behavior and consequential code quality. Report
-  grounded findings and uncertainty. Do not run automatically. Not for
-  minute-detail polishing, implementing fixes, or merge-readiness follow-up.
-disable-model-invocation: true
----
-
-# Review a pull request
+# Review our own changes
 
 ## Scope and boundaries
 
-Review any explicitly selected PR, independent of author identity. Resolve its actual comparison base and head rather than assuming `main` or the current checkout. Exclude unrelated local changes. If the selection is ambiguous, ask.
+Use the selected locations, factual requirements and captured revisions supplied by the extension, without the author conversation or review conclusions. Assess the locations together and follow their affected contracts and integrations. For comparisons inspect the captured base and head Git trees, even when the working checkout differs. For uncommitted changes include the captured staged, unstaged, deleted and untracked files. For explicit paths inspect behavior and design within that scope. Verify supplied requirements against relevant primary sources. Working changes and explicit paths refer to current source, not retained snapshots.
 
-Keep the reviewed source unchanged. Do not apply fixes, switch the checkout, commit, push, publish feedback, submit a review decision or spawn reviewers. Owned temporary experiments are allowed.
+Keep the reviewed source unchanged. Do not apply fixes, switch the checkout, commit, push, publish feedback or spawn reviewers. Owned temporary experiments are allowed. Keep the current review name and shared Herdr tab name.
 
 ## Finding threshold
 
-Report consequential correctness concerns and design or maintainability problems with a concrete reading or maintenance burden. A quality finding does not need a runtime defect. Apply our preferences, but skip taste-only naming, formatting and minute polish that does not establish a consequential burden. Grounded conditional concerns need not be proved beyond doubt.
+This is our own work. Report correctness concerns, design judgments and useful detail preferences, including nitpicks that would not belong in a review of someone else's contribution. Preferences do not need a runtime defect or measured maintenance cost to be worth reporting. Explain what you prefer and why. Do not invent bugs to justify taste or suppress useful small improvements because larger problems were found.
 
 ## Expected depth and breadth
 
@@ -122,8 +111,8 @@ Check whether failures remain detectable and diagnosable. Inspect supported rest
 
 ## Return the assessment
 
-Present findings under the PR threshold, ordered by consequence, with precise locations, rationale and proportionate improvement directions. Distinguish correctness concerns and design judgments. Group repeated instances and give representative locations. Include reviewed repository, PR, base and head, relevant sources, actual checks, observable results, material coverage limits and consequential open questions. Report partial coverage when access or time leaves selected areas unexamined.
+Initial findings stay in the reviewer conversation for discussion. Present all useful findings under the code-review threshold, ordered by consequence, with precise locations, rationale and preferred changes. Distinguish correctness concerns, design judgments and detail preferences. Group repeated instances and give representative locations. Include reviewed scope and revisions, relevant sources, actual checks, observable results, material coverage limits and consequential open questions. Report partial coverage when access or time leaves selected areas unexamined.
 
 Resolve investigated candidates into findings, non-issues or explicit limits. There is no finding quota or fixed output cap. Do not repeat reviews until "clean" or promise exhaustive correctness. No findings does not mean defect-free. Inspect code before adopting someone else's diagnosis. Assess other findings as claims, not votes. Revise conclusions when warranted, without treating agreement as evidence.
 
-The recipient validates findings against actual code, requirements and constraints before acting. Draft selected feedback when asked, without publishing it or starting fixes.
+Only `/end-review` returns the complete reconciled report to the author, including remaining findings, resolved concerns, checks and limits. Do not return merely the last discussion reply. Returning the report starts or steers the author's assessment. It does not close either session or grant new permissions. The author validates findings against actual code, requirements and constraints before acting.
