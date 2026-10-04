@@ -1,9 +1,13 @@
 ---
 name: show-me
-description: Help the user understand the current topic visually with concise diagrams, code-shape sketches, and focused HTML artifacts. Not for building and running prototype experiments to choose a design or behavior.
+description: Help the user understand the current topic through text-based diagrams, code-shape sketches, and custom visual or interactive explanations. Not for building and running prototype experiments to choose a design or behavior.
 ---
 
-Help the user understand the current topic of conversation visually. Skip the preamble and keep prose brief. Pick the smallest view that makes the key point clear.
+Help the user understand the current topic of conversation visually. Skip the preamble and keep prose brief. Pick the smallest view that makes the key point clear, with enough detail to explain the mechanism.
+
+Choose the representation from the person's question and existing knowledge. Text-based diagrams and code blocks are first-class answers, not fallbacks. Keep the examples below available for direct use. A browser artifact is not automatically a better answer, and these examples are not a list of permitted formats.
+
+Show how the relevant relationships produce the result, not just the names of the parts. Ground the explanation in the available evidence. Distinguish real behavior from a simulation, a simplification, or an inference. Keep the representation no more certain than its source.
 
 - Show logic or an algorithm as pseudocode:
 
@@ -114,7 +118,7 @@ function expandSkill(command: string): string {
 }
 ```
 
-- For a visual UI, layout, state comparison, or concept too dense for Mermaid, write one focused HTML file. Use a diagram, an infographic, or a short slide deck, whichever fits the point. Match the product's colors, type, spacing, and components; use real labels and data; support desktop and mobile. Before writing HTML, read the installed `lavish-axi --help` and each relevant `lavish-axi playbook <id>` for the artifact. Place the artifact outside product source unless the user requested a repository change. Keep local assets beside the HTML and use relative paths.
+- When a custom visual or interactive explanation helps the person understand the subject, read [Browser authoring](references/browser-authoring.md). It covers presentation quality, meaningful interaction, source fidelity, packaging, and browser verification. Use it when authoring a browser artifact, not for every text diagram or code sketch. Keep the explanation focused, but do not reduce its depth merely to fit a stock diagram or minimize implementation effort. Place the artifact outside product source unless the user requested a repository change. Keep local assets beside the HTML and use relative paths.
 
 Serve it for the user through the installed Lavish integration:
 
@@ -122,7 +126,7 @@ Serve it for the user through the installed Lavish integration:
 lavish-axi path/to/show-me-{description}.html --no-open
 ```
 
-Use the URL returned by the configured CLI, including its remote-host rewrite, and check that it serves the actual artifact. Do not substitute an agent-local localhost URL or rely on opening a browser on the SSH host. If a reachable private link is unavailable, provide the file path and report that browser delivery is blocked. Do not use `lavish-axi share`, which publishes to a third-party service.
+Use the URL returned by the configured CLI and check that it serves the actual artifact. Local hosting needs no additional delivery service when the person opens it on the same machine. For a remote reviewer, use the configured remote-host rewrite rather than an agent-local localhost URL or a browser opened on the SSH host. Keep optional remote access separate from authoring; do not require Tailscale. If a reachable private link is unavailable, provide the file path and report that browser delivery is blocked. Do not use `lavish-axi share`, which publishes to a third-party service.
 
 Follow the CLI's current feedback lifecycle. Keep `lavish-axi poll <html-file>` attached to this agent through the foreground or a supported completion-aware facility; do not claim monitoring without a live feedback path. Read returned feedback completely, resume a timed-out poll when appropriate, and do not reopen a user-ended review uninvited. End the review only when complete or requested.
 
