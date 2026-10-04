@@ -47,12 +47,16 @@ Apply this discipline to each sketch:
 
 ## 4. Screen for structural red flags
 
-Screen each candidate before choosing. Revise or reject a shape with these problems:
+Screen each candidate before choosing. Assume the next contributor may see only the files they opened, copy the nearest example, and take the shortest path that compiles. Prefer a design where a change that looks right from one file remains correct across the repository. Revise or reject a shape with these problems:
 
 - **Shallow modules.** A large interface hides little complexity. Callers coordinate several methods for one operation, public options expose internal stages, or learning the interface still requires learning the implementation. A deep module concentrates capability behind one interface; it is not a deep call chain.
 - **Information leakage.** Multiple modules depend on the same internal representation, policy, or protocol decision. Keep storage schemas, framework objects, and wire types private; parse external data into domain types behind the interface.
 - **Temporal decomposition.** Modules are organized around execution order, such as load, validate, transform, and save, instead of the knowledge and decisions they own. Group code around domain knowledge and ownership, including methods that run at different times.
 - **Pass-through methods.** A layer forwards the same arguments with the same shape without hiding complexity. Remove it or move responsibility to the module that completes the operation. Keep a forwarding boundary when it adds policy, adaptation, or a distinct abstraction.
+- **Split ownership.** Multiple modules write the same state or maintain copies of it. Editing one writer can leave the others inconsistent. Give the state one owner; other modules read it or ask the owner to change it.
+- **Competing supported paths.** Multiple APIs perform the same task, so an agent copies whichever it finds first. Keep one supported path for that task. Migrate callers and delete the redundant paths in the same change.
+- **Importable internals.** Callers can bypass the intended interface by importing internals directly. Enforce the boundary with the language or build tooling so an outside import fails, rather than relying on a comment.
+- **Hand-synced lists.** Adding one item requires edits to several lists, but an agent may see only one. Derive the lists from one authoritative source. Where derivation is not possible, make the build detect disagreement.
 
 Compare viable shapes using the actual call sites and constraints: invariants, ownership, interface depth, and the complexity callers must understand. Prefer the shape that hides meaningful complexity behind the smaller, simpler public surface, not merely the one whose implementation is shortest. Choose and explain the trade-off; do not blend alternatives into an unsupported middle ground.
 

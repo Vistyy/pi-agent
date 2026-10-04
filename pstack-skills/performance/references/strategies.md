@@ -1,5 +1,20 @@
 # Optimization strategies
 
+## Prefer less work before cheaper work
+
+Use this order to choose among hypotheses supported by the trace and the architecture:
+1. Eliminate unnecessary work.
+2. Avoid repeating work.
+3. Reduce the amount of work.
+4. Defer work until needed.
+5. Move work outside the user-visible wait.
+6. Run independent work concurrently.
+7. Make the remaining operations cheaper.
+
+This is a preference order, not seven required experiments. Skip mechanisms that do not fit the evidence or would change required behavior. For a one-off fix, stop when verified behavior and performance meet the target. Hillclimb uses the same order but retains its own agreed budget and stop condition.
+
+## Choose a concrete mechanism
+
 Most fixes come from eight strategy families. Use them as hypothesis generators, not a checklist. A family earns an attempt only when the trace shows the signal it names.
 - **Elimination.** Before optimizing the hot path, ask whether it needs to exist: a computation nobody consumes, a feature gate that's always off for this user, a sync that redundantly mirrors state, a legacy path kept "just in case". The trace shows what's slow, never that it's deletable, so this family needs an architecture and behavior investigation, not just the profiler.
 - **Divide and conquer.** The dominant cost scales with input size. Split the work so each piece touches less (chunk, shard, prune the search space) or so independent pieces run in parallel.
