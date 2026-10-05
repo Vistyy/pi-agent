@@ -74,6 +74,14 @@
             ]
         },
         "openai-codex": {
+            "modelOverrides": {
+                "gpt-6.1-sol": {
+                    "contextWindow": 400000
+                },
+                "gpt-6-astra": {
+                    "contextWindow": 400000
+                }
+            },
             "models": [
                 {
                     "id": "gpt-6-sol",
