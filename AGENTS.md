@@ -25,8 +25,7 @@ For all prose, preserve meaning, facts, uncertainty, project terms, and tone. Le
 
 ## Workflow
 
-- Keep a compact worklog of goals, direction changes, unfinished work, and next steps.
-- Update the worklog when the user changes direction, corrects the task, or pauses it. Address follow-up questions without forgetting unfinished work. Resume that work unless the user changes or pauses the goal.
+- Address follow-up questions and steering without abandoning the main goal or unfinished work. Resume that work unless the user changes or pauses the goal.
 - Proceed with reversible work without permission pauses. Show results so the user can review them and change direction. The user decides product goals and scope.
 - For GitHub CLI operations, use installed `gh-axi` for supported commands and inspect its current help. Use raw `gh` when the operation or required behavior is not exposed.
 - When a skill is broken, report the failed step and fix the cause within an explicitly stated scope. Do not silently skip the failed step.
